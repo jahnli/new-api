@@ -272,13 +272,18 @@ const Home = () => {
 
                 {/* 右侧：轨道动画（桌面端）*/}
                 {!isMobile && (
-                  <div className='flex-1 flex items-center justify-center w-full max-w-lg'>
+                  <div className='flex-1 flex flex-col items-center justify-center w-full max-w-lg'>
                     <div className='relative w-[520px] h-[520px] flex items-center justify-center'>
                       <div className='home-orbit-ring home-orbit-ring-inner' style={{ top: '36%', left: '40%', transform: 'translate(-50%, -50%)' }}>
                         {renderOrbitDots(orbitIcons, 170)}
                       </div>
                       <div className='home-orbit-ring home-orbit-ring-outer' style={{ top: 'calc(36% + 60px)', left: '50%', transform: 'translate(-50%, -50%)' }}>
                         {renderOrbitDots(orbitIconsOuter, 200)}
+                      </div>
+                      {/* 轨道中心数字 */}
+                      <div className='home-orbit-center'>
+                        <span className='home-orbit-center-num'>100+</span>
+                        <span className='home-orbit-center-label'>MODELS</span>
                       </div>
                     </div>
                   </div>
@@ -425,7 +430,7 @@ const Home = () => {
                       </div>
                     ),
                   )}
-                  <Text className='!text-lg font-bold'>30+</Text>
+                  <Text className='!text-lg font-bold'>100+</Text>
                 </div>
               </div>
             )}
