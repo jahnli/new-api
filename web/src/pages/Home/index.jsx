@@ -316,8 +316,73 @@ const Home = () => {
                   </div>
                   <div>
                     {'  '}<span className='t-punct'>-d </span>
-                    <span className='t-string'>{'\'{"model":"opus4.6"}\''}</span>
+                    <span className='t-string'>{'\'{"model":"MODEL_NAME"}\''}</span>
                     <span className='home-caret' />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== 两步接入区域 ====== */}
+            <div className='home-steps-section w-full py-14 md:py-20'>
+              <div className='max-w-4xl mx-auto px-4'>
+                <div className='text-center mb-10 md:mb-14'>
+                  <h2 className='home-reveal text-2xl md:text-3xl font-bold text-semi-color-text-0'>
+                    {t('两步，五分钟完成全部接入')}
+                  </h2>
+                  <p className='home-reveal home-reveal-d1 mt-2 text-semi-color-text-2'>
+                    {t('保持你熟悉的 OpenAI 接入方式，几乎不需要重新学习。')}
+                  </p>
+                </div>
+
+                <div className='flex flex-col lg:flex-row items-stretch gap-0'>
+                  {/* Step 1 */}
+                  <div className='home-step-card home-reveal home-reveal-d1 flex-1'>
+                    <div className='home-step-flow-line' />
+                    <div className='flex items-start gap-4'>
+                      <div className='home-step-number'>1</div>
+                      <div className='flex-1 min-w-0'>
+                        <h3 className='text-base font-semibold text-semi-color-text-0 mb-1.5'>
+                          {t('注册账号，获取 API Key')}
+                        </h3>
+                        <p className='text-sm text-semi-color-text-2 leading-relaxed'>
+                          {t('进入')}{' '}
+                          <Link to='/console' className='text-semi-color-primary font-medium'>{t('控制台')}</Link>
+                          {' '}{t('完成注册，在令牌管理中创建新令牌并复制备用。')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 中间脉冲弧线 */}
+                  <div className='home-step-bridge'>
+                    <svg className='home-step-bridge-svg' viewBox={isMobile ? '0 0 48 56' : '0 0 80 48'}>
+                      {isMobile ? (
+                        <path className='bridge-path' d='M24 4 C36 16, 12 40, 24 52' />
+                      ) : (
+                        <path className='bridge-path' d='M4 24 C24 6, 56 42, 76 24' />
+                      )}
+                    </svg>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className='home-step-card home-reveal home-reveal-d2 flex-1'>
+                    <div className='home-step-flow-line' />
+                    <div className='flex items-start gap-4'>
+                      <div className='home-step-number'>2</div>
+                      <div className='flex-1 min-w-0'>
+                        <h3 className='text-base font-semibold text-semi-color-text-0 mb-1.5'>
+                          {t('充值并开始调用')}
+                        </h3>
+                        <p className='text-sm text-semi-color-text-2 leading-relaxed'>
+                          {t('在')}{' '}
+                          <Link to='/pricing' className='text-semi-color-primary font-medium'>{t('商店')}</Link>
+                          {' '}{t('购买兑换码或直接')}{' '}
+                          <Link to='/topup' className='text-semi-color-primary font-medium'>{t('在线充值')}</Link>
+                          {t('，到账后即可开始使用。')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
