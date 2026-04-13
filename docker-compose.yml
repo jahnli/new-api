@@ -28,7 +28,6 @@ services:
       - TZ=Asia/Shanghai
       - ERROR_LOG_ENABLED=true
       - BATCH_UPDATE_ENABLED=true
-      - VERSION=v0.12.9
 #      - STREAMING_TIMEOUT=300
 #      - SESSION_SECRET=random_string
 #      - SYNC_FREQUENCY=60
