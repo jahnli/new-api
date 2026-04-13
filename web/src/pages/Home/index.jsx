@@ -328,10 +328,10 @@ const Home = () => {
               <div className='max-w-4xl mx-auto px-4'>
                 <div className='text-center mb-10 md:mb-14'>
                   <h2 className='home-reveal text-2xl md:text-3xl font-bold text-semi-color-text-0'>
-                    {t('两步，五分钟完成全部接入')}
+                    {t('两步，三分钟完成全部接入')}
                   </h2>
                   <p className='home-reveal home-reveal-d1 mt-2 text-semi-color-text-2'>
-                    {t('保持你熟悉的 OpenAI 接入方式，几乎不需要重新学习。')}
+                    {t('保持你熟悉的 OpenAI 接入方式。')}
                   </p>
                 </div>
 
@@ -348,7 +348,7 @@ const Home = () => {
                         <p className='text-sm text-semi-color-text-2 leading-relaxed'>
                           {t('进入')}{' '}
                           <Link to='/console' className='text-semi-color-primary font-medium'>{t('控制台')}</Link>
-                          {' '}{t('完成注册，在令牌管理中创建新令牌并复制备用。')}
+                          {' '}{t('完成注册，在令牌管理中创建新令牌并复制备用')}
                         </p>
                       </div>
                     </div>
@@ -372,14 +372,12 @@ const Home = () => {
                       <div className='home-step-number'>2</div>
                       <div className='flex-1 min-w-0'>
                         <h3 className='text-base font-semibold text-semi-color-text-0 mb-1.5'>
-                          {t('充值并开始调用')}
+                          {t('替换 Base URL 开始调用')}
                         </h3>
                         <p className='text-sm text-semi-color-text-2 leading-relaxed'>
-                          {t('在')}{' '}
-                          <Link to='/pricing' className='text-semi-color-primary font-medium'>{t('商店')}</Link>
-                          {' '}{t('购买兑换码或直接')}{' '}
-                          <Link to='/topup' className='text-semi-color-primary font-medium'>{t('在线充值')}</Link>
-                          {t('，到账后即可开始使用。')}
+                          {t('将客户端或代码中的接口地址改为')}{' '}
+                          <code className='text-semi-color-primary text-xs font-mono bg-semi-color-fill-0 px-1.5 py-0.5 rounded'>{serverAddress}</code>
+                          {t('，其余配置保持不变。')}
                         </p>
                       </div>
                     </div>
