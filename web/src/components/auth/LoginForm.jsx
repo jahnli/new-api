@@ -560,8 +560,7 @@ const LoginForm = () => {
   };
 
   const renderLDAPLoginForm = () => {
-    const ldapLabel =
-      status.ldap_login_label || t('LDAP');
+    const ldapLabel = status.ldap_login_label || t('LDAP');
     return (
       <div className='flex flex-col items-center'>
         <div className='w-full max-w-md'>
@@ -1150,7 +1149,7 @@ const LoginForm = () => {
   };
 
   return (
-    <div className='relative overflow-hidden bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8'>
+    <div className='relative bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8'>
       {/* 背景模糊晕染球 */}
       <div
         className='blur-ball blur-ball-indigo'
