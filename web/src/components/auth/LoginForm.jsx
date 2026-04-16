@@ -581,6 +581,7 @@ const LoginForm = () => {
                   field='ldap_username'
                   label={t('用户名')}
                   placeholder={t('请输入 LDAP 用户名')}
+                  extraText={t('示例：lijiaheng')}
                   name='ldap_username'
                   onChange={(value) => handleLdapChange('username', value)}
                   prefix={<IconMail />}

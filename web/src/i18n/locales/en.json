@@ -3547,6 +3547,7 @@
     "LDAP 连接测试失败": "LDAP connection test failed",
     "请输入 LDAP 用户名": "Enter your LDAP username",
     "请输入 LDAP 密码": "Enter your LDAP password",
+    "示例：lijiaheng": "Example: lijiaheng",
     "请输入用户名和密码": "Please enter username and password",
     "绑定 LDAP 账号": "Bind LDAP Account",
     "请输入您的 LDAP 用户名和密码进行绑定": "Please enter your LDAP username and password to bind",

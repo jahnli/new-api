@@ -4049,6 +4049,7 @@
     "LDAP 连接测试失败": "Kiểm tra kết nối LDAP thất bại",
     "请输入 LDAP 用户名": "Nhập tên người dùng LDAP",
     "请输入 LDAP 密码": "Nhập mật khẩu LDAP",
+    "示例：lijiaheng": "Ví dụ: lijiaheng",
     "请输入用户名和密码": "Vui lòng nhập tên người dùng và mật khẩu",
     "绑定 LDAP 账号": "Liên kết tài khoản LDAP",
     "请输入您的 LDAP 用户名和密码进行绑定": "Nhập tên người dùng và mật khẩu LDAP để liên kết",

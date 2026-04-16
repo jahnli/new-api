@@ -3500,6 +3500,7 @@
     "LDAP 连接测试失败": "Échec du test de connexion LDAP",
     "请输入 LDAP 用户名": "Saisissez votre nom d'utilisateur LDAP",
     "请输入 LDAP 密码": "Saisissez votre mot de passe LDAP",
+    "示例：lijiaheng": "Exemple : lijiaheng",
     "请输入用户名和密码": "Veuillez saisir le nom d'utilisateur et le mot de passe",
     "绑定 LDAP 账号": "Lier le compte LDAP",
     "请输入您的 LDAP 用户名和密码进行绑定": "Saisissez vos identifiants LDAP pour lier votre compte",
