@@ -867,7 +867,7 @@ export const getLogsColumns = ({
           {t('IP')}
           <Tooltip
             content={t(
-              '只有当用户设置开启IP记录时，才会进行请求和错误类型日志的IP记录',
+              '管理员在运营设置中开启IP记录后，将记录请求和错误类型日志的IP',
             )}
           >
             <IconHelpCircle className='text-gray-400 cursor-help' />
@@ -876,6 +876,7 @@ export const getLogsColumns = ({
       ),
       dataIndex: 'ip',
       render: (text, record, index) => {
+        const displayIp = text === '::1' ? 'localhost' : text;
         return (record.type === 2 || record.type === 5) && text ? (
           <Tooltip content={text}>
             <span>
@@ -886,7 +887,7 @@ export const getLogsColumns = ({
                   copyText(event, text);
                 }}
               >
-                {text}
+                {displayIp}
               </Tag>
             </span>
           </Tooltip>
