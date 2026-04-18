@@ -125,7 +125,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
   const financeItems = useMemo(() => {
     const items = [
       {
-        text: t('钱包管理'),
+        text: t('额度管理'),
         itemKey: 'topup',
         to: '/topup',
       },

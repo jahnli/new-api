@@ -23,7 +23,6 @@ import {
   Button,
   Card,
   Divider,
-  Select,
   Skeleton,
   Space,
   Tag,
@@ -77,8 +76,6 @@ const SubscriptionPlansCard = ({
   enableOnlineTopUp = false,
   enableStripeTopUp = false,
   enableCreemTopUp = false,
-  billingPreference,
-  onChangeBillingPreference,
   activeSubscriptions = [],
   allSubscriptions = [],
   reloadSubscriptionSelf,
@@ -201,16 +198,6 @@ const SubscriptionPlansCard = ({
   // 当前订阅信息 - 支持多个订阅
   const hasActiveSubscription = activeSubscriptions.length > 0;
   const hasAnySubscription = allSubscriptions.length > 0;
-  const disableSubscriptionPreference = !hasActiveSubscription;
-  const isSubscriptionPreference =
-    billingPreference === 'subscription_first' ||
-    billingPreference === 'subscription_only';
-  const displayBillingPreference =
-    disableSubscriptionPreference && isSubscriptionPreference
-      ? 'wallet_first'
-      : billingPreference;
-  const subscriptionPreferenceLabel =
-    billingPreference === 'subscription_only' ? t('仅用订阅') : t('优先订阅');
 
   const planPurchaseCountMap = useMemo(() => {
     const map = new Map();
@@ -328,29 +315,6 @@ const SubscriptionPlansCard = ({
                 )}
               </div>
               <div className='flex items-center gap-2'>
-                <Select
-                  value={displayBillingPreference}
-                  onChange={onChangeBillingPreference}
-                  size='small'
-                  optionList={[
-                    {
-                      value: 'subscription_first',
-                      label: disableSubscriptionPreference
-                        ? `${t('优先订阅')} (${t('无生效')})`
-                        : t('优先订阅'),
-                      disabled: disableSubscriptionPreference,
-                    },
-                    { value: 'wallet_first', label: t('优先钱包') },
-                    {
-                      value: 'subscription_only',
-                      label: disableSubscriptionPreference
-                        ? `${t('仅用订阅')} (${t('无生效')})`
-                        : t('仅用订阅'),
-                      disabled: disableSubscriptionPreference,
-                    },
-                    { value: 'wallet_only', label: t('仅用钱包') },
-                  ]}
-                />
                 <Button
                   size='small'
                   theme='light'
@@ -366,13 +330,6 @@ const SubscriptionPlansCard = ({
                 />
               </div>
             </div>
-            {disableSubscriptionPreference && isSubscriptionPreference && (
-              <Text type='tertiary' size='small'>
-                {t('已保存偏好为')}
-                {subscriptionPreferenceLabel}
-                {t('，当前无生效订阅，将自动使用钱包')}
-              </Text>
-            )}
 
             {hasAnySubscription ? (
               <>
@@ -450,25 +407,28 @@ const SubscriptionPlansCard = ({
                             ).toLocaleString()}
                           </div>
                         )}
-                        <div className='text-xs text-gray-500 mb-2'>
+                        <div className='text-xs text-gray-500 mb-2 flex items-center flex-wrap gap-1'>
                           {t('总额度')}:{' '}
                           {totalAmount > 0 ? (
-                            <Tooltip
-                              content={`${t('原生额度')}：${usedAmount}/${totalAmount} · ${t('剩余')} ${remainAmount}`}
-                            >
-                              <span>
-                                {renderQuota(usedAmount)}/
-                                {renderQuota(totalAmount)} · {t('剩余')}{' '}
-                                {renderQuota(remainAmount)}
-                              </span>
-                            </Tooltip>
+                            <>
+                              <Tooltip
+                                content={`${t('原生额度')}：${usedAmount}/${totalAmount} · ${t('剩余')} ${remainAmount}`}
+                              >
+                                <Tag size='small' color={usagePercent >= 80 ? 'red' : usagePercent >= 50 ? 'orange' : 'green'} shape='circle'>
+                                  {renderQuota(usedAmount)}/{renderQuota(totalAmount)}
+                                </Tag>
+                              </Tooltip>
+                              <Tag size='small' color={usagePercent >= 80 ? 'red' : usagePercent >= 50 ? 'orange' : 'green'} shape='circle'>
+                                {t('剩余')} {renderQuota(remainAmount)}
+                              </Tag>
+                              <Tag size='small' color={usagePercent >= 80 ? 'red' : usagePercent >= 50 ? 'orange' : 'green'} shape='circle'>
+                                {t('已用')} {usagePercent}%
+                              </Tag>
+                            </>
                           ) : (
-                            t('不限')
-                          )}
-                          {totalAmount > 0 && (
-                            <span className='ml-2'>
-                              {t('已用')} {usagePercent}%
-                            </span>
+                            <Tag size='small' color='white' shape='circle'>
+                              {t('不限')}
+                            </Tag>
                           )}
                         </div>
                         {!isLast && <Divider margin={12} />}
