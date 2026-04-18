@@ -33,7 +33,7 @@ import {
   Col,
 } from '@douyinfe/semi-ui';
 import { IconMail, IconKey, IconBell, IconLink } from '@douyinfe/semi-icons';
-import { Bell, DollarSign, Settings } from 'lucide-react';
+import { Bell, Settings } from 'lucide-react';
 import {
   renderQuotaWithPrompt,
   API,
@@ -42,7 +42,6 @@ import {
 } from '../../../../helpers';
 import CodeViewer from '../../../playground/CodeViewer';
 import { StatusContext } from '../../../../context/Status';
-import { UserContext } from '../../../../context/User';
 import { useUserPermissions } from '../../../../hooks/common/useUserPermissions';
 import {
   mergeAdminConfig,
@@ -57,8 +56,6 @@ const NotificationSettings = ({
 }) => {
   const formApiRef = useRef(null);
   const [statusState] = useContext(StatusContext);
-  const [userState] = useContext(UserContext);
-  const isAdminOrRoot = (userState?.user?.role || 0) >= 10;
 
   // 左侧边栏设置相关状态
   const [sidebarLoading, setSidebarLoading] = useState(false);
@@ -446,10 +443,10 @@ const NotificationSettings = ({
                   }
                   placeholder={t('请输入预警额度')}
                   data={[
-                    { value: 100000, label: '0.2$' },
-                    { value: 500000, label: '1$' },
-                    { value: 1000000, label: '2$' },
                     { value: 5000000, label: '10$' },
+                    { value: 10000000, label: '20$' },
+                    { value: 15000000, label: '30$' },
+                    { value: 25000000, label: '50$' },
                   ]}
                   onChange={(val) => handleFormChange('warningThreshold', val)}
                   prefix={<IconBell />}
@@ -470,21 +467,6 @@ const NotificationSettings = ({
                     },
                   ]}
                 />
-
-                {isAdminOrRoot && (
-                  <Form.Switch
-                    field='upstreamModelUpdateNotifyEnabled'
-                    label={t('接收上游模型更新通知')}
-                    checkedText={t('开')}
-                    uncheckedText={t('关')}
-                    onChange={(value) =>
-                      handleFormChange('upstreamModelUpdateNotifyEnabled', value)
-                    }
-                    extraText={t(
-                      '仅管理员可用。开启后，当系统定时检测全部渠道发现上游模型变更或检测异常时，将按你选择的通知方式发送汇总通知；渠道或模型过多时会自动省略部分明细。',
-                    )}
-                  />
-                )}
 
                 {/* 邮件通知设置 */}
                 {notificationSettings.warningType === 'email' && (
@@ -744,32 +726,6 @@ const NotificationSettings = ({
                     </div>
                   </>
                 )}
-              </div>
-            </TabPane>
-
-            {/* 价格设置 Tab */}
-            <TabPane
-              tab={
-                <div className='flex items-center'>
-                  <DollarSign size={16} className='mr-2' />
-                  {t('价格设置')}
-                </div>
-              }
-              itemKey='pricing'
-            >
-              <div className='py-4'>
-                <Form.Switch
-                  field='acceptUnsetModelRatioModel'
-                  label={t('接受未设置价格模型')}
-                  checkedText={t('开')}
-                  uncheckedText={t('关')}
-                  onChange={(value) =>
-                    handleFormChange('acceptUnsetModelRatioModel', value)
-                  }
-                  extraText={t(
-                    '当模型没有设置价格时仍接受调用，仅当您信任该网站时使用，可能会产生高额费用',
-                  )}
-                />
               </div>
             </TabPane>
 
