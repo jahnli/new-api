@@ -245,7 +245,20 @@ const SubscriptionPurchaseModal = ({
           ) : (
             <Banner
               type='info'
-              description={t('管理员未开启在线支付功能，请联系管理员配置。')}
+              description={
+                <span>
+                  {t('管理员未开启在线订阅，请联系')}{' '}
+                  <a
+                    href='https://applink.feishu.cn/client/chat/open?openId=ou_0282612970fce9d8e5bbfb652ff62e18'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-semi-color-primary hover:underline'
+                  >
+                    {t('李佳衡')}
+                  </a>{' '}
+                  {t('调整。')}
+                </span>
+              }
               className='!rounded-xl'
               closeIcon={null}
             />
