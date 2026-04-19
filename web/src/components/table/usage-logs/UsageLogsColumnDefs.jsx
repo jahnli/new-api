@@ -521,6 +521,230 @@ export const getLogsColumns = ({
       dataIndex: 'timestamp2string',
     },
     {
+      key: COLUMN_KEYS.USERNAME,
+      title: t('用户'),
+      dataIndex: 'username',
+      render: (text, record, index) => {
+        return isAdminUser ? (
+          <div>
+            <Avatar
+              size='extra-small'
+              color={stringToColor(text)}
+              style={{ marginRight: 4 }}
+              onClick={(event) => {
+                event.stopPropagation();
+                showUserInfoFunc(record.user_id);
+              }}
+            >
+              {typeof text === 'string' && text.slice(0, 1)}
+            </Avatar>
+            {text}
+          </div>
+        ) : (
+          <></>
+        );
+      },
+    },
+    {
+      key: COLUMN_KEYS.MODEL,
+      title: t('模型'),
+      dataIndex: 'model_name',
+      render: (text, record, index) => {
+        return record.type === 0 ||
+          record.type === 2 ||
+          record.type === 5 ||
+          record.type === 6 ? (
+          <>{renderModelName(record, copyText, t)}</>
+        ) : (
+          <></>
+        );
+      },
+    },
+    {
+      key: COLUMN_KEYS.USE_TIME,
+      title: t('用时/首字'),
+      dataIndex: 'use_time',
+      render: (text, record, index) => {
+        if (!(record.type === 2 || record.type === 5)) {
+          return <></>;
+        }
+        if (record.is_stream) {
+          let other = getLogOther(record.other);
+          return (
+            <>
+              <Space>
+                {renderUseTime(text, t)}
+                {renderFirstUseTime(other?.frt, t)}
+                {renderIsStream(record.is_stream, t, other?.stream_status)}
+              </Space>
+            </>
+          );
+        } else {
+          return (
+            <>
+              <Space>
+                {renderUseTime(text, t)}
+                {renderIsStream(record.is_stream, t)}
+              </Space>
+            </>
+          );
+        }
+      },
+    },
+    {
+      key: COLUMN_KEYS.PROMPT,
+      title: (
+        <div className='flex items-center gap-1'>
+          {t('输入')}
+          <Tooltip
+            content={t(
+              '根据 Anthropic 协定，/v1/messages 的输入 tokens 仅统计非缓存输入，不包含缓存读取与缓存写入 tokens。',
+            )}
+          >
+            <IconHelpCircle className='text-gray-400 cursor-help' />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'prompt_tokens',
+      render: (text, record, index) => {
+        const other = getLogOther(record.other);
+        const cacheSummary = getPromptCacheSummary(other);
+        const hasCacheRead = (cacheSummary?.cacheReadTokens || 0) > 0;
+        const hasCacheWrite = (cacheSummary?.cacheWriteTokens || 0) > 0;
+        let cacheLines = [];
+        if (hasCacheRead) {
+          cacheLines.push(`${t('缓存读')} ${formatTokenCount(cacheSummary.cacheReadTokens)}`);
+        }
+        if (hasCacheWrite) {
+          cacheLines.push(`${t('缓存写')} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`);
+        }
+
+        return record.type === 0 ||
+          record.type === 2 ||
+          record.type === 5 ||
+          record.type === 6 ? (
+          <div
+            style={{
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              lineHeight: 1.2,
+            }}
+          >
+            <span>{text}</span>
+            {cacheLines.map((line, i) => (
+              <span
+                key={i}
+                style={{
+                  marginTop: 2,
+                  fontSize: 11,
+                  color: 'var(--semi-color-text-2)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {line}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <></>
+        );
+      },
+    },
+    {
+      key: COLUMN_KEYS.COMPLETION,
+      title: t('输出'),
+      dataIndex: 'completion_tokens',
+      render: (text, record, index) => {
+        return parseInt(text) > 0 &&
+          (record.type === 0 ||
+            record.type === 2 ||
+            record.type === 5 ||
+            record.type === 6) ? (
+          <>{<span> {text} </span>}</>
+        ) : (
+          <></>
+        );
+      },
+    },
+    {
+      key: COLUMN_KEYS.COST,
+      title: t('花费'),
+      dataIndex: 'quota',
+      render: (text, record, index) => {
+        if (
+          !(
+            record.type === 0 ||
+            record.type === 2 ||
+            record.type === 5 ||
+            record.type === 6
+          )
+        ) {
+          return <></>;
+        }
+        const other = getLogOther(record.other);
+        const isSubscription = other?.billing_source === 'subscription';
+        if (isSubscription) {
+          return (
+            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+              <span>{renderQuota(text, 6)}</span>
+              <span>{renderBillingTag(record, t)}</span>
+            </div>
+          );
+        }
+        return <>{renderQuota(text, 6)}</>;
+      },
+    },
+    {
+      key: COLUMN_KEYS.IP,
+      title: (
+        <div className='flex items-center gap-1'>
+          {t('IP')}
+          <Tooltip
+            content={t(
+              '管理员在运营设置中开启IP记录后，将记录请求和错误类型日志的IP',
+            )}
+          >
+            <IconHelpCircle className='text-gray-400 cursor-help' />
+          </Tooltip>
+        </div>
+      ),
+      dataIndex: 'ip',
+      render: (text, record, index) => {
+        const displayIp = text === '::1' ? 'localhost' : text;
+        const showIp =
+          (record.type === 2 ||
+            record.type === 5 ||
+            (isAdminUser && record.type === 1)) &&
+          text;
+        return showIp ? (
+          <Tooltip content={text}>
+            <span>
+              <Tag
+                color='orange'
+                shape='circle'
+                onClick={(event) => {
+                  copyText(event, text);
+                }}
+              >
+                {displayIp}
+              </Tag>
+            </span>
+          </Tooltip>
+        ) : (
+          <></>
+        );
+      },
+    },
+    {
+      key: COLUMN_KEYS.TYPE,
+      title: t('类型'),
+      dataIndex: 'type',
+      render: (text, record, index) => {
+        return <>{renderType(text, t)}</>;
+      },
+    },
+    {
       key: COLUMN_KEYS.CHANNEL,
       title: t('渠道'),
       dataIndex: 'channel',
@@ -615,31 +839,6 @@ export const getLogsColumns = ({
       },
     },
     {
-      key: COLUMN_KEYS.USERNAME,
-      title: t('用户'),
-      dataIndex: 'username',
-      render: (text, record, index) => {
-        return isAdminUser ? (
-          <div>
-            <Avatar
-              size='extra-small'
-              color={stringToColor(text)}
-              style={{ marginRight: 4 }}
-              onClick={(event) => {
-                event.stopPropagation();
-                showUserInfoFunc(record.user_id);
-              }}
-            >
-              {typeof text === 'string' && text.slice(0, 1)}
-            </Avatar>
-            {text}
-          </div>
-        ) : (
-          <></>
-        );
-      },
-    },
-    {
       key: COLUMN_KEYS.TOKEN,
       title: t('令牌'),
       dataIndex: 'token_name',
@@ -703,205 +902,6 @@ export const getLogsColumns = ({
       },
     },
     {
-      key: COLUMN_KEYS.TYPE,
-      title: t('类型'),
-      dataIndex: 'type',
-      render: (text, record, index) => {
-        return <>{renderType(text, t)}</>;
-      },
-    },
-    {
-      key: COLUMN_KEYS.MODEL,
-      title: t('模型'),
-      dataIndex: 'model_name',
-      render: (text, record, index) => {
-        return record.type === 0 ||
-          record.type === 2 ||
-          record.type === 5 ||
-          record.type === 6 ? (
-          <>{renderModelName(record, copyText, t)}</>
-        ) : (
-          <></>
-        );
-      },
-    },
-    {
-      key: COLUMN_KEYS.USE_TIME,
-      title: t('用时/首字'),
-      dataIndex: 'use_time',
-      render: (text, record, index) => {
-        if (!(record.type === 2 || record.type === 5)) {
-          return <></>;
-        }
-        if (record.is_stream) {
-          let other = getLogOther(record.other);
-          return (
-            <>
-              <Space>
-                {renderUseTime(text, t)}
-                {renderFirstUseTime(other?.frt, t)}
-                {renderIsStream(record.is_stream, t, other?.stream_status)}
-              </Space>
-            </>
-          );
-        } else {
-          return (
-            <>
-              <Space>
-                {renderUseTime(text, t)}
-                {renderIsStream(record.is_stream, t)}
-              </Space>
-            </>
-          );
-        }
-      },
-    },
-    {
-      key: COLUMN_KEYS.PROMPT,
-      title: (
-        <div className='flex items-center gap-1'>
-          {t('输入')}
-          <Tooltip
-            content={t(
-              '根据 Anthropic 协定，/v1/messages 的输入 tokens 仅统计非缓存输入，不包含缓存读取与缓存写入 tokens。',
-            )}
-          >
-            <IconHelpCircle className='text-gray-400 cursor-help' />
-          </Tooltip>
-        </div>
-      ),
-      dataIndex: 'prompt_tokens',
-      render: (text, record, index) => {
-        const other = getLogOther(record.other);
-        const cacheSummary = getPromptCacheSummary(other);
-        const hasCacheRead = (cacheSummary?.cacheReadTokens || 0) > 0;
-        const hasCacheWrite = (cacheSummary?.cacheWriteTokens || 0) > 0;
-        let cacheText = '';
-        if (hasCacheRead && hasCacheWrite) {
-          cacheText = `${t('缓存读')} ${formatTokenCount(cacheSummary.cacheReadTokens)} · ${t('写')} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
-        } else if (hasCacheRead) {
-          cacheText = `${t('缓存读')} ${formatTokenCount(cacheSummary.cacheReadTokens)}`;
-        } else if (hasCacheWrite) {
-          cacheText = `${t('缓存写')} ${formatTokenCount(cacheSummary.cacheWriteTokens)}`;
-        }
-
-        return record.type === 0 ||
-          record.type === 2 ||
-          record.type === 5 ||
-          record.type === 6 ? (
-          <div
-            style={{
-              display: 'inline-flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              lineHeight: 1.2,
-            }}
-          >
-            <span>{text}</span>
-            {cacheText ? (
-              <span
-                style={{
-                  marginTop: 2,
-                  fontSize: 11,
-                  color: 'var(--semi-color-text-2)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {cacheText}
-              </span>
-            ) : null}
-          </div>
-        ) : (
-          <></>
-        );
-      },
-    },
-    {
-      key: COLUMN_KEYS.COMPLETION,
-      title: t('输出'),
-      dataIndex: 'completion_tokens',
-      render: (text, record, index) => {
-        return parseInt(text) > 0 &&
-          (record.type === 0 ||
-            record.type === 2 ||
-            record.type === 5 ||
-            record.type === 6) ? (
-          <>{<span> {text} </span>}</>
-        ) : (
-          <></>
-        );
-      },
-    },
-    {
-      key: COLUMN_KEYS.COST,
-      title: t('花费'),
-      dataIndex: 'quota',
-      render: (text, record, index) => {
-        if (
-          !(
-            record.type === 0 ||
-            record.type === 2 ||
-            record.type === 5 ||
-            record.type === 6
-          )
-        ) {
-          return <></>;
-        }
-        const other = getLogOther(record.other);
-        const isSubscription = other?.billing_source === 'subscription';
-        if (isSubscription) {
-          // Subscription billed: show only tag (no $0), but keep tooltip for equivalent cost.
-          return (
-            <Tooltip content={`${t('由订阅抵扣')}：${renderQuota(text, 6)}`}>
-              <span>{renderBillingTag(record, t)}</span>
-            </Tooltip>
-          );
-        }
-        return <>{renderQuota(text, 6)}</>;
-      },
-    },
-    {
-      key: COLUMN_KEYS.IP,
-      title: (
-        <div className='flex items-center gap-1'>
-          {t('IP')}
-          <Tooltip
-            content={t(
-              '管理员在运营设置中开启IP记录后，将记录请求和错误类型日志的IP',
-            )}
-          >
-            <IconHelpCircle className='text-gray-400 cursor-help' />
-          </Tooltip>
-        </div>
-      ),
-      dataIndex: 'ip',
-      render: (text, record, index) => {
-        const displayIp = text === '::1' ? 'localhost' : text;
-        const showIp =
-          (record.type === 2 ||
-            record.type === 5 ||
-            (isAdminUser && record.type === 1)) &&
-          text;
-        return showIp ? (
-          <Tooltip content={text}>
-            <span>
-              <Tag
-                color='orange'
-                shape='circle'
-                onClick={(event) => {
-                  copyText(event, text);
-                }}
-              >
-                {displayIp}
-              </Tag>
-            </span>
-          </Tooltip>
-        ) : (
-          <></>
-        );
-      },
-    },
-    {
       key: COLUMN_KEYS.RETRY,
       title: t('重试'),
       dataIndex: 'retry',
@@ -935,7 +935,7 @@ export const getLogsColumns = ({
       title: t('详情'),
       dataIndex: 'content',
       fixed: 'right',
-      width: 200,
+      width: 180,
       render: (text, record, index) => {
         const detailSummary = getUsageLogDetailSummary(
           record,
