@@ -73,14 +73,6 @@ const SubscriptionsPage = () => {
             <div className='order-1 md:order-0 w-full md:w-auto'>
               <SubscriptionsActions openCreate={openCreate} t={t} />
             </div>
-            <Banner
-              type='info'
-              description={t('Stripe/Creem 需在第三方平台创建商品并填入 ID')}
-              closeIcon={null}
-              // Mobile: banner below; Desktop: banner right
-              className='!rounded-lg order-2 md:order-1'
-              style={{ maxWidth: '100%' }}
-            />
           </div>
         }
         paginationArea={createCardProPagination({
