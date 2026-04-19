@@ -18,8 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import { Card, Collapse, Empty } from '@douyinfe/semi-ui';
-import { HelpCircle } from 'lucide-react';
+import { Card, Collapse, Empty, Button } from '@douyinfe/semi-ui';
+import { HelpCircle, ExternalLink } from 'lucide-react';
 import { IconPlus, IconMinus } from '@douyinfe/semi-icons';
 import { marked } from 'marked';
 import {
@@ -75,8 +75,22 @@ const FaqPanel = ({
               darkModeImage={
                 <IllustrationConstructionDark style={ILLUSTRATION_SIZE} />
               }
-              title={t('暂无常见问答')}
-              description={t('请联系管理员在系统设置中配置常见问答')}
+              description={
+                <Button
+                  theme='light'
+                  type='primary'
+                  icon={<ExternalLink size={14} />}
+                  iconPosition='right'
+                  onClick={() =>
+                    window.open(
+                      'https://semi-tech.feishu.cn/docx/GhoWd4iMookr4BxbBXcc2Qudn2c#share-EAV2devtloI5wQxUXFYcucwAnee',
+                      '_blank',
+                    )
+                  }
+                >
+                  {t('点击访问常见问答')}
+                </Button>
+              }
             />
           </div>
         )}
