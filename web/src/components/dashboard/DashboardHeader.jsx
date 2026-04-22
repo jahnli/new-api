@@ -23,6 +23,7 @@ import { RefreshCw, Search } from 'lucide-react';
 
 const DashboardHeader = ({
   getGreeting,
+  getDepartment,
   greetingVisible,
   showSearchModal,
   refresh,
@@ -33,12 +34,17 @@ const DashboardHeader = ({
 
   return (
     <div className='flex items-center justify-between mb-4'>
-      <h2
-        className='text-2xl font-semibold text-gray-800 transition-opacity duration-1000 ease-in-out'
+      <div
+        className='flex items-baseline gap-3 transition-opacity duration-1000 ease-in-out'
         style={{ opacity: greetingVisible ? 1 : 0 }}
       >
-        {getGreeting}
-      </h2>
+        <h2 className='text-2xl font-semibold text-gray-800'>
+          {getGreeting}
+        </h2>
+        {getDepartment && (
+          <span className='text-sm text-gray-500'>{getDepartment}</span>
+        )}
+      </div>
       <div className='flex gap-3'>
         <Button
           type='tertiary'

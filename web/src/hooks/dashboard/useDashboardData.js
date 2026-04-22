@@ -133,9 +133,32 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
       greeting = t('晚上好');
     }
 
-    const username = userState?.user?.username || '';
-    return `👋${greeting}，${username}`;
-  }, [t, userState?.user?.username]);
+    let displayName = userState?.user?.display_name || userState?.user?.username || '';
+    const dn = userState?.user?.ldap_id;
+    if (dn) {
+      const cnMatch = dn.match(/CN=([^,]+)/i);
+      if (cnMatch) {
+        displayName = cnMatch[1];
+      }
+    }
+    return `👋${greeting}，${displayName}`;
+  }, [t, userState?.user?.username, userState?.user?.display_name, userState?.user?.ldap_id]);
+
+  const getDepartment = useMemo(() => {
+    const dn = userState?.user?.ldap_id;
+    if (!dn) return '';
+    const ous = [];
+    const parts = dn.split(',');
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (trimmed.toUpperCase().startsWith('OU=')) {
+        ous.push(trimmed.substring(3));
+      }
+    }
+    const len = ous.length;
+    const levels = [ous[len - 4] || '', ous[len - 5] || '', ous[len - 6] || ''];
+    return levels.filter(Boolean).join(' / ');
+  }, [userState?.user?.ldap_id]);
 
   // ========== 回调函数 ==========
   const handleInputChange = useCallback((value, name) => {
@@ -319,6 +342,7 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     timeOptions,
     performanceMetrics,
     getGreeting,
+    getDepartment,
     isAdminUser,
     hasApiInfoPanel,
     hasInfoPanels,

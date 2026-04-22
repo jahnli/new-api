@@ -411,6 +411,7 @@ func GetSelf(c *gin.Context) {
 		"aff_history_quota": user.AffHistoryQuota,
 		"inviter_id":        user.InviterId,
 		"linux_do_id":       user.LinuxDOId,
+		"ldap_id":           user.LdapId,
 		"setting":           user.Setting,
 		"stripe_customer":   user.StripeCustomer,
 		"avatar_url":        user.AvatarUrl,

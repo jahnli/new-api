@@ -50,6 +50,15 @@ const UserInfoHeader = ({ t, userState }) => {
     return 'NA';
   };
 
+  const getDisplayName = () => {
+    const dn = userState.user?.ldap_id;
+    if (dn) {
+      const cnMatch = dn.match(/CN=([^,]+)/i);
+      if (cnMatch) return cnMatch[1];
+    }
+    return userState.user?.display_name || getUsername();
+  };
+
   return (
     <Card
       className='!rounded-2xl overflow-hidden'
@@ -76,7 +85,7 @@ const UserInfoHeader = ({ t, userState }) => {
                     className='text-3xl font-bold truncate'
                     style={{ color: 'white' }}
                   >
-                    {getUsername()}
+                    {getDisplayName()}
                   </div>
                   <div className='flex flex-wrap items-center gap-2'>
                     {isRoot() ? (
@@ -106,6 +115,9 @@ const UserInfoHeader = ({ t, userState }) => {
                     )}
                     <Tag size='large' shape='circle' style={{ color: 'white' }}>
                       ID: {userState?.user?.id}
+                    </Tag>
+                    <Tag size='large' shape='circle' style={{ color: 'white' }}>
+                      {getUsername()}
                     </Tag>
                   </div>
                 </div>
