@@ -68,26 +68,38 @@ const renderRole = (role, t) => {
  */
 const renderUsername = (text, record) => {
   const remark = record.remark;
-  if (!remark) {
-    return <span>{text}</span>;
+  const cn = parseLdapCN(record.ldap_id);
+
+  const remarkTag = remark ? (
+    <Tooltip content={remark} position='top' showArrow>
+      <Tag color='white' shape='circle' className='!text-xs'>
+        <div className='flex items-center gap-1'>
+          <div
+            className='w-2 h-2 flex-shrink-0 rounded-full'
+            style={{ backgroundColor: '#10b981' }}
+          />
+          {remark.length > 10 ? remark.slice(0, 10) + '…' : remark}
+        </div>
+      </Tag>
+    </Tooltip>
+  ) : null;
+
+  if (cn && cn !== text) {
+    return (
+      <div className='flex flex-col'>
+        <Space spacing={2}>
+          <span className='font-medium'>{cn}</span>
+          {remarkTag}
+        </Space>
+        <span className='text-xs text-gray-400'>{text}</span>
+      </div>
+    );
   }
-  const maxLen = 10;
-  const displayRemark =
-    remark.length > maxLen ? remark.slice(0, maxLen) + '…' : remark;
+
   return (
     <Space spacing={2}>
       <span>{text}</span>
-      <Tooltip content={remark} position='top' showArrow>
-        <Tag color='white' shape='circle' className='!text-xs'>
-          <div className='flex items-center gap-1'>
-            <div
-              className='w-2 h-2 flex-shrink-0 rounded-full'
-              style={{ backgroundColor: '#10b981' }}
-            />
-            {displayRemark}
-          </div>
-        </Tag>
-      </Tooltip>
+      {remarkTag}
     </Space>
   );
 };
@@ -295,11 +307,18 @@ const renderOperations = (
   );
 };
 
-/**
- * Parse LDAP DN to extract OU hierarchy (up to 3 levels)
- * e.g. "CN=李佳衡,OU=工程效率科,OU=软件工程部,OU=数智产品中心,..."
- * => ["数智产品中心", "软件工程部", "工程效率科"]
- */
+const parseLdapCN = (dn) => {
+  if (!dn) return '';
+  const parts = dn.split(',');
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed.toUpperCase().startsWith('CN=')) {
+      return trimmed.substring(3);
+    }
+  }
+  return '';
+};
+
 const parseLdapOUs = (dn) => {
   if (!dn) return [];
   const ous = [];
