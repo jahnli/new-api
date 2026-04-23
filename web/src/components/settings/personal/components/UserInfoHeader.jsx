@@ -25,7 +25,7 @@ import {
   renderQuota,
   stringToColor,
 } from '../../../../helpers';
-import { Coins, BarChart2, Users, ShieldCheck, Shield, User } from 'lucide-react';
+import { Coins, BarChart2, Users, ShieldCheck, Shield, User, Hash } from 'lucide-react';
 
 const UserInfoHeader = ({ t, userState }) => {
   const getUsername = () => {
@@ -47,9 +47,9 @@ const UserInfoHeader = ({ t, userState }) => {
   };
 
   const getRoleTag = () => {
-    if (isRoot()) return { label: t('超级管理员'), icon: <ShieldCheck size={12} /> };
-    if (isAdmin()) return { label: t('管理员'), icon: <Shield size={12} /> };
-    return { label: t('普通用户'), icon: <User size={12} /> };
+    if (isRoot()) return { label: t('超级管理员'), icon: <ShieldCheck size={14} />, color: 'green' };
+    if (isAdmin()) return { label: t('管理员'), icon: <Shield size={14} />, color: 'green' };
+    return { label: t('普通用户'), icon: <User size={14} />, color: 'green' };
   };
 
   const role = getRoleTag();
@@ -96,15 +96,19 @@ const UserInfoHeader = ({ t, userState }) => {
           {getDisplayName()}
         </Typography.Title>
 
-        <div className='flex items-center gap-2 mt-2 flex-wrap justify-center'>
-          <Tag size='large' shape='circle' color='violet' type='light' prefixIcon={role.icon}>
+        <div className='flex items-center gap-2.5 mt-3 flex-wrap justify-center'>
+          <Tag size='large' shape='circle' color={role.color} type='light' prefixIcon={role.icon}
+            style={{ fontWeight: 600 }}>
             {role.label}
           </Tag>
-          <Tag size='large' shape='circle' color='grey' type='light' style={{ userSelect: 'text' }}>
+          <Tag size='large' shape='circle' color='cyan' type='light'
+            style={{ userSelect: 'text' }}>
             {getUsername()}
           </Tag>
-          <Tag size='large' shape='circle' color='grey' type='light' style={{ userSelect: 'text' }}>
-            ID: {userState?.user?.id}
+          <Tag size='large' shape='circle' color='teal' type='light'
+            prefixIcon={<Hash size={11} />}
+            style={{ userSelect: 'text' }}>
+            {userState?.user?.id}
           </Tag>
         </div>
       </div>
