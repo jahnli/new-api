@@ -539,30 +539,15 @@ export const getLogsColumns = ({
       render: (text, record, index) => {
         if (!isAdminUser) return <></>;
         const cn = parseLdapCN(record.ldap_id);
-        const displayName = cn && cn !== text ? cn : text;
-        return (
-          <div className='flex items-center'>
-            <Avatar
-              size='extra-small'
-              color={stringToColor(displayName)}
-              style={{ marginRight: 4, flexShrink: 0 }}
-              onClick={(event) => {
-                event.stopPropagation();
-                showUserInfoFunc(record.user_id);
-              }}
-            >
-              {typeof displayName === 'string' && displayName.slice(0, 1)}
-            </Avatar>
-            {cn && cn !== text ? (
-              <div className='flex flex-col'>
-                <span className='font-medium'>{cn}</span>
-                <span className='text-xs text-gray-400'>{text}</span>
-              </div>
-            ) : (
-              text
-            )}
-          </div>
-        );
+        if (cn && cn !== text) {
+          return (
+            <div className='flex flex-col'>
+              <span>{cn}</span>
+              <span className='text-xs text-gray-300'>{text}</span>
+            </div>
+          );
+        }
+        return <span>{text}</span>;
       },
     },
     {

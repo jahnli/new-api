@@ -27,9 +27,10 @@ import {
   Popover,
   Typography,
   Dropdown,
+  Avatar,
 } from '@douyinfe/semi-ui';
 import { IconMore } from '@douyinfe/semi-icons';
-import { renderGroup, renderNumber, renderQuota } from '../../../helpers';
+import { renderGroup, renderNumber, renderQuota, stringToColor } from '../../../helpers';
 
 /**
  * Render user role
@@ -88,10 +89,10 @@ const renderUsername = (text, record) => {
     return (
       <div className='flex flex-col'>
         <Space spacing={2}>
-          <span className='font-medium'>{cn}</span>
+          <span>{cn}</span>
           {remarkTag}
         </Space>
-        <span className='text-xs text-gray-400'>{text}</span>
+        <span className='text-xs text-gray-300'>{text}</span>
       </div>
     );
   }
