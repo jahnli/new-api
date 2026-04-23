@@ -1172,6 +1172,33 @@ func GetSubscriptionPlanInfoByUserSubscriptionId(userSubscriptionId int) (*Subsc
 	return info, nil
 }
 
+type SubscriptionQuotaSummary struct {
+	UserId      int   `json:"user_id"`
+	AmountTotal int64 `json:"amount_total"`
+	AmountUsed  int64 `json:"amount_used"`
+}
+
+func GetActiveSubscriptionQuotaSummaryByUserIds(userIds []int) (map[int]SubscriptionQuotaSummary, error) {
+	result := make(map[int]SubscriptionQuotaSummary, len(userIds))
+	if len(userIds) == 0 {
+		return result, nil
+	}
+	now := common.GetTimestamp()
+	var rows []SubscriptionQuotaSummary
+	err := DB.Model(&UserSubscription{}).
+		Select("user_id, SUM(amount_total) as amount_total, SUM(amount_used) as amount_used").
+		Where("user_id IN ? AND status = ? AND end_time > ?", userIds, "active", now).
+		Group("user_id").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		result[row.UserId] = row
+	}
+	return result, nil
+}
+
 // Update subscription used amount by delta (positive consume more, negative refund).
 func PostConsumeUserSubscriptionDelta(userSubscriptionId int, delta int64) error {
 	if userSubscriptionId <= 0 {

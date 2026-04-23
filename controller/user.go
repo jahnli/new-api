@@ -232,6 +232,26 @@ func Register(c *gin.Context) {
 	return
 }
 
+func enrichUsersWithSubscriptionQuota(users []*model.User) {
+	if len(users) == 0 {
+		return
+	}
+	userIds := make([]int, 0, len(users))
+	for _, u := range users {
+		userIds = append(userIds, u.Id)
+	}
+	summaries, err := model.GetActiveSubscriptionQuotaSummaryByUserIds(userIds)
+	if err != nil || len(summaries) == 0 {
+		return
+	}
+	for _, u := range users {
+		if s, ok := summaries[u.Id]; ok {
+			u.SubscriptionQuotaTotal = s.AmountTotal
+			u.SubscriptionQuotaUsed = s.AmountUsed
+		}
+	}
+}
+
 func GetAllUsers(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	users, total, err := model.GetAllUsers(pageInfo)
@@ -240,6 +260,7 @@ func GetAllUsers(c *gin.Context) {
 		return
 	}
 
+	enrichUsersWithSubscriptionQuota(users)
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(users)
 
@@ -257,6 +278,7 @@ func SearchUsers(c *gin.Context) {
 		return
 	}
 
+	enrichUsersWithSubscriptionQuota(users)
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(users)
 	common.ApiSuccess(c, pageInfo)

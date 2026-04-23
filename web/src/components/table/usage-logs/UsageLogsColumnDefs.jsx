@@ -37,6 +37,18 @@ import {
 import { IconHelpCircle } from '@douyinfe/semi-icons';
 import { CircleAlert, Route, Sparkles } from 'lucide-react';
 
+const parseLdapCN = (dn) => {
+  if (!dn) return '';
+  const parts = dn.split(',');
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed.toUpperCase().startsWith('CN=')) {
+      return trimmed.substring(3);
+    }
+  }
+  return '';
+};
+
 const colors = [
   'amber',
   'blue',
@@ -525,23 +537,31 @@ export const getLogsColumns = ({
       title: t('用户'),
       dataIndex: 'username',
       render: (text, record, index) => {
-        return isAdminUser ? (
-          <div>
+        if (!isAdminUser) return <></>;
+        const cn = parseLdapCN(record.ldap_id);
+        const displayName = cn && cn !== text ? cn : text;
+        return (
+          <div className='flex items-center'>
             <Avatar
               size='extra-small'
-              color={stringToColor(text)}
-              style={{ marginRight: 4 }}
+              color={stringToColor(displayName)}
+              style={{ marginRight: 4, flexShrink: 0 }}
               onClick={(event) => {
                 event.stopPropagation();
                 showUserInfoFunc(record.user_id);
               }}
             >
-              {typeof text === 'string' && text.slice(0, 1)}
+              {typeof displayName === 'string' && displayName.slice(0, 1)}
             </Avatar>
-            {text}
+            {cn && cn !== text ? (
+              <div className='flex flex-col'>
+                <span className='font-medium'>{cn}</span>
+                <span className='text-xs text-gray-400'>{text}</span>
+              </div>
+            ) : (
+              text
+            )}
           </div>
-        ) : (
-          <></>
         );
       },
     },

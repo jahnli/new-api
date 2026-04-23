@@ -10,6 +10,31 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func enrichLogsWithLdapId(logs []*model.Log) {
+	if len(logs) == 0 {
+		return
+	}
+	userIdSet := make(map[int]struct{}, len(logs))
+	for _, l := range logs {
+		if l.UserId > 0 {
+			userIdSet[l.UserId] = struct{}{}
+		}
+	}
+	userIds := make([]int, 0, len(userIdSet))
+	for id := range userIdSet {
+		userIds = append(userIds, id)
+	}
+	ldapMap, err := model.GetUserLdapIdsByIds(userIds)
+	if err != nil || len(ldapMap) == 0 {
+		return
+	}
+	for _, l := range logs {
+		if dn, ok := ldapMap[l.UserId]; ok {
+			l.LdapId = dn
+		}
+	}
+}
+
 func GetAllLogs(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	logType, _ := strconv.Atoi(c.Query("type"))
@@ -26,6 +51,7 @@ func GetAllLogs(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	enrichLogsWithLdapId(logs)
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(logs)
 	common.ApiSuccess(c, pageInfo)

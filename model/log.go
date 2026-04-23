@@ -37,6 +37,7 @@ type Log struct {
 	Ip               string `json:"ip" gorm:"index;default:''"`
 	RequestId        string `json:"request_id,omitempty" gorm:"type:varchar(64);index:idx_logs_request_id;default:''"`
 	Other            string `json:"other"`
+	LdapId           string `json:"ldap_id,omitempty" gorm:"-"`
 }
 
 // don't use iota, avoid change log type value

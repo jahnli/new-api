@@ -148,9 +148,20 @@ const renderStatistics = (text, record, showEnableDisableModal, t) => {
 // Render separate quota usage column
 const renderQuotaUsage = (text, record, t) => {
   const { Paragraph } = Typography;
-  const used = parseInt(record.used_quota) || 0;
-  const remain = parseInt(record.quota) || 0;
-  const total = used + remain;
+  const subTotal = parseInt(record.subscription_quota_total) || 0;
+  const subUsed = parseInt(record.subscription_quota_used) || 0;
+  const hasSubscription = subTotal > 0;
+
+  let used, remain, total;
+  if (hasSubscription) {
+    total = subTotal;
+    used = subUsed;
+    remain = total - used;
+  } else {
+    used = parseInt(record.used_quota) || 0;
+    remain = parseInt(record.quota) || 0;
+    total = used + remain;
+  }
   const percent = total > 0 ? (remain / total) * 100 : 0;
   const popoverContent = (
     <div className='text-xs p-2'>

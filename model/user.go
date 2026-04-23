@@ -54,6 +54,9 @@ type User struct {
 	Remark           string         `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	StripeCustomer   string         `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
 	AvatarUrl        string         `json:"avatar_url" gorm:"type:varchar(512);column:avatar_url"`
+
+	SubscriptionQuotaTotal int64 `json:"subscription_quota_total" gorm:"-"`
+	SubscriptionQuotaUsed  int64 `json:"subscription_quota_used" gorm:"-"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -291,6 +294,25 @@ func SearchUsers(keyword string, group string, startIdx int, num int) ([]*User, 
 	}
 
 	return users, total, nil
+}
+
+func GetUserLdapIdsByIds(userIds []int) (map[int]string, error) {
+	result := make(map[int]string, len(userIds))
+	if len(userIds) == 0 {
+		return result, nil
+	}
+	var rows []struct {
+		Id     int    `gorm:"column:id"`
+		LdapId string `gorm:"column:ldap_id"`
+	}
+	err := DB.Model(&User{}).Select("id, ldap_id").Where("id IN ? AND ldap_id <> ''", userIds).Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		result[row.Id] = row.LdapId
+	}
+	return result, nil
 }
 
 func GetUserById(id int, selectAll bool) (*User, error) {
