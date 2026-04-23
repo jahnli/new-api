@@ -253,8 +253,15 @@ func SearchUsers(keyword string, group string, startIdx int, num int) ([]*User, 
 	// 构建基础查询
 	query := tx.Unscoped().Model(&User{})
 
-	// 构建搜索条件
-	likeCondition := "username LIKE ? OR email LIKE ? OR display_name LIKE ?"
+	// 构建搜索条件 — ldap_id 只匹配 CN= 到第一个逗号之间的内容
+	var ldapCnCondition string
+	if common.UsingPostgreSQL {
+		ldapCnCondition = "SPLIT_PART(ldap_id, ',', 1) LIKE ?"
+	} else {
+		ldapCnCondition = "SUBSTR(ldap_id, 1, INSTR(ldap_id, ',') - 1) LIKE ?"
+	}
+	likeCondition := "username LIKE ? OR email LIKE ? OR display_name LIKE ? OR " + ldapCnCondition
+	likeParam := "%" + keyword + "%"
 
 	// 尝试将关键字转换为整数ID
 	keywordInt, err := strconv.Atoi(keyword)
@@ -263,19 +270,19 @@ func SearchUsers(keyword string, group string, startIdx int, num int) ([]*User, 
 		likeCondition = "id = ? OR " + likeCondition
 		if group != "" {
 			query = query.Where("("+likeCondition+") AND "+commonGroupCol+" = ?",
-				keywordInt, "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", group)
+				keywordInt, likeParam, likeParam, likeParam, likeParam, group)
 		} else {
 			query = query.Where(likeCondition,
-				keywordInt, "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+				keywordInt, likeParam, likeParam, likeParam, likeParam)
 		}
 	} else {
 		// 非数字关键字，只搜索字符串字段
 		if group != "" {
 			query = query.Where("("+likeCondition+") AND "+commonGroupCol+" = ?",
-				"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", group)
+				likeParam, likeParam, likeParam, likeParam, group)
 		} else {
 			query = query.Where(likeCondition,
-				"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+				likeParam, likeParam, likeParam, likeParam)
 		}
 	}
 
