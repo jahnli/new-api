@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { API, isAdmin, showError, timestamp2string } from '../../helpers';
 import { getDefaultTime, getInitialTimestamp } from '../../helpers/dashboard';
-import { TIME_OPTIONS, GRANULARITY_TIME_OFFSETS } from '../../constants/dashboard.constants';
+import { TIME_OPTIONS, DASHBOARD_DATE_PRESETS, GRANULARITY_TIME_OFFSETS } from '../../constants/dashboard.constants';
 import { useIsMobile } from '../common/useIsMobile';
 import { useMinimumLoadingTime } from '../common/useMinimumLoadingTime';
 
@@ -37,6 +37,8 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
   const [greetingVisible, setGreetingVisible] = useState(false);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const showLoading = useMinimumLoadingTime(loading);
+
+  const pendingRefresh = useRef(false);
 
   // ========== 输入状态 ==========
   const [inputs, setInputs] = useState({
@@ -96,6 +98,18 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
   const hasInfoPanels = announcementsEnabled || faqEnabled || uptimeEnabled;
 
   // ========== Memoized Values ==========
+  const datePresets = useMemo(
+    () =>
+      DASHBOARD_DATE_PRESETS
+        .filter((preset) => !preset.adminOnly || isAdminUser)
+        .map((preset) => ({
+          text: t(preset.text),
+          start: preset.start(),
+          end: preset.end(),
+        })),
+    [t, isAdminUser],
+  );
+
   const timeOptions = useMemo(
     () =>
       TIME_OPTIONS
@@ -163,6 +177,30 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
   }, [userState?.user?.ldap_id]);
 
   // ========== 回调函数 ==========
+  const handleDateRangeChange = useCallback((dateRange) => {
+    if (!dateRange || dateRange.length < 2 || !dateRange[0] || !dateRange[1]) return;
+    const [start, end] = dateRange;
+    const startTs = start.getTime() / 1000;
+    const endTs = end.getTime() / 1000;
+    setInputs((prev) => ({
+      ...prev,
+      start_timestamp: timestamp2string(startTs),
+      end_timestamp: timestamp2string(endTs),
+    }));
+
+    const diffSeconds = endTs - startTs;
+    const matched = DASHBOARD_DATE_PRESETS
+      .filter((p) => !p.adminOnly || isAdminUser)
+      .find((p) => {
+        const offset = GRANULARITY_TIME_OFFSETS[p.granularity];
+        return offset && Math.abs(diffSeconds - offset) < 60;
+      });
+    if (matched) {
+      setDataExportDefaultTime(matched.granularity);
+      localStorage.setItem('data_export_default_time', matched.granularity);
+    }
+  }, [isAdminUser]);
+
   const handleInputChange = useCallback((value, name) => {
     if (name === 'data_export_default_time') {
       setDataExportDefaultTime(value);
@@ -178,6 +216,22 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
       return;
     }
     setInputs((inputs) => ({ ...inputs, [name]: value }));
+  }, []);
+
+  const handleReset = useCallback((onResetDone) => {
+    const now = new Date().getTime() / 1000;
+    const offset = GRANULARITY_TIME_OFFSETS.day;
+    setDataExportDefaultTime('day');
+    localStorage.setItem('data_export_default_time', 'day');
+    setInputs((prev) => ({
+      ...prev,
+      username: '',
+      start_timestamp: timestamp2string(now - offset),
+      end_timestamp: timestamp2string(now),
+    }));
+    if (onResetDone) {
+      pendingRefresh.current = onResetDone;
+    }
   }, []);
 
   const showSearchModal = useCallback(() => {
@@ -309,6 +363,14 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     }
   }, [getUserData]);
 
+  useEffect(() => {
+    if (pendingRefresh.current) {
+      const callback = pendingRefresh.current;
+      pendingRefresh.current = false;
+      callback();
+    }
+  }, [inputs]);
+
   return {
     // 基础状态
     loading: showLoading,
@@ -349,6 +411,7 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     setActiveUptimeTab,
 
     // 计算值
+    datePresets,
     timeOptions,
     performanceMetrics,
     getGreeting,
@@ -363,6 +426,8 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
 
     // 函数
     handleInputChange,
+    handleDateRangeChange,
+    handleReset,
     showSearchModal,
     handleCloseModal,
     loadQuotaData,

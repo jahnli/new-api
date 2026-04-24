@@ -27,9 +27,9 @@ const SearchModal = ({
   isMobile,
   isAdminUser,
   inputs,
-  dataExportDefaultTime,
-  timeOptions,
+  datePresets,
   handleInputChange,
+  handleDateRangeChange,
   t,
 }) => {
   const formRef = useRef();
@@ -51,39 +51,18 @@ const SearchModal = ({
       onOk={handleSearchConfirm}
       onCancel={handleCloseModal}
       closeOnEsc={true}
-      size={isMobile ? 'full-width' : 'small'}
+      size={isMobile ? 'full-width' : 'medium'}
       centered
     >
       <Form ref={formRef} layout='vertical' className='w-full'>
         {createFormField(Form.DatePicker, {
-          field: 'start_timestamp',
-          label: t('起始时间'),
-          initValue: start_timestamp,
-          value: start_timestamp,
-          type: 'dateTime',
-          name: 'start_timestamp',
-          onChange: (value) => handleInputChange(value, 'start_timestamp'),
-        })}
-
-        {createFormField(Form.DatePicker, {
-          field: 'end_timestamp',
-          label: t('结束时间'),
-          initValue: end_timestamp,
-          value: end_timestamp,
-          type: 'dateTime',
-          name: 'end_timestamp',
-          onChange: (value) => handleInputChange(value, 'end_timestamp'),
-        })}
-
-        {createFormField(Form.Select, {
-          field: 'data_export_default_time',
-          label: t('时间粒度'),
-          initValue: dataExportDefaultTime,
-          placeholder: t('时间粒度'),
-          name: 'data_export_default_time',
-          optionList: timeOptions,
-          onChange: (value) =>
-            handleInputChange(value, 'data_export_default_time'),
+          field: 'date_range',
+          label: t('时间范围'),
+          type: 'dateTimeRange',
+          value: [new Date(start_timestamp), new Date(end_timestamp)],
+          presets: datePresets,
+          presetPosition: 'left',
+          onChange: handleDateRangeChange,
         })}
 
         {isAdminUser &&

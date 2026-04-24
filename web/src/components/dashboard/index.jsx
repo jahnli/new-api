@@ -29,7 +29,6 @@ import ApiInfoPanel from './ApiInfoPanel';
 import AnnouncementsPanel from './AnnouncementsPanel';
 import FaqPanel from './FaqPanel';
 import UptimePanel from './UptimePanel';
-import SearchModal from './modals/SearchModal';
 
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
 import { useDashboardStats } from '../../hooks/dashboard/useDashboardStats';
@@ -113,9 +112,8 @@ const Dashboard = () => {
     await loadUserData();
   };
 
-  const handleSearchConfirm = async () => {
-    await dashboardData.handleSearchConfirm(dashboardCharts.updateChartData);
-    await loadUserData();
+  const handleReset = () => {
+    dashboardData.handleReset(handleRefresh);
   };
 
   // ========== 数据准备 ==========
@@ -156,22 +154,14 @@ const Dashboard = () => {
         getGreeting={dashboardData.getGreeting}
         getDepartment={dashboardData.getDepartment}
         greetingVisible={dashboardData.greetingVisible}
-        showSearchModal={dashboardData.showSearchModal}
         refresh={handleRefresh}
         loading={dashboardData.loading}
-        t={dashboardData.t}
-      />
-
-      <SearchModal
-        searchModalVisible={dashboardData.searchModalVisible}
-        handleSearchConfirm={handleSearchConfirm}
-        handleCloseModal={dashboardData.handleCloseModal}
-        isMobile={dashboardData.isMobile}
         isAdminUser={dashboardData.isAdminUser}
         inputs={dashboardData.inputs}
-        dataExportDefaultTime={dashboardData.dataExportDefaultTime}
-        timeOptions={dashboardData.timeOptions}
+        datePresets={dashboardData.datePresets}
+        handleDateRangeChange={dashboardData.handleDateRangeChange}
         handleInputChange={dashboardData.handleInputChange}
+        onReset={handleReset}
         t={dashboardData.t}
       />
 

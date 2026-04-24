@@ -17,6 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
+import dayjs from 'dayjs';
+
 // ========== UI 配置常量 ==========
 export const CHART_CONFIG = { mode: 'desktop-browser' };
 
@@ -169,3 +171,56 @@ export const DEFAULTS = {
   MODEL_TABLE_PAGE_SIZE: 10,
   MAX_TREND_POINTS: 7,
 };
+
+// ========== 仪表盘日期预设 ==========
+export const DASHBOARD_DATE_PRESETS = [
+  {
+    text: '过去一小时',
+    start: () => dayjs().subtract(1, 'hour').toDate(),
+    end: () => dayjs().toDate(),
+    granularity: 'hour',
+    adminOnly: false,
+  },
+  {
+    text: '过去一天',
+    start: () => dayjs().subtract(1, 'day').toDate(),
+    end: () => dayjs().toDate(),
+    granularity: 'day',
+    adminOnly: false,
+  },
+  {
+    text: '过去一周',
+    start: () => dayjs().subtract(1, 'week').toDate(),
+    end: () => dayjs().toDate(),
+    granularity: 'week',
+    adminOnly: false,
+  },
+  {
+    text: '过去一月',
+    start: () => dayjs().subtract(1, 'month').toDate(),
+    end: () => dayjs().toDate(),
+    granularity: 'month',
+    adminOnly: true,
+  },
+  {
+    text: '过去一季度',
+    start: () => dayjs().subtract(3, 'month').toDate(),
+    end: () => dayjs().toDate(),
+    granularity: 'quarter',
+    adminOnly: true,
+  },
+  {
+    text: '过去半年',
+    start: () => dayjs().subtract(6, 'month').toDate(),
+    end: () => dayjs().toDate(),
+    granularity: 'half_year',
+    adminOnly: true,
+  },
+  {
+    text: '过去一年',
+    start: () => dayjs().subtract(1, 'year').toDate(),
+    end: () => dayjs().toDate(),
+    granularity: 'year',
+    adminOnly: true,
+  },
+];

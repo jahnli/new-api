@@ -18,40 +18,39 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import { Button } from '@douyinfe/semi-ui';
-import { RefreshCw, Search } from 'lucide-react';
+import { Button, DatePicker, Input } from '@douyinfe/semi-ui';
+import { RefreshCw } from 'lucide-react';
 
 const DashboardHeader = ({
   getGreeting,
   getDepartment,
   greetingVisible,
-  showSearchModal,
   refresh,
   loading,
+  isAdminUser,
+  inputs,
+  datePresets,
+  handleDateRangeChange,
+  handleInputChange,
+  onReset,
   t,
 }) => {
   const ICON_BUTTON_CLASS = 'text-white hover:bg-opacity-80 !rounded-full';
 
   return (
-    <div className='flex items-center justify-between mb-4'>
-      <div
-        className='flex items-baseline gap-3 transition-opacity duration-1000 ease-in-out'
-        style={{ opacity: greetingVisible ? 1 : 0 }}
-      >
-        <h2 className='text-2xl font-semibold text-gray-800'>
-          {getGreeting}
-        </h2>
-        {getDepartment && (
-          <span className='text-sm text-gray-500'>{getDepartment}</span>
-        )}
-      </div>
-      <div className='flex gap-3'>
-        <Button
-          type='tertiary'
-          icon={<Search size={16} />}
-          onClick={showSearchModal}
-          className={`bg-green-500 hover:bg-green-600 ${ICON_BUTTON_CLASS}`}
-        />
+    <div className='mb-4'>
+      <div className='flex items-center justify-between mb-3'>
+        <div
+          className='flex items-baseline gap-3 transition-opacity duration-1000 ease-in-out'
+          style={{ opacity: greetingVisible ? 1 : 0 }}
+        >
+          <h2 className='text-2xl font-semibold text-gray-800'>
+            {getGreeting}
+          </h2>
+          {getDepartment && (
+            <span className='text-sm text-gray-500'>{getDepartment}</span>
+          )}
+        </div>
         <Button
           type='tertiary'
           icon={<RefreshCw size={16} />}
@@ -59,6 +58,39 @@ const DashboardHeader = ({
           loading={loading}
           className={`bg-blue-500 hover:bg-blue-600 ${ICON_BUTTON_CLASS}`}
         />
+      </div>
+      <div className='flex items-center gap-3 flex-wrap justify-end'>
+        <DatePicker
+          type='dateTimeRange'
+          value={[new Date(inputs.start_timestamp), new Date(inputs.end_timestamp)]}
+          presets={datePresets}
+          presetPosition='left'
+          onChange={handleDateRangeChange}
+          density='compact'
+          style={{ width: 430 }}
+        />
+        {isAdminUser && (
+          <Input
+            value={inputs.username}
+            placeholder={t('用户名称')}
+            onChange={(value) => handleInputChange(value, 'username')}
+            style={{ width: 160 }}
+            size='default'
+          />
+        )}
+        <Button
+          onClick={onReset}
+        >
+          {t('重置')}
+        </Button>
+        <Button
+          theme='solid'
+          type='primary'
+          onClick={refresh}
+          loading={loading}
+        >
+          {t('查询')}
+        </Button>
       </div>
     </div>
   );
