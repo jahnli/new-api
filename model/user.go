@@ -733,6 +733,18 @@ func IsLdapIdAlreadyTaken(ldapId string) bool {
 	return DB.Unscoped().Where("ldap_id = ?", ldapId).Find(&User{}).RowsAffected == 1
 }
 
+func GetUserIdsByLdapCn(cn string) ([]int, error) {
+	var ldapCnCondition string
+	if common.UsingPostgreSQL {
+		ldapCnCondition = "SPLIT_PART(ldap_id, ',', 1) LIKE ?"
+	} else {
+		ldapCnCondition = "SUBSTR(ldap_id, 1, INSTR(ldap_id, ',') - 1) LIKE ?"
+	}
+	var ids []int
+	err := DB.Model(&User{}).Select("id").Where("ldap_id <> '' AND "+ldapCnCondition, "%"+cn+"%").Find(&ids).Error
+	return ids, err
+}
+
 func IsEmailAlreadyTaken(email string) bool {
 	return DB.Unscoped().Where("email = ?", email).Find(&User{}).RowsAffected == 1
 }

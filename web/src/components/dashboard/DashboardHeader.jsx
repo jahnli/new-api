@@ -74,7 +74,7 @@ const DashboardHeader = ({
             value={inputs.username}
             placeholder={t('用户名称')}
             onChange={(value) => handleInputChange(value, 'username')}
-            style={{ width: 160 }}
+            style={{ width: 200 }}
             size='default'
           />
         )}
