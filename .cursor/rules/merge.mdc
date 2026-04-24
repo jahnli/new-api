@@ -17,6 +17,7 @@ alwaysApply: false
 
 ## 1. 合并策略
 
+- 优先以本地为主，确保本地功能不丢失
 - **必须使用** `git merge upstream/main --no-commit --no-ff`（不自动提交、不快进），给予充分的审查空间。
 - **禁止** `git merge --squash`、`git rebase`、`git reset --hard` 等破坏性操作，除非用户明确要求。
 - **禁止** 在未经用户确认的情况下运行 `git merge --continue` 或 `git commit`。
