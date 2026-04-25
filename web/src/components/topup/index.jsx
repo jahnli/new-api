@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useCallback, useEffect, useState, useContext } from 'react';
 import {
   API,
   showError,
@@ -54,6 +54,9 @@ const TopUp = () => {
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [activeSubscriptions, setActiveSubscriptions] = useState([]);
   const [allSubscriptions, setAllSubscriptions] = useState([]);
+
+  // 总消耗
+  const [consumedQuota, setConsumedQuota] = useState(0);
 
   const getUserQuota = async () => {
     let res = await API.get(`/api/user/self`);
@@ -121,11 +124,24 @@ const TopUp = () => {
     }
   };
 
+  const loadConsumedQuota = useCallback(async () => {
+    try {
+      const res = await API.get('/api/data/self/consumed');
+      const { success, data } = res.data;
+      if (success) {
+        setConsumedQuota(data || 0);
+      }
+    } catch (err) {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     getUserQuota().then();
     getTopupInfo().then();
     getSubscriptionPlans().then();
     getSubscriptionSelf().then();
+    loadConsumedQuota().then();
   }, []);
 
   return (
@@ -170,7 +186,7 @@ const TopUp = () => {
                       className='text-base sm:text-2xl font-bold mb-2'
                       style={{ color: 'white' }}
                     >
-                      {renderQuota(userState?.user?.used_quota)}
+                      {renderQuota(consumedQuota)}
                     </div>
                     <div className='flex items-center justify-center text-sm'>
                       <TrendingUp
@@ -184,7 +200,7 @@ const TopUp = () => {
                           fontSize: '12px',
                         }}
                       >
-                        {t('历史消耗')}
+                        {t('总消耗')}
                       </Text>
                     </div>
                   </div>
