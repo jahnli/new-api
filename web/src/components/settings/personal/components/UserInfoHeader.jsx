@@ -27,7 +27,7 @@ import {
 } from '../../../../helpers';
 import { Coins, BarChart2, Users, ShieldCheck, Shield, User, Hash } from 'lucide-react';
 
-const UserInfoHeader = ({ t, userState }) => {
+const UserInfoHeader = ({ t, userState, consumedQuota }) => {
   const getUsername = () => {
     return userState.user ? userState.user.username : 'null';
   };
@@ -55,7 +55,7 @@ const UserInfoHeader = ({ t, userState }) => {
   const role = getRoleTag();
 
   const stats = [
-    { icon: <Coins size={15} />, label: t('历史消耗'), value: renderQuota(userState?.user?.used_quota) },
+    { icon: <Coins size={15} />, label: t('总消耗'), value: renderQuota(consumedQuota) },
     { icon: <BarChart2 size={15} />, label: t('请求次数'), value: userState.user?.request_count || 0 },
     { icon: <Users size={15} />, label: t('用户分组'), value: userState?.user?.group || t('默认') },
   ];

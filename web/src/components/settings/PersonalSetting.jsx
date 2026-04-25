@@ -77,6 +77,7 @@ const PersonalSetting = () => {
   const [passkeyRegisterLoading, setPasskeyRegisterLoading] = useState(false);
   const [passkeyDeleteLoading, setPasskeyDeleteLoading] = useState(false);
   const [passkeySupported, setPasskeySupported] = useState(false);
+  const [consumedQuota, setConsumedQuota] = useState(0);
   const [
     passkeyRequiredVerificationMethod,
     setPasskeyRequiredVerificationMethod,
@@ -124,6 +125,18 @@ const PersonalSetting = () => {
       }
     : passkeyVerificationMethods;
 
+  const loadConsumedQuota = async () => {
+    try {
+      const res = await API.get('/api/data/self/consumed');
+      const { success, data } = res.data;
+      if (success) {
+        setConsumedQuota(data || 0);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     let saved = localStorage.getItem('status');
     if (saved) {
@@ -159,6 +172,7 @@ const PersonalSetting = () => {
     })();
 
     getUserData();
+    loadConsumedQuota();
 
     isPasskeySupported()
       .then(setPasskeySupported)
@@ -539,7 +553,7 @@ const PersonalSetting = () => {
       <div className='flex justify-center'>
         <div className='w-full max-w-7xl mx-auto px-2'>
           {/* 顶部用户信息区域 */}
-          <UserInfoHeader t={t} userState={userState} getUserData={getUserData} />
+          <UserInfoHeader t={t} userState={userState} getUserData={getUserData} consumedQuota={consumedQuota} />
 
           {/* 签到日历 - 仅在启用时显示 */}
           {status?.checkin_enabled && (
