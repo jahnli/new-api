@@ -184,6 +184,13 @@ const renderQuotaUsage = (text, record, t) => {
           <span className='text-xs leading-none'>{`${renderQuota(remain)} / ${renderQuota(total)}`}</span>
           <Progress
             percent={percent}
+            stroke={
+              percent <= 10
+                ? 'var(--semi-color-danger)'
+                : percent <= 30
+                  ? 'var(--semi-color-warning)'
+                  : 'var(--semi-color-success)'
+            }
             aria-label='quota usage'
             format={() => `${percent.toFixed(0)}%`}
             style={{ width: '100%', marginTop: '1px', marginBottom: 0 }}

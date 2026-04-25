@@ -426,7 +426,11 @@ const SubscriptionPlansCard = ({
                                     width: `${100 - usagePercent}%`,
                                     height: '100%',
                                     borderRadius: 999,
-                                    background: 'var(--semi-color-success)',
+                                    background: (100 - usagePercent) <= 10
+                                      ? 'var(--semi-color-danger)'
+                                      : (100 - usagePercent) <= 30
+                                        ? 'var(--semi-color-warning)'
+                                        : 'var(--semi-color-success)',
                                     transition: 'width 0.3s ease',
                                   }} />
                                   <span style={{

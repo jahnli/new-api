@@ -86,7 +86,7 @@ const StatsCards = ({
                               ? 'var(--semi-color-danger)'
                               : item.subscriptionPercent <= 30
                                 ? 'var(--semi-color-warning)'
-                                : undefined
+                                : 'var(--semi-color-success)'
                           }
                           aria-label='subscription quota usage'
                           format={() => `${item.subscriptionPercent}%`}
