@@ -27,7 +27,7 @@ var DrawingEnabled = true
 var TaskEnabled = true
 var DataExportEnabled = true
 var DataExportInterval = 5         // unit: minute
-var DataExportDefaultTime = "hour" // unit: minute
+var DataExportDefaultTime = "today" // unit: minute
 var DefaultCollapseSidebar = false           // default value of collapse sidebar
 var PersonalSidebarSettingsEnabled = true // 是否允许普通用户访问个人边栏设置
 

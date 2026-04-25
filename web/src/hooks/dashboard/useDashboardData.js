@@ -226,14 +226,12 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
       });
     if (matched) {
       setDataExportDefaultTime(matched.granularity);
-      localStorage.setItem('data_export_default_time', matched.granularity);
     }
   }, [isAdminUser]);
 
   const handleInputChange = useCallback((value, name) => {
     if (name === 'data_export_default_time') {
       setDataExportDefaultTime(value);
-      localStorage.setItem('data_export_default_time', value);
       const range = getGranularityTimeRange(value);
       setInputs((prev) => ({
         ...prev,
@@ -286,6 +284,7 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
       if (success) {
         setQuotaData(data);
         setQueriedTimeLabel(t(TIME_LABEL_MAP[dataExportDefaultTime] || ''));
+        localStorage.setItem('data_export_default_time', dataExportDefaultTime);
         if (data.length === 0) {
           data.push({
             count: 0,

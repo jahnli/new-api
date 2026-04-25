@@ -30,10 +30,12 @@ export function setStatusData(data) {
   localStorage.setItem('enable_task', data.enable_task);
   localStorage.setItem('enable_data_export', data.enable_data_export);
   localStorage.setItem('chats', JSON.stringify(data.chats));
-  localStorage.setItem(
-    'data_export_default_time',
-    data.data_export_default_time,
-  );
+  if (!localStorage.getItem('data_export_default_time')) {
+    localStorage.setItem(
+      'data_export_default_time',
+      data.data_export_default_time,
+    );
+  }
   localStorage.setItem(
     'default_collapse_sidebar',
     data.default_collapse_sidebar,
