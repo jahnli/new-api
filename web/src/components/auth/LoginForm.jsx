@@ -112,7 +112,7 @@ const LoginForm = () => {
   const githubTimeoutRef = useRef(null);
   const githubButtonText = t(githubButtonTextKeyByState[githubButtonState]);
   const [customOAuthLoading, setCustomOAuthLoading] = useState({});
-  const [showLDAPLogin, setShowLDAPLogin] = useState(false);
+  const [showLDAPLogin, setShowLDAPLogin] = useState(null);
   const [ldapLoading, setLdapLoading] = useState(false);
   const [ldapInputs, setLdapInputs] = useState({
     username: '',
@@ -159,6 +159,7 @@ const LoginForm = () => {
     // 从 status 获取用户协议和隐私政策的启用状态
     setHasUserAgreement(status?.user_agreement_enabled || false);
     setHasPrivacyPolicy(status?.privacy_policy_enabled || false);
+    setShowLDAPLogin((prev) => (prev === null ? !!status?.ldap_enabled : prev));
   }, [status]);
 
   useEffect(() => {
@@ -559,8 +560,9 @@ const LoginForm = () => {
     setShowEmailLogin(false);
   };
 
+  const ldapLabel = status.ldap_login_label || t('LDAP');
+
   const renderLDAPLoginForm = () => {
-    const ldapLabel = status.ldap_login_label || t('LDAP');
     return (
       <div className='flex flex-col items-center'>
         <div className='w-full max-w-md'>
@@ -658,10 +660,10 @@ const LoginForm = () => {
                   className='w-full !rounded-full'
                   onClick={() => {
                     setShowLDAPLogin(false);
-                    setShowEmailLogin(false);
+                    setShowEmailLogin(true);
                   }}
                 >
-                  {t('其他登录选项')}
+                  {t('使用 邮箱或用户名 登录')}
                 </Button>
               </div>
 
@@ -1020,15 +1022,6 @@ const LoginForm = () => {
                     {t('继续')}
                   </Button>
 
-                  <Button
-                    theme='borderless'
-                    type='tertiary'
-                    className='w-full !rounded-full'
-                    onClick={handleResetPasswordClick}
-                    loading={resetPasswordLoading}
-                  >
-                    {t('忘记密码？')}
-                  </Button>
                 </div>
               </Form>
 
@@ -1039,15 +1032,29 @@ const LoginForm = () => {
                   </Divider>
 
                   <div className='mt-4 text-center'>
-                    <Button
-                      theme='outline'
-                      type='tertiary'
-                      className='w-full !rounded-full'
-                      onClick={handleOtherLoginOptionsClick}
-                      loading={otherLoginOptionsLoading}
-                    >
-                      {t('其他登录选项')}
-                    </Button>
+                    {status.ldap_enabled ? (
+                      <Button
+                        theme='outline'
+                        type='tertiary'
+                        className='w-full !rounded-full'
+                        onClick={() => {
+                          setShowEmailLogin(false);
+                          setShowLDAPLogin(true);
+                        }}
+                      >
+                        {t('使用 {{name}} 登录', { name: ldapLabel })}
+                      </Button>
+                    ) : (
+                      <Button
+                        theme='outline'
+                        type='tertiary'
+                        className='w-full !rounded-full'
+                        onClick={handleOtherLoginOptionsClick}
+                        loading={otherLoginOptionsLoading}
+                      >
+                        {t('其他登录选项')}
+                      </Button>
+                    )}
                   </div>
                 </>
               )}
