@@ -43,7 +43,44 @@ const StatsCards = ({
             title={group.title}
           >
             <div className='space-y-4'>
-              {group.items.map((item, itemIdx) => (
+              {group.items.map((item, itemIdx) =>
+                item.layout === 'inline' ? (
+                  <div key={itemIdx} className='flex items-center justify-between'>
+                    {item.inlineItems.map((inlineItem, inlineIdx) => (
+                      <div key={inlineIdx} className='flex items-center'>
+                        <Avatar
+                          className='mr-2'
+                          size='small'
+                          color={inlineItem.avatarColor}
+                        >
+                          {inlineItem.icon}
+                        </Avatar>
+                        <div>
+                          <div className='text-xs text-gray-500'>{inlineItem.title}</div>
+                          <div className='text-lg font-semibold'>
+                            <Skeleton
+                              loading={loading}
+                              active
+                              placeholder={
+                                <Skeleton.Paragraph
+                                  active
+                                  rows={1}
+                                  style={{
+                                    width: '65px',
+                                    height: '24px',
+                                    marginTop: '4px',
+                                  }}
+                                />
+                              }
+                            >
+                              {inlineItem.value}
+                            </Skeleton>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
                 <div
                   key={itemIdx}
                   className='flex items-center justify-between cursor-pointer'
@@ -122,7 +159,8 @@ const StatsCards = ({
                     )
                   )}
                 </div>
-              ))}
+                )
+              )}
             </div>
           </Card>
         ))}

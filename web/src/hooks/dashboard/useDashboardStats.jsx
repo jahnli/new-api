@@ -45,6 +45,7 @@ export const useDashboardStats = (
   trendData,
   performanceMetrics,
   consumedQuota,
+  totalRequestCount,
   navigate,
   t,
 ) => {
@@ -69,12 +70,21 @@ export const useDashboardStats = (
             trendColor: '#3b82f6',
           },
           {
-            title: t('总消耗'),
-            value: renderQuota(consumedQuota),
-            icon: <IconHistogram />,
-            avatarColor: 'purple',
-            trendData: [],
-            trendColor: '#8b5cf6',
+            layout: 'inline',
+            inlineItems: [
+              {
+                title: t('总消耗'),
+                value: renderQuota(consumedQuota),
+                icon: <IconHistogram />,
+                avatarColor: 'purple',
+              },
+              {
+                title: t('总请求'),
+                value: totalRequestCount.toLocaleString(),
+                icon: <IconSend />,
+                avatarColor: 'teal',
+              },
+            ],
           },
         ],
       },
@@ -165,6 +175,7 @@ export const useDashboardStats = (
     ],
     [
       consumedQuota,
+      totalRequestCount,
       subscriptionInfo,
       timeLabel,
       times,

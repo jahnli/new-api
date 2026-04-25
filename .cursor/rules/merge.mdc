@@ -19,7 +19,8 @@ alwaysApply: false
 
 - 优先以本地为主，确保本地功能不丢失
 - 合并时不要恢复我删除掉的功能
-   - 个人设置的账号管理，其他设置中的价格设置和隐私设置
+   - 不需要个人设置的账号管理，其他设置中的价格设置和隐私设置
+   - 用户管理中的用户名称查询
 - **必须使用** `git merge upstream/main --no-commit --no-ff`（不自动提交、不快进），给予充分的审查空间。
 - **禁止** `git merge --squash`、`git rebase`、`git reset --hard` 等破坏性操作，除非用户明确要求。
 - **禁止** 在未经用户确认的情况下运行 `git merge --continue` 或 `git commit`。

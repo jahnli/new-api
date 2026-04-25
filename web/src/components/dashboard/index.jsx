@@ -85,6 +85,7 @@ const Dashboard = () => {
     dashboardData.trendData,
     dashboardData.performanceMetrics,
     dashboardData.consumedQuota,
+    userState?.user?.request_count || 0,
     dashboardData.navigate,
     dashboardData.t,
   );
