@@ -96,7 +96,7 @@ const StatsCards = ({
                     </div>
                   </div>
                   {item.title === t('当前订阅') ? (
-                    item.planTitle ? (
+                    item.planTitle && (
                       <Tag
                         color='blue'
                         shape='circle'
@@ -108,18 +108,6 @@ const StatsCards = ({
                         }}
                       >
                         {item.planTitle}
-                      </Tag>
-                    ) : (
-                      <Tag
-                        color='white'
-                        shape='circle'
-                        size='large'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/console/topup');
-                        }}
-                      >
-                        {t('订阅')}
                       </Tag>
                     )
                   ) : (
