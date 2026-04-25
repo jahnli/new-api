@@ -46,10 +46,22 @@ func GetAllLogs(c *gin.Context) {
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
 	requestId := c.Query("request_id")
-	logs, total, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId)
+
+	var userIds []int
+	logs, total, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId, nil)
 	if err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	if total == 0 && username != "" {
+		userIds, _ = model.GetUserIdsByLdapCn(username)
+		if len(userIds) > 0 {
+			logs, total, err = model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, "", tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId, userIds)
+			if err != nil {
+				common.ApiError(c, err)
+				return
+			}
+		}
 	}
 	enrichLogsWithLdapId(logs)
 	pageInfo.SetTotal(int(total))
@@ -128,12 +140,23 @@ func GetLogsStat(c *gin.Context) {
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
-	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
+
+	var userIds []int
+	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, nil)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	//tokenNum := model.SumUsedToken(logType, startTimestamp, endTimestamp, modelName, username, "")
+	if stat.Quota == 0 && username != "" {
+		userIds, _ = model.GetUserIdsByLdapCn(username)
+		if len(userIds) > 0 {
+			stat, err = model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, "", tokenName, channel, group, userIds)
+			if err != nil {
+				common.ApiError(c, err)
+				return
+			}
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -155,7 +178,7 @@ func GetLogsSelfStat(c *gin.Context) {
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
-	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
+	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, nil)
 	if err != nil {
 		common.ApiError(c, err)
 		return
