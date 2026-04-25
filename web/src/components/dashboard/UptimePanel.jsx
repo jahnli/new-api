@@ -122,7 +122,7 @@ const UptimePanel = ({
                   <IllustrationConstructionDark style={ILLUSTRATION_SIZE} />
                 }
                 title={t('暂无监控数据')}
-                description={t('请联系管理员在系统设置中配置Uptime')}
+                description={t('请联系管理员在系统设置中配置')}
               />
             </div>
           )}
