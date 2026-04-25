@@ -51,6 +51,7 @@ export const TIME_OPTIONS = [
 
 export const DEFAULT_TIME_INTERVALS = {
   hour: { seconds: 3600, minutes: 60 },
+  today: { seconds: 3600, minutes: 60 },
   day: { seconds: 86400, minutes: 1440 },
   week: { seconds: 604800, minutes: 10080 },
   month: { seconds: 2592000, minutes: 43200 },
@@ -74,9 +75,9 @@ export const getGranularityTimeRange = (granularity) => {
   const now = dayjs();
   switch (granularity) {
     case 'hour':
-      return { start: now.subtract(1, 'hour'), end: now };
+      return { start: now.subtract(1, 'hour').startOf('hour'), end: now };
     case 'today':
-      return { start: now.subtract(24, 'hour'), end: now };
+      return { start: now.subtract(24, 'hour').startOf('hour'), end: now };
     case 'day':
       return {
         start: now.subtract(1, 'day').startOf('day'),
@@ -204,14 +205,14 @@ export const DEFAULTS = {
 export const DASHBOARD_DATE_PRESETS = [
   {
     text: '最近一小时',
-    start: () => dayjs().subtract(1, 'hour').toDate(),
+    start: () => dayjs().subtract(1, 'hour').startOf('hour').toDate(),
     end: () => dayjs().toDate(),
     granularity: 'hour',
     adminOnly: false,
   },
   {
     text: '最近一天',
-    start: () => dayjs().subtract(24, 'hour').toDate(),
+    start: () => dayjs().subtract(24, 'hour').startOf('hour').toDate(),
     end: () => dayjs().toDate(),
     granularity: 'today',
     adminOnly: false,

@@ -238,7 +238,7 @@ export function timestamp2string1(
   }
   // 仅在跨年时显示年份
   let str = showYear ? year + '-' + month + '-' + day : month + '-' + day;
-  if (dataExportDefaultTime === 'hour') {
+  if (dataExportDefaultTime === 'hour' || dataExportDefaultTime === 'today') {
     str += ' ' + hour + ':00';
   } else if (dataExportDefaultTime === 'week') {
     let nextWeek = new Date(timestamp * 1000 + 6 * 24 * 60 * 60 * 1000);
