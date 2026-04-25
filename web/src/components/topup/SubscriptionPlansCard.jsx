@@ -31,7 +31,7 @@ import {
 } from '@douyinfe/semi-ui';
 import { API, showError, showSuccess, renderQuota } from '../../helpers';
 import { getCurrencyConfig } from '../../helpers/render';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { Check, RefreshCw, Sparkles } from 'lucide-react';
 import SubscriptionPurchaseModal from './modals/SubscriptionPurchaseModal';
 import {
   formatSubscriptionDuration,
@@ -198,6 +198,15 @@ const SubscriptionPlansCard = ({
   // 当前订阅信息 - 支持多个订阅
   const hasActiveSubscription = activeSubscriptions.length > 0;
   const hasAnySubscription = allSubscriptions.length > 0;
+
+  const activePlanIds = useMemo(() => {
+    const set = new Set();
+    (activeSubscriptions || []).forEach((sub) => {
+      const planId = sub?.subscription?.plan_id;
+      if (planId) set.add(planId);
+    });
+    return set;
+  }, [activeSubscriptions]);
 
   const planPurchaseCountMap = useMemo(() => {
     const map = new Map();
@@ -481,7 +490,7 @@ const SubscriptionPlansCard = ({
                 const displayPrice = convertedPrice.toFixed(
                   Number.isInteger(convertedPrice) ? 0 : 2,
                 );
-                const isPopular = false;
+                const isCurrentPlan = activePlanIds.has(plan?.id);
                 const limit = Number(plan?.max_purchase_per_user || 0);
                 const limitLabel = limit > 0 ? `${t('限购')} ${limit}` : null;
                 const totalLabel =
@@ -514,17 +523,17 @@ const SubscriptionPlansCard = ({
                   <Card
                     key={plan?.id}
                     className={`!rounded-xl transition-all hover:shadow-lg w-full h-full ${
-                      isPopular ? 'ring-2 ring-purple-500' : ''
+                      isCurrentPlan ? 'ring-2 ring-green-500' : ''
                     }`}
                     bodyStyle={{ padding: 0 }}
                   >
                     <div className='p-4 h-full flex flex-col'>
-                      {/* 推荐标签 */}
-                      {isPopular && (
+                      {/* 当前订阅标签 */}
+                      {isCurrentPlan && (
                         <div className='mb-2'>
-                          <Tag color='purple' shape='circle' size='small'>
-                            <Sparkles size={10} className='mr-1' />
-                            {t('推荐')}
+                          <Tag color='green' shape='circle' size='small'>
+                            <Check size={10} className='mr-1' />
+                            {t('当前订阅')}
                           </Tag>
                         </div>
                       )}
