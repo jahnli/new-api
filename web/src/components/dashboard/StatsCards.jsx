@@ -107,7 +107,7 @@ const StatsCards = ({
                               style={{
                                 width: '65px',
                                 height: '24px',
-                                marginTop: '4px',
+                                marginTop: '2px',
                               }}
                             />
                           }
@@ -115,20 +115,28 @@ const StatsCards = ({
                           {item.value}
                         </Skeleton>
                       </div>
-                      {item.subscriptionPercent != null && !loading && (
-                        <Progress
-                          percent={item.subscriptionPercent}
-                          stroke={
-                            item.subscriptionPercent <= 10
-                              ? 'var(--semi-color-danger)'
-                              : item.subscriptionPercent <= 30
-                                ? 'var(--semi-color-warning)'
-                                : 'var(--semi-color-success)'
-                          }
-                          aria-label='subscription quota usage'
-                          format={() => `${item.subscriptionPercent}%`}
-                          style={{ width: '100%', marginTop: '2px' }}
-                        />
+                      {item.hasSubscriptionBar && (
+                        loading || item.subscriptionPercent == null ? (
+                          <Skeleton.Paragraph
+                            active
+                            rows={1}
+                            style={{ width: '100%', height: '14px', marginTop: '2px' }}
+                          />
+                        ) : (
+                          <Progress
+                            percent={item.subscriptionPercent}
+                            stroke={
+                              item.subscriptionPercent <= 10
+                                ? 'var(--semi-color-danger)'
+                                : item.subscriptionPercent <= 30
+                                  ? 'var(--semi-color-warning)'
+                                  : 'var(--semi-color-success)'
+                            }
+                            aria-label='subscription quota usage'
+                            format={() => `${item.subscriptionPercent}%`}
+                            style={{ width: '100%', marginTop: '2px' }}
+                          />
+                        )
                       )}
                     </div>
                   </div>
