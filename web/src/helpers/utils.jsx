@@ -218,6 +218,8 @@ export function timestamp2string(timestamp) {
 }
 
 export function parseLocalTimestamp(dateStr) {
+  if (dateStr instanceof Date) return dateStr;
+  if (typeof dateStr !== 'string') return new Date(dateStr);
   const [datePart, timePart] = dateStr.split(' ');
   const [y, m, d] = datePart.split('-').map(Number);
   const [h, min, s] = (timePart || '00:00:00').split(':').map(Number);
