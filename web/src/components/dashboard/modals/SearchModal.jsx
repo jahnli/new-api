@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 import React, { useRef } from 'react';
 import { Modal, Form } from '@douyinfe/semi-ui';
+import { parseLocalTimestamp } from '../../../helpers';
 
 const SearchModal = ({
   searchModalVisible,
@@ -59,7 +60,7 @@ const SearchModal = ({
           field: 'date_range',
           label: t('时间范围'),
           type: 'dateTimeRange',
-          value: [new Date(start_timestamp), new Date(end_timestamp)],
+          value: [parseLocalTimestamp(start_timestamp), parseLocalTimestamp(end_timestamp)],
           presets: datePresets,
           presetPosition: 'left',
           onChange: handleDateRangeChange,

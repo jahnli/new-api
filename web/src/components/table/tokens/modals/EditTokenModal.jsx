@@ -32,6 +32,7 @@ import {
   quotaToDisplayAmount,
   displayAmountToQuota,
 } from '../../../../helpers/quota';
+import { parseLocalTimestamp } from '../../../../helpers';
 import { useIsMobile } from '../../../../hooks/common/useIsMobile';
 import {
   Button,
@@ -228,7 +229,7 @@ const EditTokenModal = (props) => {
         return;
       }
       if (localInputs.expired_time !== -1) {
-        let time = Date.parse(localInputs.expired_time);
+        let time = parseLocalTimestamp(localInputs.expired_time);
         if (isNaN(time)) {
           showError(t('过期时间格式错误！'));
           setLoading(false);
@@ -272,7 +273,7 @@ const EditTokenModal = (props) => {
         }
 
         if (localInputs.expired_time !== -1) {
-          let time = Date.parse(localInputs.expired_time);
+          let time = parseLocalTimestamp(localInputs.expired_time);
           if (isNaN(time)) {
             showError(t('过期时间格式错误！'));
             setLoading(false);
@@ -438,7 +439,7 @@ const EditTokenModal = (props) => {
                             // 允许 -1 表示永不过期，也允许空值在必填校验时被拦截
                             if (value === -1 || !value)
                               return Promise.resolve();
-                            const time = Date.parse(value);
+                            const time = typeof value === 'string' ? parseLocalTimestamp(value).getTime() : new Date(value).getTime();
                             if (isNaN(time)) {
                               return Promise.reject(t('过期时间格式错误！'));
                             }

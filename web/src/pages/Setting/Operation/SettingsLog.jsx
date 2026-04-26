@@ -36,6 +36,7 @@ import {
   showError,
   showSuccess,
   showWarning,
+  parseLocalTimestamp,
 } from '../../../helpers';
 
 const { Text } = Typography;
@@ -162,7 +163,7 @@ export default function SettingsLog(props) {
         try {
           setLoadingCleanHistoryLog(true);
           const res = await API.delete(
-            `/api/log/?target_timestamp=${Date.parse(inputs.historyTimestamp) / 1000}`,
+            `/api/log/?target_timestamp=${parseLocalTimestamp(inputs.historyTimestamp) / 1000}`,
           );
           const { success, message, data } = res.data;
           if (success) {

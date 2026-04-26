@@ -20,6 +20,7 @@ For commercial licensing, please contact support@quantumnous.com
 import React from 'react';
 import { Button, DatePicker, Input } from '@douyinfe/semi-ui';
 import { RefreshCw } from 'lucide-react';
+import { parseLocalTimestamp } from '../../helpers';
 
 const DashboardHeader = ({
   getGreeting,
@@ -62,7 +63,7 @@ const DashboardHeader = ({
       <div className='flex items-center gap-3 flex-wrap justify-end'>
         <DatePicker
           type='dateTimeRange'
-          value={[new Date(inputs.start_timestamp), new Date(inputs.end_timestamp)]}
+          value={[parseLocalTimestamp(inputs.start_timestamp), parseLocalTimestamp(inputs.end_timestamp)]}
           presets={datePresets}
           presetPosition='left'
           onChange={handleDateRangeChange}

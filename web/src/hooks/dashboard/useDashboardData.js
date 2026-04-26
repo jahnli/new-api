@@ -20,7 +20,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { API, isAdmin, showError, timestamp2string } from '../../helpers';
+import { API, isAdmin, showError, timestamp2string, parseLocalTimestamp } from '../../helpers';
 import { getDefaultTime, getInitialTimestamp, getInitialEndTimestamp } from '../../helpers/dashboard';
 import { TIME_OPTIONS, DASHBOARD_DATE_PRESETS, GRANULARITY_TIME_OFFSETS, getGranularityTimeRange } from '../../constants/dashboard.constants';
 import { useIsMobile } from '../common/useIsMobile';
@@ -153,7 +153,7 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
   const performanceMetrics = useMemo(() => {
     const { start_timestamp, end_timestamp } = inputs;
     const timeDiff =
-      (Date.parse(end_timestamp) - Date.parse(start_timestamp)) / 60000;
+      (parseLocalTimestamp(end_timestamp) - parseLocalTimestamp(start_timestamp)) / 60000;
     const avgRPM = isNaN(times / timeDiff)
       ? '0'
       : (times / timeDiff).toFixed(3);
@@ -276,8 +276,8 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     try {
       let url = '';
       const { start_timestamp, end_timestamp, username } = inputs;
-      let localStartTimestamp = Date.parse(start_timestamp) / 1000;
-      let localEndTimestamp = Date.parse(end_timestamp) / 1000;
+      let localStartTimestamp = parseLocalTimestamp(start_timestamp) / 1000;
+      let localEndTimestamp = parseLocalTimestamp(end_timestamp) / 1000;
 
       if (isAdminUser) {
         url = `/api/data/?username=${encodeURIComponent(username)}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}&default_time=${dataExportDefaultTime}`;
@@ -334,8 +334,8 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
     if (!isAdminUser) return [];
     try {
       const { start_timestamp, end_timestamp } = inputs;
-      const localStartTimestamp = Date.parse(start_timestamp) / 1000;
-      const localEndTimestamp = Date.parse(end_timestamp) / 1000;
+      const localStartTimestamp = parseLocalTimestamp(start_timestamp) / 1000;
+      const localEndTimestamp = parseLocalTimestamp(end_timestamp) / 1000;
       const url = `/api/data/users?start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
       const res = await API.get(url);
       const { success, message, data } = res.data;
@@ -354,8 +354,8 @@ export const useDashboardData = (userState, userDispatch, statusState) => {
   const loadMyRequestCount = useCallback(async () => {
     try {
       const { start_timestamp, end_timestamp } = inputs;
-      const localStartTimestamp = Date.parse(start_timestamp) / 1000;
-      const localEndTimestamp = Date.parse(end_timestamp) / 1000;
+      const localStartTimestamp = parseLocalTimestamp(start_timestamp) / 1000;
+      const localEndTimestamp = parseLocalTimestamp(end_timestamp) / 1000;
       const url = `/api/data/self/count?start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
       const res = await API.get(url);
       const { success, data } = res.data;

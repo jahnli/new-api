@@ -217,6 +217,13 @@ export function timestamp2string(timestamp) {
   );
 }
 
+export function parseLocalTimestamp(dateStr) {
+  const [datePart, timePart] = dateStr.split(' ');
+  const [y, m, d] = datePart.split('-').map(Number);
+  const [h, min, s] = (timePart || '00:00:00').split(':').map(Number);
+  return new Date(y, m - 1, d, h, min, s);
+}
+
 export function timestamp2string1(
   timestamp,
   dataExportDefaultTime = 'hour',

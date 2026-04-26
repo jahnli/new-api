@@ -82,7 +82,7 @@ export const getGranularityTimeRange = (granularity) => {
     case 'hour':
       return { start: now.subtract(1, 'hour').startOf('hour'), end: now };
     case 'today':
-      return { start: now.subtract(24, 'hour').startOf('hour'), end: now };
+      return { start: now.startOf('day'), end: now };
     case 'day':
       return {
         start: now.subtract(1, 'day').startOf('day'),

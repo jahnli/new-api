@@ -27,6 +27,7 @@ import {
   showError,
   showSuccess,
   timestamp2string,
+  parseLocalTimestamp,
 } from '../../helpers';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
@@ -226,8 +227,8 @@ export const useMjLogsData = () => {
     setLoading(true);
     const { channel_id, mj_id, start_timestamp, end_timestamp } =
       getFormValues();
-    let localStartTimestamp = Date.parse(start_timestamp);
-    let localEndTimestamp = Date.parse(end_timestamp);
+    let localStartTimestamp = parseLocalTimestamp(start_timestamp).getTime();
+    let localEndTimestamp = parseLocalTimestamp(end_timestamp).getTime();
     const url = isAdminUser
       ? `/api/mj/?p=${page}&page_size=${size}&channel_id=${channel_id}&mj_id=${mj_id}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`
       : `/api/mj/self/?p=${page}&page_size=${size}&mj_id=${mj_id}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;

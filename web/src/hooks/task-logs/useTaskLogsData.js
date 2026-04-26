@@ -27,6 +27,7 @@ import {
   showError,
   showSuccess,
   timestamp2string,
+  parseLocalTimestamp,
 } from '../../helpers';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
@@ -230,8 +231,8 @@ export const useTaskLogsData = () => {
     setLoading(true);
     const { channel_id, task_id, start_timestamp, end_timestamp } =
       getFormValues();
-    let localStartTimestamp = parseInt(Date.parse(start_timestamp) / 1000);
-    let localEndTimestamp = parseInt(Date.parse(end_timestamp) / 1000);
+    let localStartTimestamp = parseInt(parseLocalTimestamp(start_timestamp) / 1000);
+    let localEndTimestamp = parseInt(parseLocalTimestamp(end_timestamp) / 1000);
     let url = isAdminUser
       ? `/api/task/?p=${page}&page_size=${size}&channel_id=${channel_id}&task_id=${task_id}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`
       : `/api/task/self?p=${page}&page_size=${size}&task_id=${task_id}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
