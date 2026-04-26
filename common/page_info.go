@@ -12,6 +12,9 @@ type PageInfo struct {
 
 	Total int `json:"total"` // 总条数，后设置
 	Items any `json:"items"` // 数据，后设置
+
+	Order   string `json:"-"` // asc or desc
+	OrderBy string `json:"-"` // column name
 }
 
 func (p *PageInfo) GetStartIdx() int {
@@ -36,6 +39,17 @@ func (p *PageInfo) SetTotal(total int) {
 
 func (p *PageInfo) SetItems(items any) {
 	p.Items = items
+}
+
+func (p *PageInfo) GetOrderClause(allowedColumns map[string]bool, defaultOrder string) string {
+	if p.OrderBy != "" && allowedColumns[p.OrderBy] {
+		dir := "desc"
+		if p.Order == "asc" {
+			dir = "asc"
+		}
+		return p.OrderBy + " " + dir
+	}
+	return defaultOrder
 }
 
 func GetPageQuery(c *gin.Context) *PageInfo {
@@ -77,6 +91,9 @@ func GetPageQuery(c *gin.Context) *PageInfo {
 	if pageInfo.PageSize > 100 {
 		pageInfo.PageSize = 100
 	}
+
+	pageInfo.OrderBy = c.Query("order_by")
+	pageInfo.Order = c.Query("order")
 
 	return pageInfo
 }

@@ -201,6 +201,33 @@ func GetMaxUserId() int {
 	return user.Id
 }
 
+var userAllowedOrderColumns = map[string]bool{
+	"id":                  true,
+	"used_quota":          true,
+	"request_count":      true,
+	"created_at":          true,
+	"total_prompt_tokens": true,
+}
+
+func applyUserOrder(query *gorm.DB, pageInfo *common.PageInfo) *gorm.DB {
+	if pageInfo.OrderBy == "total_prompt_tokens" && LOG_DB == DB {
+		dir := "DESC"
+		if pageInfo.Order == "asc" {
+			dir = "ASC"
+		}
+		subQuery := DB.Model(&Log{}).
+			Select("user_id, COALESCE(SUM(prompt_tokens), 0) + COALESCE(SUM(completion_tokens), 0) as total_tokens").
+			Where("type = ?", LogTypeConsume).
+			Group("user_id")
+		return query.
+			Select("users.*").
+			Joins("LEFT JOIN (?) AS token_stats ON users.id = token_stats.user_id", subQuery).
+			Order(fmt.Sprintf("COALESCE(token_stats.total_tokens, 0) %s", dir))
+	}
+	orderClause := pageInfo.GetOrderClause(userAllowedOrderColumns, "id desc")
+	return query.Order(orderClause)
+}
+
 func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err error) {
 	// Start transaction
 	tx := DB.Begin()
@@ -221,7 +248,9 @@ func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err err
 	}
 
 	// Get paginated users within same transaction
-	err = tx.Unscoped().Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Omit("password").Find(&users).Error
+	query := tx.Unscoped()
+	query = applyUserOrder(query, pageInfo)
+	err = query.Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Omit("password").Find(&users).Error
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, err
@@ -235,10 +264,13 @@ func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err err
 	return users, total, nil
 }
 
-func SearchUsers(keyword string, group string, startIdx int, num int) ([]*User, int64, error) {
+func SearchUsers(keyword string, group string, pageInfo *common.PageInfo) ([]*User, int64, error) {
 	var users []*User
 	var total int64
 	var err error
+
+	startIdx := pageInfo.GetStartIdx()
+	num := pageInfo.GetPageSize()
 
 	tx := DB.Begin()
 	if tx.Error != nil {
@@ -278,7 +310,7 @@ func SearchUsers(keyword string, group string, startIdx int, num int) ([]*User, 
 	}
 
 	if total > 0 {
-		err = primaryQuery.Omit("password").Order("id desc").Limit(num).Offset(startIdx).Find(&users).Error
+		err = applyUserOrder(primaryQuery, pageInfo).Omit("password").Limit(num).Offset(startIdx).Find(&users).Error
 		if err != nil {
 			tx.Rollback()
 			return nil, 0, err
@@ -305,7 +337,7 @@ func SearchUsers(keyword string, group string, startIdx int, num int) ([]*User, 
 		return nil, 0, err
 	}
 
-	err = fallbackQuery.Omit("password").Order("id desc").Limit(num).Offset(startIdx).Find(&users).Error
+	err = applyUserOrder(fallbackQuery, pageInfo).Omit("password").Limit(num).Offset(startIdx).Find(&users).Error
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, err

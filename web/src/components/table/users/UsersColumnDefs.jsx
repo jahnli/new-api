@@ -386,6 +386,8 @@ export const getUsersColumns = ({
     {
       title: t('总消耗'),
       key: 'consumed_quota',
+      dataIndex: 'used_quota',
+      sorter: true,
       render: (text, record) => {
         const quota = parseInt(record.total_consumed_quota) || 0;
         return renderQuota(quota);
@@ -394,6 +396,8 @@ export const getUsersColumns = ({
     {
       title: 'Token',
       key: 'total_tokens',
+      dataIndex: 'total_prompt_tokens',
+      sorter: true,
       render: (text, record) => {
         const prompt = parseInt(record.total_prompt_tokens) || 0;
         const completion = parseInt(record.total_completion_tokens) || 0;
@@ -415,6 +419,8 @@ export const getUsersColumns = ({
     {
       title: t('请求次数'),
       key: 'request_count',
+      dataIndex: 'request_count',
+      sorter: true,
       render: (text, record) => {
         const requests = parseInt(record.request_count) || 0;
         return renderNumber(requests);

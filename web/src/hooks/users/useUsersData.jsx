@@ -35,6 +35,8 @@ export const useUsersData = () => {
   const [searching, setSearching] = useState(false);
   const [groupOptions, setGroupOptions] = useState([]);
   const [userCount, setUserCount] = useState(0);
+  const [sortKey, setSortKey] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
 
   // Modal states
   const [showAddUser, setShowAddUser] = useState(false);
@@ -70,9 +72,15 @@ export const useUsersData = () => {
   };
 
   // Load users data
-  const loadUsers = async (startIdx, pageSize) => {
+  const loadUsers = async (startIdx, pageSize, orderBy = null, order = null) => {
     setLoading(true);
-    const res = await API.get(`/api/user/?p=${startIdx}&page_size=${pageSize}`);
+    const currentOrderBy = orderBy ?? sortKey;
+    const currentOrder = order ?? sortOrder;
+    let url = `/api/user/?p=${startIdx}&page_size=${pageSize}`;
+    if (currentOrderBy) {
+      url += `&order_by=${currentOrderBy}&order=${currentOrder}`;
+    }
+    const res = await API.get(url);
     const { success, message, data } = res.data;
     if (success) {
       const newPageData = data.items;
@@ -91,6 +99,8 @@ export const useUsersData = () => {
     pageSize,
     searchKeyword = null,
     searchGroup = null,
+    orderBy = null,
+    order = null,
   ) => {
     // If no parameters passed, get values from form
     if (searchKeyword === null || searchGroup === null) {
@@ -101,13 +111,17 @@ export const useUsersData = () => {
 
     if (searchKeyword === '' && searchGroup === '') {
       // If keyword is blank, load files instead
-      await loadUsers(startIdx, pageSize);
+      await loadUsers(startIdx, pageSize, orderBy, order);
       return;
     }
     setSearching(true);
-    const res = await API.get(
-      `/api/user/search?keyword=${searchKeyword}&group=${searchGroup}&p=${startIdx}&page_size=${pageSize}`,
-    );
+    const currentOrderBy = orderBy ?? sortKey;
+    const currentOrder = order ?? sortOrder;
+    let url = `/api/user/search?keyword=${searchKeyword}&group=${searchGroup}&p=${startIdx}&page_size=${pageSize}`;
+    if (currentOrderBy) {
+      url += `&order_by=${currentOrderBy}&order=${currentOrder}`;
+    }
+    const res = await API.get(url);
     const { success, message, data } = res.data;
     if (success) {
       const newPageData = data.items;
@@ -185,6 +199,19 @@ export const useUsersData = () => {
       }
     } catch (error) {
       showError(t('操作失败，请重试'));
+    }
+  };
+
+  // Handle sort change (server-side sorting)
+  const handleSortChange = (newSortKey, newSortOrder) => {
+    setSortKey(newSortKey);
+    setSortOrder(newSortOrder);
+    setActivePage(1);
+    const { searchKeyword, searchGroup } = getFormValues();
+    if (searchKeyword === '' && searchGroup === '') {
+      loadUsers(1, pageSize, newSortKey, newSortOrder);
+    } else {
+      searchUsers(1, pageSize, searchKeyword, searchGroup, newSortKey, newSortOrder);
     }
   };
 
@@ -283,6 +310,8 @@ export const useUsersData = () => {
     userCount,
     searching,
     groupOptions,
+    sortKey,
+    sortOrder,
 
     // Modal state
     showAddUser,
@@ -309,6 +338,7 @@ export const useUsersData = () => {
     resetUserTwoFA,
     handlePageChange,
     handlePageSizeChange,
+    handleSortChange,
     handleRow,
     refresh,
     closeAddUser,

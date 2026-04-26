@@ -44,6 +44,7 @@ const UsersTable = (usersData) => {
     compactMode,
     handlePageChange,
     handlePageSizeChange,
+    handleSortChange,
     handleRow,
     setEditingUser,
     setShowEditUser,
@@ -136,6 +137,21 @@ const UsersTable = (usersData) => {
     setShowResetTwoFAModal(false);
   };
 
+  const serverSortColumns = new Set(['used_quota', 'request_count', 'total_prompt_tokens']);
+
+  const handleTableChange = (changeInfo) => {
+    const { sorter } = changeInfo;
+    if (!sorter) return;
+    const { dataIndex, sortOrder: newSortOrder } = sorter;
+    if (serverSortColumns.has(dataIndex)) {
+      if (!newSortOrder) {
+        handleSortChange('', '');
+      } else {
+        handleSortChange(dataIndex, newSortOrder === 'ascend' ? 'asc' : 'desc');
+      }
+    }
+  };
+
   // Get all columns
   const columns = useMemo(() => {
     return getUsersColumns({
@@ -196,6 +212,7 @@ const UsersTable = (usersData) => {
         hidePagination={true}
         loading={loading}
         onRow={handleRow}
+        onChange={handleTableChange}
         empty={
           <Empty
             image={<IllustrationNoResult style={{ width: 150, height: 150 }} />}
