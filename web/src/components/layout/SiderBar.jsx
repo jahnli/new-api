@@ -201,7 +201,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         to: '/playground',
       },
       {
-        text: t('聊天'),
+        text: t('快捷启动'),
         itemKey: 'chat',
         items: chatItems,
       },
@@ -216,7 +216,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
     return filteredItems;
   }, [chatItems, t, isModuleVisible]);
 
-  // 更新路由映射，添加聊天路由
+  // 更新路由映射，添加快捷启动路由
   const updateRouterMapWithChats = (chats) => {
     const newRouterMap = { ...routerMap };
 
@@ -230,7 +230,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
     return newRouterMap;
   };
 
-  // 加载聊天项
+  // 加载快捷启动项
   useEffect(() => {
     let chats = localStorage.getItem('chats');
     if (chats) {
@@ -259,7 +259,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
           updateRouterMapWithChats(chats);
         }
       } catch (e) {
-        showError('聊天数据解析失败');
+        showError('快捷启动数据解析失败');
       }
     }
   }, []);
@@ -271,7 +271,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
       (key) => routerMapState[key] === currentPath,
     );
 
-    // 处理聊天路由
+    // 处理快捷启动路由
     if (!matchingKey && currentPath.startsWith('/console/chat/')) {
       const chatIndex = currentPath.split('/').pop();
       if (!isNaN(chatIndex)) {
@@ -432,11 +432,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
             setOpenedKeys(data.openKeys);
           }}
         >
-          {/* 聊天区域 */}
+          {/* 快捷启动区域 */}
           {hasSectionVisibleModules('chat') && (
             <div className='sidebar-section'>
               {!collapsed && (
-                <div className='sidebar-group-label'>{t('聊天')}</div>
+                <div className='sidebar-group-label'>{t('快捷启动')}</div>
               )}
               {chatMenuItems.map((item) => renderSubItem(item))}
             </div>

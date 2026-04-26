@@ -24,7 +24,7 @@ import { API, showError, toBoolean } from '../../helpers';
 
 const ChatsSetting = () => {
   let [inputs, setInputs] = useState({
-    /* 聊天设置 */
+    /* 快捷启动设置 */
     Chats: '[]',
   });
 
@@ -70,7 +70,7 @@ const ChatsSetting = () => {
   return (
     <>
       <Spin spinning={loading} size='large'>
-        {/* 聊天设置 */}
+        {/* 快捷启动设置 */}
         <Card style={{ marginTop: '10px' }}>
           <SettingsChats options={inputs} refresh={onRefresh} />
         </Card>

@@ -205,15 +205,15 @@ export default function SettingsSidebarModulesAdmin(props) {
   const sectionConfigs = [
     {
       key: 'chat',
-      title: t('聊天区域'),
-      description: t('操练场和聊天功能'),
+      title: t('快捷启动区域'),
+      description: t('操练场和快捷启动功能'),
       modules: [
         {
           key: 'playground',
           title: t('操练场'),
           description: t('AI模型测试环境'),
         },
-        { key: 'chat', title: t('聊天'), description: t('聊天会话管理') },
+        { key: 'chat', title: t('快捷启动'), description: t('快捷启动应用管理') },
       ],
     },
     {

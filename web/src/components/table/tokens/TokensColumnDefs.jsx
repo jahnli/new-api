@@ -377,7 +377,7 @@ const renderOperations = (
       }
     }
   } catch (_) {
-    showError(t('聊天链接配置错误，请联系管理员'));
+    showError(t('快捷启动链接配置错误，请联系管理员'));
   }
 
   return (
@@ -391,14 +391,14 @@ const renderOperations = (
           type='tertiary'
           onClick={() => {
             if (chatsArray.length === 0) {
-              showError(t('请联系管理员配置聊天链接'));
+              showError(t('请联系管理员配置快捷启动链接'));
             } else {
               const first = chatsArray[0];
               onOpenLink(first.name, first.value, record);
             }
           }}
         >
-          {t('聊天')}
+          {t('快捷启动')}
         </Button>
         <Dropdown trigger='click' position='bottomRight' menu={chatsArray}>
           <Button

@@ -263,7 +263,7 @@ export default function SettingsChats(props) {
           );
 
           if (isDuplicate) {
-            showError(t('聊天应用名称已存在，请使用其他名称'));
+            showError(t('应用名称已存在，请使用其他名称'));
             return;
           }
 
@@ -334,7 +334,7 @@ export default function SettingsChats(props) {
 
   const columns = [
     {
-      title: t('聊天应用名称'),
+      title: t('应用名称'),
       dataIndex: 'name',
       key: 'name',
       render: (text) => text || t('未命名'),
@@ -378,7 +378,7 @@ export default function SettingsChats(props) {
   return (
     <Spin spinning={loading}>
       <Space vertical style={{ width: '100%' }}>
-        <Form.Section text={t('聊天设置')}>
+        <Form.Section text={t('快捷启动设置')}>
           <Banner
             type='info'
             description={t(
@@ -420,7 +420,7 @@ export default function SettingsChats(props) {
                   icon={<IconPlus />}
                   onClick={handleAddConfig}
                 >
-                  {t('添加聊天配置')}
+                  {t('添加快捷启动配置')}
                 </Button>
                 <Dropdown
                   trigger='click'
@@ -451,11 +451,11 @@ export default function SettingsChats(props) {
                   icon={<IconSaveStroked />}
                   onClick={onSubmit}
                 >
-                  {t('保存聊天设置')}
+                  {t('保存快捷启动设置')}
                 </Button>
                 <Input
                   prefix={<IconSearch />}
-                  placeholder={t('搜索聊天应用名称')}
+                  placeholder={t('搜索应用名称')}
                   value={searchText}
                   onChange={(value) => setSearchText(value)}
                   style={{ width: 250 }}
@@ -486,7 +486,7 @@ export default function SettingsChats(props) {
               getFormApi={(formAPI) => (refForm.current = formAPI)}
             >
               <Form.TextArea
-                label={t('聊天配置')}
+                label={t('快捷启动配置')}
                 extraText={''}
                 placeholder={t('为一个 JSON 文本')}
                 field={'Chats'}
@@ -519,14 +519,14 @@ export default function SettingsChats(props) {
               icon={<IconSaveStroked />}
               onClick={onSubmit}
             >
-              {t('保存聊天设置')}
+              {t('保存快捷启动设置')}
             </Button>
           </Space>
         )}
       </Space>
 
       <Modal
-        title={isEdit ? t('编辑聊天配置') : t('添加聊天配置')}
+        title={isEdit ? t('编辑快捷启动配置') : t('添加快捷启动配置')}
         visible={modalVisible}
         onOk={handleModalOk}
         onCancel={handleModalCancel}
@@ -535,10 +535,10 @@ export default function SettingsChats(props) {
         <Form getFormApi={(api) => (modalFormRef.current = api)}>
           <Form.Input
             field='name'
-            label={t('聊天应用名称')}
-            placeholder={t('请输入聊天应用名称')}
+            label={t('应用名称')}
+            placeholder={t('请输入应用名称')}
             rules={[
-              { required: true, message: t('请输入聊天应用名称') },
+              { required: true, message: t('请输入应用名称') },
               { min: 1, message: t('名称不能为空') },
             ]}
           />
