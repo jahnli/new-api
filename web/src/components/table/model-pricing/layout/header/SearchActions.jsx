@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { memo, useCallback } from 'react';
-import { Input, Button, Switch, Select, Divider } from '@douyinfe/semi-ui';
+import { Input, Button, Divider } from '@douyinfe/semi-ui';
 import { IconSearch, IconCopy, IconFilter } from '@douyinfe/semi-icons';
 
 const SearchActions = memo(
@@ -31,20 +31,12 @@ const SearchActions = memo(
     isMobile = false,
     searchValue = '',
     setShowFilterModal,
-    showWithRecharge,
-    setShowWithRecharge,
-    currency,
-    setCurrency,
-    siteDisplayType,
-    showRatio,
-    setShowRatio,
     viewMode,
     setViewMode,
     tokenUnit,
     setTokenUnit,
     t,
   }) => {
-    const supportsCurrencyDisplay = siteDisplayType !== 'TOKENS';
 
     const handleCopyClick = useCallback(() => {
       if (copyText && selectedRowKeys.length > 0) {
@@ -92,36 +84,6 @@ const SearchActions = memo(
         {!isMobile && (
           <>
             <Divider layout='vertical' margin='8px' />
-
-            {/* 充值价格显示开关 */}
-            {supportsCurrencyDisplay && (
-              <div className='flex items-center gap-2'>
-                <span className='text-sm text-gray-600'>{t('充值价格显示')}</span>
-                <Switch
-                  checked={showWithRecharge}
-                  onChange={setShowWithRecharge}
-                />
-              </div>
-            )}
-
-            {/* 货币单位选择 */}
-            {supportsCurrencyDisplay && showWithRecharge && (
-              <Select
-                value={currency}
-                onChange={setCurrency}
-                optionList={[
-                  { value: 'USD', label: 'USD' },
-                  { value: 'CNY', label: 'CNY' },
-                  { value: 'CUSTOM', label: t('自定义货币') },
-                ]}
-              />
-            )}
-
-            {/* 显示倍率开关 */}
-            <div className='flex items-center gap-2'>
-              <span className='text-sm text-gray-600'>{t('倍率')}</span>
-              <Switch checked={showRatio} onChange={setShowRatio} />
-            </div>
 
             {/* 视图模式切换按钮 */}
             <Button
