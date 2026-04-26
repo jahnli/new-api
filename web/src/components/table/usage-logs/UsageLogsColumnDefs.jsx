@@ -947,10 +947,10 @@ export const getLogsColumns = ({
     },
     {
       key: COLUMN_KEYS.DETAILS,
-      title: t('详情'),
+      title: t('详情 / 1M'),
       dataIndex: 'content',
       fixed: 'right',
-      width: 180,
+      width: 150,
       render: (text, record, index) => {
         const detailSummary = getUsageLogDetailSummary(
           record,

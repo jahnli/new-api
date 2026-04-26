@@ -1301,6 +1301,7 @@ function renderBillingArticle(lines, { showReferenceNote = true } = {}) {
 function renderPriceSimpleCore({
   modelRatio,
   modelPrice = -1,
+  completionRatio = 0,
   groupRatio,
   user_group_ratio,
   cacheTokens = 0,
@@ -1337,12 +1338,7 @@ function renderPriceSimpleCore({
     hasSplitCacheCreation && cacheCreationTokens1h > 0;
 
   if (outputMode === 'segments') {
-    const segments = [
-      {
-        tone: 'primary',
-        text: getGroupRatioText(groupRatio, user_group_ratio),
-      },
-    ];
+    const segments = [];
 
     if (modelPrice !== -1) {
       segments.push({
@@ -1354,57 +1350,75 @@ function renderPriceSimpleCore({
           : i18next.t('按次'),
       });
     } else if (isPriceDisplayMode(displayMode, modelPrice)) {
+      const inputPrice = formatCompactDisplayPrice(modelRatio * 2.0);
+      const outputPrice = formatCompactDisplayPrice(modelRatio * 2.0 * (completionRatio || 1));
       segments.push({
         tone: 'secondary',
-        text: i18next.t('输入 {{price}} / 1M tokens', {
-          price: formatCompactDisplayPrice(modelRatio * 2.0),
+        text: i18next.t('输入/出: {{inputPrice}}/{{outputPrice}}', {
+          inputPrice,
+          outputPrice,
         }),
       });
 
-      if (shouldShowCache) {
+      if (shouldShowCache && (shouldShowLegacyCacheCreation || hasSplitCacheCreation)) {
+        const cacheReadPrice = formatCompactDisplayPrice(modelRatio * 2.0 * cacheRatio);
+        let cacheWritePrice;
+        let cacheLabel;
+        if (hasSplitCacheCreation && shouldShowCacheCreation5m && shouldShowCacheCreation1h) {
+          cacheLabel = i18next.t('缓存读/5m/1h创建:');
+          const p5m = formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio5m);
+          const p1h = formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio1h);
+          cacheWritePrice = `${p5m}/${p1h}`;
+        } else if (hasSplitCacheCreation && shouldShowCacheCreation5m) {
+          cacheLabel = i18next.t('缓存读/5m创建:');
+          cacheWritePrice = formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio5m);
+        } else if (hasSplitCacheCreation && shouldShowCacheCreation1h) {
+          cacheLabel = i18next.t('缓存读/1h创建:');
+          cacheWritePrice = formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio1h);
+        } else {
+          cacheLabel = i18next.t('缓存读/创建:');
+          cacheWritePrice = formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio);
+        }
         segments.push({
           tone: 'secondary',
-          text: i18next.t('缓存读 {{price}} / 1M tokens', {
+          text: `${cacheLabel} ${cacheReadPrice}/${cacheWritePrice}`,
+        });
+      } else if (shouldShowCache) {
+        segments.push({
+          tone: 'secondary',
+          text: i18next.t('缓存读: {{price}}', {
             price: formatCompactDisplayPrice(modelRatio * 2.0 * cacheRatio),
           }),
         });
-      }
-
-      if (hasSplitCacheCreation && shouldShowCacheCreation5m) {
-        segments.push({
-          tone: 'secondary',
-          text: i18next.t('5m缓存创建 {{price}} / 1M tokens', {
-            price: formatCompactDisplayPrice(
-              modelRatio * 2.0 * cacheCreationRatio5m,
-            ),
-          }),
-        });
-      }
-      if (hasSplitCacheCreation && shouldShowCacheCreation1h) {
-        segments.push({
-          tone: 'secondary',
-          text: i18next.t('1h缓存创建 {{price}} / 1M tokens', {
-            price: formatCompactDisplayPrice(
-              modelRatio * 2.0 * cacheCreationRatio1h,
-            ),
-          }),
-        });
-      }
-      if (!hasSplitCacheCreation && shouldShowLegacyCacheCreation) {
-        segments.push({
-          tone: 'secondary',
-          text: i18next.t('缓存创建 {{price}} / 1M tokens', {
-            price: formatCompactDisplayPrice(
-              modelRatio * 2.0 * cacheCreationRatio,
-            ),
-          }),
-        });
+      } else if (shouldShowLegacyCacheCreation || hasSplitCacheCreation) {
+        const cacheParts = [];
+        if (hasSplitCacheCreation && shouldShowCacheCreation5m) {
+          cacheParts.push(i18next.t('5m创建 {{price}}', {
+            price: formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio5m),
+          }));
+        }
+        if (hasSplitCacheCreation && shouldShowCacheCreation1h) {
+          cacheParts.push(i18next.t('1h创建 {{price}}', {
+            price: formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio1h),
+          }));
+        }
+        if (!hasSplitCacheCreation && shouldShowLegacyCacheCreation) {
+          cacheParts.push(i18next.t('缓存创建: {{price}}', {
+            price: formatCompactDisplayPrice(modelRatio * 2.0 * cacheCreationRatio),
+          }));
+        }
+        if (cacheParts.length > 0) {
+          segments.push({
+            tone: 'secondary',
+            text: cacheParts.join(' · '),
+          });
+        }
       }
 
       if (image) {
         segments.push({
           tone: 'secondary',
-          text: i18next.t('图片输入 {{price}} / 1M tokens', {
+          text: i18next.t('图片输入 {{price}}', {
             price: formatCompactDisplayPrice(modelRatio * 2.0 * imageRatio),
           }),
         });
@@ -2323,25 +2337,69 @@ export function renderTieredModelPriceSimple(opts) {
   const tier = tiers.find((t) => t.label === matchedTier) || tiers[0];
 
   if (outputMode === 'segments') {
-    const segments = [
-      {
-        tone: 'primary',
-        text: getGroupRatioText(groupRatio, user_group_ratio),
-      },
-    ];
+    const segments = [];
 
     if (tier && isPriceDisplayMode(displayMode)) {
-      const priceSegments = BILLING_PRICING_VARS.map((v) => [v.field, v.shortLabel]);
-      for (const [field, label] of priceSegments) {
-        if (tier[field] > 0) {
-          segments.push({
-            tone: 'secondary',
-            text: i18next.t('{{label}} {{price}} / 1M tokens', {
-              label: i18next.t(label),
-              price: formatCompactDisplayPrice(tier[field]),
-            }),
-          });
-        }
+      const activeVars = BILLING_PRICING_VARS.filter((v) => tier[v.field] > 0);
+
+      const inputVar = activeVars.find((v) => v.key === 'p');
+      const outputVar = activeVars.find((v) => v.key === 'c');
+      if (inputVar && outputVar) {
+        segments.push({
+          tone: 'secondary',
+          text: i18next.t('输入/出: {{inputPrice}}/{{outputPrice}}', {
+            inputPrice: formatCompactDisplayPrice(tier[inputVar.field]),
+            outputPrice: formatCompactDisplayPrice(tier[outputVar.field]),
+          }),
+        });
+      } else if (inputVar) {
+        segments.push({
+          tone: 'secondary',
+          text: i18next.t('输入: {{price}}', { price: formatCompactDisplayPrice(tier[inputVar.field]) }),
+        });
+      } else if (outputVar) {
+        segments.push({
+          tone: 'secondary',
+          text: i18next.t('补全: {{price}}', { price: formatCompactDisplayPrice(tier[outputVar.field]) }),
+        });
+      }
+
+      const cacheReadVar = activeVars.find((v) => v.key === 'cr');
+      const cacheCreateVar = activeVars.find((v) => v.key === 'cc');
+      const cacheCreate1hVar = activeVars.find((v) => v.key === 'cc1h');
+      if (cacheReadVar && (cacheCreateVar || cacheCreate1hVar)) {
+        const readPrice = formatCompactDisplayPrice(tier[cacheReadVar.field]);
+        const writeVar = cacheCreateVar || cacheCreate1hVar;
+        const writePrice = formatCompactDisplayPrice(tier[writeVar.field]);
+        segments.push({
+          tone: 'secondary',
+          text: i18next.t('缓存读/创建:') + ` ${readPrice}/${writePrice}`,
+        });
+      } else if (cacheReadVar) {
+        segments.push({
+          tone: 'secondary',
+          text: i18next.t('缓存读: {{price}}', { price: formatCompactDisplayPrice(tier[cacheReadVar.field]) }),
+        });
+      } else if (cacheCreateVar || cacheCreate1hVar) {
+        const v = cacheCreateVar || cacheCreate1hVar;
+        segments.push({
+          tone: 'secondary',
+          text: i18next.t('缓存创建: {{price}}', { price: formatCompactDisplayPrice(tier[v.field]) }),
+        });
+      }
+
+      const rest = activeVars.filter((v) => !['p', 'c', 'cr', 'cc', 'cc1h'].includes(v.key));
+      for (let i = 0; i < rest.length; i += 2) {
+        const parts = rest.slice(i, i + 2).map((v) =>
+          i18next.t('{{label}} {{price}}', {
+            label: i18next.t(v.shortLabel),
+            price: formatCompactDisplayPrice(tier[v.field]),
+          }),
+        );
+        segments.push({
+          tone: 'secondary',
+          text: parts.join(' · '),
+        });
       }
     }
 
@@ -2355,6 +2413,7 @@ export function renderModelPriceSimple(opts) {
   const {
     model_ratio: modelRatio,
     model_price: modelPrice = -1,
+    completion_ratio: completionRatio = 0,
     group_ratio: groupRatio,
     user_group_ratio,
     cache_tokens: cacheTokens = 0,
@@ -2375,6 +2434,7 @@ export function renderModelPriceSimple(opts) {
   return renderPriceSimpleCore({
     modelRatio,
     modelPrice,
+    completionRatio,
     groupRatio,
     user_group_ratio,
     cacheTokens,
