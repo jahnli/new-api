@@ -15,6 +15,7 @@ type SecurityAuditRecord struct {
 	DisplayName   string                 `json:"display_name" gorm:"-"`
 	LdapId        string                 `json:"ldap_id,omitempty" gorm:"-"`
 	AvatarUrl     string                 `json:"avatar_url,omitempty" gorm:"-"`
+	OpenId        string                 `json:"open_id,omitempty" gorm:"-"`
 	Remark        string                 `json:"remark,omitempty" gorm:"-"`
 	AuditDate     string                 `json:"audit_date,omitempty" gorm:"column:audit_date"`
 	Models        string                 `json:"models" gorm:"column:models"`
@@ -147,14 +148,16 @@ func GetSecurityAuditLogs(startTimestamp, endTimestamp int64, startHour, endHour
 			DisplayName string `gorm:"column:display_name"`
 			LdapId      string `gorm:"column:ldap_id"`
 			AvatarUrl   string `gorm:"column:avatar_url"`
+			OpenId      string `gorm:"column:open_id"`
 			Remark      string `gorm:"column:remark"`
 		}
-		if err2 := DB.Table("users").Select("id, display_name, ldap_id, avatar_url, remark").
+		if err2 := DB.Table("users").Select("id, display_name, ldap_id, avatar_url, open_id, remark").
 			Where("id IN ?", userIds).Find(&userInfos).Error; err2 == nil {
 			infoMap := make(map[int]*struct {
 				DisplayName string
 				LdapId      string
 				AvatarUrl   string
+				OpenId      string
 				Remark      string
 			}, len(userInfos))
 			for i := range userInfos {
@@ -162,11 +165,13 @@ func GetSecurityAuditLogs(startTimestamp, endTimestamp int64, startHour, endHour
 					DisplayName string
 					LdapId      string
 					AvatarUrl   string
+					OpenId      string
 					Remark      string
 				}{
 					DisplayName: userInfos[i].DisplayName,
 					LdapId:      userInfos[i].LdapId,
 					AvatarUrl:   userInfos[i].AvatarUrl,
+					OpenId:      userInfos[i].OpenId,
 					Remark:      userInfos[i].Remark,
 				}
 			}
@@ -175,6 +180,7 @@ func GetSecurityAuditLogs(startTimestamp, endTimestamp int64, startHour, endHour
 					records[i].DisplayName = info.DisplayName
 					records[i].LdapId = info.LdapId
 					records[i].AvatarUrl = info.AvatarUrl
+					records[i].OpenId = info.OpenId
 					records[i].Remark = info.Remark
 				}
 			}

@@ -23,6 +23,7 @@ const renderUsername = (text, record, badge) => {
   const remark = record.remark;
   const cn = parseLdapCN(record.ldap_id);
   const displayName = (cn && cn !== text) ? cn : text;
+  const openId = record.open_id;
 
   const remarkTag = remark ? (
     <Tooltip content={remark} position='top' showArrow>
@@ -38,15 +39,28 @@ const renderUsername = (text, record, badge) => {
     </Tooltip>
   ) : null;
 
-  const avatar = (
+  const avatarEl = (
     <Avatar
       size='extra-small'
       color={stringToColor(displayName)}
       src={record.avatar_url || undefined}
+      style={openId ? { cursor: 'pointer' } : undefined}
     >
       {displayName.slice(0, 1)}
     </Avatar>
   );
+
+  const avatar = openId ? (
+    <a
+      href={`https://applink.feishu.cn/client/chat/open?openId=${openId}`}
+      target='_blank'
+      rel='noopener noreferrer'
+      className='hover:opacity-70 transition-opacity'
+      onClick={(e) => e.stopPropagation()}
+    >
+      {avatarEl}
+    </a>
+  ) : avatarEl;
 
   if (cn && cn !== text) {
     return (
