@@ -1277,6 +1277,14 @@ func GetActiveSubscriptionQuotaSummaryByUserIds(userIds []int) (map[int]Subscrip
 	return result, nil
 }
 
+// DeleteSubscriptionPlan hard-deletes a subscription plan by id.
+func DeleteSubscriptionPlan(planId int) error {
+	if planId <= 0 {
+		return errors.New("invalid plan id")
+	}
+	return DB.Where("id = ?", planId).Delete(&SubscriptionPlan{}).Error
+}
+
 // Update subscription used amount by delta (positive consume more, negative refund).
 func PostConsumeUserSubscriptionDelta(userSubscriptionId int, delta int64) error {
 	if userSubscriptionId <= 0 {

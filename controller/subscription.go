@@ -430,6 +430,21 @@ func AdminInvalidateUserSubscription(c *gin.Context) {
 	common.ApiSuccess(c, nil)
 }
 
+// AdminDeleteSubscriptionPlan deletes a subscription plan by id.
+func AdminDeleteSubscriptionPlan(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if id <= 0 {
+		common.ApiErrorMsg(c, "无效的ID")
+		return
+	}
+	if err := model.DeleteSubscriptionPlan(id); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	model.InvalidateSubscriptionPlanCache(id)
+	common.ApiSuccess(c, nil)
+}
+
 // AdminDeleteUserSubscription hard-deletes a user subscription.
 func AdminDeleteUserSubscription(c *gin.Context) {
 	subId, _ := strconv.Atoi(c.Param("id"))

@@ -228,7 +228,7 @@ const renderPaymentConfig = (text, record, t, enableEpay) => {
   );
 };
 
-const renderOperations = (text, record, { openEdit, setPlanEnabled, t }) => {
+const renderOperations = (text, record, { openEdit, setPlanEnabled, deletePlan, t }) => {
   const isEnabled = record?.plan?.enabled;
 
   const handleToggle = () => {
@@ -247,6 +247,16 @@ const renderOperations = (text, record, { openEdit, setPlanEnabled, t }) => {
         onOk: () => setPlanEnabled(record, true),
       });
     }
+  };
+
+  const handleDelete = () => {
+    Modal.confirm({
+      title: t('确认删除'),
+      content: t('删除后不可恢复，是否继续？'),
+      centered: true,
+      type: 'warning',
+      onOk: () => deletePlan(record),
+    });
   };
 
   return (
@@ -273,6 +283,14 @@ const renderOperations = (text, record, { openEdit, setPlanEnabled, t }) => {
           {t('启用')}
         </Button>
       )}
+      <Button
+        theme='light'
+        type='danger'
+        size='small'
+        onClick={handleDelete}
+      >
+        {t('删除')}
+      </Button>
     </Space>
   );
 };
@@ -281,6 +299,7 @@ export const getSubscriptionsColumns = ({
   t,
   openEdit,
   setPlanEnabled,
+  deletePlan,
   enableEpay,
 }) => {
   return [
@@ -349,9 +368,9 @@ export const getSubscriptionsColumns = ({
       title: t('操作'),
       dataIndex: 'operate',
       fixed: 'right',
-      width: 160,
+      width: 220,
       render: (text, record) =>
-        renderOperations(text, record, { openEdit, setPlanEnabled, t }),
+        renderOperations(text, record, { openEdit, setPlanEnabled, deletePlan, t }),
     },
   ];
 };
