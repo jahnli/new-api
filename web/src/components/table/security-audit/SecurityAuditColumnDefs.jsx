@@ -89,6 +89,13 @@ export const getSecurityAuditColumns = ({ t, openDetailModal, activePage, pageSi
     render: (text, record) => renderUsername(text, record),
   },
   {
+    title: t('审计日期'),
+    dataIndex: 'audit_date',
+    key: 'audit_date',
+    width: 120,
+    render: (val) => val || '-',
+  },
+  {
     title: t('使用模型'),
     dataIndex: 'models',
     key: 'models',

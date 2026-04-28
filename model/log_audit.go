@@ -16,6 +16,7 @@ type SecurityAuditRecord struct {
 	LdapId        string `json:"ldap_id,omitempty" gorm:"-"`
 	AvatarUrl     string `json:"avatar_url,omitempty" gorm:"-"`
 	Remark        string `json:"remark,omitempty" gorm:"-"`
+	AuditDate     string `json:"audit_date" gorm:"column:audit_date"`
 	Models        string `json:"models" gorm:"column:models"`
 	StartTime     int64  `json:"start_time" gorm:"column:start_time"`
 	EndTime       int64  `json:"end_time" gorm:"column:end_time"`
@@ -57,8 +58,22 @@ func getLogGroupConcatDistinct(col string) string {
 	return fmt.Sprintf("GROUP_CONCAT(DISTINCT %s)", col)
 }
 
+func getLogDateExpr() string {
+	offset := getLocalTZOffset()
+	dbType := getActualLogDBType()
+	switch dbType {
+	case common.DatabaseTypePostgreSQL:
+		return fmt.Sprintf("TO_CHAR(TO_TIMESTAMP(logs.created_at + %d), 'YYYY-MM-DD')", offset)
+	case common.DatabaseTypeMySQL:
+		return fmt.Sprintf("DATE(FROM_UNIXTIME(logs.created_at + %d))", offset)
+	default:
+		return fmt.Sprintf("DATE((logs.created_at + %d), 'unixepoch')", offset)
+	}
+}
+
 func GetSecurityAuditLogs(startTimestamp, endTimestamp int64, startHour, endHour int, startIdx, num int) (records []SecurityAuditRecord, total int64, err error) {
 	hourExpr := getLogHourExpr()
+	dateExpr := getLogDateExpr()
 	modelsExpr := getLogGroupConcatDistinct("logs.model_name")
 	ipsExpr := getLogGroupConcatDistinct("logs.ip")
 
@@ -73,18 +88,34 @@ func GetSecurityAuditLogs(startTimestamp, endTimestamp int64, startHour, endHour
 		tx = tx.Where("logs.created_at <= ?", endTimestamp)
 	}
 
-	err = tx.Select("COUNT(DISTINCT logs.user_id)").Scan(&total).Error
+	groupBy := fmt.Sprintf("logs.user_id, logs.username, %s", dateExpr)
+
+	countWhere := fmt.Sprintf("logs.type = ? AND %s >= ? AND %s < ?", hourExpr, hourExpr)
+	countArgs := []interface{}{LogTypeConsume, startHour, endHour}
+	if startTimestamp != 0 {
+		countWhere += " AND logs.created_at >= ?"
+		countArgs = append(countArgs, startTimestamp)
+	}
+	if endTimestamp != 0 {
+		countWhere += " AND logs.created_at <= ?"
+		countArgs = append(countArgs, endTimestamp)
+	}
+	countSQL := fmt.Sprintf(
+		"SELECT COUNT(*) FROM (SELECT 1 FROM logs WHERE %s GROUP BY %s) AS sub",
+		countWhere, groupBy,
+	)
+	err = LOG_DB.Raw(countSQL, countArgs...).Scan(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	selectExpr := fmt.Sprintf(
-		"logs.user_id, logs.username, %s as models, MIN(logs.created_at) as start_time, MAX(logs.created_at) as end_time, COALESCE(SUM(logs.quota), 0) as total_quota, COUNT(*) as total_requests, %s as ips",
-		modelsExpr, ipsExpr,
+		"logs.user_id, logs.username, %s as audit_date, %s as models, MIN(logs.created_at) as start_time, MAX(logs.created_at) as end_time, COALESCE(SUM(logs.quota), 0) as total_quota, COUNT(*) as total_requests, %s as ips",
+		dateExpr, modelsExpr, ipsExpr,
 	)
 
 	err = tx.Select(selectExpr).
-		Group("logs.user_id, logs.username").
+		Group(groupBy).
 		Order("total_quota DESC").
 		Limit(num).Offset(startIdx).
 		Find(&records).Error

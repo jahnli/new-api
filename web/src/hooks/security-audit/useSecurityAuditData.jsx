@@ -58,7 +58,7 @@ export const useSecurityAuditData = () => {
           setRecords(
             (data.items || []).map((item, idx) => ({
               ...item,
-              key: `${page}-${idx}`,
+              key: `${item.user_id}-${item.audit_date || idx}`,
             }))
           );
           setLogCount(data.total || 0);
