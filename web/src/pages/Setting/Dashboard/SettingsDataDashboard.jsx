@@ -27,19 +27,16 @@ import {
   showWarning,
 } from '../../../helpers';
 import { useTranslation } from 'react-i18next';
+import { DASHBOARD_DATE_PRESETS } from '../../../constants/dashboard.constants';
 
 export default function DataDashboard(props) {
   const { t } = useTranslation();
 
-  const optionsDataExportDefaultTime = [
-    { key: 'hour', label: t('小时'), value: 'hour' },
-    { key: 'day', label: t('天'), value: 'day' },
-    { key: 'week', label: t('周'), value: 'week' },
-    { key: 'month', label: t('月'), value: 'month' },
-    { key: 'quarter', label: t('季度'), value: 'quarter' },
-    { key: 'half_year', label: t('半年'), value: 'half_year' },
-    { key: 'year', label: t('年'), value: 'year' },
-  ];
+  const optionsDataExportDefaultTime = DASHBOARD_DATE_PRESETS.map((preset) => ({
+    key: preset.granularity,
+    label: t(preset.text),
+    value: preset.granularity,
+  }));
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
     DataExportEnabled: false,
