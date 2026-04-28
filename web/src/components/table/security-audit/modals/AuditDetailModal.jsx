@@ -28,6 +28,7 @@ const AuditDetailModal = ({
   showDetailModal,
   closeDetailModal,
   detailUsername,
+  detailAuditDate,
   detailLogs,
   detailLoading,
   detailPage,
@@ -78,7 +79,7 @@ const AuditDetailModal = ({
 
   return (
     <Modal
-      title={`${t('安全审计详情')} - ${detailUsername}`}
+      title={`${t('安全审计详情')} - ${detailUsername}${detailAuditDate ? ` (${detailAuditDate})` : ''}`}
       visible={showDetailModal}
       onCancel={closeDetailModal}
       footer={null}

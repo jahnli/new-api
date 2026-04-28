@@ -1,5 +1,5 @@
 import React from 'react';
-import { Avatar, Space, Tag, Tooltip, Button } from '@douyinfe/semi-ui';
+import { Avatar, Badge, Space, Tag, Tooltip, Button } from '@douyinfe/semi-ui';
 import {
   renderQuota,
   renderNumber,
@@ -19,7 +19,7 @@ function parseLdapCN(dn) {
   return '';
 }
 
-const renderUsername = (text, record) => {
+const renderUsername = (text, record, badge) => {
   const remark = record.remark;
   const cn = parseLdapCN(record.ldap_id);
   const displayName = (cn && cn !== text) ? cn : text;
@@ -55,6 +55,7 @@ const renderUsername = (text, record) => {
         <div className='flex flex-col'>
           <Space spacing={2}>
             <span>{cn}</span>
+            {badge}
             {remarkTag}
           </Space>
           <span className='text-xs text-gray-300'>{text}</span>
@@ -68,6 +69,7 @@ const renderUsername = (text, record) => {
       {avatar}
       <Space spacing={2}>
         <span>{text}</span>
+        {badge}
         {remarkTag}
       </Space>
     </Space>
@@ -79,21 +81,25 @@ export const getSecurityAuditColumns = ({ t, openDetailModal, activePage, pageSi
     title: '#',
     key: 'index',
     width: 50,
-    render: (_, __, index) => (activePage - 1) * pageSize + index + 1,
+    render: (_, record, index) => record.audit_date ? '' : (activePage - 1) * pageSize + index + 1,
   },
   {
     title: t('用户名'),
     dataIndex: 'username',
     key: 'username',
     width: 180,
-    render: (text, record) => renderUsername(text, record),
-  },
-  {
-    title: t('审计日期'),
-    dataIndex: 'audit_date',
-    key: 'audit_date',
-    width: 120,
-    render: (val) => val || '-',
+    render: (text, record) => {
+      if (record.audit_date) {
+        return <Tag size='small'>{record.audit_date}</Tag>;
+      }
+      if (record.children && record.children.length > 0) {
+        const badge = (
+          <Badge count={record.children.length} type='danger' overflowCount={99} style={{ position: 'relative', top: -10, marginLeft: 0 }} />
+        );
+        return renderUsername(text, record, badge);
+      }
+      return renderUsername(text, record);
+    },
   },
   {
     title: t('使用模型'),
@@ -119,14 +125,14 @@ export const getSecurityAuditColumns = ({ t, openDetailModal, activePage, pageSi
     dataIndex: 'start_time',
     key: 'start_time',
     width: 160,
-    render: (val) => (val ? timestamp2string(val) : '-'),
+    render: (val, record) => record.children ? '-' : (val ? timestamp2string(val) : '-'),
   },
   {
     title: t('结束时间'),
     dataIndex: 'end_time',
     key: 'end_time',
     width: 160,
-    render: (val) => (val ? timestamp2string(val) : '-'),
+    render: (val, record) => record.children ? '-' : (val ? timestamp2string(val) : '-'),
   },
   {
     title: t('总花费'),
@@ -181,15 +187,18 @@ export const getSecurityAuditColumns = ({ t, openDetailModal, activePage, pageSi
     key: 'action',
     width: 80,
     fixed: 'right',
-    render: (_, record) => (
-      <Button
-        theme='borderless'
-        type='primary'
-        size='small'
-        onClick={() => openDetailModal(record)}
-      >
-        {t('详情')}
-      </Button>
-    ),
+    render: (_, record) => {
+      if (record.children) return null;
+      return (
+        <Button
+          theme='borderless'
+          type='primary'
+          size='small'
+          onClick={() => openDetailModal(record)}
+        >
+          {t('详情')}
+        </Button>
+      );
+    },
   },
 ];

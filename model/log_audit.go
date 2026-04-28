@@ -10,19 +10,20 @@ import (
 )
 
 type SecurityAuditRecord struct {
-	UserId        int    `json:"user_id" gorm:"column:user_id"`
-	Username      string `json:"username" gorm:"column:username"`
-	DisplayName   string `json:"display_name" gorm:"-"`
-	LdapId        string `json:"ldap_id,omitempty" gorm:"-"`
-	AvatarUrl     string `json:"avatar_url,omitempty" gorm:"-"`
-	Remark        string `json:"remark,omitempty" gorm:"-"`
-	AuditDate     string `json:"audit_date" gorm:"column:audit_date"`
-	Models        string `json:"models" gorm:"column:models"`
-	StartTime     int64  `json:"start_time" gorm:"column:start_time"`
-	EndTime       int64  `json:"end_time" gorm:"column:end_time"`
-	TotalQuota    int64  `json:"total_quota" gorm:"column:total_quota"`
-	TotalRequests int64  `json:"total_requests" gorm:"column:total_requests"`
-	Ips           string `json:"ips" gorm:"column:ips"`
+	UserId        int                    `json:"user_id" gorm:"column:user_id"`
+	Username      string                 `json:"username" gorm:"column:username"`
+	DisplayName   string                 `json:"display_name" gorm:"-"`
+	LdapId        string                 `json:"ldap_id,omitempty" gorm:"-"`
+	AvatarUrl     string                 `json:"avatar_url,omitempty" gorm:"-"`
+	Remark        string                 `json:"remark,omitempty" gorm:"-"`
+	AuditDate     string                 `json:"audit_date,omitempty" gorm:"column:audit_date"`
+	Models        string                 `json:"models" gorm:"column:models"`
+	StartTime     int64                  `json:"start_time" gorm:"column:start_time"`
+	EndTime       int64                  `json:"end_time" gorm:"column:end_time"`
+	TotalQuota    int64                  `json:"total_quota" gorm:"column:total_quota"`
+	TotalRequests int64                  `json:"total_requests" gorm:"column:total_requests"`
+	Ips           string                 `json:"ips" gorm:"column:ips"`
+	Children      []*SecurityAuditRecord `json:"children,omitempty" gorm:"-"`
 }
 
 // getActualLogDBType resolves the real database dialect for LOG_DB.
@@ -77,45 +78,30 @@ func GetSecurityAuditLogs(startTimestamp, endTimestamp int64, startHour, endHour
 	modelsExpr := getLogGroupConcatDistinct("logs.model_name")
 	ipsExpr := getLogGroupConcatDistinct("logs.ip")
 
-	tx := LOG_DB.Table("logs").
-		Where("logs.type = ?", LogTypeConsume).
-		Where(fmt.Sprintf("%s >= ? AND %s < ?", hourExpr, hourExpr), startHour, endHour)
-
+	baseWhere := fmt.Sprintf("logs.type = ? AND %s >= ? AND %s < ?", hourExpr, hourExpr)
+	baseArgs := []interface{}{LogTypeConsume, startHour, endHour}
 	if startTimestamp != 0 {
-		tx = tx.Where("logs.created_at >= ?", startTimestamp)
+		baseWhere += " AND logs.created_at >= ?"
+		baseArgs = append(baseArgs, startTimestamp)
 	}
 	if endTimestamp != 0 {
-		tx = tx.Where("logs.created_at <= ?", endTimestamp)
+		baseWhere += " AND logs.created_at <= ?"
+		baseArgs = append(baseArgs, endTimestamp)
 	}
 
-	groupBy := fmt.Sprintf("logs.user_id, logs.username, %s", dateExpr)
-
-	countWhere := fmt.Sprintf("logs.type = ? AND %s >= ? AND %s < ?", hourExpr, hourExpr)
-	countArgs := []interface{}{LogTypeConsume, startHour, endHour}
-	if startTimestamp != 0 {
-		countWhere += " AND logs.created_at >= ?"
-		countArgs = append(countArgs, startTimestamp)
-	}
-	if endTimestamp != 0 {
-		countWhere += " AND logs.created_at <= ?"
-		countArgs = append(countArgs, endTimestamp)
-	}
-	countSQL := fmt.Sprintf(
-		"SELECT COUNT(*) FROM (SELECT 1 FROM logs WHERE %s GROUP BY %s) AS sub",
-		countWhere, groupBy,
-	)
-	err = LOG_DB.Raw(countSQL, countArgs...).Scan(&total).Error
+	err = LOG_DB.Table("logs").Where(baseWhere, baseArgs...).
+		Select("COUNT(DISTINCT logs.user_id)").Scan(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	selectExpr := fmt.Sprintf(
-		"logs.user_id, logs.username, %s as audit_date, %s as models, MIN(logs.created_at) as start_time, MAX(logs.created_at) as end_time, COALESCE(SUM(logs.quota), 0) as total_quota, COUNT(*) as total_requests, %s as ips",
-		dateExpr, modelsExpr, ipsExpr,
+	parentSelect := fmt.Sprintf(
+		"logs.user_id, logs.username, %s as models, MIN(logs.created_at) as start_time, MAX(logs.created_at) as end_time, COALESCE(SUM(logs.quota), 0) as total_quota, COUNT(*) as total_requests, %s as ips",
+		modelsExpr, ipsExpr,
 	)
-
-	err = tx.Select(selectExpr).
-		Group(groupBy).
+	err = LOG_DB.Table("logs").Where(baseWhere, baseArgs...).
+		Select(parentSelect).
+		Group("logs.user_id, logs.username").
 		Order("total_quota DESC").
 		Limit(num).Offset(startIdx).
 		Find(&records).Error
@@ -128,6 +114,34 @@ func GetSecurityAuditLogs(startTimestamp, endTimestamp int64, startHour, endHour
 		for i, r := range records {
 			userIds[i] = r.UserId
 		}
+
+		var dayRecords []SecurityAuditRecord
+		daySelect := fmt.Sprintf(
+			"logs.user_id, logs.username, %s as audit_date, %s as models, MIN(logs.created_at) as start_time, MAX(logs.created_at) as end_time, COALESCE(SUM(logs.quota), 0) as total_quota, COUNT(*) as total_requests, %s as ips",
+			dateExpr, modelsExpr, ipsExpr,
+		)
+		err = LOG_DB.Table("logs").Where(baseWhere, baseArgs...).
+			Where("logs.user_id IN ?", userIds).
+			Select(daySelect).
+			Group(fmt.Sprintf("logs.user_id, logs.username, %s", dateExpr)).
+			Order(fmt.Sprintf("logs.user_id, %s DESC", dateExpr)).
+			Find(&dayRecords).Error
+		if err != nil {
+			return nil, 0, err
+		}
+
+		dayMap := make(map[int][]*SecurityAuditRecord)
+		for i := range dayRecords {
+			uid := dayRecords[i].UserId
+			dayMap[uid] = append(dayMap[uid], &dayRecords[i])
+		}
+		for i := range records {
+			days := dayMap[records[i].UserId]
+			if len(days) > 1 {
+				records[i].Children = days
+			}
+		}
+
 		var userInfos []struct {
 			Id          int    `gorm:"column:id"`
 			DisplayName string `gorm:"column:display_name"`

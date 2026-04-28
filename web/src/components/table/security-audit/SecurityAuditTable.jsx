@@ -27,6 +27,8 @@ const SecurityAuditTable = ({
       rowKey='key'
       loading={loading}
       scroll={{ x: 'max-content' }}
+      expandAllRows={false}
+      indentSize={20}
       empty={
         <Empty
           image={<IllustrationNoResult />}

@@ -35,6 +35,8 @@ export const useSecurityAuditData = () => {
   const [detailPage, setDetailPage] = useState(1);
   const [detailTotal, setDetailTotal] = useState(0);
   const [detailPageSize, setDetailPageSize] = useState(ITEMS_PER_PAGE);
+  const [detailTimeRange, setDetailTimeRange] = useState(null);
+  const [detailAuditDate, setDetailAuditDate] = useState('');
 
   const getTimeRange = useCallback(() => {
     const preset = AUDIT_DATE_PRESETS[selectedPreset];
@@ -56,9 +58,15 @@ export const useSecurityAuditData = () => {
         const { success, message, data } = res.data;
         if (success) {
           setRecords(
-            (data.items || []).map((item, idx) => ({
+            (data.items || []).map((item) => ({
               ...item,
-              key: `${item.user_id}-${item.audit_date || idx}`,
+              key: `user-${item.user_id}`,
+              children: item.children
+                ? item.children.map((child) => ({
+                    ...child,
+                    key: `user-${item.user_id}-${child.audit_date}`,
+                  }))
+                : undefined,
             }))
           );
           setLogCount(data.total || 0);
@@ -76,12 +84,14 @@ export const useSecurityAuditData = () => {
   );
 
   const loadDetailLogs = useCallback(
-    async (userId, page, size) => {
+    async (userId, page, size, overrideStartTs, overrideEndTs) => {
       setDetailLoading(true);
       try {
         const { startTs, endTs } = getTimeRange();
+        const finalStartTs = overrideStartTs ?? startTs;
+        const finalEndTs = overrideEndTs ?? endTs;
         const res = await API.get(
-          `/api/audit/security/details?user_id=${userId}&p=${page}&page_size=${size}&start_timestamp=${startTs}&end_timestamp=${endTs}`
+          `/api/audit/security/details?user_id=${userId}&p=${page}&page_size=${size}&start_timestamp=${finalStartTs}&end_timestamp=${finalEndTs}`
         );
         const { success, message, data } = res.data;
         if (success) {
@@ -108,10 +118,14 @@ export const useSecurityAuditData = () => {
   const openDetailModal = useCallback(
     (record) => {
       setDetailUserId(record.user_id);
-      setDetailUsername(record.username);
+      setDetailUsername(record.username || '');
+      setDetailAuditDate(record.audit_date || '');
       setShowDetailModal(true);
       setDetailPage(1);
-      loadDetailLogs(record.user_id, 1, detailPageSize);
+      const overrideStart = record.audit_date ? record.start_time : undefined;
+      const overrideEnd = record.audit_date ? record.end_time : undefined;
+      setDetailTimeRange(overrideStart != null ? { startTs: overrideStart, endTs: overrideEnd } : null);
+      loadDetailLogs(record.user_id, 1, detailPageSize, overrideStart, overrideEnd);
     },
     [loadDetailLogs, detailPageSize]
   );
@@ -119,26 +133,28 @@ export const useSecurityAuditData = () => {
   const handleDetailPageChange = useCallback(
     (page) => {
       if (detailUserId) {
-        loadDetailLogs(detailUserId, page, detailPageSize);
+        loadDetailLogs(detailUserId, page, detailPageSize, detailTimeRange?.startTs, detailTimeRange?.endTs);
       }
     },
-    [detailUserId, detailPageSize, loadDetailLogs]
+    [detailUserId, detailPageSize, detailTimeRange, loadDetailLogs]
   );
 
   const handleDetailPageSizeChange = useCallback(
     (size) => {
       setDetailPageSize(size);
       if (detailUserId) {
-        loadDetailLogs(detailUserId, 1, size);
+        loadDetailLogs(detailUserId, 1, size, detailTimeRange?.startTs, detailTimeRange?.endTs);
       }
     },
-    [detailUserId, loadDetailLogs]
+    [detailUserId, detailTimeRange, loadDetailLogs]
   );
 
   const closeDetailModal = useCallback(() => {
     setShowDetailModal(false);
     setDetailLogs([]);
     setDetailUserId(null);
+    setDetailTimeRange(null);
+    setDetailAuditDate('');
   }, []);
 
   const refresh = useCallback(() => {
@@ -182,6 +198,7 @@ export const useSecurityAuditData = () => {
     showDetailModal,
     closeDetailModal,
     detailUsername,
+    detailAuditDate,
     detailLogs,
     detailLoading,
     detailPage,
