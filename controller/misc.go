@@ -119,6 +119,8 @@ func GetStatus(c *gin.Context) {
 		"user_agreement_enabled":      legalSetting.UserAgreement != "",
 		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
 		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
+		"security_audit_start_hour":   operation_setting.GetSecurityAuditSetting().StartHour,
+		"security_audit_end_hour":     operation_setting.GetSecurityAuditSetting().EndHour,
 	}
 
 	// 根据启用状态注入可选内容

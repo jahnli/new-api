@@ -44,6 +44,7 @@ import ModelPage from './pages/Model';
 import ModelDeploymentPage from './pages/ModelDeployment';
 import Playground from './pages/Playground';
 import Subscription from './pages/Subscription';
+import SecurityAudit from './pages/SecurityAudit';
 import OAuth2Callback from './components/auth/OAuth2Callback';
 import PersonalSetting from './components/settings/PersonalSetting';
 import Setup from './pages/Setup';
@@ -159,6 +160,14 @@ function App() {
           element={
             <AdminRoute>
               <User />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path='/console/audit'
+          element={
+            <AdminRoute>
+              <SecurityAudit />
             </AdminRoute>
           }
         />

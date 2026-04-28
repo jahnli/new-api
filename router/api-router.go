@@ -316,6 +316,12 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			logRoute.GET("/token", middleware.TokenAuthReadOnly(), controller.GetLogByKey)
 		}
+		auditRoute := apiRouter.Group("/audit")
+		auditRoute.Use(middleware.AdminAuth())
+		{
+			auditRoute.GET("/security", controller.GetSecurityAuditLogs)
+			auditRoute.GET("/security/details", controller.GetSecurityAuditDetails)
+		}
 		groupRoute := apiRouter.Group("/group")
 		groupRoute.Use(middleware.AdminAuth())
 		{

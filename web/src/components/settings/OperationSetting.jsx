@@ -27,6 +27,7 @@ import SettingsLog from '../../pages/Setting/Operation/SettingsLog';
 import SettingsMonitoring from '../../pages/Setting/Operation/SettingsMonitoring';
 import SettingsCreditLimit from '../../pages/Setting/Operation/SettingsCreditLimit';
 import SettingsCheckin from '../../pages/Setting/Operation/SettingsCheckin';
+import SettingsSecurityAudit from '../../pages/Setting/Operation/SettingsSecurityAudit';
 import { API, showError, toBoolean } from '../../helpers';
 
 const OperationSetting = () => {
@@ -80,6 +81,10 @@ const OperationSetting = () => {
     'checkin_setting.enabled': false,
     'checkin_setting.min_quota': 1000,
     'checkin_setting.max_quota': 10000,
+
+    /* 安全审计设置 */
+    'security_audit_setting.start_hour': 3,
+    'security_audit_setting.end_hour': 7,
 
     /* 令牌设置 */
     'token_setting.max_user_tokens': 1000,
@@ -155,6 +160,10 @@ const OperationSetting = () => {
         {/* 签到设置 */}
         <Card style={{ marginTop: '10px' }}>
           <SettingsCheckin options={inputs} refresh={onRefresh} />
+        </Card>
+        {/* 安全审计设置 */}
+        <Card style={{ marginTop: '10px' }}>
+          <SettingsSecurityAudit options={inputs} refresh={onRefresh} />
         </Card>
       </Spin>
     </>
