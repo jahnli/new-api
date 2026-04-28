@@ -58,12 +58,12 @@ export const useDashboardStats = (
           {
             title: t('当前订阅'),
             value: subscriptionInfo
-              ? `${renderQuota(subscriptionInfo.remaining)} / ${renderQuota(subscriptionInfo.total)}`
+              ? `${renderQuota(subscriptionInfo.used)} / ${renderQuota(subscriptionInfo.total)}`
               : t('无'),
             planTitle: subscriptionInfo?.planTitle || '',
             hasSubscriptionBar: true,
             subscriptionPercent: subscriptionInfo?.total > 0
-              ? Math.round((subscriptionInfo.remaining / subscriptionInfo.total) * 100)
+              ? Math.round((subscriptionInfo.used / subscriptionInfo.total) * 100)
               : null,
             icon: <IconMoneyExchangeStroked />,
             avatarColor: 'blue',

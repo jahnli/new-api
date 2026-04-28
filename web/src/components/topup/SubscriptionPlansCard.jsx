@@ -432,12 +432,12 @@ const SubscriptionPlansCard = ({
                                   overflow: 'hidden',
                                 }}>
                                   <div style={{
-                                    width: `${100 - usagePercent}%`,
+                                    width: `${usagePercent}%`,
                                     height: '100%',
                                     borderRadius: 999,
-                                    background: (100 - usagePercent) <= 10
+                                    background: usagePercent >= 90
                                       ? 'var(--semi-color-danger)'
-                                      : (100 - usagePercent) <= 30
+                                      : usagePercent >= 70
                                         ? 'var(--semi-color-warning)'
                                         : 'var(--semi-color-success)',
                                     transition: 'width 0.3s ease',
@@ -450,15 +450,15 @@ const SubscriptionPlansCard = ({
                                     justifyContent: 'center',
                                     fontSize: 10,
                                     fontWeight: 600,
-                                    color: (100 - usagePercent) >= 50 ? '#fff' : 'var(--semi-color-text-2)',
+                                    color: usagePercent >= 50 ? '#fff' : 'var(--semi-color-text-2)',
                                     pointerEvents: 'none',
                                   }}>
-                                    {100 - usagePercent}%
+                                    {usagePercent}%
                                   </span>
                                 </div>
                               </Tooltip>
                               <span className='whitespace-nowrap'>
-                                {renderQuota(remainAmount)} / {renderQuota(totalAmount)}
+                                {renderQuota(usedAmount)} / {renderQuota(totalAmount)}
                               </span>
                             </>
                           ) : (

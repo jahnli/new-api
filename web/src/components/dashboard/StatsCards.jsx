@@ -126,9 +126,9 @@ const StatsCards = ({
                           <Progress
                             percent={item.subscriptionPercent}
                             stroke={
-                              item.subscriptionPercent <= 10
+                              item.subscriptionPercent >= 90
                                 ? 'var(--semi-color-danger)'
-                                : item.subscriptionPercent <= 30
+                                : item.subscriptionPercent >= 70
                                   ? 'var(--semi-color-warning)'
                                   : 'var(--semi-color-success)'
                             }

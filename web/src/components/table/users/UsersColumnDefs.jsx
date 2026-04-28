@@ -180,14 +180,14 @@ const renderQuotaUsage = (text, record, t) => {
     remain = parseInt(record.quota) || 0;
     total = used + remain;
   }
-  const percent = total > 0 ? (remain / total) * 100 : 0;
+  const percent = total > 0 ? (used / total) * 100 : 0;
   const popoverContent = (
     <div className='text-xs p-2'>
       <Paragraph copyable={{ content: renderQuota(used) }}>
-        {t('已用额度')}: {renderQuota(used)}
+        {t('已用额度')}: {renderQuota(used)} ({percent.toFixed(0)}%)
       </Paragraph>
       <Paragraph copyable={{ content: renderQuota(remain) }}>
-        {t('剩余额度')}: {renderQuota(remain)} ({percent.toFixed(0)}%)
+        {t('剩余额度')}: {renderQuota(remain)}
       </Paragraph>
       <Paragraph copyable={{ content: renderQuota(total) }}>
         {t('总额度')}: {renderQuota(total)}
@@ -196,24 +196,22 @@ const renderQuotaUsage = (text, record, t) => {
   );
   return (
     <Popover content={popoverContent} position='top'>
-      <Tag color='white' shape='circle'>
-        <div className='flex flex-col items-end'>
-          <span className='text-xs leading-none'>{`${renderQuota(remain)} / ${renderQuota(total)}`}</span>
+      <div className='flex flex-col items-end'>
+          <span className='text-xs leading-none'>{`${renderQuota(used)} / ${renderQuota(total)}`}</span>
           <Progress
             percent={percent}
             stroke={
-              percent <= 10
+              percent >= 90
                 ? 'var(--semi-color-danger)'
-                : percent <= 30
+                : percent >= 70
                   ? 'var(--semi-color-warning)'
                   : 'var(--semi-color-success)'
             }
             aria-label='quota usage'
             format={() => `${percent.toFixed(0)}%`}
-            style={{ width: '100%', marginTop: '1px', marginBottom: 0 }}
+            style={{ width: '100%', height: '8px', borderRadius: '4px', marginTop: '4px', marginBottom: 0 }}
           />
-        </div>
-      </Tag>
+      </div>
     </Popover>
   );
 };
@@ -396,7 +394,7 @@ export const getUsersColumns = ({
       render: (text, record) => renderUsername(text, record),
     },
     {
-      title: t('剩余额度/总额度'),
+      title: t('已用额度/总额度'),
       key: 'quota_usage',
       render: (text, record) => renderQuotaUsage(text, record, t),
     },
