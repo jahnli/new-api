@@ -139,7 +139,7 @@ const UsersTable = (usersData) => {
     setShowResetTwoFAModal(false);
   };
 
-  const serverSortColumns = new Set(['used_quota', 'request_count', 'total_prompt_tokens', 'subscription_quota_remain']);
+  const serverSortColumns = new Set(['request_count', 'total_prompt_tokens', 'subscription_quota_remain']);
 
   const handleTableChange = (changeInfo) => {
     const { sorter } = changeInfo;
