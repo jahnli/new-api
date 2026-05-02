@@ -243,6 +243,20 @@ func applyUserOrder(query *gorm.DB, pageInfo *common.PageInfo) *gorm.DB {
 			Joins("LEFT JOIN (?) AS sub_quota ON users.id = sub_quota.user_id", subQuery).
 			Order(fmt.Sprintf("COALESCE(sub_quota.remain, 0) %s", dir))
 	}
+	if pageInfo.OrderBy == "total_consumed_quota" && LOG_DB == DB {
+		dir := "DESC"
+		if pageInfo.Order == "asc" {
+			dir = "ASC"
+		}
+		subQuery := DB.Model(&Log{}).
+			Select("user_id, COALESCE(SUM(quota), 0) as consumed_total").
+			Where("type = ?", LogTypeConsume).
+			Group("user_id")
+		return query.
+			Select("users.*").
+			Joins("LEFT JOIN (?) AS consume_stats ON users.id = consume_stats.user_id", subQuery).
+			Order(fmt.Sprintf("COALESCE(consume_stats.consumed_total, 0) %s", dir))
+	}
 	orderClause := pageInfo.GetOrderClause(userAllowedOrderColumns, "id desc")
 	return query.Order(orderClause)
 }

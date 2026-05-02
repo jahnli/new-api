@@ -421,7 +421,8 @@ export const getUsersColumns = ({
     {
       title: t('总消耗'),
       key: 'consumed_quota',
-      dataIndex: 'used_quota',
+      dataIndex: 'total_consumed_quota',
+      sorter: true,
       render: (text, record) => {
         const quota = parseInt(record.total_consumed_quota) || 0;
         return renderQuota(quota);
