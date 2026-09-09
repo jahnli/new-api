@@ -10,11 +10,11 @@ type OffHoursAuditSetting struct {
 }
 
 // DefaultImageStudioDisplayHistoryLimit 是在线生图历史每用户默认展示条数。
-const DefaultImageStudioDisplayHistoryLimit = 10
+const DefaultImageStudioDisplayHistoryLimit = 20
 
 // DefaultImageStudioMaxHistory 是在线生图历史每用户默认存储条数。
 // 保留旧名称以兼容现有调用和配置语义。
-const DefaultImageStudioMaxHistory = 10
+const DefaultImageStudioMaxHistory = 50
 
 // MaxImageStudioMaxHistory 是在线生图历史保留条数的上限，防止配置成不合理的巨大值
 // 导致列表查询与裁剪开销失控。

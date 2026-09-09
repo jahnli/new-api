@@ -31,8 +31,8 @@ const defaultSecuritySettings: SecuritySettings = {
   },
   'audit_setting.image_studio': true,
   'audit_setting.auto_save_api_image_generation': false,
-  'audit_setting.image_studio_display_history_limit': 10,
-  'audit_setting.image_studio_max_history': 10,
+  'audit_setting.image_studio_display_history_limit': 20,
+  'audit_setting.image_studio_max_history': 50,
   RecordRequestMessageEnabled: false,
 }
 
