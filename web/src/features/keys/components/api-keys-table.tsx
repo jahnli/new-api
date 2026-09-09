@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import type { Table as TanstackTable } from '@tanstack/react-table'
+import { flexRender, type Table as TanstackTable } from '@tanstack/react-table'
 import { Database } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -35,6 +35,7 @@ import {
   ERROR_MESSAGES,
 } from '../constants'
 import type { ApiKey } from '../types'
+import { ApiKeyActivityCell } from './api-key-timestamp-cell'
 import { ApiKeyCell, UnlimitedQuotaBadge } from './api-keys-cells'
 import { useApiKeysColumns } from './api-keys-columns'
 import { useApiKeys } from './api-keys-provider'
@@ -78,9 +79,11 @@ function ApiKeysMobileSkeleton() {
 function ApiKeysMobileList({
   table,
   isLoading,
+  now,
 }: {
   table: TanstackTable<ApiKey>
   isLoading: boolean
+  now: number
 }) {
   const { t } = useTranslation()
   const rows = table.getRowModel().rows
@@ -113,6 +116,9 @@ function ApiKeysMobileList({
         const apiKey = row.original
         const statusConfig = API_KEY_STATUSES[apiKey.status]
         const total = apiKey.used_quota + apiKey.remain_quota
+        const expiryCell = row
+          .getAllCells()
+          .find((cell) => cell.column.id === 'expired_time')
 
         return (
           <div
@@ -160,6 +166,24 @@ function ApiKeysMobileList({
                   </span>
                 </span>
               )}
+            </div>
+
+            <div className='grid grid-cols-3 items-start gap-3 border-t pt-2'>
+              <div className='col-span-2 min-w-0'>
+                <ApiKeyActivityCell
+                  apiKey={apiKey}
+                  now={now}
+                  layout='columns'
+                />
+              </div>
+              <div className='min-w-0 space-y-1 [&_[data-slot=status-badge]]:text-xs [&_[data-slot=status-badge]]:font-normal'>
+                <div className='text-muted-foreground'>{t('Expires')}</div>
+                {expiryCell &&
+                  flexRender(
+                    expiryCell.column.columnDef.cell,
+                    expiryCell.getContext()
+                  )}
+              </div>
             </div>
           </div>
         )
@@ -279,6 +303,22 @@ export function ApiKeysTable() {
     ensurePageInRange,
   })
 
+  const columnVisibility = table.getState().columnVisibility
+  useEffect(() => {
+    if (
+      columnVisibility.activity_time === undefined &&
+      columnVisibility.created_time === false &&
+      columnVisibility.accessed_time === false &&
+      columnVisibility.expired_time === false
+    ) {
+      table.setColumnVisibility((previous) => ({
+        ...previous,
+        activity_time: true,
+        expired_time: true,
+      }))
+    }
+  }, [columnVisibility, table])
+
   return (
     <DataTablePage
       table={table}
@@ -312,7 +352,9 @@ export function ApiKeysTable() {
           },
         ],
       }}
-      mobile={<ApiKeysMobileList table={table} isLoading={isLoading} />}
+      mobile={
+        <ApiKeysMobileList table={table} isLoading={isLoading} now={now} />
+      }
       getRowClassName={(row) =>
         isDisabledApiKeyRow(row.original) ? DISABLED_ROW_DESKTOP : undefined
       }
