@@ -12,8 +12,18 @@ import (
 )
 
 func GetGroups(c *gin.Context) {
+	groupRatios := ratio_setting.GetGroupRatioCopy()
+	if c.Query("with_ratio") == "true" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "",
+			"data":    groupRatios,
+		})
+		return
+	}
+
 	groupNames := make([]string, 0)
-	for groupName := range ratio_setting.GetGroupRatioCopy() {
+	for groupName := range groupRatios {
 		groupNames = append(groupNames, groupName)
 	}
 	c.JSON(http.StatusOK, gin.H{

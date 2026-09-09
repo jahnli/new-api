@@ -1,6 +1,6 @@
 # 用户管理表格统计增强
 
-**日期**: 2026-06-30 ~ 08-20（最后更新 08-20）
+**日期**: 2026-06-30 ~ 09-09（最后更新 09-09）
 
 ## 涉及文件
 
@@ -93,3 +93,11 @@
 - `model/user.go` — 新增 `GetCostCenter` 解析 `cost_center` 的部门与公司归属。
 - `service/data_overview_company.go` — 新增 `queryCostCenterUsers` 按成本中心归属本地用户（不受公司名与 open_id 限制，内存过滤兼容三种数据库）；`matchOverviewDepartmentMembers` 改用公司对象并接入成本中心归属用户。
 - `service/feishu_department.go`、`service/data_overview_company_test.go` — 部门受众构建与回归测试同步支持成本中心归属。
+
+## 2026-09-09 用户分组倍率展示
+
+- `controller/group.go` — 管理员分组接口支持通过可选查询参数返回分组与基础倍率映射，同时保持默认分组名称数组响应兼容。
+- `controller/group_test.go` — 覆盖管理员分组接口按需返回基础倍率的响应契约。
+- `web/src/features/users/api.ts` — 新增获取全部分组及基础倍率的管理员 API 封装。
+- `web/src/features/users/components/users-mutate-drawer.tsx` — 用户编辑弹窗的当前分组和下拉选项显示对应基础倍率。
+- `web/src/features/users/components/__tests__/group-ratio-display.test.tsx` — 覆盖当前分组及其他可选分组倍率的可见性。
