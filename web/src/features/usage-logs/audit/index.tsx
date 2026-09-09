@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getUserProfile } from '@/features/profile/api'
+import type { NavigateFn } from '@/hooks/use-table-url-state'
 import {
   ADMIN_PERMISSION_RESOURCES,
   ADMIN_PERMISSION_ACTIONS,
@@ -31,9 +32,15 @@ import {
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
+import type { AuditSearchState } from './api'
 import { AuditLogViewer } from './components/audit-log-viewer'
 
-export function AuditLogs() {
+export function AuditLogs(
+  props: {
+    search?: AuditSearchState
+    navigate?: NavigateFn
+  } = {}
+) {
   const { t } = useTranslation()
   const user = useAuthStore((state) => state.auth.user)
   const queryClient = useQueryClient()
@@ -117,6 +124,8 @@ export function AuditLogs() {
               key={`${userId}:${effectiveScope}`}
               scope={effectiveScope}
               onAccessDenied={handleAccessDenied}
+              search={props.search}
+              navigate={props.navigate}
             />
           </div>
         </div>

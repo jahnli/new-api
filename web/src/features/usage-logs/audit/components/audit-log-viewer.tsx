@@ -18,15 +18,21 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DataTablePage, useDataTable } from '@/components/data-table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { useTableUrlState, type NavigateFn } from '@/hooks/use-table-url-state'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { getAuditLogs, type AuditFilters, type AuditLog } from '../api'
+import {
+  getAuditLogs,
+  type AuditFilters,
+  type AuditLog,
+  type AuditSearchState,
+} from '../api'
 import { useAuditLogColumns } from './audit-log-columns'
 import { AuditLogFilterBar } from './audit-log-filter-bar'
 
@@ -37,11 +43,52 @@ export function AuditLogViewer(props: {
   accessOnly?: boolean
   currentTokenRef?: string
   onAccessDenied?: () => Promise<void>
+  search?: AuditSearchState
+  navigate?: NavigateFn
 }) {
   const { t } = useTranslation()
   const userId = useAuthStore((state) => state.auth.user?.id)
-  const [filters, setFilters] = useState<AuditFilters>({ p: 1, page_size: 20 })
+  const [localSearch, setLocalSearch] = useState<AuditSearchState>({})
   const [tokenScope, setTokenScope] = useState('all')
+  const localNavigate = useCallback<NavigateFn>((options) => {
+    setLocalSearch((previous) => {
+      if (options.search === true) return previous
+      const next =
+        typeof options.search === 'function'
+          ? options.search(previous)
+          : options.search
+      return next as AuditSearchState
+    })
+  }, [])
+  const search = props.search ?? localSearch
+  const navigate = props.navigate ?? localNavigate
+  const tableState = useTableUrlState({
+    search,
+    navigate,
+    pagination: {
+      pageKey: 'auditPage',
+      pageSizeKey: 'auditPageSize',
+      pageSizeStorageKey: props.accessOnly
+        ? 'page-size:audit-access'
+        : 'page-size:audit',
+      defaultPageSize: 20,
+    },
+    globalFilter: { enabled: false },
+  })
+  const filters = useMemo<AuditFilters>(
+    () => ({
+      p: tableState.pagination.pageIndex + 1,
+      page_size: tableState.pagination.pageSize,
+      start_timestamp: search.auditStartTime,
+      end_timestamp: search.auditEndTime,
+      success: search.auditSuccess,
+      category: search.auditCategory,
+      token_ref: search.auditTokenRef,
+      username: search.auditUsername,
+      request_id: search.auditRequestId,
+    }),
+    [search, tableState.pagination]
+  )
   const params = { ...filters }
   if (props.accessOnly) params.category = 'access_token'
   if (tokenScope === 'current') params.token_ref = props.currentTokenRef
@@ -79,29 +126,65 @@ export function AuditLogViewer(props: {
         : EMPTY_LOGS,
     getRowId: (entry) => entry.event_id,
     totalCount: query.isError ? 0 : (query.data?.total ?? 0),
-    pagination: { pageIndex: filters.p - 1, pageSize: filters.page_size },
+    pagination: tableState.pagination,
     onPaginationChange: (updater) => {
       if (query.isFetching || query.isError || invalidRange || !canQuery) return
-      setFilters((previous) => {
-        const current = {
-          pageIndex: previous.p - 1,
-          pageSize: previous.page_size,
-        }
-        const next = typeof updater === 'function' ? updater(current) : updater
-        return {
-          ...previous,
-          p: next.pageSize === previous.page_size ? next.pageIndex + 1 : 1,
-          page_size: next.pageSize,
-        }
-      })
+      const next =
+        typeof updater === 'function' ? updater(tableState.pagination) : updater
+      tableState.onPaginationChange(
+        next.pageSize === tableState.pagination.pageSize
+          ? next
+          : { ...next, pageIndex: 0 }
+      )
     },
     enableRowSelection: false,
     enableSorting: false,
     manualFiltering: true,
     manualPagination: true,
+    ensurePageInRange: tableState.ensurePageInRange,
   })
-  const update = (patch: Partial<AuditFilters>) =>
-    setFilters((previous) => ({ ...previous, ...patch, p: 1 }))
+  const update = useCallback(
+    (patch: Partial<AuditFilters>) => {
+      navigate({
+        search: (previous) => {
+          const next: AuditSearchState = {
+            ...previous,
+            auditPage: undefined,
+          }
+          if ('start_timestamp' in patch) {
+            next.auditStartTime = patch.start_timestamp
+          }
+          if ('end_timestamp' in patch) {
+            next.auditEndTime = patch.end_timestamp
+          }
+          if ('success' in patch) next.auditSuccess = patch.success
+          if ('category' in patch) next.auditCategory = patch.category
+          if ('token_ref' in patch) next.auditTokenRef = patch.token_ref
+          if ('username' in patch) next.auditUsername = patch.username
+          if ('request_id' in patch) next.auditRequestId = patch.request_id
+          return next
+        },
+      })
+    },
+    [navigate]
+  )
+
+  const reset = useCallback(() => {
+    setTokenScope('all')
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        auditPage: undefined,
+        auditStartTime: undefined,
+        auditEndTime: undefined,
+        auditSuccess: undefined,
+        auditCategory: undefined,
+        auditTokenRef: undefined,
+        auditUsername: undefined,
+        auditRequestId: undefined,
+      }),
+    })
+  }, [navigate])
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
@@ -137,10 +220,7 @@ export function AuditLogViewer(props: {
               onSearch={() => {
                 if (!invalidRange && canQuery) void query.refetch()
               }}
-              onReset={() => {
-                setTokenScope('all')
-                setFilters({ p: 1, page_size: filters.page_size })
-              }}
+              onReset={reset}
             />
             {invalidRange && (
               <Alert variant='destructive'>

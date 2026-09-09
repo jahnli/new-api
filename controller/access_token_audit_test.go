@@ -437,9 +437,16 @@ func newAuditTestDatabase(t *testing.T, kind, dsn string) (*gorm.DB, string) {
 	t.Helper()
 	if kind == "sqlite" {
 		path := t.TempDir() + "/audit.db"
-		db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+		dsn := path + "?_pragma=busy_timeout(1000)&_pragma=journal_mode(WAL)&_txlock=immediate"
+		db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 		require.NoError(t, err)
-		return db, path
+		t.Cleanup(func() {
+			connection, err := db.DB()
+			if err == nil {
+				_ = connection.Close()
+			}
+		})
+		return db, dsn
 	}
 	require.NotEmpty(t, dsn)
 	name := fmt.Sprintf("newapi_audit_%d", time.Now().UnixNano())
@@ -657,6 +664,15 @@ func TestAuditDatabaseMatrix(t *testing.T) {
 			for _, upgrade := range []bool{false, true} {
 				t.Run(fmt.Sprintf("upgrade=%v", upgrade), func(t *testing.T) {
 					db, isolatedDSN := newAuditTestDatabase(t, tc.name, dsn)
+					initializedDatabases := make([]*gorm.DB, 0, 2)
+					t.Cleanup(func() {
+						for _, initializedDB := range initializedDatabases {
+							connection, err := initializedDB.DB()
+							if err == nil {
+								_ = connection.Close()
+							}
+						}
+					})
 					t.Setenv("LOG_SQL_DSN", "")
 					if tc.name == "sqlite" {
 						common.SQLitePath = isolatedDSN
@@ -681,6 +697,7 @@ func TestAuditDatabaseMatrix(t *testing.T) {
 					}
 					for i := 0; i < 2; i++ {
 						require.NoError(t, model.InitDB())
+						initializedDatabases = append(initializedDatabases, model.DB)
 						require.NoError(t, model.InitLogDB())
 					}
 					if !upgrade {

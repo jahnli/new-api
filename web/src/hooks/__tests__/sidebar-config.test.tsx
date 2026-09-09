@@ -26,10 +26,16 @@ import {
   parseSidebarModulesAdmin,
   serializeSidebarModulesAdmin,
 } from '@/features/system-settings/maintenance/config'
+import {
+  ADMIN_PERMISSION_ACTIONS,
+  ADMIN_PERMISSION_RESOURCES,
+} from '@/lib/admin-permissions'
+import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { useSidebarConfig } from '../use-sidebar-config'
 import { useSidebarData } from '../use-sidebar-data'
+import { filterNavGroupsForUser } from '../use-sidebar-view'
 
 beforeEach(() => {
   vi.stubGlobal('localStorage', {
@@ -178,5 +184,82 @@ describe('audit log sidebar entry', () => {
       .map((item) => item.title)
     expect(titles).not.toContain('Usage Logs')
     expect(titles).toContain('Audit Logs')
+  })
+})
+
+describe('command and sidebar permission source', () => {
+  const navGroups = [
+    {
+      id: 'general',
+      title: 'General',
+      items: [{ title: 'Home', url: '/' }],
+    },
+    {
+      id: 'admin',
+      title: 'Admin',
+      items: [
+        {
+          title: 'Channels',
+          url: '/channels',
+          requiredRole: ROLE.ADMIN,
+          requiredPermission: {
+            resource: ADMIN_PERMISSION_RESOURCES.CHANNEL,
+            action: ADMIN_PERMISSION_ACTIONS.INTERFACE_VIEW,
+          },
+        },
+        {
+          title: 'Models',
+          url: '/models/metadata',
+          requiredRole: ROLE.SUPER_ADMIN,
+        },
+      ],
+    },
+  ]
+
+  it('hides the admin group from ordinary users', () => {
+    const filtered = filterNavGroupsForUser(navGroups, {
+      id: 1,
+      username: 'user',
+      role: ROLE.USER,
+    })
+    expect(filtered.map((group) => group.id)).toEqual(['general'])
+  })
+
+  it('applies channel permission and root-only requirements for admins', () => {
+    const withoutGrant = filterNavGroupsForUser(navGroups, {
+      id: 2,
+      username: 'admin',
+      role: ROLE.ADMIN,
+    })
+    expect(
+      withoutGrant.find((group) => group.id === 'admin')?.items
+    ).toHaveLength(0)
+
+    const withGrant = filterNavGroupsForUser(navGroups, {
+      id: 2,
+      username: 'admin',
+      role: ROLE.ADMIN,
+      permissions: {
+        admin_permissions: { channel: { interface_view: true } },
+      },
+    })
+    expect(
+      withGrant
+        .find((group) => group.id === 'admin')
+        ?.items.map((item) => item.title)
+    ).toEqual(['Channels'])
+  })
+
+  it('keeps all authorized entries for root', () => {
+    const filtered = filterNavGroupsForUser(navGroups, {
+      id: 3,
+      username: 'root',
+      role: ROLE.SUPER_ADMIN,
+    })
+    expect(
+      filtered
+        .find((group) => group.id === 'admin')
+        ?.items.map((item) => item.title)
+    ).toEqual(['Channels', 'Models'])
   })
 })

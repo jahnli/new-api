@@ -51,6 +51,19 @@ export interface AuditFilters {
   username?: string
   request_id?: string
 }
+
+export interface AuditSearchState extends Record<string, unknown> {
+  auditPage?: number
+  auditPageSize?: number
+  auditStartTime?: number
+  auditEndTime?: number
+  auditSuccess?: string
+  auditCategory?: string
+  auditTokenRef?: string
+  auditUsername?: string
+  auditRequestId?: string
+}
+
 export async function getAuditLogs(
   scope: 'all' | 'self',
   params: AuditFilters

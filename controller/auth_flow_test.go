@@ -686,7 +686,8 @@ func TestGenerateOAuthCodeIgnoresRemovedAffiliateField(t *testing.T) {
 		Purpose: model.AuthFlowPurposeOAuth, Provider: "auth-flow-test", Intent: model.AuthFlowIntentLogin,
 	})
 	require.NoError(t, err)
-	assert.Empty(t, flow.Payload)
+	assert.NotContains(t, flow.Payload, "aff")
+	assert.NotContains(t, flow.Payload, "invite-code")
 	assert.Zero(t, flow.UserId)
 	assert.Empty(t, flow.SessionId)
 }

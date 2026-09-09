@@ -73,3 +73,57 @@ func TestModelSquareRoutesRequireRoot(t *testing.T) {
 		})
 	}
 }
+
+func TestModelManagementRoutesRequireRoot(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.AuditLog{}))
+	previousDB, previousLogDB := model.DB, model.LOG_DB
+	previousRedis := common.RedisEnabled
+	model.DB, model.LOG_DB, common.RedisEnabled = db, db, false
+	t.Cleanup(func() {
+		model.DB, model.LOG_DB, common.RedisEnabled = previousDB, previousLogDB, previousRedis
+	})
+
+	users := map[int]string{
+		common.RoleAdminUser: "model-management-admin",
+		common.RoleRootUser:  "model-management-root",
+	}
+	for role, token := range users {
+		user := model.User{
+			Username: token, Password: "unused", Role: role,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1,
+		}
+		user.SetAccessToken(token)
+		require.NoError(t, db.Create(&user).Error)
+	}
+
+	engine := gin.New()
+	SetApiRouter(engine)
+	routes := []string{
+		"/api/vendors/",
+		"/api/models/",
+		"/api/deployments/",
+	}
+	for _, path := range routes {
+		t.Run(path, func(t *testing.T) {
+			for role, token := range users {
+				request := httptest.NewRequest(http.MethodPost, path, strings.NewReader("{}"))
+				request.Header.Set("Authorization", "Bearer "+token)
+				request.Header.Set("Content-Type", "application/json")
+				recorder := httptest.NewRecorder()
+				engine.ServeHTTP(recorder, request)
+				if role == common.RoleAdminUser {
+					assert.Equal(t, http.StatusForbidden, recorder.Code)
+				} else {
+					assert.NotEqual(t, http.StatusUnauthorized, recorder.Code)
+					assert.NotEqual(t, http.StatusForbidden, recorder.Code)
+				}
+			}
+		})
+	}
+}

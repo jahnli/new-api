@@ -28,9 +28,12 @@ import {
 import userEvent from '@testing-library/user-event'
 import { AxiosError, type AxiosResponse } from 'axios'
 import { createInstance } from 'i18next'
+import { useCallback, useState } from 'react'
 import { I18nextProvider } from 'react-i18next'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
+import { PageFooterProvider } from '@/components/layout/components/page-footer'
+import type { NavigateFn } from '@/hooks/use-table-url-state'
 import en from '@/i18n/locales/en.json'
 import fr from '@/i18n/locales/fr.json'
 import ja from '@/i18n/locales/ja.json'
@@ -42,6 +45,7 @@ import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { AuditLogs } from '..'
+import type { AuditSearchState } from '../api'
 import { AuditLogViewer } from '../components/audit-log-viewer'
 
 it.each([
@@ -394,11 +398,14 @@ it.each([
   }
 )
 
+let testStorage: Map<string, string>
+
 beforeEach(() => {
+  testStorage = new Map()
   vi.stubGlobal('localStorage', {
-    getItem: () => null,
-    setItem: () => undefined,
-    removeItem: () => undefined,
+    getItem: (key: string) => testStorage.get(key) ?? null,
+    setItem: (key: string, value: string) => testStorage.set(key, value),
+    removeItem: (key: string) => testStorage.delete(key),
   })
 })
 afterEach(() => {
@@ -421,6 +428,113 @@ function renderViewer(scope: 'all' | 'self' = 'self') {
     </QueryClientProvider>
   )
 }
+
+function AuditUrlStateFixture() {
+  const [search, setSearch] = useState<AuditSearchState>({
+    auditPage: 2,
+    auditPageSize: 20,
+    auditUsername: 'alice',
+  })
+  const navigate = useCallback<NavigateFn>((options) => {
+    setSearch((previous) => {
+      if (options.search === true) return previous
+      const next =
+        typeof options.search === 'function'
+          ? options.search(previous)
+          : options.search
+      return { ...previous, ...next } as AuditSearchState
+    })
+  }, [])
+  return (
+    <>
+      <output data-testid='audit-search-state'>{JSON.stringify(search)}</output>
+      <AuditLogViewer scope='all' search={search} navigate={navigate} />
+    </>
+  )
+}
+
+it('keeps audit filters and pagination in isolated URL state', async () => {
+  const get = vi.spyOn(api, 'get').mockResolvedValue({
+    data: {
+      success: true,
+      data: {
+        items: [
+          {
+            event_id: 'url-state-event',
+            user_id: 1,
+            username: 'alice',
+            actor_role: 1,
+            created_at: 1788600600,
+            category: 'security',
+            action: 'user.security_verify',
+            token_ref: '',
+            ip: '127.0.0.1',
+            user_agent: 'browser',
+            method: 'POST',
+            route: '/api/verify',
+            status: 200,
+            success: true,
+            request_id: 'url-state-request',
+            content: '',
+            other: {},
+          },
+        ],
+        total: 80,
+      },
+    },
+  })
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  const footerContainer = document.createElement('div')
+  document.body.append(footerContainer)
+  render(
+    <QueryClientProvider client={client}>
+      <PageFooterProvider container={footerContainer}>
+        <AuditUrlStateFixture />
+      </PageFooterProvider>
+    </QueryClientProvider>
+  )
+
+  await waitFor(() =>
+    expect(get).toHaveBeenCalledWith('/api/audit', {
+      params: expect.objectContaining({
+        p: 2,
+        page_size: 20,
+        username: 'alice',
+      }),
+    })
+  )
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Go to next page' })
+    ).toBeEnabled()
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Go to next page' }))
+  await waitFor(() =>
+    expect(screen.getByTestId('audit-search-state')).toHaveTextContent(
+      '"auditPage":3'
+    )
+  )
+
+  fireEvent.change(screen.getByLabelText('Username'), {
+    target: { value: 'bob' },
+  })
+  await waitFor(() =>
+    expect(get).toHaveBeenLastCalledWith('/api/audit', {
+      params: expect.objectContaining({ p: 1, username: 'bob' }),
+    })
+  )
+  expect(screen.getByTestId('audit-search-state')).not.toHaveTextContent(
+    '"auditPage":'
+  )
+
+  await userEvent.click(screen.getByRole('combobox', { name: '' }))
+  await userEvent.click(await screen.findByRole('option', { name: '50' }))
+  await waitFor(() => expect(testStorage.get('page-size:audit')).toBe('50'))
+  expect(testStorage.has('page-size')).toBe(false)
+  footerContainer.remove()
+})
 
 it('filters own access history by result, generation and time and resets pagination', async () => {
   const get = vi.spyOn(api, 'get').mockResolvedValue({

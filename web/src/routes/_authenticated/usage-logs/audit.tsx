@@ -17,9 +17,29 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute } from '@tanstack/react-router'
+import z from 'zod'
 
 import { AuditLogs } from '@/features/usage-logs/audit'
 
-export const Route = createFileRoute('/_authenticated/usage-logs/audit')({
-  component: AuditLogs,
+const auditSearchSchema = z.object({
+  auditPage: z.number().optional().catch(1),
+  auditPageSize: z.number().optional().catch(undefined),
+  auditStartTime: z.number().optional(),
+  auditEndTime: z.number().optional(),
+  auditSuccess: z.enum(['true', 'false']).optional(),
+  auditCategory: z
+    .enum(['login', 'security', 'operation', 'access_token'])
+    .optional(),
+  auditTokenRef: z.string().optional().catch(''),
+  auditUsername: z.string().optional().catch(''),
+  auditRequestId: z.string().optional().catch(''),
 })
+
+export const Route = createFileRoute('/_authenticated/usage-logs/audit')({
+  validateSearch: auditSearchSchema,
+  component: AuditLogsRoute,
+})
+
+function AuditLogsRoute() {
+  return <AuditLogs search={Route.useSearch()} navigate={Route.useNavigate()} />
+}

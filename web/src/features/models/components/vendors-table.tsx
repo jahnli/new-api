@@ -61,6 +61,7 @@ export function VendorsTable() {
     pagination: {
       pageKey: 'vPage',
       pageSizeKey: 'vPageSize',
+      pageSizeStorageKey: 'page-size:vendors',
       defaultPageSize: 20,
     },
     globalFilter: { enabled: true, key: 'vFilter' },
