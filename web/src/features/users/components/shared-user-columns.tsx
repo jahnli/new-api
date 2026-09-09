@@ -20,6 +20,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ActivityTimeCell } from '@/components/activity-time-cell'
 import { BadgeCell, DataTableColumnHeader } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { LongText } from '@/components/long-text'
@@ -558,6 +559,26 @@ export function userCreatedAtColumn<T extends UserColumnRow>(
   }
 }
 
+export function userActivityTimeColumn<T extends UserColumnRow>(
+  t: (key: string) => string
+): ColumnDef<T> {
+  return {
+    accessorKey: 'created_at',
+    header: t('Time'),
+    cell: ({ row }) => (
+      <ActivityTimeCell
+        createdAt={row.original.created_at ?? 0}
+        lastAt={row.original.last_login_at ?? 0}
+        lastLabel={t('Last Login')}
+        format='absolute'
+      />
+    ),
+    size: 260,
+    minSize: 240,
+    meta: { mobileHidden: true },
+  }
+}
+
 export function userRoleColumn<T extends UserColumnRow>(
   t: (key: string) => string
 ): ColumnDef<T> {
@@ -671,6 +692,7 @@ export interface SharedUserColumnsOptions {
   requestCountAccessor: string
   quotaHeaderDescription?: string
   withGroupBadgeCell?: boolean
+  combineActivityTimes?: boolean
 }
 
 export function useSharedUserColumns<T extends UserColumnRow>(
@@ -701,7 +723,11 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       columns.push(userJobLevelColumn<T>(t))
     }
 
-    columns.push(userLastLoginColumn<T>(t))
+    if (opts.combineActivityTimes) {
+      columns.push(userActivityTimeColumn<T>(t))
+    } else {
+      columns.push(userLastLoginColumn<T>(t))
+    }
     columns.push(
       userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: 'badge' })
     )
@@ -710,7 +736,9 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       columns.push(userJoinDateColumn<T>(t))
     }
 
-    columns.push(userCreatedAtColumn<T>(t))
+    if (!opts.combineActivityTimes) {
+      columns.push(userCreatedAtColumn<T>(t))
+    }
     columns.push({
       ...userRoleColumn<T>(t),
       filterFn: (
@@ -761,5 +789,6 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     opts.requestCountAccessor,
     opts.quotaHeaderDescription,
     opts.withGroupBadgeCell,
+    opts.combineActivityTimes,
   ])
 }
