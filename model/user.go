@@ -84,46 +84,48 @@ func resolveUserSortOptions(sortOptions []UserSortOptions) UserSortOptions {
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
-	Id                int                        `json:"id"`
-	Username          string                     `json:"username" gorm:"unique;index" validate:"max=20"`
-	Password          string                     `json:"password" gorm:"not null;" validate:"min=8,max=20"`
-	OriginalPassword  string                     `json:"original_password" gorm:"-:all"`
-	DisplayName       string                     `json:"display_name" gorm:"index" validate:"max=20"`
-	Role              int                        `json:"role" gorm:"type:int;default:1"`
-	OverviewDeptIDs   []string                   `json:"overview_dept_ids" gorm:"type:text;serializer:json;column:overview_dept_ids;default:'[]'"`
-	Status            int                        `json:"status" gorm:"type:int;default:1"`
-	Email             string                     `json:"email" gorm:"index" validate:"max=50"`
-	OidcId            string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
-	WeChatId          string                     `json:"wechat_id" gorm:"column:wechat_id;index"`
-	VerificationCode  string                     `json:"verification_code" gorm:"-:all"`
-	AccessToken       *string                    `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"`
-	Quota             int                        `json:"quota" gorm:"type:bigint;default:0"`
-	UsedQuota         int                        `json:"used_quota" gorm:"type:bigint;default:0;column:used_quota"`
-	RequestCount      int                        `json:"request_count" gorm:"type:int;default:0;"`
-	Group             string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
-	Company           string                     `json:"company" gorm:"type:varchar(128);column:company;default:'';index"`
-	CostCenter        string                     `json:"cost_center" gorm:"type:text;column:cost_center;default:'[]'"`
-	DeletedAt         gorm.DeletedAt             `gorm:"index"`
-	Setting           string                     `json:"setting" gorm:"type:text;column:setting"`
-	Remark            string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
-	StripeCustomer    string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
-	CreatedAt         int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
-	LastLoginAt       int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
-	AuthVersion       int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
-	AvatarUrl         string                     `json:"avatar_url" gorm:"type:varchar(512);column:avatar_url;default:''"`
-	OpenId            string                     `json:"open_id" gorm:"type:varchar(64);column:open_id;default:''"`
-	DepartmentName    string                     `json:"department_name" gorm:"type:varchar(256);column:department_name;default:''"`
-	Departments       string                     `json:"departments" gorm:"type:text;column:departments;default:'[]'"`
-	JobNumber         string                     `json:"job_number" gorm:"type:varchar(64);column:job_number;default:''"`
-	Description       string                     `json:"description" gorm:"type:text;column:description;default:''"`
-	Gender            int                        `json:"gender" gorm:"type:int;column:gender;default:0"`
-	LeaderId          string                     `json:"leader_id" gorm:"type:varchar(64);column:leader_id;default:''"`
-	Mobile            string                     `json:"mobile" gorm:"type:varchar(32);column:mobile;default:''"`
-	JobTitle          string                     `json:"job_title" gorm:"type:varchar(128);column:job_title;default:''"`
-	BackgroundImage   string                     `json:"background_image" gorm:"type:varchar(512);column:background_image;default:''"`
-	CustomFieldValues string                     `json:"custom_field_values" gorm:"type:text;column:custom_field_values;default:'{}'"`
-	JoinDate          string                     `json:"join_date" gorm:"type:varchar(16);column:join_date;default:''"`
-	AdminPermissions  map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
+	Id                   int                        `json:"id"`
+	Username             string                     `json:"username" gorm:"unique;index" validate:"max=20"`
+	Password             string                     `json:"password" gorm:"not null;" validate:"min=8,max=128"`
+	HasPassword          bool                       `json:"-" gorm:"-:all"`
+	OriginalPassword     string                     `json:"original_password" gorm:"-:all"`
+	DisplayName          string                     `json:"display_name" gorm:"index" validate:"max=20"`
+	Role                 int                        `json:"role" gorm:"type:int;default:1"`
+	OverviewDeptIDs      []string                   `json:"overview_dept_ids" gorm:"type:text;serializer:json;column:overview_dept_ids;default:'[]'"`
+	Status               int                        `json:"status" gorm:"type:int;default:1"`
+	Email                string                     `json:"email" gorm:"index" validate:"max=50"`
+	OidcId               string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
+	WeChatId             string                     `json:"wechat_id" gorm:"column:wechat_id;index"`
+	VerificationCode     string                     `json:"verification_code" gorm:"-:all"`
+	AccessToken          *string                    `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"`
+	AccessTokenCreatedAt *int64                     `json:"-" gorm:"type:bigint;column:access_token_created_at"`
+	Quota                int                        `json:"quota" gorm:"type:bigint;default:0"`
+	UsedQuota            int                        `json:"used_quota" gorm:"type:bigint;default:0;column:used_quota"`
+	RequestCount         int                        `json:"request_count" gorm:"type:int;default:0;"`
+	Group                string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
+	Company              string                     `json:"company" gorm:"type:varchar(128);column:company;default:'';index"`
+	CostCenter           string                     `json:"cost_center" gorm:"type:text;column:cost_center;default:'[]'"`
+	DeletedAt            gorm.DeletedAt             `gorm:"index"`
+	Setting              string                     `json:"setting" gorm:"type:text;column:setting"`
+	Remark               string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
+	StripeCustomer       string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
+	CreatedAt            int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
+	LastLoginAt          int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	AuthVersion          int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
+	AvatarUrl            string                     `json:"avatar_url" gorm:"type:varchar(512);column:avatar_url;default:''"`
+	OpenId               string                     `json:"open_id" gorm:"type:varchar(64);column:open_id;default:''"`
+	DepartmentName       string                     `json:"department_name" gorm:"type:varchar(256);column:department_name;default:''"`
+	Departments          string                     `json:"departments" gorm:"type:text;column:departments;default:'[]'"`
+	JobNumber            string                     `json:"job_number" gorm:"type:varchar(64);column:job_number;default:''"`
+	Description          string                     `json:"description" gorm:"type:text;column:description;default:''"`
+	Gender               int                        `json:"gender" gorm:"type:int;column:gender;default:0"`
+	LeaderId             string                     `json:"leader_id" gorm:"type:varchar(64);column:leader_id;default:''"`
+	Mobile               string                     `json:"mobile" gorm:"type:varchar(32);column:mobile;default:''"`
+	JobTitle             string                     `json:"job_title" gorm:"type:varchar(128);column:job_title;default:''"`
+	BackgroundImage      string                     `json:"background_image" gorm:"type:varchar(512);column:background_image;default:''"`
+	CustomFieldValues    string                     `json:"custom_field_values" gorm:"type:text;column:custom_field_values;default:'{}'"`
+	JoinDate             string                     `json:"join_date" gorm:"type:varchar(16);column:join_date;default:''"`
+	AdminPermissions     map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
 
 // GetPrimaryDepartmentID returns the first department ID stored by directory sync.
@@ -251,7 +253,9 @@ func UpdateUserAccessToken(id int, token string) error {
 	if id == 0 {
 		return errors.New("id 为空！")
 	}
-	result := DB.Model(&User{}).Where("id = ?", id).Update("access_token", token)
+	result := DB.Model(&User{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"access_token": token, "access_token_created_at": common.GetTimestamp(),
+	})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -259,6 +263,23 @@ func UpdateUserAccessToken(id int, token string) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+// RevokeUserAccessToken returns the generation actually revoked under the row lock.
+func RevokeUserAccessToken(id int) (string, error) {
+	var tokenRef string
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var user User
+		if err := lockForUpdate(tx).Select("id", "access_token").First(&user, id).Error; err != nil {
+			return err
+		}
+		tokenRef = AccessTokenFingerprint(user.GetAccessToken())
+		if tokenRef == "" {
+			return nil
+		}
+		return tx.Model(&User{}).Where("id = ?", id).Updates(map[string]interface{}{"access_token": nil, "access_token_created_at": nil}).Error
+	})
+	return tokenRef, err
 }
 
 func (user *User) GetSetting() dto.UserSetting {
@@ -464,9 +485,16 @@ func EnsureEmailAvailable(email string, excludeUserID int) error {
 //
 // An empty email is allowed to repeat and needs no serialization.
 func withNormalizedEmailLock(tx *gorm.DB, email string, fn func(tx *gorm.DB) error) error {
+	if err := lockNormalizedEmail(tx, email); err != nil {
+		return err
+	}
+	return fn(tx)
+}
+
+func lockNormalizedEmail(tx *gorm.DB, email string) error {
 	email = NormalizeEmail(email)
 	if email == "" {
-		return fn(tx)
+		return nil
 	}
 	switch {
 	case common.UsingMainDatabase(common.DatabaseTypePostgreSQL):
@@ -479,7 +507,7 @@ func withNormalizedEmailLock(tx *gorm.DB, email string, fn func(tx *gorm.DB) err
 			return err
 		}
 	}
-	return fn(tx)
+	return nil
 }
 
 func GetMaxUserId() int {
@@ -651,6 +679,27 @@ func GetUserById(id int, selectAll bool) (*User, error) {
 	return &user, err
 }
 
+// GetSelfUserById reads dashboard profile data and password existence in one
+// query. The password hash and management access token are never selected.
+func GetSelfUserById(id int) (*User, error) {
+	if id == 0 {
+		return nil, errors.New("id 为空！")
+	}
+	var profile struct {
+		User
+		HasPassword bool `gorm:"column:has_password"`
+	}
+	err := DB.Model(&User{}).Select([]string{
+		"id", "username", "display_name", "role", "status", "email",
+		"oidc_id", "wechat_id", "group", "quota", "used_quota",
+		"request_count", "setting", "stripe_customer", "auth_version",
+		"avatar_url", "overview_dept_ids", "open_id", "departments",
+		"CASE WHEN password <> '' THEN 1 ELSE 0 END AS has_password",
+	}).First(&profile, "id = ?", id).Error
+	profile.User.HasPassword = profile.HasPassword
+	return &profile.User, err
+}
+
 func DeleteUserById(id int) (err error) {
 	if id == 0 {
 		return errors.New("id 为空！")
@@ -676,7 +725,7 @@ func (user *User) prepareForInsert(tx *gorm.DB) error {
 		return nil
 	}
 	var err error
-	user.Password, err = common.Password2Hash(user.Password)
+	user.Password, err = common.HashAccountPassword(user.Password)
 	return err
 }
 
@@ -824,7 +873,7 @@ func (user *User) Update(updatePassword bool) error {
 func (user *User) UpdateWithTx(tx *gorm.DB, updatePassword bool) error {
 	var err error
 	if updatePassword {
-		user.Password, err = common.Password2Hash(user.Password)
+		user.Password, err = common.HashAccountPassword(user.Password)
 		if err != nil {
 			return err
 		}
@@ -876,7 +925,7 @@ func (user *User) Edit(updatePassword bool) error {
 func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 	var err error
 	if updatePassword {
-		user.Password, err = common.Password2Hash(user.Password)
+		user.Password, err = common.HashAccountPassword(user.Password)
 		if err != nil {
 			return err
 		}
@@ -952,11 +1001,32 @@ func (user *User) ClearBinding(bindingType string) error {
 }
 
 func (user *User) Delete() error {
+	return user.delete(nil)
+}
+
+func DeleteUserForSession(identity AuthSessionIdentity) error {
+	user := User{Id: identity.UserID}
+	return user.delete(&identity)
+}
+
+func (user *User) delete(identity *AuthSessionIdentity) error {
 	if user.Id == 0 {
 		return errors.New("id 为空！")
 	}
 	var nextAuthVersion int64
 	if err := DB.Transaction(func(tx *gorm.DB) error {
+		if identity != nil {
+			if err := ValidateAuthSessionWithTx(tx, *identity); err != nil {
+				return err
+			}
+			var role int
+			if err := tx.Model(&User{}).Where("id = ?", user.Id).Select("role").Scan(&role).Error; err != nil {
+				return err
+			}
+			if role == common.RoleRootUser {
+				return ErrCannotDeleteRootUser
+			}
+		}
 		var err error
 		nextAuthVersion, err = IncrementUserAuthVersionWithTx(tx, user.Id)
 		if err != nil {
@@ -1128,7 +1198,7 @@ func ResetUserPasswordByEmail(email string, password string) error {
 	if err != nil {
 		return err
 	}
-	hashedPassword, err := common.Password2Hash(password)
+	hashedPassword, err := common.HashAccountPassword(password)
 	if err != nil {
 		return err
 	}

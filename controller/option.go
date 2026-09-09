@@ -3,8 +3,8 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -35,15 +35,6 @@ var completionRatioMetaOptionKeys = []string{
 
 func isPaymentComplianceOptionKey(key string) bool {
 	return strings.HasPrefix(key, "payment_setting.compliance_")
-}
-
-func isPositiveOptionValue(value string) bool {
-	intValue, err := strconv.Atoi(strings.TrimSpace(value))
-	if err == nil {
-		return intValue > 0
-	}
-	floatValue, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
-	return err == nil && floatValue > 0
 }
 
 func collectModelNamesFromOptionValue(raw string, modelNames map[string]struct{}) {
@@ -84,6 +75,9 @@ func GetOptions(c *gin.Context) {
 	optionValues := make(map[string]string)
 	common.OptionMapRWMutex.Lock()
 	for k, v := range common.OptionMap {
+		if k == "billing_setting.billing_mode" || k == "billing_setting.billing_expr" {
+			continue
+		}
 		value := common.Interface2String(v)
 		isSensitiveKey := strings.HasSuffix(k, "Token") ||
 			strings.HasSuffix(k, "Secret") ||
@@ -97,14 +91,24 @@ func GetOptions(c *gin.Context) {
 			Key:   k,
 			Value: value,
 		})
-		for _, optionKey := range completionRatioMetaOptionKeys {
-			if optionKey == k {
-				optionValues[k] = value
-				break
-			}
+		if slices.Contains(completionRatioMetaOptionKeys, k) {
+			optionValues[k] = value
 		}
 	}
 	common.OptionMapRWMutex.Unlock()
+	// Display the same effective expressions used by pricing and settlement,
+	// including built-in defaults absent from persisted administrator options.
+	for key, values := range map[string]map[string]string{
+		"billing_setting.billing_mode": billing_setting.GetBillingModeCopy(),
+		"billing_setting.billing_expr": billing_setting.GetBillingExprCopy(),
+	} {
+		encoded, err := common.Marshal(values)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+			return
+		}
+		options = append(options, &model.Option{Key: key, Value: string(encoded)})
+	}
 	options = append(options, &model.Option{
 		Key:   "CompletionRatioMeta",
 		Value: buildCompletionRatioMetaValue(optionValues),

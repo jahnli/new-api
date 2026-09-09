@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState } from 'react'
 
@@ -5,7 +23,6 @@ import type {
   Model,
   ModelTabCategory,
   Vendor,
-  SyncDiffData,
   SyncLocale,
   SyncSource,
 } from '../types'
@@ -18,10 +35,11 @@ type DialogType =
   | 'create-model'
   | 'update-model'
   | 'create-vendor'
+  | 'vendors'
+  | 'price-sync'
   | 'update-vendor'
   | 'missing-models'
   | 'sync-wizard'
-  | 'upstream-conflict'
   | 'prefill-groups'
   | 'description'
   | null
@@ -39,8 +57,6 @@ type ModelsContextType = {
   setDescriptionData: (
     data: { modelName: string; description: string } | null
   ) => void
-  upstreamConflicts: SyncDiffData['conflicts']
-  setUpstreamConflicts: (conflicts: SyncDiffData['conflicts']) => void
   syncWizardOptions: { locale: SyncLocale; source: SyncSource }
   setSyncWizardOptions: React.Dispatch<
     React.SetStateAction<{ locale: SyncLocale; source: SyncSource }>
@@ -68,9 +84,6 @@ export function ModelsProvider({ children }: { children: React.ReactNode }) {
     modelName: string
     description: string
   } | null>(null)
-  const [upstreamConflicts, setUpstreamConflicts] = useState<
-    SyncDiffData['conflicts']
-  >([])
   const [syncWizardOptions, setSyncWizardOptions] = useState<{
     locale: SyncLocale
     source: SyncSource
@@ -93,8 +106,6 @@ export function ModelsProvider({ children }: { children: React.ReactNode }) {
         setSelectedVendor,
         descriptionData,
         setDescriptionData,
-        upstreamConflicts,
-        setUpstreamConflicts,
         syncWizardOptions,
         setSyncWizardOptions,
         tabCategory,

@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 import {
   ChevronDown,
   ChevronUp,
@@ -11,6 +29,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
@@ -26,6 +45,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { Combobox } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -1118,24 +1138,19 @@ export function ParamOverrideEditorDialog(
   props: ParamOverrideEditorDialogProps
 ) {
   const { t } = useTranslation()
-  const [initialState] = useState(() => parseInitialState(props.value))
 
-  const [editMode, setEditMode] = useState<'visual' | 'json'>(
-    initialState.editMode
-  )
+  const [editMode, setEditMode] = useState<'visual' | 'json'>('visual')
   const [visualMode, setVisualMode] = useState<'operations' | 'legacy'>(
-    initialState.visualMode
+    'operations'
   )
-  const [legacyValue, setLegacyValue] = useState(initialState.legacyValue)
+  const [legacyValue, setLegacyValue] = useState('')
   const [operations, setOperations] = useState<ParamOverrideOperation[]>([
-    ...initialState.operations,
+    createDefaultOperation(),
   ])
-  const [jsonText, setJsonText] = useState(initialState.jsonText)
-  const [jsonError, setJsonError] = useState(initialState.jsonError)
+  const [jsonText, setJsonText] = useState('')
+  const [jsonError, setJsonError] = useState('')
   const [operationSearch, setOperationSearch] = useState('')
-  const [selectedOperationId, setSelectedOperationId] = useState(
-    initialState.operations[0]?.id || ''
-  )
+  const [selectedOperationId, setSelectedOperationId] = useState('')
   const [expandedConditions, setExpandedConditions] = useState<
     Record<string, boolean>
   >({})
@@ -1146,12 +1161,10 @@ export function ParamOverrideEditorDialog(
   )
   const [templatePresetKey, setTemplatePresetKey] =
     useState('operations_default')
-  const [wasOpen, setWasOpen] = useState(props.open)
-  const [initializedValue, setInitializedValue] = useState(props.value)
 
-  const shouldReset =
-    props.open && (!wasOpen || initializedValue !== props.value)
-  if (shouldReset) {
+  // Initialize state when dialog opens
+  useEffect(() => {
+    if (!props.open) return
     const state = parseInitialState(props.value)
     setEditMode(state.editMode)
     setVisualMode(state.visualMode)
@@ -1170,12 +1183,18 @@ export function ParamOverrideEditorDialog(
     } else {
       setTemplatePresetKey('operations_default')
     }
-    setInitializedValue(props.value)
-  }
+  }, [props.open, props.value])
 
-  if (wasOpen !== props.open) {
-    setWasOpen(props.open)
-  }
+  // Keep selectedOperationId valid
+  useEffect(() => {
+    if (operations.length === 0) {
+      setSelectedOperationId('')
+      return
+    }
+    if (!operations.some((o) => o.id === selectedOperationId)) {
+      setSelectedOperationId(operations[0].id)
+    }
+  }, [operations, selectedOperationId])
 
   // Template preset options filtered by group
   const templatePresetOptions = useMemo(
@@ -1211,20 +1230,14 @@ export function ParamOverrideEditorDialog(
     })
   }, [operationSearch, operations])
 
-  const effectiveSelectedOperationId = operations.some(
-    (operation) => operation.id === selectedOperationId
-  )
-    ? selectedOperationId
-    : operations[0]?.id || ''
-
   const selectedOperation = useMemo(
-    () => operations.find((o) => o.id === effectiveSelectedOperationId),
-    [operations, effectiveSelectedOperationId]
+    () => operations.find((o) => o.id === selectedOperationId),
+    [operations, selectedOperationId]
   )
 
   const selectedOperationIndex = useMemo(
-    () => operations.findIndex((o) => o.id === effectiveSelectedOperationId),
-    [operations, effectiveSelectedOperationId]
+    () => operations.findIndex((o) => o.id === selectedOperationId),
+    [operations, selectedOperationId]
   )
 
   const returnErrorDraft = useMemo(() => {
@@ -1781,8 +1794,8 @@ export function ParamOverrideEditorDialog(
           <span className='text-muted-foreground text-xs font-medium'>
             {t('Template')}
           </span>
-          <Select
-            items={templatePresetOptions.map((o) => ({
+          <Combobox
+            options={templatePresetOptions.map((o) => ({
               value: o.value,
               label: t(o.label),
             }))}
@@ -1790,20 +1803,8 @@ export function ParamOverrideEditorDialog(
             onValueChange={(v) =>
               setTemplatePresetKey(v || 'operations_default')
             }
-          >
-            <SelectTrigger className='h-8 w-[220px]'>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              <SelectGroup>
-                {templatePresetOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {t(o.label)}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            className='h-8 w-[220px]'
+          />
           <Button
             type='button'
             variant='outline'
@@ -2132,23 +2133,6 @@ function RuleEditor(ruleEditorProps: RuleEditorProps) {
     mode === 'sync_fields' ? parseSyncTargetSpec(operation.from) : null
   const syncToTarget =
     mode === 'sync_fields' ? parseSyncTargetSpec(operation.to) : null
-  const showReturnErrorEditor =
-    Boolean(meta.value) &&
-    mode === 'return_error' &&
-    Boolean(ruleEditorProps.returnErrorDraft)
-  const showPruneObjectsEditor =
-    Boolean(meta.value) &&
-    mode === 'prune_objects' &&
-    Boolean(ruleEditorProps.pruneObjectsDraft)
-  const showValueTextEditor =
-    Boolean(meta.value) && !showReturnErrorEditor && !showPruneObjectsEditor
-  const showSyncFieldsEditor = Boolean(
-    mode === 'sync_fields' && syncFromTarget && syncToTarget
-  )
-  const showSourceTargetEditor =
-    !showSyncFieldsEditor &&
-    (meta.from || meta.to !== undefined) &&
-    mode !== 'sync_fields'
 
   return (
     <ScrollArea className='flex-1'>
@@ -2190,8 +2174,8 @@ function RuleEditor(ruleEditorProps: RuleEditorProps) {
         <div className='grid gap-3 sm:grid-cols-2'>
           <div className='space-y-1.5'>
             <label className='text-xs font-medium'>{t('Operation Type')}</label>
-            <Select
-              items={OPERATION_MODE_OPTIONS.map((o) => ({
+            <Combobox
+              options={OPERATION_MODE_OPTIONS.map((o) => ({
                 value: o.value,
                 label: t(o.label),
               }))}
@@ -2202,20 +2186,8 @@ function RuleEditor(ruleEditorProps: RuleEditorProps) {
                   mode: nextMode,
                 })
               }
-            >
-              <SelectTrigger className='h-9'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                <SelectGroup>
-                  {OPERATION_MODE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {t(o.label)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              className='h-9'
+            />
           </div>
           {(meta.path || meta.pathOptional) && (
             <div className='space-y-1.5'>
@@ -2269,24 +2241,28 @@ function RuleEditor(ruleEditorProps: RuleEditorProps) {
         </div>
 
         {/* Value section */}
-        {showReturnErrorEditor && ruleEditorProps.returnErrorDraft && (
-          <ReturnErrorEditor
-            operationId={operation.id}
-            draft={ruleEditorProps.returnErrorDraft}
-            updateDraft={ruleEditorProps.updateReturnErrorDraft}
-          />
-        )}
-        {showPruneObjectsEditor && ruleEditorProps.pruneObjectsDraft && (
-          <PruneObjectsEditor
-            operationId={operation.id}
-            draft={ruleEditorProps.pruneObjectsDraft}
-            updateDraft={ruleEditorProps.updatePruneObjectsDraft}
-            addRule={ruleEditorProps.addPruneRule}
-            updateRule={ruleEditorProps.updatePruneRule}
-            removeRule={ruleEditorProps.removePruneRule}
-          />
-        )}
-        {showValueTextEditor && (
+        {meta.value &&
+          mode === 'return_error' &&
+          ruleEditorProps.returnErrorDraft && (
+            <ReturnErrorEditor
+              operationId={operation.id}
+              draft={ruleEditorProps.returnErrorDraft}
+              updateDraft={ruleEditorProps.updateReturnErrorDraft}
+            />
+          )}
+        {meta.value &&
+          mode === 'prune_objects' &&
+          ruleEditorProps.pruneObjectsDraft && (
+            <PruneObjectsEditor
+              operationId={operation.id}
+              draft={ruleEditorProps.pruneObjectsDraft}
+              updateDraft={ruleEditorProps.updatePruneObjectsDraft}
+              addRule={ruleEditorProps.addPruneRule}
+              updateRule={ruleEditorProps.updatePruneRule}
+              removeRule={ruleEditorProps.removePruneRule}
+            />
+          )}
+        {meta.value && mode !== 'return_error' && mode !== 'prune_objects' && (
           <div className='space-y-1.5'>
             <div className='flex items-center justify-between'>
               <label className='text-xs font-medium'>
@@ -2345,7 +2321,7 @@ function RuleEditor(ruleEditorProps: RuleEditorProps) {
         )}
 
         {/* sync_fields */}
-        {showSyncFieldsEditor && syncFromTarget && syncToTarget && (
+        {mode === 'sync_fields' && syncFromTarget && syncToTarget && (
           <SyncFieldsEditor
             operationId={operation.id}
             syncFromTarget={syncFromTarget}
@@ -2353,7 +2329,7 @@ function RuleEditor(ruleEditorProps: RuleEditorProps) {
             updateOperation={ruleEditorProps.updateOperation}
           />
         )}
-        {showSourceTargetEditor && (
+        {(meta.from || meta.to !== undefined) && mode !== 'sync_fields' && (
           <div className='grid gap-3 sm:grid-cols-2'>
             {(meta.from || meta.to === false) && (
               <div className='space-y-1.5'>
@@ -2579,8 +2555,8 @@ function ConditionEditor(conditionEditorProps: ConditionEditorProps) {
                 <label className='text-[10px] font-medium'>
                   {t('Match Mode')}
                 </label>
-                <Select
-                  items={CONDITION_MODE_OPTIONS.map((o) => ({
+                <Combobox
+                  options={CONDITION_MODE_OPTIONS.map((o) => ({
                     value: o.value,
                     label: t(o.label),
                   }))}
@@ -2593,20 +2569,8 @@ function ConditionEditor(conditionEditorProps: ConditionEditorProps) {
                       { mode: v }
                     )
                   }
-                >
-                  <SelectTrigger className='h-8 text-xs'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    <SelectGroup>
-                      {CONDITION_MODE_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>
-                          {t(o.label)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  className='h-8 text-xs'
+                />
               </div>
               <div className='space-y-1'>
                 <label className='text-[10px] font-medium'>
@@ -3097,8 +3061,8 @@ function PruneObjectsEditor(pruneObjectsEditorProps: PruneObjectsEditorProps) {
                         <label className='text-[10px] font-medium'>
                           {t('Match Mode')}
                         </label>
-                        <Select
-                          items={CONDITION_MODE_OPTIONS.map((o) => ({
+                        <Combobox
+                          options={CONDITION_MODE_OPTIONS.map((o) => ({
                             value: o.value,
                             label: t(o.label),
                           }))}
@@ -3111,20 +3075,8 @@ function PruneObjectsEditor(pruneObjectsEditorProps: PruneObjectsEditorProps) {
                               { mode: v }
                             )
                           }
-                        >
-                          <SelectTrigger className='h-7 text-xs'>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent alignItemWithTrigger={false}>
-                            <SelectGroup>
-                              {CONDITION_MODE_OPTIONS.map((o) => (
-                                <SelectItem key={o.value} value={o.value}>
-                                  {t(o.label)}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
+                          className='h-7 text-xs'
+                        />
                       </div>
                       <div className='space-y-0.5'>
                         <label className='text-[10px] font-medium'>

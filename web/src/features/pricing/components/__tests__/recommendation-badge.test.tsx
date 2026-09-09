@@ -107,9 +107,13 @@ test('long model names retain normal card spacing with the recommendation anchor
   )
   expect(badge).toHaveClass('max-w-full')
   expect(screen.getByText('Recommended')).toHaveClass('truncate')
-  expect(container.firstElementChild).toHaveClass('p-3', 'sm:p-5')
+  expect(container.firstElementChild).toHaveClass(
+    'gap-3',
+    'py-4',
+    'overflow-visible'
+  )
   expect(container.firstElementChild).not.toHaveClass('pt-10', 'sm:pt-11')
-  expect(screen.getByRole('heading')).toHaveClass('truncate')
+  expect(screen.getByRole('heading')).toHaveClass('line-clamp-2')
   expect(screen.getByRole('heading').parentElement).not.toHaveTextContent(
     'Recommended'
   )

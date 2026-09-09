@@ -79,8 +79,11 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
             variant={destructive ? 'destructive' : 'default'}
             onClick={handleConfirm}
             disabled={disabled || isLoading}
+            aria-busy={isLoading || undefined}
           >
-            {isLoading && <Spinner data-icon='inline-start' />}
+            {isLoading && (
+              <Spinner aria-hidden='true' data-icon='inline-start' />
+            )}
             {confirmText ?? t('Continue')}
           </Button>
         </AlertDialogFooter>

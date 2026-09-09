@@ -172,8 +172,7 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
             },
             {
               key: () => t('Tokens Used'),
-              value: (d: { tokens?: number }) =>
-                formatTokens(d.tokens ?? 0),
+              value: (d: { tokens?: number }) => formatTokens(d.tokens ?? 0),
             },
             {
               key: () => t('Percentage'),

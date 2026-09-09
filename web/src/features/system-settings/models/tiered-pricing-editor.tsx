@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 import { ChevronDown, Copy, Plus, Trash2 } from 'lucide-react'
 import {
   memo,
@@ -23,6 +41,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { Combobox } from '@/components/ui/combobox'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -1074,32 +1093,17 @@ function RuleConditionRow({
           </SelectGroup>
         </SelectContent>
       </Select>
-      <Select
-        items={COMMON_TIMEZONES.map((tz) => ({
-          value: tz.value,
-          label: tz.label,
+      <Combobox
+        options={COMMON_TIMEZONES.map((timezone) => ({
+          value: timezone.value,
+          label: timezone.label,
         }))}
         value={timeCond.timezone}
         onValueChange={(value) =>
           value !== null && onChange({ ...timeCond, timezone: value })
         }
-      >
-        <SelectTrigger className='w-56' size='sm'>
-          <SelectValue>
-            {COMMON_TIMEZONES.find((tz) => tz.value === timeCond.timezone)
-              ?.label ?? timeCond.timezone}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false}>
-          <SelectGroup>
-            {COMMON_TIMEZONES.map((tz) => (
-              <SelectItem key={tz.value} value={tz.value}>
-                {tz.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+        className='w-56'
+      />
       <Select
         items={matchOptions.map((option) => ({
           value: option.value,

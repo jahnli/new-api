@@ -19,6 +19,7 @@ import {
 import { Form } from '@/components/ui/form'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSystemConfig } from '@/hooks/use-system-config'
+import { accountPasswordSchema } from '@/lib/password-policy'
 import { cn } from '@/lib/utils'
 
 import { buildSetupPayload, getSetupStatus, submitSetup } from './api'
@@ -190,8 +191,8 @@ export function SetupWizard() {
     if (setupStatus?.root_init) return true
 
     const username = form.getValues('username')?.trim()
-    const password = form.getValues('password')?.trim()
-    const confirmPassword = form.getValues('confirmPassword')?.trim()
+    const password = form.getValues('password')
+    const confirmPassword = form.getValues('confirmPassword')
 
     if (!username) {
       form.setError('username', {
@@ -202,7 +203,7 @@ export function SetupWizard() {
       return false
     }
 
-    if (!password || password.length < 8) {
+    if (!accountPasswordSchema.safeParse(password).success) {
       form.setError('password', {
         type: 'manual',
         message: t('Password must be at least 8 characters'),

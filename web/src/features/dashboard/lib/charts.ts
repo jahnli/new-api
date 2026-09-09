@@ -787,10 +787,7 @@ export function processUserChartData(
       (Number(item.cache_read_tokens) || 0) +
       (Number(item.cache_write_tokens) || 0)
     if (tokens > 0) {
-      userTokenTotal.set(
-        username,
-        (userTokenTotal.get(username) || 0) + tokens
-      )
+      userTokenTotal.set(username, (userTokenTotal.get(username) || 0) + tokens)
     }
   })
 

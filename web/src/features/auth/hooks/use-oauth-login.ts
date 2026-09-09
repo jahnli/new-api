@@ -6,6 +6,7 @@ import { clearAuthentication } from '@/lib/api'
 
 import { createOAuthFlow, logout } from '../api'
 import { buildOIDCOAuthUrl } from '../lib/oauth'
+import { rememberOAuthLoginRedirect } from '../lib/oauth-callback-mode'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 
 /**
@@ -13,7 +14,7 @@ import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
  */
 export function useOAuthLogin(
   status: SystemStatus | null,
-  _redirectTo?: string
+  redirectTo?: string
 ) {
   const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
@@ -33,6 +34,7 @@ export function useOAuthLogin(
     try {
       await resetSession()
       const state = await createOAuthFlow('oidc', 'login')
+      rememberOAuthLoginRedirect(state, redirectTo)
 
       const url = buildOIDCOAuthUrl(
         status.oidc_authorization_endpoint,
@@ -54,6 +56,7 @@ export function useOAuthLogin(
     try {
       await resetSession()
       const state = await createOAuthFlow(provider.slug, 'login')
+      rememberOAuthLoginRedirect(state, redirectTo)
 
       const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
       const url = new URL(provider.authorization_endpoint)

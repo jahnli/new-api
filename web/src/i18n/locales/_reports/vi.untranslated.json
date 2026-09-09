@@ -11,7 +11,6 @@
   "Enter prices in {{currency}} instead of USD. Values will be converted to USD on save.": "Enter prices in {{currency}} instead of USD. Values will be converted to USD on save.",
   "Format: AccessKey|SecretKey (or just ApiKey if upstream is AI Gateway)": "Format: AccessKey|SecretKey (or just ApiKey if upstream is AI Gateway)",
   "Give a billing group a dedicated ratio per model vendor. When a call matches, the vendor ratio replaces the group base ratio; special ratio rules still take precedence.": "Give a billing group a dedicated ratio per model vendor. When a call matches, the vendor ratio replaces the group base ratio; special ratio rules still take precedence.",
-  "How frequently the system checks auto-disabled channels for recovery": "How frequently the system checks auto-disabled channels for recovery",
   "Image copied to clipboard": "Image copied to clipboard",
   "Image to image": "Image to image",
   "Look for a special ratio rule matching this user group and this billing group. If one exists, use its ratio. Otherwise, if the billing group has a vendor ratio for the model vendor, use it instead of the base ratio. Otherwise use the billing group base ratio from the pricing table.": "Look for a special ratio rule matching this user group and this billing group. If one exists, use its ratio. Otherwise, if the billing group has a vendor ratio for the model vendor, use it instead of the base ratio. Otherwise use the billing group base ratio from the pricing table.",

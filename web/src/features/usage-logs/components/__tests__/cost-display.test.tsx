@@ -103,15 +103,11 @@ describe('log cost display', () => {
       other: null,
     })
 
-    const currencyPrefix = formatLogQuota(12500).match(
-      /^([^0-9+\-.,\s]+)/
-    )?.[1]
+    const currencyPrefix = formatLogQuota(12500).match(/^([^0-9+\-.,\s]+)/)?.[1]
     expect(rendered.container.textContent).toContain('*')
     expect(currencyPrefix).toBeTruthy()
     expect(rendered.container.textContent).toContain(currencyPrefix)
-    expect(rendered.container.textContent).not.toContain(
-      formatLogQuota(12500)
-    )
+    expect(rendered.container.textContent).not.toContain(formatLogQuota(12500))
   })
 
   test('masks subscription amounts when demo mode is enabled', () => {
@@ -128,8 +124,6 @@ describe('log cost display', () => {
     })
 
     expect(rendered.container.textContent).toContain('*')
-    expect(rendered.container.textContent).not.toContain(
-      formatLogQuota(5000)
-    )
+    expect(rendered.container.textContent).not.toContain(formatLogQuota(5000))
   })
 })

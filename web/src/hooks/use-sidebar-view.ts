@@ -6,13 +6,39 @@ import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registr
 import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
 import { hasPermission } from '@/lib/admin-permissions'
 import { ROLE } from '@/lib/roles'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 
 import { useSidebarConfig } from './use-sidebar-config'
 import { useSidebarData } from './use-sidebar-data'
 
 /** Sentinel key used for the root navigation in animation `key=` props */
 const ROOT_VIEW_KEY = '__root'
+
+export function filterNavGroupsForUser(
+  navGroups: NavGroup[],
+  user: AuthUser | null
+): NavGroup[] {
+  const role = user?.role ?? ROLE.GUEST
+  const isAdmin = role >= ROLE.ADMIN
+  return navGroups
+    .filter((group) => (group.id === 'admin' ? isAdmin : true))
+    .map((group) => {
+      const items = group.items.filter((item) => {
+        if (item.requiredRole !== undefined && role < item.requiredRole) {
+          return false
+        }
+        if (item.requiredPermission) {
+          return hasPermission(
+            user,
+            item.requiredPermission.resource,
+            item.requiredPermission.action
+          )
+        }
+        return true
+      })
+      return items.length === group.items.length ? group : { ...group, items }
+    })
+}
 
 /**
  * Resolve the active sidebar view for the current location.
@@ -34,28 +60,10 @@ export function useSidebarView(): ResolvedSidebarView {
   const rootSidebarData = useSidebarData()
   const configFilteredRoot = useSidebarConfig(rootSidebarData.navGroups)
 
-  const rootNavGroups = useMemo<NavGroup[]>(() => {
-    const role = user?.role ?? ROLE.GUEST
-    const isAdmin = role >= ROLE.ADMIN
-    return configFilteredRoot
-      .filter((group) => (group.id === 'admin' ? isAdmin : true))
-      .map((group) => {
-        const items = group.items.filter((item) => {
-          if (item.requiredRole !== undefined && role < item.requiredRole) {
-            return false
-          }
-          if (item.requiredPermission) {
-            return hasPermission(
-              user,
-              item.requiredPermission.resource,
-              item.requiredPermission.action
-            )
-          }
-          return true
-        })
-        return items.length === group.items.length ? group : { ...group, items }
-      })
-  }, [configFilteredRoot, user])
+  const rootNavGroups = useMemo<NavGroup[]>(
+    () => filterNavGroupsForUser(configFilteredRoot, user),
+    [configFilteredRoot, user]
+  )
 
   const view = resolveSidebarView(pathname)
 

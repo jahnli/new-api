@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next'
+
+import { SectionPageLayout } from '@/components/layout'
 import {
   CardStaggerContainer,
   CardStaggerItem,
@@ -15,6 +18,7 @@ import { SummaryCards } from './summary-cards'
 import { UptimePanel } from './uptime-panel'
 
 export function OverviewDashboard() {
+  const { t } = useTranslation()
   const user = useAuthStore((state) => state.auth.user)
   const {
     apiInfo: showApiInfoPanel,
@@ -28,55 +32,62 @@ export function OverviewDashboard() {
   const showContentPanels = showLeftContentPanels || showUptimePanel
 
   return (
-    <div className='flex flex-col gap-4'>
-      <SummaryCards />
+    <SectionPageLayout>
+      <SectionPageLayout.Title>{t('Overview')}</SectionPageLayout.Title>
+      <SectionPageLayout.Content>
+        <div className='flex flex-col gap-4'>
+          <SummaryCards />
 
-      {showContentPanels && (
-        <CardStaggerContainer
-          className={cn(
-            'grid grid-cols-1 gap-4',
-            showLeftContentPanels &&
-              showUptimePanel &&
-              'xl:grid-cols-[minmax(0,1fr)_22rem]'
-          )}
-        >
-          {showLeftContentPanels && (
-            <div
+          {showContentPanels && (
+            <CardStaggerContainer
               className={cn(
-                'grid min-w-0 grid-cols-1 gap-4',
-                (showApiInfoPanel || showAnnouncementsPanel || showFAQPanel) &&
-                  'lg:grid-cols-2'
+                'grid grid-cols-1 gap-4',
+                showLeftContentPanels &&
+                  showUptimePanel &&
+                  'xl:grid-cols-[minmax(0,1fr)_22rem]'
               )}
             >
-              {isAdmin && (
-                <CardStaggerItem className='lg:col-span-2'>
-                  <PerformanceHealthPanel />
-                </CardStaggerItem>
+              {showLeftContentPanels && (
+                <div
+                  className={cn(
+                    'grid min-w-0 grid-cols-1 gap-4',
+                    (showApiInfoPanel ||
+                      showAnnouncementsPanel ||
+                      showFAQPanel) &&
+                      'lg:grid-cols-2'
+                  )}
+                >
+                  {isAdmin && (
+                    <CardStaggerItem className='lg:col-span-2'>
+                      <PerformanceHealthPanel />
+                    </CardStaggerItem>
+                  )}
+                  {showApiInfoPanel && (
+                    <CardStaggerItem>
+                      <ApiInfoPanel />
+                    </CardStaggerItem>
+                  )}
+                  {showAnnouncementsPanel && (
+                    <CardStaggerItem>
+                      <AnnouncementsPanel />
+                    </CardStaggerItem>
+                  )}
+                  {showFAQPanel && (
+                    <CardStaggerItem>
+                      <FAQPanel />
+                    </CardStaggerItem>
+                  )}
+                </div>
               )}
-              {showApiInfoPanel && (
+              {showUptimePanel && (
                 <CardStaggerItem>
-                  <ApiInfoPanel />
+                  <UptimePanel />
                 </CardStaggerItem>
               )}
-              {showAnnouncementsPanel && (
-                <CardStaggerItem>
-                  <AnnouncementsPanel />
-                </CardStaggerItem>
-              )}
-              {showFAQPanel && (
-                <CardStaggerItem>
-                  <FAQPanel />
-                </CardStaggerItem>
-              )}
-            </div>
+            </CardStaggerContainer>
           )}
-          {showUptimePanel && (
-            <CardStaggerItem>
-              <UptimePanel />
-            </CardStaggerItem>
-          )}
-        </CardStaggerContainer>
-      )}
-    </div>
+        </div>
+      </SectionPageLayout.Content>
+    </SectionPageLayout>
   )
 }

@@ -68,6 +68,7 @@ import {
   createDefaultTaskVisualConfig,
   generateTaskExprFromConfig,
 } from '@/features/pricing/lib/task-expr'
+import type { BillingUsageSchema } from '@/features/pricing/types'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
@@ -116,6 +117,8 @@ type ModelPricingSheetProps = {
   isSaving?: boolean
   inputInLocalCurrency?: boolean
   onInputInLocalCurrencyChange?: (value: boolean) => void
+  usageSchema?: BillingUsageSchema
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 type ModelPricingEditorPanelProps = Omit<
@@ -143,6 +146,8 @@ export const ModelPricingSheet = forwardRef<
     isSaving,
     inputInLocalCurrency,
     onInputInLocalCurrencyChange,
+    usageSchema,
+    onDirtyChange,
   },
   ref
 ) {
@@ -163,6 +168,8 @@ export const ModelPricingSheet = forwardRef<
         <ModelPricingEditorPanel
           ref={ref}
           editData={editData}
+          usageSchema={usageSchema}
+          onDirtyChange={onDirtyChange}
           onSave={onSave}
           isSaving={isSaving}
           inputInLocalCurrency={inputInLocalCurrency}
@@ -185,6 +192,8 @@ export const ModelPricingEditorPanel = forwardRef<
     isSaving,
     inputInLocalCurrency,
     onInputInLocalCurrencyChange,
+    usageSchema,
+    onDirtyChange,
   },
   ref
 ) {
@@ -254,7 +263,8 @@ export const ModelPricingEditorPanel = forwardRef<
       ),
     [pricingModels]
   )
-  const taskUsageSchema = usageSchemaByModel.get(watchedValues.name.trim())
+  const taskUsageSchema =
+    usageSchema ?? usageSchemaByModel.get(watchedValues.name.trim())
   const taskUsageExamples = usageExamplesByModel.get(watchedValues.name.trim())
   const defaultTaskBillingExpr = useMemo(
     () =>
@@ -348,13 +358,32 @@ export const ModelPricingEditorPanel = forwardRef<
     if (editData.billingMode === 'tiered_expr') return
     if (editData.price || editData.ratio) return
 
-    const usageSchema = usageSchemaByModel.get(editData.name)
-    if (!usageSchema || Object.keys(usageSchema).length === 0) return
+    const schema = usageSchema ?? usageSchemaByModel.get(editData.name)
+    if (!schema || Object.keys(schema).length === 0) return
     if (autoSwitchedForRef.current === editData.name) return
 
     setPricingMode('tiered_expr')
     autoSwitchedForRef.current = editData.name
-  }, [editData, usageSchemaByModel])
+  }, [editData, usageSchemaByModel, usageSchema])
+
+  useEffect(() => {
+    let originalMode: PricingMode = 'per-token'
+    if (editData?.billingMode === 'tiered_expr') originalMode = 'tiered_expr'
+    else if (editData?.price) originalMode = 'per-request'
+    onDirtyChange?.(
+      form.formState.isDirty ||
+        pricingMode !== originalMode ||
+        billingExpr !== (editData?.billingExpr ?? '') ||
+        requestRuleExpr !== (editData?.requestRuleExpr ?? '')
+    )
+  }, [
+    onDirtyChange,
+    form.formState.isDirty,
+    pricingMode,
+    billingExpr,
+    requestRuleExpr,
+    editData,
+  ])
 
   const setFormValue = (field: keyof ModelPricingFormValues, value: string) => {
     form.setValue(field, value, {
@@ -548,6 +577,24 @@ export const ModelPricingEditorPanel = forwardRef<
   }, [editData, laneEnabled, lanePrices, pricingMode, promptPrice, t])
 
   const validatePricingValues = useCallback(() => {
+    if (
+      pricingMode === 'per-token' &&
+      ((toNumberOrNull(promptPrice) === 0 &&
+        laneConfigs.some(
+          ({ key }) =>
+            laneEnabled[key] && (toNumberOrNull(lanePrices[key]) ?? 0) > 0
+        )) ||
+        (toNumberOrNull(lanePrices.audioInput) === 0 &&
+          laneEnabled.audioOutput &&
+          (toNumberOrNull(lanePrices.audioOutput) ?? 0) > 0))
+    ) {
+      form.setError('ratio', {
+        message: t(
+          'Use expression pricing when a dependent price is non-zero and its base price is zero.'
+        ),
+      })
+      return false
+    }
     if (
       pricingMode === 'per-token' &&
       toNumberOrNull(promptPrice) === null &&

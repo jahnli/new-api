@@ -1,5 +1,7 @@
 import type { AuthBundle } from '@/stores/auth-store'
 
+import type { LoginResult } from './secure-verification/types'
+
 // ============================================================================
 // API Payloads
 // ============================================================================
@@ -35,8 +37,9 @@ export interface EmailVerificationPayload {
 }
 
 export interface BindEmailPayload {
-  email: string
-  code: string
+  flow_token: string
+  new_code: string
+  old_code?: string
 }
 
 // ============================================================================
@@ -46,13 +49,7 @@ export interface BindEmailPayload {
 export interface LoginResponse {
   success: boolean
   message: string
-  data?:
-    | AuthBundle
-    | {
-        require_2fa?: boolean
-        flow_token?: string
-        expires_at?: number
-      }
+  data?: LoginResult
 }
 
 export interface Login2FAResponse {

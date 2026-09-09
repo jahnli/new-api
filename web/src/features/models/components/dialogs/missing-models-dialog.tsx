@@ -1,9 +1,29 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Loader2, Plus, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
+import { ErrorState } from '@/components/error-state'
+import { LoadingState } from '@/components/loading-state'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,9 +57,15 @@ export function MissingModelsDialog({
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: modelsQueryKeys.missing(),
-    queryFn: getMissingModels,
+    queryFn: async () => {
+      const response = await getMissingModels()
+      if (!response.success) {
+        throw new Error(response.message || t('Operation failed'))
+      }
+      return response
+    },
     enabled: open,
   })
 
@@ -105,21 +131,28 @@ export function MissingModelsDialog({
       contentHeight='min(74vh, 760px)'
       bodyClassName='space-y-4'
       initialFocus={!isMobile}
+      footer={
+        <Button variant='outline' onClick={() => setOpen('sync-wizard')}>
+          {t('Sync missing metadata')}
+        </Button>
+      }
     >
-      {isLoading ? (
-        <div className='flex items-center justify-center py-12'>
-          <Loader2 className='h-8 w-8 animate-spin' />
-        </div>
-      ) : null}
-      {!isLoading && missingModels.length === 0 ? (
+      {isLoading && <LoadingState />}
+      {isError && (
+        <ErrorState
+          description={error.message}
+          onRetry={() => void refetch()}
+        />
+      )}
+      {!isLoading && !isError && missingModels.length === 0 && (
         <div className='text-muted-foreground py-12 text-center'>
           <p>{t('No missing models found.')}</p>
           <p className='text-sm'>
             {t('All models in use are properly configured.')}
           </p>
         </div>
-      ) : null}
-      {!isLoading && missingModels.length > 0 ? (
+      )}
+      {!isLoading && !isError && missingModels.length > 0 && (
         <div className='flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto'>
           <div className='flex flex-shrink-0 items-center justify-between gap-3'>
             <div className='text-muted-foreground text-sm whitespace-nowrap'>
@@ -218,7 +251,7 @@ export function MissingModelsDialog({
             </div>
           )}
         </div>
-      ) : null}
+      )}
     </Dialog>
   )
 }

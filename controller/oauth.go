@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -19,8 +21,16 @@ import (
 const oauthAuthFlowTTL = 10 * time.Minute
 
 type oauthStateRequest struct {
-	Provider string `json:"provider"`
-	Intent   string `json:"intent"`
+	Provider string          `json:"provider"`
+	Intent   string          `json:"intent"`
+	Scope    string          `json:"scope,omitempty"`
+	Context  json.RawMessage `json:"context,omitempty"`
+}
+
+type oauthFlowPayload struct {
+	Verification    *service.OAuthVerificationFlow `json:"verification,omitempty"`
+	SessionIdentity *service.AuthIdentity          `json:"session_identity,omitempty"`
+	Authorization   *model.AuthFlowAuthorization   `json:"authorization,omitempty"`
 }
 
 // providerParams returns map with Provider key for i18n templates
@@ -38,13 +48,16 @@ func GenerateOAuthCode(c *gin.Context) {
 	request.Provider = strings.TrimSpace(request.Provider)
 	request.Intent = strings.TrimSpace(request.Intent)
 	if oauth.GetProvider(request.Provider) == nil ||
-		(request.Intent != model.AuthFlowIntentLogin && request.Intent != model.AuthFlowIntentBind) {
+		(request.Intent != model.AuthFlowIntentLogin && request.Intent != model.AuthFlowIntentBind && request.Intent != model.AuthFlowIntentVerify) ||
+		(request.Intent != model.AuthFlowIntentVerify && (request.Scope != "" || len(request.Context) != 0)) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
 	userID := 0
 	sessionID := ""
-	if request.Intent == model.AuthFlowIntentBind {
+	flowPayload := oauthFlowPayload{}
+	bindingStarted := false
+	if request.Intent == model.AuthFlowIntentBind || request.Intent == model.AuthFlowIntentVerify {
 		identity, ok := middleware.GetSessionAuthIdentity(c)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "绑定操作需要登录"})
@@ -52,6 +65,34 @@ func GenerateOAuthCode(c *gin.Context) {
 		}
 		userID = identity.UserID
 		sessionID = identity.SessionID
+		if request.Intent == model.AuthFlowIntentBind {
+			defer func() {
+				recordUserSecurityAudit(c, userID, "user.binding_start", map[string]interface{}{"provider": request.Provider, "success": bindingStarted})
+			}()
+			context, err := common.Marshal(service.AccountBindingContext{Provider: request.Provider})
+			if err != nil {
+				writeSecurityOperationError(c, err)
+				return
+			}
+			flowPayload.Authorization = middleware.RequireSecurityProof(c, service.VerificationOperation{Scope: service.VerificationScopeAccountBind, Context: context})
+			if flowPayload.Authorization == nil {
+				return
+			}
+			flowPayload.SessionIdentity = &identity
+		}
+		if request.Intent == model.AuthFlowIntentVerify {
+			verification, err := service.StartOAuthVerification(identity, service.VerificationOperation{Scope: request.Scope, Context: request.Context}, request.Provider)
+			if err != nil {
+				writeSecurityOperationError(c, err)
+				return
+			}
+			flowPayload.Verification = verification
+		}
+	}
+	payload, err := common.Marshal(flowPayload)
+	if err != nil {
+		writeSecurityOperationError(c, err)
+		return
 	}
 	expiresAt := time.Now().Add(oauthAuthFlowTTL)
 	state, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
@@ -60,19 +101,19 @@ func GenerateOAuthCode(c *gin.Context) {
 		Intent:    request.Intent,
 		UserId:    userID,
 		SessionId: sessionID,
+		Payload:   string(payload),
 		ExpiresAt: expiresAt,
 	})
 	if err != nil {
-		common.ApiError(c, err)
+		writeSecurityOperationError(c, err)
 		return
 	}
+	bindingStarted = request.Intent == model.AuthFlowIntentBind
+	data := gin.H{"flow_token": state, "expires_at": expiresAt.Unix()}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data": gin.H{
-			"flow_token": state,
-			"expires_at": expiresAt.Unix(),
-		},
+		"data":    data,
 	})
 }
 
@@ -107,8 +148,14 @@ func HandleOAuth(c *gin.Context) {
 		Provider: providerName,
 		Intent:   pendingFlow.Intent,
 	}
-	// 2. Bind flows are bound to the live dashboard Session that created them.
+	bindSucceeded, notificationFailed := false, false
 	if pendingFlow.Intent == model.AuthFlowIntentBind {
+		defer func() {
+			recordUserSecurityAudit(c, pendingFlow.UserId, "user.binding_bind", map[string]interface{}{"provider": providerName, "success": bindSucceeded, "notification_failed": notificationFailed})
+		}()
+	}
+	// Bind and verification callbacks must use the dashboard session that started them.
+	if pendingFlow.Intent == model.AuthFlowIntentBind || pendingFlow.Intent == model.AuthFlowIntentVerify {
 		identity, ok := middleware.GetSessionAuthIdentity(c)
 		if !ok || identity.UserID != pendingFlow.UserId || identity.SessionID != pendingFlow.SessionId {
 			c.JSON(http.StatusForbidden, gin.H{
@@ -119,6 +166,22 @@ func HandleOAuth(c *gin.Context) {
 		}
 		consumeMatch.UserId = identity.UserID
 		consumeMatch.SessionId = identity.SessionID
+		if pendingFlow.Intent == model.AuthFlowIntentBind {
+			var payload oauthFlowPayload
+			if err := common.UnmarshalJsonStr(pendingFlow.Payload, &payload); err != nil {
+				writeSecurityOperationError(c, model.ErrAuthFlowInvalid)
+				return
+			}
+			context, err := common.Marshal(service.AccountBindingContext{Provider: providerName})
+			if err != nil {
+				writeSecurityOperationError(c, err)
+				return
+			}
+			if err := service.ValidateFlowAuthorization(identity, service.VerificationOperation{Scope: service.VerificationScopeAccountBind, Context: context}, payload.Authorization); err != nil {
+				writeSecurityOperationError(c, err)
+				return
+			}
+		}
 	} else if pendingFlow.Intent != model.AuthFlowIntentLogin {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
@@ -147,11 +210,6 @@ func HandleOAuth(c *gin.Context) {
 		})
 		return
 	}
-	if pendingFlow.Intent == model.AuthFlowIntentBind {
-		handleOAuthBind(c, provider, pendingFlow, state)
-		return
-	}
-
 	// 5. Exchange code for token
 	code := c.Query("code")
 	token, err := provider.ExchangeToken(c.Request.Context(), code, c)
@@ -166,11 +224,41 @@ func HandleOAuth(c *gin.Context) {
 		handleOAuthError(c, err)
 		return
 	}
-	if _, err := model.ConsumeAuthFlow(state, consumeMatch); err != nil {
+	if pendingFlow.Intent == model.AuthFlowIntentBind {
+		bindSucceeded, notificationFailed = handleOAuthBind(c, providerName, provider, oauthUser, pendingFlow, state, consumeMatch)
+		return
+	}
+	flow, err := model.ConsumeAuthFlow(state, consumeMatch)
+	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": i18n.T(c, i18n.MsgOAuthStateInvalid)})
 		return
 	}
 
+	switch flow.Intent {
+	case model.AuthFlowIntentLogin:
+		handleOAuthLogin(c, provider, oauthUser, flow)
+	case model.AuthFlowIntentVerify:
+		handleOAuthVerification(c, providerName, oauthUser, flow)
+	}
+}
+
+func handleOAuthVerification(c *gin.Context, provider string, oauthUser *oauth.OAuthUser, flow *model.AuthFlow) {
+	var payload oauthFlowPayload
+	if err := common.UnmarshalJsonStr(flow.Payload, &payload); err != nil {
+		writeSecurityOperationError(c, err)
+		return
+	}
+	identity, _ := middleware.GetSessionAuthIdentity(c)
+	proof, err := service.FinishOAuthVerification(identity, provider, oauthUser.ProviderUserID, payload.Verification)
+	if err != nil {
+		writeSecurityOperationError(c, err)
+		return
+	}
+	recordUserSecurityAudit(c, identity.UserID, "user.security_verify", map[string]interface{}{"method": proof.Method, "scope": proof.Scope, "provider": provider})
+	common.ApiSuccess(c, proof)
+}
+
+func handleOAuthLogin(c *gin.Context, provider oauth.Provider, oauthUser *oauth.OAuthUser, flow *model.AuthFlow) {
 	// 7. Find or create user
 	user, err := findOrCreateOAuthUser(c, provider, oauthUser)
 	if err != nil {
@@ -186,7 +274,7 @@ func HandleOAuth(c *gin.Context) {
 		case *OAuthEmailAlreadyTakenError:
 			common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
 		default:
-			common.ApiError(c, err)
+			writeSecurityOperationError(c, err)
 		}
 		return
 	}
@@ -202,69 +290,50 @@ func HandleOAuth(c *gin.Context) {
 }
 
 // handleOAuthBind handles binding OAuth account to existing user
-func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model.AuthFlow, flowToken string) {
-	// Exchange code for token
-	code := c.Query("code")
-	token, err := provider.ExchangeToken(c.Request.Context(), code, c)
-	if err != nil {
-		handleOAuthError(c, err)
-		return
+func handleOAuthBind(c *gin.Context, providerName string, provider oauth.Provider, oauthUser *oauth.OAuthUser, flow *model.AuthFlow, state string, match model.AuthFlowMatch) (bool, bool) {
+	identity, ok := middleware.GetSessionAuthIdentity(c)
+	if !ok {
+		writeSecurityOperationError(c, service.ErrAuthTokenInvalid)
+		return false, false
 	}
-
-	// Get user info
-	oauthUser, err := provider.GetUserInfo(c.Request.Context(), token)
-	if err != nil {
-		handleOAuthError(c, err)
-		return
+	var payload oauthFlowPayload
+	if err := common.UnmarshalJsonStr(flow.Payload, &payload); err != nil {
+		writeSecurityOperationError(c, model.ErrAuthFlowInvalid)
+		return false, false
 	}
-
-	// Check if this OAuth account is already bound (check both new ID and legacy ID)
+	context, err := common.Marshal(service.AccountBindingContext{Provider: providerName})
+	if err != nil {
+		writeSecurityOperationError(c, err)
+		return false, false
+	}
+	// Recheck after the external provider round trip, then validate the session
+	// under the transaction's locks before consuming the flow and writing.
+	if err := service.ValidateFlowAuthorization(identity, service.VerificationOperation{Scope: service.VerificationScopeAccountBind, Context: context}, payload.Authorization); err != nil {
+		writeSecurityOperationError(c, err)
+		return false, false
+	}
 	if provider.IsUserIDTaken(oauthUser.ProviderUserID) {
 		common.ApiErrorI18n(c, i18n.MsgOAuthAlreadyBound, providerParams(provider.GetName()))
-		return
+		return false, false
 	}
-	// Also check legacy ID to prevent duplicate bindings during migration period
-	if legacyID, ok := oauthUser.Extra["legacy_id"].(string); ok && legacyID != "" {
-		if provider.IsUserIDTaken(legacyID) {
-			common.ApiErrorI18n(c, i18n.MsgOAuthAlreadyBound, providerParams(provider.GetName()))
-			return
+	_, err = model.ConsumeAuthFlowWithAction(state, match, func(tx *gorm.DB, _ *model.AuthFlow) error {
+		if custom, ok := provider.(*oauth.GenericOAuthProvider); ok {
+			return model.UpdateUserOAuthBindingForSessionWithTx(tx, identity, custom.GetProviderId(), oauthUser.ProviderUserID)
 		}
-	}
-
-	if _, err := model.ConsumeAuthFlow(flowToken, model.AuthFlowMatch{
-		Purpose:   model.AuthFlowPurposeOAuth,
-		Provider:  pendingFlow.Provider,
-		Intent:    model.AuthFlowIntentBind,
-		UserId:    pendingFlow.UserId,
-		SessionId: pendingFlow.SessionId,
-	}); err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": i18n.T(c, i18n.MsgOAuthStateInvalid)})
-		return
-	}
-
-	userId := pendingFlow.UserId
-
-	// Handle binding based on provider type
-	if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {
-		// Custom provider: use user_oauth_bindings table
-		err = model.UpdateUserOAuthBinding(userId, genericProvider.GetProviderId(), oauthUser.ProviderUserID)
-		if err != nil {
-			common.ApiError(c, err)
-			return
-		}
-	} else {
-		// Built-in provider: 只更新绑定列。完整快照的 user.Update 会把读取时刻的
-		// role/status/group 一并写回，覆盖并发发生的封禁、降权或分组变更。
-		err = model.UpdateUserBindColumn(userId, provider.ProviderUserIDColumn(), oauthUser.ProviderUserID)
-		if err != nil {
-			common.ApiError(c, err)
-			return
-		}
-	}
-
-	common.ApiSuccessI18n(c, i18n.MsgOAuthBindSuccess, gin.H{
-		"action": "bind",
+		return model.UpdateUserBindColumnForSessionWithTx(tx, identity, provider.ProviderUserIDColumn(), oauthUser.ProviderUserID)
 	})
+	if err != nil {
+		writeSecurityOperationError(c, err)
+		return false, false
+	}
+	user, err := model.GetUserById(identity.UserID, false)
+	if err != nil {
+		writeSecurityOperationError(c, err)
+		return true, true
+	}
+	notificationFailed := service.NotifyAccountSecurityChange(user.Email, "Login account linked: "+provider.GetName()) != nil
+	common.ApiSuccessI18n(c, i18n.MsgOAuthBindSuccess, gin.H{"action": "bind", "notification_warning": notificationFailed})
+	return true, notificationFailed
 }
 
 // findOrCreateOAuthUser finds existing user or creates new user
@@ -408,6 +477,6 @@ func handleOAuthError(c *gin.Context, err error) {
 	case *oauth.AccessDeniedError:
 		common.ApiErrorMsg(c, e.Message)
 	default:
-		common.ApiError(c, err)
+		writeSecurityOperationError(c, err)
 	}
 }

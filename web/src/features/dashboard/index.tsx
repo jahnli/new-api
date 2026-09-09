@@ -336,38 +336,39 @@ export function Dashboard() {
     ) : null
   const sectionActions = modelActions ?? flowActions
 
+  if (activeSection === 'overview') {
+    return <OverviewDashboard />
+  }
+
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <div className='space-y-3 sm:space-y-4'>
-          {activeSection !== 'overview' && (
-            <div className='flex items-center justify-between gap-1.5 sm:gap-2'>
-              {sectionActions != null && (
-                <div className='flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto sm:gap-2'>
-                  {sectionActions}
-                </div>
-              )}
-              {showSectionTabs ? (
-                <Tabs
-                  value={activeSection}
-                  onValueChange={handleSectionChange}
-                  className='shrink-0'
-                >
-                  <TabsList className='max-w-full flex-nowrap justify-start'>
-                    {visibleSections.map((section) => (
-                      <TabsTrigger key={section} value={section}>
-                        {t(SECTION_META[section].titleKey)}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
-              ) : (
-                <div />
-              )}
-            </div>
-          )}
-          {activeSection === 'overview' && <OverviewDashboard />}
+          <div className='flex items-center justify-between gap-1.5 sm:gap-2'>
+            {sectionActions != null && (
+              <div className='flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto sm:gap-2'>
+                {sectionActions}
+              </div>
+            )}
+            {showSectionTabs ? (
+              <Tabs
+                value={activeSection}
+                onValueChange={handleSectionChange}
+                className='shrink-0'
+              >
+                <TabsList className='max-w-full flex-nowrap justify-start'>
+                  {visibleSections.map((section) => (
+                    <TabsTrigger key={section} value={section}>
+                      {t(SECTION_META[section].titleKey)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            ) : (
+              <div />
+            )}
+          </div>
           {activeSection === 'models' && (
             <>
               <FadeIn>

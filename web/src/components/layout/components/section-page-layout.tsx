@@ -52,6 +52,7 @@ SectionPageLayoutBreadcrumb.displayName = 'SectionPageLayout.Breadcrumb'
 export type SectionPageLayoutProps = {
   children: ReactNode
   fixedContent?: boolean
+  stackActionsOnMobile?: boolean
 }
 
 export function SectionPageLayout(props: SectionPageLayoutProps) {
@@ -77,34 +78,32 @@ export function SectionPageLayout(props: SectionPageLayoutProps) {
     }
   })
 
-  const hasBreadcrumb = breadcrumb != null
-  const hasTitleRow = title != null || actions != null
-  const hasHeader = hasBreadcrumb || hasTitleRow
-
   return (
     <PageFooterProvider container={footerContainer}>
       <Main>
-        {hasHeader && (
-          <div className='shrink-0 px-3 pt-3 pb-2.5 sm:px-4 sm:pt-5 sm:pb-3'>
-            {hasBreadcrumb && <div className='mb-2 sm:mb-3'>{breadcrumb}</div>}
-            {hasTitleRow && (
-              <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:gap-x-4'>
-                {title != null && (
-                  <div className='min-w-0 flex-1'>
-                    <h2 className='truncate text-base font-bold tracking-tight sm:text-lg'>
-                      {title}
-                    </h2>
-                  </div>
-                )}
-                {actions != null && (
-                  <div className='flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-x-4'>
-                    {actions}
-                  </div>
-                )}
+        <div className='shrink-0 px-3 pt-3 pb-2.5 sm:px-4 sm:pt-5 sm:pb-3'>
+          {breadcrumb != null && (
+            <div className='mb-2 sm:mb-3'>{breadcrumb}</div>
+          )}
+          <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:gap-x-4'>
+            <div
+              className={
+                props.stackActionsOnMobile
+                  ? 'min-w-0 flex-1 max-sm:basis-full'
+                  : 'min-w-0 flex-1'
+              }
+            >
+              <h2 className='truncate text-base font-bold tracking-tight sm:text-lg'>
+                {title}
+              </h2>
+            </div>
+            {actions != null && (
+              <div className='flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-x-4'>
+                {actions}
               </div>
             )}
           </div>
-        )}
+        </div>
 
         <div
           className={

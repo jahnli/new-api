@@ -47,15 +47,16 @@ import {
   useDataTable,
 } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
+import { useModelPricing } from '@/features/model-pricing/api'
+import {
+  applyPricingDraft,
+  pricingOptions,
+} from '@/features/model-pricing/pricing'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 import { useMediaQuery } from '@/hooks'
 
 import { safeJsonParse } from '../utils/json-parser'
 import type { PricingMode } from './model-pricing-core'
-import {
-  applyModelPricingDraft,
-  type ModelPricingMapValues,
-} from './model-pricing-maps'
 import {
   ModelPricingEditorPanel,
   type ModelPricingEditorPanelHandle,
@@ -152,6 +153,10 @@ const ModelRatioVisualEditorComponent = forwardRef<
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
   const [editData, setEditData] = useState<ModelRatioData | null>(null)
+  const pricingConfig = useModelPricing(
+    editData?.name ? [editData.name] : [],
+    Boolean(editData?.name)
+  )
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -511,34 +516,27 @@ const ModelRatioVisualEditorComponent = forwardRef<
 
   const persistPricingData = useCallback(
     (data: ModelRatioData, targetNames: string[] = [data.name]) => {
-      const currentValues: ModelPricingMapValues = {
+      const options = pricingOptions({
         ModelPrice: modelPrice,
         ModelRatio: modelRatio,
+        CompletionRatio: completionRatio,
         CacheRatio: cacheRatio,
         CreateCacheRatio: createCacheRatio,
-        CompletionRatio: completionRatio,
         ImageRatio: imageRatio,
         AudioRatio: audioRatio,
         AudioCompletionRatio: audioCompletionRatio,
-        'billing_setting.billing_mode': billingMode,
-        'billing_setting.billing_expr': billingExpr,
-      }
-      const nextValues = applyModelPricingDraft(
-        currentValues,
-        data,
-        targetNames
-      )
-
-      Object.entries(nextValues).forEach(([field, value]) => {
-        onChange(field, value)
+        BillingMode: billingMode,
+        BillingExpr: billingExpr,
       })
+      const updated = applyPricingDraft(options, data, targetNames)
+      for (const [key, value] of Object.entries(updated)) onChange(key, value)
     },
     [
       modelPrice,
       modelRatio,
+      completionRatio,
       cacheRatio,
       createCacheRatio,
-      completionRatio,
       imageRatio,
       audioRatio,
       audioCompletionRatio,
@@ -719,6 +717,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
             <ModelPricingEditorPanel
               ref={editorPanelRef}
               editData={editData}
+              usageSchema={
+                pricingConfig.data?.entries.find(
+                  (entry) => entry.model_name === editData?.name
+                )?.usage_schema
+              }
               onSave={onSave}
               isSaving={isSaving}
               inputInLocalCurrency={inputInLocalCurrency}
@@ -761,6 +764,11 @@ const ModelRatioVisualEditorComponent = forwardRef<
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           editData={editData}
+          usageSchema={
+            pricingConfig.data?.entries.find(
+              (entry) => entry.model_name === editData?.name
+            )?.usage_schema
+          }
           onSave={onSave}
           isSaving={isSaving}
           inputInLocalCurrency={inputInLocalCurrency}

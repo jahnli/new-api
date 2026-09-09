@@ -680,89 +680,86 @@ export function useSharedUserColumns<T extends UserColumnRow>(
   const demoMode = useDemoMode()
   const externalMode = useExternalMode()
 
-  return useMemo(
-    () => {
-      const columns: ColumnDef<T>[] = [
-        userIdColumn<T>(t),
-        userNameColumn<T>(t, demoMode),
-        userQuotaColumn<T>(t, {
-          headerDescription: opts.quotaHeaderDescription,
-        }),
-        userTokensColumn<T>(t, { accessor: opts.tokensAccessor }),
-        userCostColumn<T>(t, { accessor: opts.costAccessor }),
-        userAveragePriceColumn<T>(t, {
-          costAccessor: opts.costAccessor,
-          tokensAccessor: opts.tokensAccessor,
-        }),
-        userRequestsColumn<T>(t, { accessor: opts.requestsAccessor }),
-      ]
-
-      if (!externalMode) {
-        columns.push(userDepartmentColumn<T>(t))
-        columns.push(userJobLevelColumn<T>(t))
-      }
-
-      columns.push(userLastLoginColumn<T>(t))
-      columns.push(userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: 'badge' }))
-
-      if (!externalMode) {
-        columns.push(userJoinDateColumn<T>(t))
-      }
-
-      columns.push(userCreatedAtColumn<T>(t))
-      columns.push({
-        ...userRoleColumn<T>(t),
-        filterFn: (
-          row: { getValue: (id: string) => unknown },
-          id: string,
-          value: string[]
-        ) => {
-          return value.includes(String(row.getValue(id)))
-        },
-      })
-      columns.push({
-        ...userStatusColumn<T>(t, {
-          showRequestCount: true,
-          requestCountAccessor: opts.requestCountAccessor as keyof T,
-        }),
-        filterFn: (
-          row: { getValue: (id: string) => unknown },
-          id: string,
-          value: string[]
-        ) => {
-          return value.includes(String(row.getValue(id)))
-        },
-      })
-      columns.push({
-        ...userGroupColumn<T>(t, {
-          withBadgeCell: opts.withGroupBadgeCell ?? true,
-        }),
-        filterFn: (
-          row: { getValue: (id: string) => unknown },
-          id: string,
-          value: string
-        ) => {
-          const group = String(
-            row.getValue(id) || t('User Group')
-          ).toLowerCase()
-          const searchValue = String(value).toLowerCase()
-          return group.includes(searchValue)
-        },
-      })
-
-      return columns
-    },
-    [
-      t,
-      demoMode,
-      externalMode,
-      opts.costAccessor,
-      opts.tokensAccessor,
-      opts.requestsAccessor,
-      opts.modelAccessor,
-      opts.requestCountAccessor,
-      opts.quotaHeaderDescription,
-      opts.withGroupBadgeCell,
+  return useMemo(() => {
+    const columns: ColumnDef<T>[] = [
+      userIdColumn<T>(t),
+      userNameColumn<T>(t, demoMode),
+      userQuotaColumn<T>(t, {
+        headerDescription: opts.quotaHeaderDescription,
+      }),
+      userTokensColumn<T>(t, { accessor: opts.tokensAccessor }),
+      userCostColumn<T>(t, { accessor: opts.costAccessor }),
+      userAveragePriceColumn<T>(t, {
+        costAccessor: opts.costAccessor,
+        tokensAccessor: opts.tokensAccessor,
+      }),
+      userRequestsColumn<T>(t, { accessor: opts.requestsAccessor }),
     ]
-  )
+
+    if (!externalMode) {
+      columns.push(userDepartmentColumn<T>(t))
+      columns.push(userJobLevelColumn<T>(t))
+    }
+
+    columns.push(userLastLoginColumn<T>(t))
+    columns.push(
+      userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: 'badge' })
+    )
+
+    if (!externalMode) {
+      columns.push(userJoinDateColumn<T>(t))
+    }
+
+    columns.push(userCreatedAtColumn<T>(t))
+    columns.push({
+      ...userRoleColumn<T>(t),
+      filterFn: (
+        row: { getValue: (id: string) => unknown },
+        id: string,
+        value: string[]
+      ) => {
+        return value.includes(String(row.getValue(id)))
+      },
+    })
+    columns.push({
+      ...userStatusColumn<T>(t, {
+        showRequestCount: true,
+        requestCountAccessor: opts.requestCountAccessor as keyof T,
+      }),
+      filterFn: (
+        row: { getValue: (id: string) => unknown },
+        id: string,
+        value: string[]
+      ) => {
+        return value.includes(String(row.getValue(id)))
+      },
+    })
+    columns.push({
+      ...userGroupColumn<T>(t, {
+        withBadgeCell: opts.withGroupBadgeCell ?? true,
+      }),
+      filterFn: (
+        row: { getValue: (id: string) => unknown },
+        id: string,
+        value: string
+      ) => {
+        const group = String(row.getValue(id) || t('User Group')).toLowerCase()
+        const searchValue = String(value).toLowerCase()
+        return group.includes(searchValue)
+      },
+    })
+
+    return columns
+  }, [
+    t,
+    demoMode,
+    externalMode,
+    opts.costAccessor,
+    opts.tokensAccessor,
+    opts.requestsAccessor,
+    opts.modelAccessor,
+    opts.requestCountAccessor,
+    opts.quotaHeaderDescription,
+    opts.withGroupBadgeCell,
+  ])
 }
