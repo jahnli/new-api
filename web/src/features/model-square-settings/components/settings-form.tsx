@@ -51,7 +51,7 @@ export function ModelSquareSettingsForm(props: ModelSquareConfigData) {
       void queryClient.invalidateQueries({ queryKey: ['pricing'] })
       toast.success(t('Model square settings saved'))
     },
-    onError: handleServerError,
+    onError: (error) => handleServerError(error),
   })
   const reset = form.reset
   const isDirty = form.formState.isDirty

@@ -111,7 +111,7 @@ export function SyncWizardDialog(props: {
     onSuccess: (data) => {
       setPreview(data)
     },
-    onError: handleServerError,
+    onError: (error) => handleServerError(error),
   })
 
   const apply = useMutation({
@@ -135,7 +135,7 @@ export function SyncWizardDialog(props: {
       )
       setStep(3)
     },
-    onError: handleServerError,
+    onError: (error) => handleServerError(error),
   })
 
   useEffect(() => {

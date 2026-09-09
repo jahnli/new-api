@@ -62,3 +62,27 @@ export function getServerErrorMessageKey(value: unknown): string | null {
     ] ?? null
   )
 }
+
+export function getServerErrorMessage(
+  value: unknown,
+  fallback = 'Something went wrong!'
+): string {
+  const payload = serverErrorPayload(value)
+  if (!payload) return fallback
+  for (const key of ['message', 'title', 'error'] as const) {
+    const message = payload[key]
+    if (typeof message === 'string' && message.trim()) return message
+  }
+  return fallback
+}
+
+export function createServerError(value: unknown, fallback?: string): Error {
+  return new Error(getServerErrorMessage(value, fallback), { cause: value })
+}
+
+export function requireServerSuccess<T>(response: T): T {
+  if (isRecord(response) && response.success === false) {
+    throw createServerError(response)
+  }
+  return response
+}

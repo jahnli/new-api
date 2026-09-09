@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { useMemo } from 'react'
@@ -8,10 +26,12 @@ import { ErrorState } from '@/components/error-state'
 import { useModelPricing } from '@/features/model-pricing/api'
 import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getModels, searchModels, getVendors } from '../api'
 import { DEFAULT_PAGE_SIZE } from '../constants'
 import { modelsQueryKeys, vendorsQueryKeys } from '../lib'
+import type { ModelSquareState } from '../types'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { useModelsColumns } from './models-columns'
 import { useModels } from './models-provider'
@@ -43,6 +63,7 @@ export function ModelsTable() {
     globalFilter: { enabled: true, key: 'filter' },
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
+      { columnId: 'square_state', searchKey: 'square_state', type: 'array' },
       { columnId: 'vendor_id', searchKey: 'vendor', type: 'array' },
       { columnId: 'sync_official', searchKey: 'sync', type: 'array' },
     ],
@@ -51,6 +72,11 @@ export function ModelsTable() {
   // Extract filters from column filters
   const statusFilter =
     (columnFilters.find((f) => f.id === 'status')?.value as string[]) || []
+  const squareState = (
+    columnFilters.find((f) => f.id === 'square_state')?.value as
+      | ModelSquareState[]
+      | undefined
+  )?.[0]
   const vendorFilter =
     (columnFilters.find((f) => f.id === 'vendor_id')?.value as string[]) || []
   const syncFilter =
@@ -60,7 +86,8 @@ export function ModelsTable() {
   // Fetch vendors for filter
   const { data: vendorsData } = useQuery({
     queryKey: vendorsQueryKeys.list(),
-    queryFn: () => getVendors({ page_size: 1000 }),
+    queryFn: async () =>
+      requireServerSuccess(await getVendors({ page_size: 1000 })),
   })
 
   const vendors = useMemo(
@@ -96,6 +123,7 @@ export function ModelsTable() {
     globalFilter?.trim() ||
     activeVendorFilter ||
     statusFilterValue ||
+    squareState ||
     syncFilterValue
   )
 
@@ -103,28 +131,37 @@ export function ModelsTable() {
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: modelsQueryKeys.list({
+      include_channel_models: true,
       keyword: globalFilter,
       vendor: activeVendorFilter,
       status: statusFilterValue,
+      square_state: squareState,
       sync_official: syncFilterValue,
       p: pagination.pageIndex + 1,
       page_size: pagination.pageSize,
     }),
     queryFn: async () => {
       if (shouldSearch) {
-        return searchModels({
-          keyword: globalFilter,
-          vendor: activeVendorFilter,
-          status: statusFilterValue,
-          sync_official: syncFilterValue,
+        return requireServerSuccess(
+          await searchModels({
+            include_channel_models: true,
+            keyword: globalFilter,
+            vendor: activeVendorFilter,
+            status: statusFilterValue,
+            square_state: squareState,
+            sync_official: syncFilterValue,
+            p: pagination.pageIndex + 1,
+            page_size: pagination.pageSize,
+          })
+        )
+      }
+      return requireServerSuccess(
+        await getModels({
+          include_channel_models: true,
           p: pagination.pageIndex + 1,
           page_size: pagination.pageSize,
         })
-      }
-      return getModels({
-        p: pagination.pageIndex + 1,
-        page_size: pagination.pageSize,
-      })
+      )
     },
   })
 
@@ -147,7 +184,8 @@ export function ModelsTable() {
   // React Table instance
   const { table } = useDataTable({
     data: models,
-    getRowId: (model) => String(model.id),
+    getRowId: (model) =>
+      model.id > 0 ? `metadata:${model.id}` : `channel:${model.model_name}`,
     columns,
     totalCount,
     initialColumnVisibility: {
@@ -158,6 +196,7 @@ export function ModelsTable() {
       endpoints: false,
       created_time: false,
       updated_time: false,
+      status: false,
     },
     columnFilters,
     pagination,
@@ -218,10 +257,21 @@ export function ModelsTable() {
         filters: [
           {
             columnId: 'status',
+            title: t('Display policy'),
+            options: [
+              { label: t('Allowed'), value: 'enabled' },
+              { label: t('Not listed'), value: 'disabled' },
+            ],
+            singleSelect: true,
+          },
+          {
+            columnId: 'square_state',
             title: t('Model square visibility'),
             options: [
-              { label: t('Shown'), value: 'enabled' },
-              { label: t('Not shown'), value: 'disabled' },
+              { label: t('Displayed'), value: 'visible' },
+              { label: t('Unavailable'), value: 'unavailable' },
+              { label: t('Listing hidden'), value: 'hidden' },
+              { label: t('Partly shown'), value: 'partial' },
             ],
             singleSelect: true,
           },

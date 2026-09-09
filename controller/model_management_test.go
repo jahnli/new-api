@@ -120,6 +120,81 @@ export function parseTaskResult() { return {}; }
 				t.Skip("set " + dialect.env + " to run this database")
 			}
 			db := modelManagementDB(t, dialect.kind, os.Getenv(dialect.env))
+			t.Run("listing_includes_channel_models_and_filters_square_state_before_pagination", func(t *testing.T) {
+				records := []model.Model{
+					{ModelName: "listing-visible", Status: 1},
+					{ModelName: "listing-hidden", Status: 0},
+					{ModelName: "listing-orphan", Status: 1},
+					{ModelName: "listing-prefix-", NameRule: model.NameRulePrefix, Status: 1},
+				}
+				modelIDs := make([]int, 0, len(records))
+				for i := range records {
+					require.NoError(t, records[i].Insert())
+					modelIDs = append(modelIDs, records[i].Id)
+				}
+
+				active := model.Channel{
+					Name:   "Listing active",
+					Type:   1,
+					Key:    "fixture",
+					Group:  "default",
+					Status: common.ChannelStatusEnabled,
+					Models: "listing-visible,listing-hidden,listing-synthetic,listing-prefix-child",
+				}
+				inactive := model.Channel{
+					Name:   "Listing inactive",
+					Type:   1,
+					Key:    "fixture",
+					Group:  "default",
+					Status: common.ChannelStatusManuallyDisabled,
+					Models: "listing-disabled",
+				}
+				for _, channel := range []*model.Channel{&active, &inactive} {
+					require.NoError(t, channel.Insert())
+				}
+				t.Cleanup(func() {
+					require.NoError(t, db.Where("channel_id IN ?", []int{active.Id, inactive.Id}).Delete(&model.Ability{}).Error)
+					require.NoError(t, db.Where("id IN ?", []int{active.Id, inactive.Id}).Delete(&model.Channel{}).Error)
+					require.NoError(t, db.Unscoped().Where("id IN ?", modelIDs).Delete(&model.Model{}).Error)
+					model.RefreshPricing()
+				})
+
+				type listingResponse struct {
+					Success bool
+					Message string
+					Data    struct {
+						Items []model.Model
+						Total int
+					}
+				}
+				var response listingResponse
+				modelManagementRequest(t, SearchModelsMeta, "GET", "/api/models/search?include_channel_models=true&keyword=listing-&page_size=100", nil, &response)
+				require.True(t, response.Success, response.Message)
+				byName := make(map[string]model.Model, len(response.Data.Items))
+				for _, item := range response.Data.Items {
+					byName[item.ModelName] = item
+				}
+				assert.Equal(t, model.ModelSquareVisible, byName["listing-visible"].SquareState)
+				assert.Equal(t, model.ModelSquareHidden, byName["listing-hidden"].SquareState)
+				assert.Equal(t, model.ModelSquareVisible, byName["listing-synthetic"].SquareState)
+				assert.Equal(t, model.ModelSquareUnavailable, byName["listing-disabled"].SquareState)
+				assert.Equal(t, model.ModelSquareUnavailable, byName["listing-orphan"].SquareState)
+				assert.True(t, byName["listing-visible"].HasMetadata)
+				assert.False(t, byName["listing-synthetic"].HasMetadata)
+				assert.Zero(t, byName["listing-synthetic"].Id)
+				assert.Equal(t, 1, byName["listing-prefix-"].ConfiguredChannelCount)
+
+				response = listingResponse{}
+				modelManagementRequest(t, SearchModelsMeta, "GET", "/api/models/search?include_channel_models=true&keyword=listing-&square_state=unavailable&page=1&page_size=1", nil, &response)
+				require.True(t, response.Success, response.Message)
+				assert.Equal(t, 2, response.Data.Total)
+				require.Len(t, response.Data.Items, 1)
+
+				response = listingResponse{}
+				recorder := modelManagementRequest(t, SearchModelsMeta, "GET", "/api/models/search?square_state=invalid", nil, &response)
+				assert.Equal(t, http.StatusBadRequest, recorder.Code)
+				assert.False(t, response.Success)
+			})
 			t.Run("pricing_saves_zero_switches_modes_and_rejects_stale_batches", func(t *testing.T) {
 				before, err := model.GetModelPricingSnapshot([]string{"matrix-priced", "matrix-other"})
 				require.NoError(t, err)

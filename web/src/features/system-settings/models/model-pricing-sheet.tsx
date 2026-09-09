@@ -26,6 +26,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -126,6 +127,8 @@ type ModelPricingEditorPanelProps = Omit<
   'open' | 'onOpenChange'
 > & {
   className?: string
+  embedded?: boolean
+  scrollHeader?: ReactNode
 }
 
 export type ModelPricingEditorPanelHandle = {
@@ -194,6 +197,8 @@ export const ModelPricingEditorPanel = forwardRef<
     onInputInLocalCurrencyChange,
     usageSchema,
     onDirtyChange,
+    embedded = false,
+    scrollHeader,
   },
   ref
 ) {
@@ -671,33 +676,35 @@ export const ModelPricingEditorPanel = forwardRef<
   return (
     <div
       className={cn(
-        'bg-background flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border',
+        'bg-background flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border',
         className
       )}
     >
-      <div className='border-b p-4'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <div className='min-w-0'>
-            <h3 className='truncate text-base font-medium'>
-              {isEditMode ? t('Edit model pricing') : t('Add model pricing')}
-            </h3>
-          </div>
-          {showLocalCurrencyToggle && (
-            <div className='flex items-center gap-2'>
-              <span className='text-muted-foreground text-xs'>
-                {t('Input in {{currency}} (rate {{rate}})', {
-                  currency: currencySymbol,
-                  rate: exchangeRate,
-                })}
-              </span>
-              <Switch
-                checked={inputInLocalCurrency}
-                onCheckedChange={onInputInLocalCurrencyChange}
-              />
+      {!embedded && (
+        <div className='border-b p-4'>
+          <div className='flex flex-wrap items-center justify-between gap-3'>
+            <div className='min-w-0'>
+              <h3 className='truncate text-base font-medium'>
+                {isEditMode ? t('Edit model pricing') : t('Add model pricing')}
+              </h3>
             </div>
-          )}
+            {showLocalCurrencyToggle && (
+              <div className='flex items-center gap-2'>
+                <span className='text-muted-foreground text-xs'>
+                  {t('Input in {{currency}} (rate {{rate}})', {
+                    currency: currencySymbol,
+                    rate: exchangeRate,
+                  })}
+                </span>
+                <Switch
+                  checked={inputInLocalCurrency}
+                  onCheckedChange={onInputInLocalCurrencyChange}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <Form {...form}>
         <form
@@ -705,8 +712,11 @@ export const ModelPricingEditorPanel = forwardRef<
           className='flex min-h-0 flex-1 flex-col'
           autoComplete='off'
         >
-          <div className='min-h-0 flex-1 overflow-y-auto p-4 pb-6'>
-            <div className='grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(220px,260px)]'>
+          <div className='@container/pricing-editor min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-6'>
+            {scrollHeader && (
+              <div className='mb-4 space-y-3'>{scrollHeader}</div>
+            )}
+            <div className='grid min-w-0 items-start gap-4 @min-[960px]/pricing-editor:grid-cols-[minmax(0,1fr)_260px]'>
               <FieldGroup>
                 {warnings.length > 0 && (
                   <Alert variant='destructive'>
@@ -721,28 +731,30 @@ export const ModelPricingEditorPanel = forwardRef<
                   </Alert>
                 )}
 
-                <FormField
-                  control={form.control}
-                  name='name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Model name')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={t('gpt-4')}
-                          {...field}
-                          disabled={isEditMode}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          'The exact model identifier as used in API requests.'
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {!embedded && (
+                  <FormField
+                    control={form.control}
+                    name='name'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Model name')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t('gpt-4')}
+                            {...field}
+                            disabled={isEditMode}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'The exact model identifier as used in API requests.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <Tabs
                   value={pricingMode}
