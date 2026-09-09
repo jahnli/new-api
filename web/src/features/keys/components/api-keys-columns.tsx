@@ -14,7 +14,6 @@ import {
 import { useMediaQuery } from '@/hooks'
 import { toIntlLocale } from '@/i18n/languages'
 import { getUserGroups } from '@/lib/api'
-import dayjs from '@/lib/dayjs'
 import { formatQuota } from '@/lib/format'
 import { ROLE } from '@/lib/roles'
 import { cn } from '@/lib/utils'
@@ -23,7 +22,10 @@ import { useAuthStore } from '@/stores/auth-store'
 import { API_KEY_STATUSES } from '../constants'
 import type { ApiKey } from '../types'
 import { ApiKeyGroupCell } from './api-key-group-cell'
-import { ApiKeyTimestampCell } from './api-key-timestamp-cell'
+import {
+  ApiKeyActivityCell,
+  ApiKeyTimestampCell,
+} from './api-key-timestamp-cell'
 import {
   ApiKeyCell,
   IpRestrictionsCell,
@@ -68,7 +70,6 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
   const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
-  const staleAccessThreshold = dayjs(now).subtract(3, 'month').valueOf()
   return [
     {
       id: 'select',
@@ -226,39 +227,11 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
       meta: { mobileHidden: true },
     },
     {
+      id: 'activity_time',
       accessorKey: 'created_time',
-      header: t('Created'),
-      cell: ({ row }) => (
-        <ApiKeyTimestampCell
-          timestamp={row.getValue('created_time')}
-          now={now}
-          locale={locale}
-          justNowLabel={justNowLabel}
-          className='text-muted-foreground'
-        />
-      ),
-      size: 180,
-      meta: { mobileHidden: true },
-    },
-    {
-      accessorKey: 'accessed_time',
-      header: t('Last Used'),
-      cell: ({ row }) => {
-        const accessedTime = row.getValue('accessed_time') as number
-        const isStale =
-          accessedTime > 0 && accessedTime * 1000 < staleAccessThreshold
-
-        return (
-          <ApiKeyTimestampCell
-            timestamp={accessedTime}
-            now={now}
-            locale={locale}
-            justNowLabel={justNowLabel}
-            className={isStale ? 'text-warning' : 'text-muted-foreground'}
-          />
-        )
-      },
-      size: 180,
+      header: t('Time'),
+      cell: ({ row }) => <ApiKeyActivityCell apiKey={row.original} now={now} />,
+      size: 220,
       meta: { mobileHidden: true },
     },
     {
