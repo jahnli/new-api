@@ -1,4 +1,3 @@
-import type { ColumnDef } from '@tanstack/react-table'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,6 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import {
+  Calendar03Icon,
+  Login03Icon,
+  UserAdd01Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -521,6 +527,59 @@ export function userJoinDateColumn<T extends UserColumnRow>(
   }
 }
 
+export function userEmploymentOverviewColumn<T extends UserColumnRow>(
+  t: (key: string) => string
+): ColumnDef<T> {
+  return {
+    id: 'employment_overview',
+    header: t('Employment Overview'),
+    cell: ({ row }) => {
+      const department = row.original.department_name
+      const customFields = parseCustomFields(row.original.custom_field_values)
+      const jobLevel = customFields?.[CUSTOM_FIELD_KEYS.JOB_LEVEL]
+      const joinDate = row.original.join_date
+
+      return (
+        <div
+          data-table-text='secondary'
+          className='w-[280px] max-w-[280px] space-y-1.5 overflow-hidden font-normal'
+        >
+          <div className='w-full min-w-0 overflow-hidden'>
+            <span className='sr-only'>{t('Department')}:</span>
+            {department ? (
+              <LongText className='text-foreground w-full min-w-0 font-medium'>
+                {department}
+              </LongText>
+            ) : (
+              <span className='text-muted-foreground text-sm'>-</span>
+            )}
+          </div>
+          <div className='flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-xs'>
+            <span className='text-foreground w-[88px] max-w-[88px] shrink-0 truncate'>
+              <span className='sr-only'>{t('Job Level')}:</span>
+              {jobLevel || '-'}
+            </span>
+            <span className='text-muted-foreground inline-flex min-w-0 shrink items-center gap-1'>
+              <HugeiconsIcon
+                icon={Calendar03Icon}
+                size={13}
+                strokeWidth={1.8}
+                className='shrink-0'
+                aria-hidden='true'
+              />
+              <span className='sr-only'>{t('Join Date')}:</span>
+              <span className='truncate tabular-nums'>{joinDate || '-'}</span>
+            </span>
+          </div>
+        </div>
+      )
+    },
+    size: 200,
+    minSize: 180,
+    meta: { mobileHidden: true },
+  }
+}
+
 export function userLastLoginColumn<T extends UserColumnRow>(
   t: (key: string) => string
 ): ColumnDef<T> {
@@ -570,7 +629,24 @@ export function userActivityTimeColumn<T extends UserColumnRow>(
         createdAt={row.original.created_at ?? 0}
         lastAt={row.original.last_login_at ?? 0}
         lastLabel={t('Last Login')}
+        createdLabelIcon={
+          <HugeiconsIcon
+            icon={UserAdd01Icon}
+            size={14}
+            strokeWidth={1.8}
+            aria-hidden='true'
+          />
+        }
+        lastLabelIcon={
+          <HugeiconsIcon
+            icon={Login03Icon}
+            size={14}
+            strokeWidth={1.8}
+            aria-hidden='true'
+          />
+        }
         format='absolute'
+        order='last-first'
       />
     ),
     size: 260,
@@ -693,6 +769,7 @@ export interface SharedUserColumnsOptions {
   quotaHeaderDescription?: string
   withGroupBadgeCell?: boolean
   combineActivityTimes?: boolean
+  combineEmploymentOverview?: boolean
 }
 
 export function useSharedUserColumns<T extends UserColumnRow>(
@@ -719,8 +796,12 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     ]
 
     if (!externalMode) {
-      columns.push(userDepartmentColumn<T>(t))
-      columns.push(userJobLevelColumn<T>(t))
+      if (opts.combineEmploymentOverview) {
+        columns.push(userEmploymentOverviewColumn<T>(t))
+      } else {
+        columns.push(userDepartmentColumn<T>(t))
+        columns.push(userJobLevelColumn<T>(t))
+      }
     }
 
     if (opts.combineActivityTimes) {
@@ -728,19 +809,11 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     } else {
       columns.push(userLastLoginColumn<T>(t))
     }
-    columns.push(
-      userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: 'badge' })
-    )
-
-    if (!externalMode) {
-      columns.push(userJoinDateColumn<T>(t))
-    }
-
-    if (!opts.combineActivityTimes) {
-      columns.push(userCreatedAtColumn<T>(t))
-    }
     columns.push({
-      ...userRoleColumn<T>(t),
+      ...userStatusColumn<T>(t, {
+        showRequestCount: true,
+        requestCountAccessor: opts.requestCountAccessor as keyof T,
+      }),
       filterFn: (
         row: { getValue: (id: string) => unknown },
         id: string,
@@ -749,11 +822,19 @@ export function useSharedUserColumns<T extends UserColumnRow>(
         return value.includes(String(row.getValue(id)))
       },
     })
+    columns.push(
+      userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: 'badge' })
+    )
+
+    if (!externalMode && !opts.combineEmploymentOverview) {
+      columns.push(userJoinDateColumn<T>(t))
+    }
+
+    if (!opts.combineActivityTimes) {
+      columns.push(userCreatedAtColumn<T>(t))
+    }
     columns.push({
-      ...userStatusColumn<T>(t, {
-        showRequestCount: true,
-        requestCountAccessor: opts.requestCountAccessor as keyof T,
-      }),
+      ...userRoleColumn<T>(t),
       filterFn: (
         row: { getValue: (id: string) => unknown },
         id: string,
@@ -790,5 +871,6 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     opts.quotaHeaderDescription,
     opts.withGroupBadgeCell,
     opts.combineActivityTimes,
+    opts.combineEmploymentOverview,
   ])
 }

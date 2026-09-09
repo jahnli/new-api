@@ -19,6 +19,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     requestCountAccessor: 'monthly_total_requests',
     withGroupBadgeCell: true,
     combineActivityTimes: true,
+    combineEmploymentOverview: true,
   })
 
   return useMemo(

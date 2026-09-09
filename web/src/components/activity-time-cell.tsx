@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Fragment, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -87,17 +88,54 @@ export function TimestampCell(props: TimestampCellProps) {
   )
 }
 
+function ActivityTimeLabel(props: { label: string; icon?: ReactNode }) {
+  if (!props.icon) {
+    return <span className='text-muted-foreground'>{props.label}</span>
+  }
+
+  return (
+    <span
+      title={props.label}
+      className='text-muted-foreground inline-flex size-4 items-center justify-center'
+    >
+      {props.icon}
+      <span className='sr-only'>{props.label}</span>
+    </span>
+  )
+}
+
 export function ActivityTimeCell(props: {
   createdAt: number
   lastAt: number
   lastLabel: string
+  createdLabelIcon?: ReactNode
+  lastLabelIcon?: ReactNode
   lastClassName?: string
   now?: number
   format?: 'relative' | 'absolute'
   layout?: 'rows' | 'columns'
+  order?: 'created-first' | 'last-first'
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const createdEntry = {
+    key: 'created',
+    label: t('Created'),
+    icon: props.createdLabelIcon,
+    timestamp: props.createdAt,
+    className: 'text-muted-foreground',
+  }
+  const lastEntry = {
+    key: 'last',
+    label: props.lastLabel,
+    icon: props.lastLabelIcon,
+    timestamp: props.lastAt,
+    className: props.lastClassName ?? 'text-muted-foreground',
+  }
+  const entries =
+    props.order === 'last-first'
+      ? [lastEntry, createdEntry]
+      : [createdEntry, lastEntry]
 
   return (
     <div
@@ -109,30 +147,22 @@ export function ActivityTimeCell(props: {
           : 'grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2'
       )}
     >
-      <span className='text-muted-foreground'>{t('Created')}</span>
-      <TimestampCell
-        timestamp={props.createdAt}
-        now={props.now}
-        format={props.format}
-        locale={locale}
-        justNowLabel={t('Just now')}
-        className={cn(
-          'text-muted-foreground',
-          props.layout === 'columns' && 'whitespace-normal'
-        )}
-      />
-      <span className='text-muted-foreground'>{props.lastLabel}</span>
-      <TimestampCell
-        timestamp={props.lastAt}
-        now={props.now}
-        format={props.format}
-        locale={locale}
-        justNowLabel={t('Just now')}
-        className={cn(
-          props.lastClassName ?? 'text-muted-foreground',
-          props.layout === 'columns' && 'whitespace-normal'
-        )}
-      />
+      {entries.map((entry) => (
+        <Fragment key={entry.key}>
+          <ActivityTimeLabel label={entry.label} icon={entry.icon} />
+          <TimestampCell
+            timestamp={entry.timestamp}
+            now={props.now}
+            format={props.format}
+            locale={locale}
+            justNowLabel={t('Just now')}
+            className={cn(
+              entry.className,
+              props.layout === 'columns' && 'whitespace-normal'
+            )}
+          />
+        </Fragment>
+      ))}
     </div>
   )
 }

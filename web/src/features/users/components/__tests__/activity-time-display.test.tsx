@@ -56,7 +56,7 @@ function I18nWrapper(props: { children: ReactNode }) {
 }
 
 describe('user activity time column', () => {
-  test('shows created and last-login timestamps together like upstream', () => {
+  test('uses accessible icons for created and last-login timestamps', () => {
     const column = userActivityTimeColumn<UserColumnRow>((key) => key)
     expect(column).toMatchObject({
       accessorKey: 'created_at',
@@ -76,21 +76,29 @@ describe('user activity time column', () => {
       <I18nextProvider i18n={i18n}>{element as ReactElement}</I18nextProvider>
     )
 
-    expect(getByText('Created')).toBeInTheDocument()
-    expect(getByText('Last Login')).toBeInTheDocument()
+    expect(getByText('Created')).toHaveClass('sr-only')
+    expect(getByText('Last Login')).toHaveClass('sr-only')
+    expect(container.querySelector('[title="Created"]')).toBeInTheDocument()
+    expect(container.querySelector('[title="Last Login"]')).toBeInTheDocument()
+    const labels = container.querySelectorAll('[title]')
+    expect(labels[0]).toHaveAttribute('title', 'Last Login')
+    expect(labels[1]).toHaveAttribute('title', 'Created')
+    expect(container.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(
+      2
+    )
     const timestamps = container.querySelectorAll('time')
     expect(timestamps).toHaveLength(2)
     expect(timestamps[0]).toHaveAttribute(
       'datetime',
-      '2023-11-14T22:13:20.000Z'
+      '2023-11-14T23:13:20.000Z'
     )
     expect(timestamps[1]).toHaveAttribute(
       'datetime',
-      '2023-11-14T23:13:20.000Z'
+      '2023-11-14T22:13:20.000Z'
     )
   })
 
-  test('places the combined time column before the common model column', () => {
+  test('places time and status before the common model column', () => {
     const { result } = renderHook(
       () =>
         useSharedUserColumns<UserColumnRow>({
@@ -108,6 +116,9 @@ describe('user activity time column', () => {
     )
 
     expect(columnIds.indexOf('created_at')).toBeLessThan(
+      columnIds.indexOf('monthly_common_model')
+    )
+    expect(columnIds.indexOf('status')).toBeLessThan(
       columnIds.indexOf('monthly_common_model')
     )
   })
