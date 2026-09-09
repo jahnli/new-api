@@ -80,7 +80,7 @@ import {
   createUser,
   updateUser,
   getUser,
-  getGroups,
+  getGroupsWithRatios,
   getPermissionCatalog,
   getAdminFullDepartmentTree,
 } from '../api'
@@ -119,12 +119,12 @@ export function UsersMutateDrawer({
 
   // Fetch groups
   const { data: groupsData } = useQuery({
-    queryKey: ['groups'],
-    queryFn: getGroups,
+    queryKey: ['groups-with-ratios'],
+    queryFn: getGroupsWithRatios,
     staleTime: 5 * 60 * 1000,
   })
 
-  const groups = groupsData?.data || []
+  const groups = groupsData?.data || {}
 
   // Permission catalog is owned by the backend; fetched once and reused.
   const { data: permissionCatalog = EMPTY_PERMISSION_CATALOG } = useQuery({
@@ -470,14 +470,18 @@ export function UsersMutateDrawer({
                         <FormLabel>{t('Group')}</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={groups.map((group) => ({
-                              value: group,
-                              label: group,
-                            }))}
+                            options={Object.entries(groups).map(
+                              ([group, ratio]) => ({
+                                value: group,
+                                label: group,
+                                suffix: `${ratio}x ${t('Ratio')}`,
+                              })
+                            )}
                             onValueChange={field.onChange}
                             value={field.value}
                             className='w-full'
                             placeholder={t('Select a group')}
+                            showSelectedOptionContent
                           />
                         </FormControl>
                         <FormMessage />

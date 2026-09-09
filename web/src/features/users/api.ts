@@ -157,6 +157,18 @@ export async function getGroups(): Promise<ApiResponse<string[]>> {
 }
 
 /**
+ * Get all available groups with their base billing ratios
+ */
+export async function getGroupsWithRatios(): Promise<
+  ApiResponse<Record<string, number>>
+> {
+  const res = await api.get('/api/group/', {
+    params: { with_ratio: true },
+  })
+  return res.data
+}
+
+/**
  * Get the permission catalog (resources, actions, and role baselines).
  * Source of truth lives in the backend authz package.
  */
