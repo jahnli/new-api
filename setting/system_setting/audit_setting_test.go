@@ -6,6 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestImageStudioHistoryLimitDefaults(t *testing.T) {
+	assert.Equal(t, 20, DefaultImageStudioDisplayHistoryLimit)
+	assert.Equal(t, 50, DefaultImageStudioMaxHistory)
+}
+
 func TestImageStudioHistoryLimitsAreNormalizedIndependently(t *testing.T) {
 	setting := GetAuditSetting()
 	originalDisplayLimit := setting.ImageStudioDisplayHistoryLimit
