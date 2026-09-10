@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen } from '@testing-library/react'
 import { createInstance } from 'i18next'
 import type { ComponentType } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -11,6 +12,7 @@ import type { UsageLog } from '../../data/schema'
 import type { LogOtherData } from '../../types'
 import { useCommonLogsColumns } from '../columns/common-logs-columns'
 import { BillingBreakdown } from '../dialogs/details-dialog'
+import { UsageLogsProvider } from '../usage-logs-provider'
 
 vi.mock('@/lib/lobe-icon', () => ({
   getLobeIcon: () => null,
@@ -76,6 +78,24 @@ function DetailsColumnCell(props: { log: UsageLog }) {
   return <Cell row={{ original: props.log }} />
 }
 
+function TokenColumnCell(props: { log: UsageLog }) {
+  const columns = useCommonLogsColumns(false, {
+    showUserColumn: false,
+    showChannelColumn: false,
+  })
+  const tokenColumn = columns.find(
+    (column) => 'accessorKey' in column && column.accessorKey === 'token_name'
+  )
+  if (!tokenColumn || typeof tokenColumn.cell !== 'function') {
+    throw new TypeError('Expected the usage log token column to provide a cell')
+  }
+
+  const Cell = tokenColumn.cell as ComponentType<{
+    row: { original: UsageLog }
+  }>
+  return <Cell row={{ original: props.log }} />
+}
+
 function renderDetailsColumn(log: UsageLog): string {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -90,6 +110,22 @@ function renderDetailsColumn(log: UsageLog): string {
 }
 
 describe('usage log group price display', () => {
+  test('shows the token badge with normal font weight', () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <UsageLogsProvider>
+          <TokenColumnCell log={groupedLog} />
+        </UsageLogsProvider>
+      </I18nextProvider>
+    )
+
+    const tokenBadge = screen
+      .getByText('group-token')
+      .closest('[data-slot="status-badge"]')
+    expect(tokenBadge).toHaveClass('font-normal')
+    expect(tokenBadge).not.toHaveClass('font-medium')
+  })
+
   test('shows prices for the actual log group in the details column', () => {
     const html = renderDetailsColumn(groupedLog)
 

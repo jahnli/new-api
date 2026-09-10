@@ -968,7 +968,7 @@ export function useCommonLogsColumns(
                     copyText={sensitiveVisible ? tokenName : undefined}
                     size='sm'
                     showDot={false}
-                    className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)] [&>span]:truncate'
+                    className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)] font-normal [&>span]:truncate'
                   />
                 </TooltipTrigger>
                 {sensitiveVisible && tokenName.length > 16 && (

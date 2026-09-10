@@ -62,6 +62,9 @@ describe('log cost display', () => {
         normalizedText(formatLogQuota(12500))
       )
     ).toBe(true)
+    const cost = rendered.container.querySelector('.tabular-nums')
+    expect(cost).toHaveClass('font-normal')
+    expect(cost).not.toHaveClass('font-semibold')
     const marker = screen.getByRole('img', {
       name: 'Includes tool-call surcharge',
     })

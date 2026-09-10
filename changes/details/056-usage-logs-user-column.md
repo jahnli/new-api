@@ -151,3 +151,9 @@
 - `web/src/features/usage-logs/components/log-user-cell.tsx`、`components/columns/common-logs-columns.tsx` — 抽取并复用日志用户单元格，统一头像、显示名/用户名双行、演示模式遮蔽、飞书跳转和悬停资料卡行为。
 - `web/src/features/usage-logs/audit/api.ts`、`components/audit-log-columns.tsx`、`components/audit-log-viewer.tsx` — 审计日志用户列首屏消费完整展示资料；仅管理员全部记录范围在悬停时按需加载资料卡的其余字段，个人范围不发起无权限请求。
 - `web/src/features/usage-logs/audit/__tests__/viewer.test.tsx` — 回归覆盖详情接口调用前已经展示审计日志用户头像、显示名和用户名，悬停后再加载完整资料。
+
+## 2026-09-10 使用日志列字重统一
+
+- `web/src/features/usage-logs/components/log-cost-display.tsx` — 费用列金额由半粗体改为常规字重，保留订阅提示和工具调用附加费标记。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 令牌徽章显式使用常规字重，不改变全局状态徽章及其他日志列。
+- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx`、`group-price-display.test.tsx` — 回归覆盖费用金额与令牌徽章均不再加粗。
