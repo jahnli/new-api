@@ -113,10 +113,7 @@ func RecordAuditLog(c *gin.Context, entry AuditLog) {
 	if entry.Username == "" {
 		entry.Username, _ = GetUsernameById(entry.UserId, false)
 	}
-	ua := []rune(entry.UserAgent)
-	if len(ua) > 512 {
-		entry.UserAgent = string(ua[:512])
-	}
+	entry.UserAgent = common.TruncateUserAgent(entry.UserAgent)
 	if LOG_DB == nil {
 		logger.LogError(ctx, fmt.Sprintf("audit log write failed (request_id=%s): log database unavailable", entry.RequestId))
 		return

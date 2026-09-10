@@ -16,7 +16,9 @@ type AuditOther struct {
 	AuditInfo   *AuditRequestInfo `json:"audit_info,omitempty"`
 	RootInfo    AuditFields       `json:"root_info,omitempty"`
 	LoginMethod string            `json:"login_method,omitempty"`
-	UserAgent   string            `json:"user_agent,omitempty"`
+	// Deprecated: retained to decode historical audit metadata. New records
+	// store User-Agent only in AuditLog.UserAgent.
+	UserAgent string `json:"user_agent,omitempty"`
 }
 
 type AuditOperation struct {

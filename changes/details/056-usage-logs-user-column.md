@@ -165,3 +165,12 @@
 - `web/src/features/usage-logs/components/dialogs/log-detail-layout.tsx` — 提取日志详情弹框共用的桌面端宽度、移动端边距和内容高度配置。
 - `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 使用日志详情弹框改为复用统一尺寸配置。
 - `web/src/features/usage-logs/audit/components/audit-log-details-dialog.tsx` — 审计日志详情弹框复用使用日志的尺寸配置，桌面端统一为视口 50% 宽、内容最高 72dvh。
+
+## 2026-09-10 User-Agent 采集规则统一
+
+- `common/user_agent.go` — 新增日志与审计共用的 User-Agent 截断方法，保留客户端原始值并按最多 512 个 Unicode 字符安全截断。
+- `relay/common/client_app.go` — 使用日志采集原始 User-Agent 时调用公共截断方法，继续写入 `other.user_agent`。
+- `model/audit_log.go` — 审计日志写入顶层 `user_agent` 前调用同一公共截断方法，统一采集边界。
+- `controller/user.go` — 登录审计不再向 `other.user_agent` 重复写入 User-Agent，统一由审计日志顶层字段保存。
+- `model/audit_other.go` — 将 `AuditOther.UserAgent` 标记为仅供历史记录解码兼容的废弃字段，新记录不再赋值。
+- `model/log.go` — 更新登录审计注释，明确 User-Agent 统一写入审计表顶层字段。

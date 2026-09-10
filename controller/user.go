@@ -132,7 +132,6 @@ func recordLoginAudit(user *model.User, c *gin.Context) {
 	ip := c.ClientIP()
 	extra := model.AuditOther{
 		LoginMethod: method,
-		UserAgent:   c.Request.UserAgent(),
 	}
 	content := fmt.Sprintf("Logged in successfully via %s", method)
 	params := map[string]interface{}{
