@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  Bell,
   Box,
   Building2,
   ClipboardList,
@@ -158,6 +159,12 @@ export function useSidebarData(): SidebarData {
             title: t('Users'),
             url: '/users',
             icon: Users,
+          },
+          {
+            title: t('Notifications'),
+            url: '/company-notifications',
+            icon: Bell,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('Company Management'),

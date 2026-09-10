@@ -263,6 +263,7 @@ func SetApiRouter(router *gin.Engine) {
 			companyRoute.PUT("/:id", controller.UpdateCompany)
 			companyRoute.PATCH("/:id/status", controller.SetCompanyStatus)
 			companyRoute.POST("/:id/test", controller.TestCompanyConnection)
+			companyRoute.POST("/notifications/send", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.SendCompanyNotification)
 		}
 		performanceRoute := apiRouter.Group("/performance")
 		performanceRoute.Use(middleware.RootAuth())

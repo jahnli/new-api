@@ -35,6 +35,7 @@ type CompanyFeishuConfigResponse struct {
 
 type CompanyDingTalkConfigResponse struct {
 	ClientID   string `json:"client_id"`
+	AgentID    int64  `json:"agent_id"`
 	Configured bool   `json:"configured"`
 }
 
@@ -80,6 +81,7 @@ func toCompanyResponse(company *model.Company) (*CompanyResponse, error) {
 			},
 			DingTalk: CompanyDingTalkConfigResponse{
 				ClientID:   config.DingTalk.ClientID,
+				AgentID:    config.DingTalk.AgentID,
 				Configured: config.DingTalk.ClientID != "" && config.DingTalk.ClientSecret != "",
 			},
 		},

@@ -144,6 +144,22 @@ export function CompanyCredentialsFields(props: CompanyCredentialsFieldsProps) {
           </FormItem>
         )}
       />
+      <FormField
+        control={form.control}
+        name='dingtalk_agent_id'
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>{t('DingTalk Agent ID')}</FormLabel>
+            <FormControl>
+              <Input type='number' min={1} inputMode='numeric' {...field} />
+            </FormControl>
+            <FormDescription>
+              {t('Required for sending DingTalk work notifications.')}
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </FieldGroup>
   )
 }

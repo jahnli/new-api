@@ -26,6 +26,7 @@ export type CompanyCredentialField =
   | 'feishu_app_secret'
   | 'dingtalk_client_id'
   | 'dingtalk_client_secret'
+  | 'dingtalk_agent_id'
 
 export function getPlatformCredentialFields(
   platform: CompanyPlatform
@@ -34,7 +35,7 @@ export function getPlatformCredentialFields(
     return ['feishu_app_id', 'feishu_app_secret']
   }
   if (platform === 'dingtalk') {
-    return ['dingtalk_client_id', 'dingtalk_client_secret']
+    return ['dingtalk_client_id', 'dingtalk_client_secret', 'dingtalk_agent_id']
   }
   return []
 }
@@ -102,6 +103,7 @@ export function getCompanyFormSchema(t: TFunction) {
       feishu_app_secret: z.string(),
       dingtalk_client_id: z.string().trim(),
       dingtalk_client_secret: z.string(),
+      dingtalk_agent_id: z.coerce.number().int().nonnegative(),
       feishu_secret_configured: z.boolean(),
       dingtalk_secret_configured: z.boolean(),
     })
@@ -145,6 +147,13 @@ export function getCompanyFormSchema(t: TFunction) {
             message: t('DingTalk Client ID is required'),
           })
         }
+        if (values.dingtalk_agent_id <= 0) {
+          context.addIssue({
+            code: 'custom',
+            path: ['dingtalk_agent_id'],
+            message: t('DingTalk Agent ID is required'),
+          })
+        }
         if (
           !values.dingtalk_secret_configured &&
           !values.dingtalk_client_secret.trim()
@@ -172,6 +181,7 @@ export const COMPANY_FORM_DEFAULTS: CompanyFormValues = {
   feishu_app_secret: '',
   dingtalk_client_id: '',
   dingtalk_client_secret: '',
+  dingtalk_agent_id: 0,
   feishu_secret_configured: false,
   dingtalk_secret_configured: false,
 }
@@ -188,6 +198,7 @@ export function companyToFormValues(company: Company): CompanyFormValues {
     feishu_app_secret: '',
     dingtalk_client_id: company.platform_credentials?.client_id ?? '',
     dingtalk_client_secret: '',
+    dingtalk_agent_id: company.platform_credentials?.agent_id ?? 0,
     feishu_secret_configured: isPlatformSecretConfigured(company, 'feishu'),
     dingtalk_secret_configured: isPlatformSecretConfigured(company, 'dingtalk'),
   }

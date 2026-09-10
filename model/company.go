@@ -47,6 +47,7 @@ type CompanyFeishuConfig struct {
 type CompanyDingTalkConfig struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
+	AgentID      int64  `json:"agent_id"`
 }
 
 func (Company) TableName() string {
