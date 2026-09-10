@@ -559,23 +559,25 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
               <span className='text-muted-foreground text-sm'>-</span>
             )}
           </div>
-          <div className='flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-xs'>
-            <span className='text-foreground w-[88px] max-w-[88px] shrink-0 truncate'>
-              <span className='sr-only'>{t('Job Level')}:</span>
-              {jobLevel || '-'}
-            </span>
-            <span className='text-muted-foreground inline-flex min-w-0 shrink items-center gap-1'>
-              <HugeiconsIcon
-                icon={Calendar03Icon}
-                size={13}
-                strokeWidth={1.8}
-                className='shrink-0'
-                aria-hidden='true'
-              />
-              <span className='sr-only'>{t('Join Date')}:</span>
-              <span className='truncate tabular-nums'>{joinDate || '-'}</span>
-            </span>
-          </div>
+          {(jobLevel || joinDate) && (
+            <div className='flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-xs'>
+              <span className='text-foreground w-[88px] max-w-[88px] shrink-0 truncate'>
+                <span className='sr-only'>{t('Job Level')}:</span>
+                {jobLevel || '-'}
+              </span>
+              <span className='text-muted-foreground inline-flex min-w-0 shrink items-center gap-1'>
+                <HugeiconsIcon
+                  icon={Calendar03Icon}
+                  size={13}
+                  strokeWidth={1.8}
+                  className='shrink-0'
+                  aria-hidden='true'
+                />
+                <span className='sr-only'>{t('Join Date')}:</span>
+                <span className='truncate tabular-nums'>{joinDate || '-'}</span>
+              </span>
+            </div>
+          )}
         </div>
       )
     },
