@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
-import { CircleAlert, GitBranch, Globe, KeyRound, Sparkles } from 'lucide-react'
+import { CircleAlert, GitBranch, KeyRound, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -34,7 +34,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDemoMode } from '@/hooks/use-demo-mode'
-import { stringToColor } from '@/lib/colors'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { DEMO_MODE_MASK, maskFormattedCurrencyAmount } from '@/lib/demo-mode'
 import {
@@ -70,6 +69,7 @@ import type { LogOtherData } from '../../types'
 import { DetailsDialog } from '../dialogs/details-dialog'
 import { RequestContentDialog } from '../dialogs/request-content-dialog'
 import { LogCostDisplay } from '../log-cost-display'
+import { LogIpAddress } from '../log-ip-address'
 import { LogUserCell } from '../log-user-cell'
 import { ModelBadge } from '../model-badge'
 import {
@@ -112,15 +112,6 @@ function getGroupRatioText(
   }
 
   return null
-}
-
-function getChannelBadgeVariant(
-  channelId: string
-): StatusBadgeProps['variant'] {
-  const generatedColor = stringToColor(channelId)
-  if (generatedColor === 'red') return 'orange'
-  if (generatedColor === 'slate') return 'neutral'
-  return generatedColor
 }
 
 function buildDetailSegments(
@@ -676,12 +667,11 @@ export function useCommonLogsColumns(
                 <div className='relative inline-flex w-fit items-center gap-1'>
                   <StatusBadge
                     label={channelDisplay.id}
-                    variant={getChannelBadgeVariant(String(log.channel))}
                     copyable={!demoMode}
                     copyText={String(log.channel)}
                     size='sm'
                     showDot={false}
-                    className='font-mono'
+                    className='text-muted-foreground/70 font-mono'
                   />
                   {showMultiKeyIndex && (
                     <StatusBadge
@@ -906,34 +896,11 @@ export function useCommonLogsColumns(
       header: t('IP Address'),
       cell: function IpAddressCell({ row }) {
         const { sensitiveVisible } = useUsageLogsContext()
-        const log = row.original
-        const ipAddress = log.ip
-        if (!ipAddress) return null
-
-        const displayIpAddress = sensitiveVisible ? ipAddress : '••••'
-
         return (
-          <div className='flex max-w-[140px] flex-col gap-0.5'>
-            <TooltipProvider delay={100}>
-              <Tooltip>
-                <TooltipTrigger render={<div className='max-w-full' />}>
-                  <StatusBadge
-                    label={displayIpAddress}
-                    icon={Globe}
-                    copyText={sensitiveVisible ? ipAddress : undefined}
-                    size='sm'
-                    showDot={false}
-                    className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 font-mono font-normal [&_svg]:stroke-[1.5]'
-                  />
-                </TooltipTrigger>
-                {sensitiveVisible && ipAddress.length > 15 && (
-                  <TooltipContent side='top' className='max-w-xs break-all'>
-                    {ipAddress}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          <LogIpAddress
+            ipAddress={row.original.ip}
+            sensitiveVisible={sensitiveVisible}
+          />
         )
       },
       size: 130,

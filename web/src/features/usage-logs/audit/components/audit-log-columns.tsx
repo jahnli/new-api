@@ -24,6 +24,7 @@ import { TruncatedCell } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import dayjs from '@/lib/dayjs'
 
+import { LogIpAddress } from '../../components/log-ip-address'
 import { LogUserCell } from '../../components/log-user-cell'
 import type { AuditLog } from '../api'
 import { buildAuditDetails } from '../lib/audit-details'
@@ -39,7 +40,7 @@ export function useAuditLogColumns(
       {
         accessorKey: 'created_at',
         header: t('Time'),
-        size: 180,
+        size: 155,
         cell: ({ row }) => (
           <span className='font-mono font-normal tabular-nums'>
             {dayjs.unix(row.original.created_at).format('YYYY-MM-DD HH:mm:ss')}
@@ -127,10 +128,8 @@ export function useAuditLogColumns(
       {
         accessorKey: 'ip',
         header: 'IP',
-        size: 120,
-        cell: ({ row }) => (
-          <span className='font-mono'>{row.original.ip || '—'}</span>
-        ),
+        size: 130,
+        cell: ({ row }) => <LogIpAddress ipAddress={row.original.ip} />,
         meta: { label: 'IP' },
       },
       {
