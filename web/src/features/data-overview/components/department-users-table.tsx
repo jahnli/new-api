@@ -116,6 +116,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
     modelAccessor: 'common_model',
     requestCountAccessor: 'total_requests',
     quotaHeaderDescription: undefined,
+    usernameClassName: 'text-muted-foreground/70',
     combineActivityTimes: true,
     combineEmploymentOverview: true,
   })
@@ -352,7 +353,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
           <CardTitle className='flex min-w-0 flex-1 flex-wrap items-center gap-2 text-base'>
             <span className='inline-flex items-center gap-2'>
               <Users className='text-primary size-5' />
-              {t('Department User List')}
+              {t('Department Personnel List')}
             </span>
             <span className='flex flex-wrap items-center gap-1.5 text-[13px] font-medium'>
               <span className='rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300'>
@@ -427,7 +428,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
         onOpenChange={setLogsOpen}
         companyId={companyId}
         departmentId={departmentId}
-        departmentName={t('Department User List')}
+        departmentName={t('Department Personnel List')}
         initialStartTimestamp={startTimestamp}
         initialEndTimestamp={endTimestamp}
       />

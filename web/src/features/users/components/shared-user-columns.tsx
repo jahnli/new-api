@@ -121,7 +121,8 @@ export function userIdColumn<T extends UserColumnRow>(
 
 export function userNameColumn<T extends UserColumnRow>(
   t: (key: string) => string,
-  demoMode: boolean
+  demoMode: boolean,
+  opts?: { usernameClassName?: string }
 ): ColumnDef<T> {
   return {
     accessorKey: 'username',
@@ -179,7 +180,11 @@ export function userNameColumn<T extends UserColumnRow>(
             {(displayName && displayName !== username) || remark ? (
               <div className='text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs'>
                 {displayName && displayName !== username ? (
-                  <LongText className='min-w-0 flex-1'>{username}</LongText>
+                  <LongText
+                    className={cn('min-w-0 flex-1', opts?.usernameClassName)}
+                  >
+                    {username}
+                  </LongText>
                 ) : null}
                 {remark ? (
                   <Tooltip>
@@ -767,6 +772,7 @@ export interface SharedUserColumnsOptions {
   modelAccessor: string
   requestCountAccessor: string
   quotaHeaderDescription?: string
+  usernameClassName?: string
   withGroupBadgeCell?: boolean
   combineActivityTimes?: boolean
   combineEmploymentOverview?: boolean
@@ -782,7 +788,9 @@ export function useSharedUserColumns<T extends UserColumnRow>(
   return useMemo(() => {
     const columns: ColumnDef<T>[] = [
       userIdColumn<T>(t),
-      userNameColumn<T>(t, demoMode),
+      userNameColumn<T>(t, demoMode, {
+        usernameClassName: opts.usernameClassName,
+      }),
       userQuotaColumn<T>(t, {
         headerDescription: opts.quotaHeaderDescription,
       }),
@@ -869,6 +877,7 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     opts.modelAccessor,
     opts.requestCountAccessor,
     opts.quotaHeaderDescription,
+    opts.usernameClassName,
     opts.withGroupBadgeCell,
     opts.combineActivityTimes,
     opts.combineEmploymentOverview,

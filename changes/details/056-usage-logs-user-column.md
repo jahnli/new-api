@@ -148,7 +148,7 @@
 
 - `model/audit_log.go`、`model/log.go` — 审计列表复用使用日志的用户资料批量查询，首屏响应直接补齐 display_name、avatar_url、open_id 和 gender，不再等待前端悬停后逐条加载。
 - `controller/access_token_audit_test.go` — 接口与数据库矩阵测试覆盖审计列表首屏返回完整用户展示资料。
-- `web/src/features/usage-logs/components/log-user-cell.tsx`、`components/columns/common-logs-columns.tsx` — 抽取并复用日志用户单元格，统一头像、显示名/用户名双行、演示模式遮蔽、飞书跳转和悬停资料卡行为。
+- `web/src/features/usage-logs/components/log-user-cell.tsx`、`components/columns/common-logs-columns.tsx` — 抽取并复用日志用户单元格，统一头像、显示名/用户名双行、演示模式遮蔽、飞书跳转和悬停资料卡行为；使用日志与审计日志的用户 ID 统一采用相同的弱化文字色。
 - `web/src/features/usage-logs/audit/api.ts`、`components/audit-log-columns.tsx`、`components/audit-log-viewer.tsx` — 审计日志用户列首屏消费完整展示资料；仅管理员全部记录范围在悬停时按需加载资料卡的其余字段，个人范围不发起无权限请求。
 - `web/src/features/usage-logs/audit/__tests__/viewer.test.tsx` — 测试覆盖详情接口调用前已经展示审计日志用户头像、显示名和用户名，悬停后再加载完整资料。
 

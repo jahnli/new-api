@@ -1710,6 +1710,7 @@
     "Department": "部门",
     "Department Consumption Share": "各部门消耗占比",
     "Department Over-Quota Alert": "部门超额提醒",
+    "Department Personnel List": "部门人员列表",
     "Department User List": "部门用户列表",
     "Department Users": "部门用户",
     "Deploy your own gateway and start routing requests through your configured upstream services.": "部署你自己的网关，并通过已配置的上游服务开始转发请求。",

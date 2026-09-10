@@ -1710,6 +1710,7 @@
     "Department": "Département",
     "Department Consumption Share": "Department Consumption Share",
     "Department Over-Quota Alert": "Alerte de dépassement de quota du département",
+    "Department Personnel List": "Liste du personnel du département",
     "Department User List": "Liste des utilisateurs du département",
     "Department Users": "Utilisateurs du département",
     "Deploy your own gateway and start routing requests through your configured upstream services.": "Déployez votre propre passerelle et commencez à router les requêtes via vos services en amont configurés.",

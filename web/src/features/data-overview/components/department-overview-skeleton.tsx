@@ -69,7 +69,7 @@ export function UsersTableSkeleton() {
       <CardHeader className='flex flex-row items-center justify-between pb-3'>
         <CardTitle className='flex items-center gap-2 text-base'>
           <Users className='text-primary size-5' />
-          {t('Department User List')}
+          {t('Department Personnel List')}
         </CardTitle>
         <Skeleton className='h-8 w-16' />
       </CardHeader>

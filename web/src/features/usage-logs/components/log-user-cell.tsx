@@ -164,7 +164,7 @@ export function LogUserCell(props: LogUserCellProps) {
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
         <LongText className='max-w-full font-normal'>{primaryName}</LongText>
         {primaryName !== resolvedUsername ? (
-          <div className='text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs'>
+          <div className='text-muted-foreground/70 flex min-w-0 items-center gap-1.5 text-xs'>
             <LongText className='min-w-0 flex-1'>{resolvedUsername}</LongText>
           </div>
         ) : null}

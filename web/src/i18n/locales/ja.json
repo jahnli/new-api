@@ -1710,6 +1710,7 @@
     "Department": "部署",
     "Department Consumption Share": "Department Consumption Share",
     "Department Over-Quota Alert": "部門超過額アラート",
+    "Department Personnel List": "部門職員一覧",
     "Department User List": "部門ユーザー一覧",
     "Department Users": "部門ユーザー",
     "Deploy your own gateway and start routing requests through your configured upstream services.": "独自のゲートウェイをデプロイし、設定済みのアップストリームサービスへリクエストをルーティングできます。",

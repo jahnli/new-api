@@ -2,9 +2,12 @@
 
 **日期**: 2026-06-25 ~ 09-10（最后更新 09-10）
 
-### 2026-09-10 部门用户列表列结构统一
+### 2026-09-10 部门人员列表展示统一
 
-- `web/src/features/data-overview/components/department-users-table.tsx` — 部门用户列表启用共享用户列的“任职概况”和“时间”合并模式，以两行摘要统一展示部门、岗位职级、入职日期，以及最后登录、创建时间；注册状态列继续紧跟时间列。
+- `web/src/features/data-overview/components/department-users-table.tsx` — 部门人员列表启用共享用户列的“任职概况”和“时间”合并模式，以两行摘要统一展示部门、岗位职级、入职日期，以及最后登录、创建时间；注册状态列继续紧跟时间列；用户 ID 采用与使用日志一致的弱化文字色，并将页面标题和日志弹窗名称统一为“部门人员列表”。
+- `web/src/features/users/components/shared-user-columns.tsx` — 共享用户名列支持按使用场景传入用户 ID 样式，数据总览可单独调整而不影响用户管理等其他页面。
+- `web/src/features/data-overview/components/department-overview-skeleton.tsx`、`web/src/features/data-overview/lib/export-excel.ts` — 加载骨架、Excel 工作表名称及导出标题同步使用“部门人员列表”。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐“部门人员列表”的七语言文案。
 - `web/src/features/data-overview/components/__tests__/department-users-columns.test.tsx` — 测试覆盖合并表头替代五个独立表头，并验证两个合并单元格包含完整信息。
 
 ### 2026-09-10 部门树选择器导航与可访问性修复

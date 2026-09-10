@@ -359,12 +359,12 @@ function buildSubDeptSheet(
 }
 
 function buildUserListSheet(wb: ExcelJS.Workbook, p: ExportParams): void {
-  const ws = wb.addWorksheet(t('Department User List'))
+  const ws = wb.addWorksheet(t('Department Personnel List'))
 
   const timeRange = formatTimeRangeForFilename(p.startTimestamp, p.endTimestamp)
   styleTitleRow(
     ws,
-    `${t('Department User List')} — ${p.departmentName}（${timeRange}）`,
+    `${t('Department Personnel List')} — ${p.departmentName}（${timeRange}）`,
     9
   )
   ws.addRow([])
@@ -500,7 +500,7 @@ export async function exportDataOverview(params: ExportParams): Promise<void> {
   if (params.includeUserList) {
     buildUserListSheet(wb, params)
     if (params.userRankings.length > 0) {
-      const userWs = getRequiredWorksheet(wb, t('Department User List'))
+      const userWs = getRequiredWorksheet(wb, t('Department Personnel List'))
       await embedUserRankingCharts(wb, userWs, params.userRankings)
     }
   }

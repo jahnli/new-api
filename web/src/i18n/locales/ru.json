@@ -1710,6 +1710,7 @@
     "Department": "Отдел",
     "Department Consumption Share": "Department Consumption Share",
     "Department Over-Quota Alert": "Оповещение о превышении квоты отдела",
+    "Department Personnel List": "Список сотрудников отдела",
     "Department User List": "Список пользователей отдела",
     "Department Users": "Пользователи отдела",
     "Deploy your own gateway and start routing requests through your configured upstream services.": "Разверните собственный шлюз и начните маршрутизировать запросы через настроенные вышестоящие сервисы.",
