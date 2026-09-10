@@ -103,6 +103,11 @@ export function ApiKeysMutateDrawer({
   )
   const defaultUseAutoGroup = status?.default_use_auto_group === true
 
+  useEffect(() => {
+    if (!open) return
+    setAdvancedOpen(isUpdate)
+  }, [open, isUpdate, currentRowId])
+
   // Fetch models
   const { data: modelsData } = useQuery({
     queryKey: ['user-models'],
