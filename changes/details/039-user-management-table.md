@@ -110,3 +110,8 @@
 - `web/src/features/users/components/__tests__/activity-time-display.test.tsx` — 覆盖用户时间列的语义图标、隐藏辅助文案、最后登录优先的完整时间值，以及时间和状态均位于常用模型前的列顺序；API 密钥时间列仍使用原文字标签与默认顺序。
 - `web/src/features/users/components/__tests__/employment-overview.test.tsx` — 覆盖无图标部门主信息、固定宽度职级、无分隔符日期布局、日期图标、隐藏字段标签和收窄列宽的摘要展示，以及启用合并后独立列被替换的列结构。
 - `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补充“任职概况”七语言文案。
+
+## 2026-09-11 单价列单位展示
+
+- `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与部门人员列表的单价列统一按每亿 Token 展示：标题改为“单价 / 亿 Token”，内容改为“金额 / 亿”，并加宽列以容纳完整标题。
+- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐单价列标题和亿级单位的七语言文案。

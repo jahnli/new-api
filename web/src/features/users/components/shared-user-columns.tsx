@@ -332,7 +332,10 @@ export function userAveragePriceColumn<T extends UserColumnRow>(
       return calculateUnitPricePer100MTokens(cost, tokens)
     },
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Unit Price')} />
+      <DataTableColumnHeader
+        column={column}
+        title={t('Unit Price / 100M Tokens')}
+      />
     ),
     cell: ({ row }) => {
       const averagePrice = row.getValue('average_price') as number
@@ -346,7 +349,7 @@ export function userAveragePriceColumn<T extends UserColumnRow>(
           <TooltipTrigger
             render={<span className='cursor-default text-sm tabular-nums' />}
           >
-            {formatAmountCny(averagePrice)}/{t('100M Tokens')}
+            {formatAmountCny(averagePrice)} / {t('100M')}
           </TooltipTrigger>
           <TooltipContent>
             <span className='text-xs'>{t('Unit price per 100M tokens')}</span>
@@ -355,7 +358,7 @@ export function userAveragePriceColumn<T extends UserColumnRow>(
       )
     },
     enableSorting: true,
-    size: 110,
+    size: 140,
     meta: {
       mobileHidden: true,
       description: t('Unit price per 100M tokens'),
