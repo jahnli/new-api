@@ -156,15 +156,17 @@
 
 - `web/src/features/usage-logs/components/log-cost-display.tsx` — 费用列金额由半粗体改为常规字重，保留订阅提示和工具调用附加费标记。
 - `web/src/components/data-table/core/data-table-header.tsx`、`column-header.tsx`、`web/src/tanstack-table.d.ts` — 通用数据表格列元数据支持指定列头字重，并确保无排序与可排序列头都将样式应用到标题文字。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`log-user-cell.tsx` — 使用日志时间和用户列头改为半粗体，时间值、日志类型标签、用户名称和头像回退文字保持常规字重；令牌和 IP 地址徽章显式使用常规字重，IP 地球图标改为细描边。
-- `web/src/features/usage-logs/audit/components/audit-log-columns.tsx`、`audit-log-details-dialog.tsx` — 审计日志时间和用户列头改为半粗体，时间与用户单元格内容保持常规字重，详情列按钮中的“详情”文字使用常规字重。
+- `web/src/features/usage-logs/components/log-ip-address.tsx` — 抽取使用日志与审计日志共用的 IP 地址徽章，统一敏感信息遮蔽、复制、长地址悬浮提示、常规字重和细描边图标。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`log-user-cell.tsx` — 使用日志时间和用户列头改为半粗体，时间值、日志类型标签、用户名称和头像回退文字保持常规字重；令牌徽章使用常规字重，IP 地址改为复用公共组件。
+- `web/src/features/usage-logs/audit/components/audit-log-columns.tsx`、`audit-log-details-dialog.tsx` — 审计日志时间和用户列头改为半粗体，时间与用户单元格内容保持常规字重，详情列按钮中的“详情”文字使用常规字重；IP 地址改为复用公共组件并调整时间、IP 列宽。
+- `web/src/features/usage-logs/components/usage-logs-table.tsx`、`audit/components/audit-log-viewer.tsx` — 使用日志和审计日志表格正文及内部元素统一为常规字重。
 - `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx`、`group-price-display.test.tsx`、`components/columns/__tests__/self-scope-user-details.test.tsx`、`audit/__tests__/viewer.test.tsx` — 测试覆盖日志列头与内容字重、费用和令牌/IP 样式，以及审计详情按钮字重。
 
 ## 2026-09-10 审计日志详情弹框尺寸统一
 
 - `web/src/features/usage-logs/components/dialogs/log-detail-layout.tsx` — 提取日志详情弹框共用的桌面端宽度、移动端边距和内容高度配置。
 - `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 使用日志详情弹框改为复用统一尺寸配置。
-- `web/src/features/usage-logs/audit/components/audit-log-details-dialog.tsx` — 审计日志详情弹框复用使用日志的尺寸配置，桌面端统一为视口 50% 宽、内容最高 72dvh。
+- `web/src/features/usage-logs/audit/components/audit-detail-value.tsx`、`audit-log-details-dialog.tsx` — 审计详情值支持附加样式；审计日志详情弹框复用使用日志的尺寸配置，桌面端统一为视口 50% 宽、内容最高 72dvh，并将 User-Agent 内容宽度调整为弹框的 80%。
 
 ## 2026-09-10 User-Agent 采集规则统一
 

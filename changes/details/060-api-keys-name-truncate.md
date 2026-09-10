@@ -1,6 +1,6 @@
 # API 密钥界面优化
 
-**日期**: 2026-08-05
+**日期**: 2026-09-10
 
 ## 涉及文件
 
@@ -12,3 +12,4 @@
 - `web/src/features/keys/components/dialogs/cc-switch-dialog.tsx` — CC Switch 导入改用独立链接构造，不读取系统服务地址。
 - `web/src/features/keys/lib/cc-switch-import.ts` — 官网和 API 端点使用当前页面 Origin，Codex 保留 `/v1`。
 - `web/src/features/keys/components/dialogs/__tests__/cc-switch-import-url.test.ts` — 验证缓存 `server_address` 不覆盖当前 Origin 及 Codex 端点规则。
+- `web/src/features/keys/components/api-keys-mutate-drawer.tsx` — 打开编辑抽屉时默认展开高级设置，新建 API 密钥时仍默认收起，并在切换目标时重置展开状态。
