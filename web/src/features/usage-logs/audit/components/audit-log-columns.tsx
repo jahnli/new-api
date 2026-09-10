@@ -41,11 +41,15 @@ export function useAuditLogColumns(
         header: t('Time'),
         size: 180,
         cell: ({ row }) => (
-          <span className='font-mono tabular-nums'>
+          <span className='font-mono font-normal tabular-nums'>
             {dayjs.unix(row.original.created_at).format('YYYY-MM-DD HH:mm:ss')}
           </span>
         ),
-        meta: { label: t('Time'), mobileTitle: true },
+        meta: {
+          label: t('Time'),
+          mobileTitle: true,
+          headerClassName: 'font-semibold',
+        },
       },
     ]
     if (!accessOnly) {
@@ -67,7 +71,7 @@ export function useAuditLogColumns(
               sensitiveVisible
             />
           ),
-          meta: { label: t('User') },
+          meta: { label: t('User'), headerClassName: 'font-semibold' },
         },
         {
           id: 'event',

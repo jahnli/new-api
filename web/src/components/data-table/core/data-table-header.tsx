@@ -59,6 +59,7 @@ export function DataTableHeader<TData>({
               data-column-id={header.column.id}
               className={cn(
                 'relative',
+                header.column.columnDef.meta?.headerClassName,
                 getColumnClassName?.(header.column.id, 'header')
               )}
               style={getHeaderSizeStyle(header, applyHeaderSize)}

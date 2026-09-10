@@ -381,7 +381,7 @@ export function useCommonLogsColumns(
 
         return (
           <div className='flex min-w-0 flex-col gap-0.5'>
-            <span className='truncate font-mono text-xs tabular-nums'>
+            <span className='truncate font-mono text-xs font-normal tabular-nums'>
               {formatTimestampToDate(timestamp)}
             </span>
             <StatusBadge
@@ -389,7 +389,7 @@ export function useCommonLogsColumns(
               variant={config.color as StatusBadgeProps['variant']}
               size='sm'
               copyable={false}
-              className='!text-xs [&_span]:!text-xs'
+              className='!text-xs font-normal [&_span]:!text-xs'
             />
           </div>
         )
@@ -401,6 +401,7 @@ export function useCommonLogsColumns(
       },
       enableHiding: false,
       size: 155,
+      meta: { headerClassName: 'font-semibold' },
     },
   ]
 
@@ -425,6 +426,7 @@ export function useCommonLogsColumns(
           />
         )
       },
+      meta: { headerClassName: 'font-semibold' },
     })
   }
 
@@ -921,7 +923,7 @@ export function useCommonLogsColumns(
                     copyText={sensitiveVisible ? ipAddress : undefined}
                     size='sm'
                     showDot={false}
-                    className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 font-mono'
+                    className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 font-mono font-normal [&_svg]:stroke-[1.5]'
                   />
                 </TooltipTrigger>
                 {sensitiveVisible && ipAddress.length > 15 && (

@@ -96,6 +96,24 @@ function TokenColumnCell(props: { log: UsageLog }) {
   return <Cell row={{ original: props.log }} />
 }
 
+function IpAddressColumnCell(props: { log: UsageLog }) {
+  const columns = useCommonLogsColumns(false, {
+    showUserColumn: false,
+    showChannelColumn: false,
+  })
+  const ipColumn = columns.find(
+    (column) => 'accessorKey' in column && column.accessorKey === 'ip'
+  )
+  if (!ipColumn || typeof ipColumn.cell !== 'function') {
+    throw new TypeError('Expected the usage log IP column to provide a cell')
+  }
+
+  const Cell = ipColumn.cell as ComponentType<{
+    row: { original: UsageLog }
+  }>
+  return <Cell row={{ original: props.log }} />
+}
+
 function renderDetailsColumn(log: UsageLog): string {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -110,6 +128,22 @@ function renderDetailsColumn(log: UsageLog): string {
 }
 
 describe('usage log group price display', () => {
+  test('shows the IP address and icon without bold styling', () => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <UsageLogsProvider>
+          <IpAddressColumnCell log={{ ...groupedLog, ip: '192.0.2.8' }} />
+        </UsageLogsProvider>
+      </I18nextProvider>
+    )
+
+    const ipBadge = screen
+      .getByText('192.0.2.8')
+      .closest('[data-slot="status-badge"]')
+    expect(ipBadge).toHaveClass('font-normal', '[&_svg]:stroke-[1.5]')
+    expect(ipBadge).not.toHaveClass('font-medium')
+  })
+
   test('shows the token badge with normal font weight', () => {
     render(
       <I18nextProvider i18n={i18n}>
