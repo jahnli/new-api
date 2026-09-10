@@ -18,12 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
 import { CircleAlert, GitBranch, Globe, KeyRound, Sparkles } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { LongText } from '@/components/long-text'
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Popover,
   PopoverContent,
@@ -35,27 +33,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
-import type { UserColumnRow } from '@/features/users/types'
 import { useDemoMode } from '@/hooks/use-demo-mode'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { stringToColor } from '@/lib/colors'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
-import {
-  DEMO_MODE_MASK,
-  getDemoModeUsername,
-  maskFormattedCurrencyAmount,
-} from '@/lib/demo-mode'
+import { DEMO_MODE_MASK, maskFormattedCurrencyAmount } from '@/lib/demo-mode'
 import {
   formatLogQuota,
   formatTimestampToDate,
   formatUseTime,
 } from '@/lib/format'
 import { ROLE } from '@/lib/roles'
-import { buildFeishuUserChatUrl, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { getUserInfo } from '../../api'
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_ENUM } from '../../constants'
 import type { UsageLog } from '../../data/schema'
 import { getUsageLogChannelDisplay } from '../../lib/channel-visibility'
@@ -80,6 +70,7 @@ import type { LogOtherData } from '../../types'
 import { DetailsDialog } from '../dialogs/details-dialog'
 import { RequestContentDialog } from '../dialogs/request-content-dialog'
 import { LogCostDisplay } from '../log-cost-display'
+import { LogUserCell } from '../log-user-cell'
 import { ModelBadge } from '../model-badge'
 import {
   parseUserMessages,
@@ -421,162 +412,17 @@ export function useCommonLogsColumns(
       cell: function UserCell({ row }) {
         const { sensitiveVisible } = useUsageLogsContext()
         const log = row.original
-        const [userData, setUserData] = useState<UserColumnRow | null>(null)
-        const fetchedRef = useRef(false)
-
-        const handleFetchUser = useCallback(() => {
-          if (
-            demoMode ||
-            !canFetchUserDetails ||
-            fetchedRef.current ||
-            !sensitiveVisible
-          ) {
-            return
-          }
-          fetchedRef.current = true
-          void getUserInfo(log.user_id).then((res) => {
-            if (res.success && res.data) {
-              const info = res.data
-              setUserData({
-                id: info.id,
-                username: info.username,
-                display_name: info.display_name || info.username,
-                email: info.email,
-                avatar_url: info.avatar_url,
-                remark: info.remark,
-                quota: info.quota,
-                used_quota: info.used_quota,
-                sub_quota_used: 0,
-                sub_quota_total: 0,
-                request_count: info.request_count,
-                group: info.group || '',
-                status: info.status ?? 1,
-                role: info.role ?? 1,
-                department_name: info.department_name,
-                custom_field_values: info.custom_field_values,
-                join_date: info.join_date,
-                job_number: info.job_number,
-                job_title: info.job_title,
-                description: info.description,
-                background_image: info.background_image,
-                mobile: info.mobile,
-                open_id: info.open_id,
-                gender: info.gender,
-              })
-            }
-          })
-        }, [log.user_id, sensitiveVisible])
-
-        if (!log.username) return null
-
-        const resolvedUsername = userData?.username || log.username
-        const primaryName = getDemoModeUsername(
-          userData?.display_name || log.display_name || resolvedUsername,
-          demoMode
-        )
-
-        if (demoMode) {
-          return (
-            <LongText className='w-[120px] font-medium'>{primaryName}</LongText>
-          )
-        }
-
-        if (!sensitiveVisible) {
-          return (
-            <div className='flex min-w-0 items-center gap-2'>
-              <Avatar size='sm' className='shrink-0'>
-                <AvatarFallback className='bg-muted text-muted-foreground text-xs font-medium'>
-                  •
-                </AvatarFallback>
-              </Avatar>
-              <div className='flex min-w-0 flex-1 flex-col gap-1'>
-                <LongText className='max-w-full font-medium'>••••</LongText>
-              </div>
-            </div>
-          )
-        }
-
-        const avatarFallback = getUserAvatarFallback(primaryName)
-        const avatarFallbackStyle = getUserAvatarStyle(primaryName)
-        const feishuChatUrl = buildFeishuUserChatUrl(
-          userData?.open_id ?? log.open_id
-        )
-        const avatarUrl = userData?.avatar_url || log.avatar_url
-
-        const baseUser: UserColumnRow = userData ?? {
-          id: log.user_id,
-          username: resolvedUsername,
-          display_name: log.display_name || resolvedUsername,
-          avatar_url: log.avatar_url || undefined,
-          quota: 0,
-          used_quota: 0,
-          sub_quota_used: 0,
-          sub_quota_total: 0,
-          request_count: 0,
-          group: '',
-          status: 1,
-          role: 1,
-          open_id: log.open_id || undefined,
-          gender: log.gender,
-        }
-
-        const avatarEl = feishuChatUrl ? (
-          <a
-            href={feishuChatUrl}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='focus-visible:ring-ring rounded-full focus-visible:ring-2 focus-visible:outline-none'
-            onClick={(event) => event.stopPropagation()}
-          >
-            <Avatar size='sm' className='shrink-0'>
-              {avatarUrl && <AvatarImage src={avatarUrl} alt={primaryName} />}
-              <AvatarFallback
-                className='text-xs font-medium text-white'
-                style={avatarFallbackStyle}
-              >
-                {avatarFallback}
-              </AvatarFallback>
-            </Avatar>
-          </a>
-        ) : (
-          <Avatar size='sm' className='shrink-0'>
-            {avatarUrl && <AvatarImage src={avatarUrl} alt={primaryName} />}
-            <AvatarFallback
-              className='text-xs font-medium text-white'
-              style={avatarFallbackStyle}
-            >
-              {avatarFallback}
-            </AvatarFallback>
-          </Avatar>
-        )
-
-        const userAvatar = canFetchUserDetails ? (
-          <UserProfileHoverCard user={baseUser}>
-            {avatarEl}
-          </UserProfileHoverCard>
-        ) : (
-          avatarEl
-        )
-
         return (
-          <div
-            className='flex w-[120px] min-w-0 items-center gap-2'
-            onMouseEnter={handleFetchUser}
-          >
-            {userAvatar}
-            <div className='flex min-w-0 flex-1 flex-col gap-1'>
-              <LongText className='max-w-full font-medium'>
-                {primaryName}
-              </LongText>
-              {primaryName !== resolvedUsername ? (
-                <div className='text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs'>
-                  <LongText className='min-w-0 flex-1'>
-                    {resolvedUsername}
-                  </LongText>
-                </div>
-              ) : null}
-            </div>
-          </div>
+          <LogUserCell
+            userId={log.user_id}
+            username={log.username}
+            displayName={log.display_name}
+            avatarUrl={log.avatar_url || undefined}
+            openId={log.open_id || undefined}
+            gender={log.gender}
+            canFetchUserDetails={canFetchUserDetails}
+            sensitiveVisible={sensitiveVisible}
+          />
         )
       },
     })

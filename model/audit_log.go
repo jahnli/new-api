@@ -10,6 +10,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -24,25 +25,29 @@ const (
 // AuditLog is retained independently of usage logs and their cleanup/TTL policy.
 // TokenRef identifies a PAT generation without storing its bearer credential.
 type AuditLog struct {
-	Id         int        `json:"id"`
-	EventId    string     `json:"event_id" gorm:"type:varchar(64);uniqueIndex"`
-	UserId     int        `json:"user_id" gorm:"index:idx_audit_user_time,priority:1"`
-	Username   string     `json:"username" gorm:"type:varchar(64);index"`
-	ActorRole  int        `json:"actor_role"` // Immutable role of the actor when the event began, not the log owner.
-	CreatedAt  int64      `json:"created_at" gorm:"type:bigint;index:idx_audit_user_time,priority:2;index:idx_audit_token_time,priority:2;index"`
-	Category   string     `json:"category" gorm:"type:varchar(24);index"`
-	Action     string     `json:"action" gorm:"type:varchar(128)"`
-	TokenRef   string     `json:"token_ref" gorm:"type:varchar(64);index:idx_audit_token_time,priority:1"`
-	AuthMethod string     `json:"auth_method" gorm:"type:varchar(24)"`
-	Ip         string     `json:"ip" gorm:"type:varchar(64)"`
-	UserAgent  string     `json:"user_agent" gorm:"type:varchar(512)"`
-	Method     string     `json:"method" gorm:"type:varchar(16)"`
-	Route      string     `json:"route" gorm:"type:varchar(255)"`
-	Status     int        `json:"status"`
-	Success    bool       `json:"success"`
-	RequestId  string     `json:"request_id" gorm:"type:varchar(64);index"`
-	Content    string     `json:"content" gorm:"type:text"`
-	Other      AuditOther `json:"other" gorm:"type:json"`
+	Id          int        `json:"id"`
+	EventId     string     `json:"event_id" gorm:"type:varchar(64);uniqueIndex"`
+	UserId      int        `json:"user_id" gorm:"index:idx_audit_user_time,priority:1"`
+	Username    string     `json:"username" gorm:"type:varchar(64);index"`
+	DisplayName string     `json:"display_name" gorm:"-"`
+	AvatarUrl   string     `json:"avatar_url" gorm:"-"`
+	OpenId      string     `json:"open_id" gorm:"-"`
+	Gender      int        `json:"gender" gorm:"-"`
+	ActorRole   int        `json:"actor_role"` // Immutable role of the actor when the event began, not the log owner.
+	CreatedAt   int64      `json:"created_at" gorm:"type:bigint;index:idx_audit_user_time,priority:2;index:idx_audit_token_time,priority:2;index"`
+	Category    string     `json:"category" gorm:"type:varchar(24);index"`
+	Action      string     `json:"action" gorm:"type:varchar(128)"`
+	TokenRef    string     `json:"token_ref" gorm:"type:varchar(64);index:idx_audit_token_time,priority:1"`
+	AuthMethod  string     `json:"auth_method" gorm:"type:varchar(24)"`
+	Ip          string     `json:"ip" gorm:"type:varchar(64)"`
+	UserAgent   string     `json:"user_agent" gorm:"type:varchar(512)"`
+	Method      string     `json:"method" gorm:"type:varchar(16)"`
+	Route       string     `json:"route" gorm:"type:varchar(255)"`
+	Status      int        `json:"status"`
+	Success     bool       `json:"success"`
+	RequestId   string     `json:"request_id" gorm:"type:varchar(64);index"`
+	Content     string     `json:"content" gorm:"type:text"`
+	Other       AuditOther `json:"other" gorm:"type:json"`
 }
 
 type AuditLogFilter struct {
@@ -183,6 +188,24 @@ func GetAuditLogs(filter AuditLogFilter, start, limit, viewerRole int) ([]*Audit
 	logs := make([]*AuditLog, 0)
 	if err := query.Order("created_at DESC").Order("event_id DESC").Offset(start).Limit(limit).Find(&logs).Error; err != nil {
 		return nil, 0, err
+	}
+	userIds := types.NewSet[int]()
+	for _, entry := range logs {
+		if entry.UserId != 0 {
+			userIds.Add(entry.UserId)
+		}
+	}
+	userInfo, err := getLogUserInfoMap(userIds.Items())
+	if err != nil {
+		return nil, 0, err
+	}
+	for _, entry := range logs {
+		if user, ok := userInfo[entry.UserId]; ok {
+			entry.DisplayName = user.DisplayName
+			entry.AvatarUrl = user.AvatarUrl
+			entry.OpenId = user.OpenId
+			entry.Gender = user.Gender
+		}
 	}
 	visibility := logOtherVisibilityUser
 	if !filter.SelfView && viewerRole >= common.RoleRootUser {

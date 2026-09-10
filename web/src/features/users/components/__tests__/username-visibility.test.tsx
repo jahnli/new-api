@@ -27,6 +27,20 @@ const user: UserColumnRow = {
 }
 
 describe('shared username column visibility', () => {
+  test('shows the primary user name with normal font weight', () => {
+    const column = userNameColumn<UserColumnRow>((key) => key, false)
+    const cell = column.cell
+    assert.equal(typeof cell, 'function')
+    if (typeof cell !== 'function') {
+      throw new TypeError('Expected the username column to provide a cell')
+    }
+
+    const element = cell({ row: { original: user } } as never)
+    const html = renderToStaticMarkup(element as ReactElement)
+
+    expect(html).toMatch(/class="[^"]*font-normal[^"]*">Alice Example<\/div>/)
+  })
+
   test('shows only the demo mask instead of user identity details in demo mode', () => {
     const column = userNameColumn<UserColumnRow>((key) => key, true)
     const cell = column.cell
@@ -39,6 +53,8 @@ describe('shared username column visibility', () => {
     const html = renderToStaticMarkup(element as ReactElement)
 
     assert.match(html, /\*\*\*/)
+    expect(html).toMatch(/font-normal/)
+    expect(html).not.toMatch(/font-medium/)
     expect(html).not.toMatch(/alice/i)
     expect(html).not.toMatch(/Finance administrator/)
     expect(html).not.toMatch(/<img|<a/)

@@ -24,12 +24,14 @@ import { TruncatedCell } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import dayjs from '@/lib/dayjs'
 
+import { LogUserCell } from '../../components/log-user-cell'
 import type { AuditLog } from '../api'
 import { buildAuditDetails } from '../lib/audit-details'
 import { AuditLogDetailsDialog } from './audit-log-details-dialog'
 
 export function useAuditLogColumns(
-  accessOnly?: boolean
+  accessOnly?: boolean,
+  canFetchUserDetails?: boolean
 ): ColumnDef<AuditLog>[] {
   const { t } = useTranslation()
   return useMemo(() => {
@@ -49,10 +51,23 @@ export function useAuditLogColumns(
     if (!accessOnly) {
       columns.push(
         {
-          accessorKey: 'username',
-          header: t('Username'),
-          size: 100,
-          meta: { label: t('Username') },
+          id: 'user',
+          accessorFn: (entry) => entry.username,
+          header: t('User'),
+          size: 150,
+          cell: ({ row }) => (
+            <LogUserCell
+              userId={row.original.user_id}
+              username={row.original.username}
+              displayName={row.original.display_name}
+              avatarUrl={row.original.avatar_url}
+              openId={row.original.open_id}
+              gender={row.original.gender}
+              canFetchUserDetails={canFetchUserDetails}
+              sensitiveVisible
+            />
+          ),
+          meta: { label: t('User') },
         },
         {
           id: 'event',
@@ -181,5 +196,5 @@ export function useAuditLogColumns(
       }
     )
     return columns
-  }, [accessOnly, t])
+  }, [accessOnly, canFetchUserDetails, t])
 }

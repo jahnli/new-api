@@ -9,6 +9,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { CUSTOM_FIELD_KEYS, type UserColumnRow } from '../../types'
 import {
   userEmploymentOverviewColumn,
+  userModelColumn,
   useSharedUserColumns,
 } from '../shared-user-columns'
 
@@ -67,6 +68,34 @@ function TestWrapper(props: { children: ReactNode }) {
 }
 
 describe('user employment overview column', () => {
+  test('shows the common model badge with normal font weight', () => {
+    const column = userModelColumn<UserColumnRow>((key) => key, {
+      accessor: 'monthly_common_model',
+      variant: 'badge',
+    })
+    const cell = column.cell
+    assert.equal(typeof cell, 'function')
+    if (typeof cell !== 'function') {
+      throw new TypeError('Expected the model column to provide a cell')
+    }
+
+    const element = cell({
+      row: {
+        original: { ...user, monthly_common_model: 'deepseek-v4-pro' },
+      },
+    } as never)
+    const { container } = render(element as ReactElement, {
+      wrapper: TestWrapper,
+    })
+
+    expect(container.querySelector('[data-slot="status-badge"]')).toHaveClass(
+      'font-normal'
+    )
+    expect(
+      container.querySelector('[data-slot="status-badge"]')
+    ).not.toHaveClass('font-medium')
+  })
+
   test('shows plain department and job level above the join date', () => {
     const column = userEmploymentOverviewColumn<UserColumnRow>((key) => key)
     expect(column).toMatchObject({
@@ -90,7 +119,10 @@ describe('user employment overview column', () => {
     expect(screen.getByText(/^Department/)).toHaveClass('sr-only')
     expect(
       screen.getByText('Headquarters/Engineering/AI Platform')
-    ).toHaveClass('text-foreground', 'font-medium')
+    ).toHaveClass('text-foreground', 'font-normal')
+    expect(
+      screen.getByText('Headquarters/Engineering/AI Platform')
+    ).not.toHaveClass('font-medium')
     expect(screen.getByText(/^Job Level/)).toHaveClass('sr-only')
     expect(screen.getByText('P6')).toHaveClass(
       'text-foreground',

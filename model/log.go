@@ -669,6 +669,30 @@ func GetLogsByUserIds(userIDs []int, logType int, startTimestamp int64, endTimes
 	return getLogsWithUserIDs(userIDs, logType, startTimestamp, endTimestamp, modelName, username, tokenName, startIdx, num, channelValue, group, requestId, upstreamRequestId, "")
 }
 
+type logUserInfo struct {
+	Id          int    `gorm:"column:id"`
+	DisplayName string `gorm:"column:display_name"`
+	AvatarUrl   string `gorm:"column:avatar_url"`
+	OpenId      string `gorm:"column:open_id"`
+	Gender      int    `gorm:"column:gender"`
+}
+
+func getLogUserInfoMap(userIds []int) (map[int]logUserInfo, error) {
+	userMap := make(map[int]logUserInfo, len(userIds))
+	if len(userIds) == 0 {
+		return userMap, nil
+	}
+
+	var users []logUserInfo
+	if err := DB.Table("users").Select("id, display_name, avatar_url, open_id, gender").Where("id IN ?", userIds).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		userMap[user.Id] = user
+	}
+	return userMap, nil
+}
+
 func fillLogUserInfo(logs []*Log) error {
 	userIds := types.NewSet[int]()
 	for _, log := range logs {
@@ -676,25 +700,9 @@ func fillLogUserInfo(logs []*Log) error {
 			userIds.Add(log.UserId)
 		}
 	}
-	if userIds.Len() == 0 {
-		return nil
-	}
-
-	type logUserInfo struct {
-		Id          int    `gorm:"column:id"`
-		DisplayName string `gorm:"column:display_name"`
-		AvatarUrl   string `gorm:"column:avatar_url"`
-		OpenId      string `gorm:"column:open_id"`
-		Gender      int    `gorm:"column:gender"`
-	}
-	var users []logUserInfo
-	if err := DB.Table("users").Select("id, display_name, avatar_url, open_id, gender").Where("id IN ?", userIds.Items()).Find(&users).Error; err != nil {
+	userMap, err := getLogUserInfoMap(userIds.Items())
+	if err != nil {
 		return err
-	}
-
-	userMap := make(map[int]logUserInfo, len(users))
-	for _, user := range users {
-		userMap[user.Id] = user
 	}
 	for _, log := range logs {
 		if user, ok := userMap[log.UserId]; ok {

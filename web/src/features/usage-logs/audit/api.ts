@@ -23,6 +23,10 @@ export interface AuditLog {
   event_id: string
   user_id: number
   username: string
+  display_name?: string
+  avatar_url?: string
+  open_id?: string
+  gender?: number
   actor_role: number
   created_at: number
   category: string

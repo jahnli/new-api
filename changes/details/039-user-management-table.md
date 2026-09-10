@@ -14,7 +14,7 @@
 - `web/default/src/features/users/components/users-table.tsx` — 用户管理表格启用手动服务端排序，排序变化时重置到第一页，并将均价列映射到后端月度均价排序字段。
 - `web/default/src/features/users/types.ts` — 用户列表查询参数补充 sort_by/sort_order。
 - `web/default/src/features/users/components/users-columns.tsx` — 用户管理表格新增月度总消耗、Token、请求次数、常用模型列，并将请求数提示改为使用 `logs` 聚合结果。
-- `web/default/src/features/users/components/shared-user-columns.tsx` — 请求次数格式化统一（与数据总览保持一致）；抽取 `useSharedUserColumns` hook 统一用户管理与数据总览部门用户表格列定义；用户名列头像点击支持通过 open_id 跳转飞书且悬停仍显示资料卡片；调整用户列表 ID、用户名、总费用、Token、请求次数、部门、最后登录等列宽；部门列超出省略并悬停显示完整路径；调整列顺序为部门、职级、最后登录、常用模型；总费用右侧新增每百万 Token 均价列，显示 `/MT` 单位并接入排序表头；额度和均价列头新增贴近列名的说明图标，悬停表头可查看当前自然月额度统计说明和每百万 Token 均价说明
+- `web/default/src/features/users/components/shared-user-columns.tsx` — 请求次数格式化统一（与数据总览保持一致）；抽取 `useSharedUserColumns` hook 统一用户管理与数据总览部门用户表格列定义；用户名列头像点击支持通过 open_id 跳转飞书且悬停仍显示资料卡片；用户显示名与常用模型徽章改为常规字重；调整用户列表 ID、用户名、总费用、Token、请求次数、部门、最后登录等列宽；部门列超出省略并悬停显示完整路径；调整列顺序为部门、职级、最后登录、常用模型；总费用右侧新增每百万 Token 均价列，显示 `/MT` 单位并接入排序表头；额度和均价列头新增贴近列名的说明图标，悬停表头可查看当前自然月额度统计说明和每百万 Token 均价说明
 - `web/default/src/components/long-text.tsx` — 移动端长文本弹出层使用非按钮元素作为触发器时显式关闭 nativeButton，消除 Base UI 可访问性警告
 - `web/default/src/features/data-overview/components/department-users-table.tsx` — 改用 `useSharedUserColumns` hook，移除独立的列定义
 - `web/default/src/features/users/components/users-table.tsx` — 默认排序由 quota 降序改为 created_at 降序；getRowClassName 改为 early-return 写法
@@ -105,7 +105,7 @@
 ## 2026-09-10 任职概况与时间列
 
 - `web/src/components/activity-time-cell.tsx` — 活动时间单元格支持按调用方传入语义图标替代可见文字标签并配置两项时间的展示顺序，同时保留悬停标题与屏幕阅读器文案；未传图标和顺序的调用继续使用原文字标签与创建时间优先顺序。
-- `web/src/features/users/components/shared-user-columns.tsx` — 新增“任职概况”共享列，以两行摘要布局展示部门、岗位职级和入职日期：首行用加粗文字突出部门，次行以普通文本展示职级并用日历图标展示入职日期，不使用部门图标和标签外框；内容区域设置明确的固定与最大宽度，部门、职级和日期超出可用空间时显示省略号，第二行将职级固定为 88px，使各行日期保持对齐并移除多余分隔符；时间列使用新增用户和登录图标区分创建时间与最后登录，并调整为最后登录在上、创建时间在下；状态列移至常用模型之前，同时保留其他共享表格原有行为。
+- `web/src/features/users/components/shared-user-columns.tsx` — 新增“任职概况”共享列，以两行摘要布局展示部门、岗位职级和入职日期：首行部门、用户显示名及常用模型徽章统一使用常规字重，次行展示职级并用日历图标展示入职日期，不使用部门图标和标签外框；内容区域设置明确的固定与最大宽度，部门、职级和日期超出可用空间时显示省略号，第二行将职级固定为 88px，使各行日期保持对齐并移除多余分隔符；时间列使用新增用户和登录图标区分创建时间与最后登录，并调整为最后登录在上、创建时间在下；状态列移至常用模型之前，同时保留其他共享表格原有行为。
 - `web/src/features/users/components/users-columns.tsx` — 用户管理表格启用任职概况合并列，替代原部门、岗位职级和入职日期三列。
 - `web/src/features/users/components/__tests__/activity-time-display.test.tsx` — 覆盖用户时间列的语义图标、隐藏辅助文案、最后登录优先的完整时间值，以及时间和状态均位于常用模型前的列顺序；API 密钥时间列仍使用原文字标签与默认顺序。
 - `web/src/features/users/components/__tests__/employment-overview.test.tsx` — 覆盖无图标部门主信息、固定宽度职级、无分隔符日期布局、日期图标、隐藏字段标签和收窄列宽的摘要展示，以及启用合并后独立列被替换的列结构。

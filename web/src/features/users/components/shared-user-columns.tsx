@@ -136,7 +136,7 @@ export function userNameColumn<T extends UserColumnRow>(
 
       if (demoMode) {
         return (
-          <LongText className='w-[130px] font-medium'>{primaryName}</LongText>
+          <LongText className='w-[130px] font-normal'>{primaryName}</LongText>
         )
       }
 
@@ -173,7 +173,7 @@ export function userNameColumn<T extends UserColumnRow>(
             )}
           </UserProfileHoverCard>
           <div className='flex min-w-0 flex-1 flex-col gap-1'>
-            <LongText className='max-w-full font-medium'>
+            <LongText className='max-w-full font-normal'>
               {primaryName}
             </LongText>
             {(displayName && displayName !== username) || remark ? (
@@ -431,7 +431,7 @@ export function userModelColumn<T extends UserColumnRow>(
         return <span className='text-muted-foreground text-sm'>-</span>
       }
       if (opts.variant === 'badge') {
-        return <ModelBadge modelName={modelName} />
+        return <ModelBadge modelName={modelName} className='font-normal' />
       }
       return (
         <Tooltip>
@@ -547,7 +547,7 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
           <div className='w-full min-w-0 overflow-hidden'>
             <span className='sr-only'>{t('Department')}:</span>
             {department ? (
-              <LongText className='text-foreground w-full min-w-0 font-medium'>
+              <LongText className='text-foreground w-full min-w-0 font-normal'>
                 {department}
               </LongText>
             ) : (

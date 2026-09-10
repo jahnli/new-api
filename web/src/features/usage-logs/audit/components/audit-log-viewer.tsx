@@ -117,7 +117,7 @@ export function AuditLogViewer(props: {
   useEffect(() => {
     if (accessDenied) void onAccessDenied?.()
   }, [accessDenied, onAccessDenied])
-  const columns = useAuditLogColumns(props.accessOnly)
+  const columns = useAuditLogColumns(props.accessOnly, props.scope === 'all')
   const { table } = useDataTable({
     columns,
     data:

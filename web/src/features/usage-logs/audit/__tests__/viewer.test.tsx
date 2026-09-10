@@ -615,6 +615,79 @@ it('administrator scope uses the admin endpoint and exposes the username filter'
   )
 })
 
+it('renders the audit user column with the usage-log identity UI', async () => {
+  const get = vi.spyOn(api, 'get').mockImplementation(async (url) => {
+    if (url === '/api/user/42') {
+      return {
+        data: {
+          success: true,
+          data: {
+            id: 42,
+            username: 'alice',
+            display_name: 'Alice Example',
+            avatar_url: 'https://example.com/alice.png',
+            quota: 0,
+            used_quota: 0,
+            request_count: 3,
+          },
+        },
+      }
+    }
+    return {
+      data: {
+        success: true,
+        data: {
+          total: 1,
+          items: [
+            {
+              event_id: 'user-identity-event',
+              user_id: 42,
+              username: 'alice',
+              display_name: 'Alice Example',
+              avatar_url: 'https://example.com/alice.png',
+              created_at: 1788600600,
+              category: 'security',
+              action: 'user.security_verify',
+              ip: '127.0.0.1',
+              method: 'POST',
+              route: '/api/verify',
+              status: 200,
+              success: true,
+              other: {},
+            },
+          ],
+        },
+      },
+    }
+  })
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  render(
+    <QueryClientProvider client={client}>
+      <AuditLogViewer scope='all' />
+    </QueryClientProvider>
+  )
+
+  expect(
+    await screen.findByRole('columnheader', { name: 'User' })
+  ).toBeVisible()
+  const displayName = await screen.findByText('Alice Example')
+  const username = screen.getByText('alice')
+  const userCell = username.closest('td')
+  expect(userCell?.querySelector('[data-slot="avatar"]')).not.toBeNull()
+  expect(get).not.toHaveBeenCalledWith('/api/user/42')
+
+  const identity = displayName.parentElement?.parentElement
+  expect(identity).not.toBeNull()
+  fireEvent.mouseEnter(identity as HTMLElement)
+
+  await waitFor(() => expect(get).toHaveBeenCalledWith('/api/user/42'))
+  expect(
+    userCell?.querySelector('[data-slot="hover-card-trigger"]')
+  ).not.toBeNull()
+})
+
 it('changing rows per page resets pagination and sends the selected page size', async () => {
   const get = vi.spyOn(api, 'get').mockResolvedValue({
     data: { success: true, data: { items: [], total: 80 } },

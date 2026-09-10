@@ -50,7 +50,7 @@ func setupAccessTokenAudit(t *testing.T) (*model.User, string) {
 		common.RedisEnabled = previousRedis
 	})
 	token := "legacy-opaque-token"
-	user := &model.User{Username: "audit-owner", Password: "placeholder", Role: common.RoleAdminUser, Status: common.UserStatusEnabled, Group: "default", AccessToken: &token, AuthVersion: 1}
+	user := &model.User{Username: "audit-owner", DisplayName: "Audit Owner", AvatarUrl: "https://example.com/audit-owner.png", OpenId: "ou_audit_owner", Gender: 1, Password: "placeholder", Role: common.RoleAdminUser, Status: common.UserStatusEnabled, Group: "default", AccessToken: &token, AuthVersion: 1}
 	require.NoError(t, db.Create(user).Error)
 	return user, token
 }
@@ -197,6 +197,10 @@ func TestAuditIsolationVisibilityAndFailureContracts(t *testing.T) {
 	require.Equal(t, 1, result.Data.Total)
 	require.Len(t, result.Data.Items, 1)
 	assert.Equal(t, user.Id, result.Data.Items[0].UserId)
+	assert.Equal(t, user.DisplayName, result.Data.Items[0].DisplayName)
+	assert.Equal(t, user.AvatarUrl, result.Data.Items[0].AvatarUrl)
+	assert.Equal(t, user.OpenId, result.Data.Items[0].OpenId)
+	assert.Equal(t, user.Gender, result.Data.Items[0].Gender)
 	assert.NotContains(t, response.Body.String(), "admin_info")
 	assert.NotContains(t, response.Body.String(), "root-only")
 	var payload struct {
@@ -703,6 +707,12 @@ func TestAuditDatabaseMatrix(t *testing.T) {
 					if !upgrade {
 						require.NoError(t, db.Create(&model.User{Username: "fresh-owner", Password: "placeholder"}).Error)
 					}
+					require.NoError(t, db.Model(&model.User{}).Where("id = ?", 1).Updates(map[string]interface{}{
+						"display_name": "Matrix Owner",
+						"avatar_url":   "https://example.com/matrix-owner.png",
+						"open_id":      "ou_matrix_owner",
+						"gender":       2,
+					}).Error)
 					status, err := model.GetUserAccessTokenStatus(1)
 					require.NoError(t, err)
 					assert.Equal(t, upgrade, status.Exists)
@@ -729,6 +739,10 @@ func TestAuditDatabaseMatrix(t *testing.T) {
 					assert.EqualValues(t, 3, total)
 					require.Len(t, first, 2)
 					assert.EqualValues(t, 103, first[0].CreatedAt)
+					assert.Equal(t, "Matrix Owner", first[0].DisplayName)
+					assert.Equal(t, "https://example.com/matrix-owner.png", first[0].AvatarUrl)
+					assert.Equal(t, "ou_matrix_owner", first[0].OpenId)
+					assert.Equal(t, 2, first[0].Gender)
 					second, _, err := model.GetAuditLogs(model.AuditLogFilter{UserId: 1}, 2, 2, common.RoleCommonUser)
 					require.NoError(t, err)
 					require.Len(t, second, 1)
