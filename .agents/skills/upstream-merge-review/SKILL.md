@@ -131,7 +131,7 @@ git diff <merge-commit> <upstream-parent> -- <file>
 
 - `changes/CHANGELOG.md`；
 - 与重叠文件匹配的 `changes/details/*.md`；
-- 最终版本中的重叠文件、直接调用方、相关配置和测试。
+- 最终版本中的重叠文件、直接调用方、相关配置
 
 每项本地功能至少记录：
 
@@ -140,7 +140,6 @@ git diff <merge-commit> <upstream-parent> -- <file>
 - 上游对同一文件或契约的修改；
 - 最终运行行为；
 - 风险等级；
-- 自动测试和人工测试覆盖情况。
 
 若文件未写入 CHANGELOG，但包含明显本地不变量（品牌命名、锁顺序、模块独立性、权限边界等），以“本地不变量”单独列出，不得忽略。
 
@@ -158,7 +157,6 @@ git diff <merge-commit> <upstream-parent> -- <file>
 - 上游新增、删除或重构了什么；
 - 最终版本现在怎样运行；
 - 哪些协议、角色、渠道、配置或部署方式会观察到变化；
-- 关键文件和测试证据。
 
 优先识别以下变化：
 
