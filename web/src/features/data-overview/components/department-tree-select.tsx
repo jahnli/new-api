@@ -7,7 +7,7 @@ import {
   X,
   Loader2,
 } from 'lucide-react'
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -51,18 +51,17 @@ export function DepartmentTreeSelect(props: DepartmentTreeSelectProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (open) {
-      if (props.value && props.treeData.length > 0) {
-        setActivePath(findNodePath(props.treeData, props.value))
-      } else {
-        setActivePath([])
-      }
-      setTimeout(() => searchInputRef.current?.focus(), 80)
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      // Initialize only on opening; lazy tree updates must preserve navigation.
+      setActivePath(
+        props.value ? findNodePath(props.treeData, props.value) : []
+      )
     } else {
       setSearchQuery('')
     }
-  }, [open, props.value, props.treeData])
+    setOpen(nextOpen)
+  }
 
   const selectedLabel = useMemo(() => {
     if (!props.value) return null
@@ -83,7 +82,7 @@ export function DepartmentTreeSelect(props: DepartmentTreeSelectProps) {
       // in-flight (loadingNodeValues does not contain the node value).
       const needsFetch =
         node.loading && !props.loadingNodeValues?.has(node.value)
-      if (needsFetch && canNavigateCompanyNode(node)) {
+      if (needsFetch && canNavigateDepartmentNode(node)) {
         props.onLoadNodeChildren?.(node)
       }
     },
@@ -93,7 +92,7 @@ export function DepartmentTreeSelect(props: DepartmentTreeSelectProps) {
   const handleSelect = (node: DeptTreeNode) => {
     if (isDepartmentNodeDisabled(node)) return
     props.onValueChange(node.value, node)
-    setOpen(false)
+    handleOpenChange(false)
   }
 
   // Build cascader columns from the current tree data, using fresh node
@@ -141,7 +140,7 @@ export function DepartmentTreeSelect(props: DepartmentTreeSelectProps) {
   }, [props.treeData, searchQuery])
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={
           <Button
@@ -162,6 +161,7 @@ export function DepartmentTreeSelect(props: DepartmentTreeSelectProps) {
         <ChevronRight className='text-muted-foreground size-3.5 shrink-0' />
       </PopoverTrigger>
       <PopoverContent
+        initialFocus={searchInputRef}
         side='bottom'
         align='start'
         sideOffset={4}
@@ -266,7 +266,7 @@ function CascaderColumn(props: CascaderColumnProps) {
         const isChildrenLoading = props.loadingNodeValues?.has(node.value)
         const hasChildren = node.children.length > 0 || node.loading
         const isDisabled = isDepartmentNodeDisabled(node)
-        const canNavigate = canNavigateCompanyNode(node)
+        const canNavigate = canNavigateDepartmentNode(node)
         const errorText = getDepartmentNodeErrorText(node, (key, options) =>
           t(key, options)
         )
@@ -277,9 +277,11 @@ function CascaderColumn(props: CascaderColumnProps) {
             role='option'
             aria-selected={isSelected}
             aria-disabled={isDisabled}
+            aria-expanded={canNavigate ? isActive : undefined}
+            tabIndex={!isDisabled || canNavigate ? 0 : -1}
             title={errorText}
             className={cn(
-              'mx-1 flex items-start gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors',
+              'mx-1 flex items-start gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring',
               isDisabled && 'text-muted-foreground opacity-50',
               isDisabled && !canNavigate && 'cursor-not-allowed',
               (!isDisabled || canNavigate) && 'cursor-pointer hover:bg-accent',
@@ -291,7 +293,22 @@ function CascaderColumn(props: CascaderColumnProps) {
                 props.onHover(node, props.depth)
               }
             }}
-            onClick={() => props.onSelect(node)}
+            onClick={() => {
+              if (isDisabled && canNavigate) {
+                props.onHover(node, props.depth)
+                return
+              }
+              props.onSelect(node)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight' && canNavigate) {
+                event.preventDefault()
+                props.onHover(node, props.depth)
+              } else if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                event.currentTarget.click()
+              }
+            }}
           >
             <span className='min-w-0 flex-1'>
               <span className='block truncate'>{node.label}</span>
@@ -316,11 +333,12 @@ function CascaderColumn(props: CascaderColumnProps) {
   )
 }
 
-function canNavigateCompanyNode(node: DeptTreeNode): boolean {
+function canNavigateDepartmentNode(node: DeptTreeNode): boolean {
+  // Disabled ancestors still provide the path to authorized departments.
   return (
-    node.node_type === 'company' &&
     !node.error &&
-    (node.loading || node.children.length > 0)
+    (node.children.length > 0 ||
+      (node.node_type === 'company' && Boolean(node.loading)))
   )
 }
 
