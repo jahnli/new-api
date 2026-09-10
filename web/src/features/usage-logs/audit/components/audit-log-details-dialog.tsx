@@ -26,6 +26,8 @@ import dayjs from '@/lib/dayjs'
 import {
   DetailRow,
   DetailSection,
+  LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME,
+  LOG_DETAILS_DIALOG_CONTENT_HEIGHT,
 } from '../../components/dialogs/log-detail-layout'
 import type { AuditLog } from '../api'
 import { auditFieldLabel, buildAuditDetails } from '../lib/audit-details'
@@ -63,9 +65,9 @@ export function AuditLogDetailsDialog(props: { entry: AuditLog }) {
           {t('Details')}
         </Button>
       }
-      contentClassName='min-w-0 sm:max-w-lg max-sm:max-h-[calc(100dvh-1.5rem)] max-sm:w-[calc(100vw-1.5rem)] max-sm:max-w-[calc(100vw-1.5rem)]'
+      contentClassName={LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME}
       titleClassName='text-base'
-      contentHeight='auto'
+      contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}
       bodyClassName='space-y-3'
     >
       <div className='min-w-0 space-y-1.5'>

@@ -22,6 +22,11 @@ import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
+export const LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME =
+  'min-w-0 overflow-hidden max-sm:max-h-[calc(100dvh-1.5rem)] max-sm:w-[calc(100vw-1.5rem)] max-sm:max-w-[calc(100vw-1.5rem)] max-sm:p-4 sm:w-[50vw] sm:max-w-[50vw]'
+
+export const LOG_DETAILS_DIALOG_CONTENT_HEIGHT = 'min(72dvh, 720px)'
+
 export function DetailRow(props: {
   label: ReactNode
   value: ReactNode

@@ -71,7 +71,12 @@ import {
 } from '../../lib/utils'
 import { USAGE_BILLING_PATH, type LogOtherData } from '../../types'
 import { PluginAuthorLink } from '../plugin-author-link'
-import { DetailRow, DetailSection } from './log-detail-layout'
+import {
+  DetailRow,
+  DetailSection,
+  LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME,
+  LOG_DETAILS_DIALOG_CONTENT_HEIGHT,
+} from './log-detail-layout'
 
 // Maps a channel-update changed-field token (as recorded by the backend audit)
 // to its i18n label key for display in the audit details.
@@ -690,15 +695,11 @@ export function DetailsDialog(props: DetailsDialogProps) {
         </>
       }
       description={t('View the complete details for this log entry')}
-      contentClassName={cn(
-        'min-w-0 overflow-hidden',
-        'max-sm:max-h-[calc(100dvh-1.5rem)] max-sm:w-[calc(100vw-1.5rem)] max-sm:max-w-[calc(100vw-1.5rem)] max-sm:p-4',
-        'sm:w-[50vw] sm:max-w-[50vw]'
-      )}
+      contentClassName={LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME}
       headerClassName='max-sm:gap-1'
       titleClassName='flex items-center gap-2 text-base'
       descriptionClassName='sr-only'
-      contentHeight='min(72dvh, 720px)'
+      contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}
       bodyClassName='pr-2 sm:pr-4'
     >
       <div className='w-full max-w-full min-w-0 space-y-2.5 overflow-x-hidden py-1 sm:space-y-3'>
