@@ -19,7 +19,7 @@
 - `relay/common/relay_info.go`、`relay/common/client_app.go`、`service/log_info_generate.go` — 保存并写入原始 User-Agent，不做客户端名称映射。
 - `web/default/src/features/usage-logs/` — 普通日志筛选改为紧凑两排布局，移除令牌名称条件，角色支持名称输入；修复管理员“仅自己”范围的用户资料显示。
 - `web/src/features/usage-logs/components/log-cost-display.tsx` — 工具调用附加费组件接入后恢复订阅抵扣费用金额直接展示，悬停或键盘聚焦金额时提示订阅扣款来源，同时保留工具附加费标记
-- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx` — 补充订阅抵扣金额可见、订阅来源 Tooltip 和工具附加费标记共存的回归测试
+- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx` — 补充订阅抵扣金额可见、订阅来源 Tooltip 和工具附加费标记共存的测试
 - `web/default/src/features/usage-logs/components/columns/task-logs-columns.tsx` — 任务日志用户列头像点击改为通过 open_id 跳转飞书，不再打开用户信息弹框
 - `web/default/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情弹框桌面端宽度调整为屏幕宽度 50%
 - `web/default/src/features/usage-logs/components/usage-logs-mobile-card.tsx` — 移动端使用日志卡片在令牌前展示 IP 地址字段
@@ -35,7 +35,7 @@
 - `model/request_message.go` — 新增 RequestMessage 模型（request_id 关联 logs 表），存储用户提示词和模型参数
 - `controller/request_message.go` — 管理员和普通用户批量查询 request_message 接口；新增 POST body 批量查询解析，避免分页 100 时 request_ids 拼入 URL 导致线上网关 502；新增违规通知接口，校验用户 open_id 后发送飞书安全审计提醒
 - `service/request_message.go` — 中继请求后异步记录用户输入：提取多模态内容为占位符、截断超长对话、序列化参数；支持从生图与图片编辑请求中提取 Prompt，使使用日志可展示图片请求内容
-- `service/request_message_test.go` — 补充生图 Prompt 记录、首尾空白清理和空提示词跳过的回归测试
+- `service/request_message_test.go` — 补充生图 Prompt 记录、首尾空白清理和空提示词跳过的测试
 - `service/feishu_department.go` — 新增飞书交互卡片发送与违规通知卡片构造；单请求卡片展示请求时间、模型与 Request ID，非工作时间卡片展示当天实际请求时间范围与请求次数，并提示正常业务可忽略、异常操作需检查账号及密钥
 - `service/violation_notice_test.go` — 覆盖单请求与非工作时间两类违规通知卡片的红色模板、正文和关键字段
 - `controller/relay.go` — 中继入口调用 RecordRequestMessage 记录请求内容
@@ -52,7 +52,7 @@
 - `web/src/features/security-audit/api.ts`、`web/src/features/security-audit/types.ts` — 增加非工作时间违规通知请求 API、载荷类型，并在日志弹窗目标中携带用户、实际请求时间范围与请求次数
 - `web/src/features/security-audit/components/off-hours-columns.tsx`、`web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 从非工作时间记录打开日志弹窗时传递通知上下文，并在弹窗标题栏右上角、关闭按钮左侧展示违规通知操作
 - `web/src/features/security-audit/components/off-hours-violation-notice.tsx` — 新增违规通知按钮、二次确认、发送中禁用以及成功和失败提示
-- `web/src/features/security-audit/components/__tests__/off-hours-violation-notice.test.tsx` — 回归覆盖表格不新增违规通知列、日志弹窗右上角展示按钮及选中记录通知入口
+- `web/src/features/security-audit/components/__tests__/off-hours-violation-notice.test.tsx` — 测试覆盖表格不新增违规通知列、日志弹窗右上角展示按钮及选中记录通知入口
 - `web/default/src/features/usage-logs/components/usage-logs-table.tsx` — 包裹 RequestMessagesProvider，按当前页日志批量加载请求内容；基于当前用户角色传入请求内容可见性，仅超级管理员允许加载
 - `web/default/src/features/system-settings/maintenance/log-settings-section.tsx` — 从运维日志维护中移除「记录请求内容」开关
 - `web/default/src/features/system-settings/operations/section-registry.tsx` — 运维设置不再传入 RecordRequestMessageEnabled 默认值
@@ -60,10 +60,10 @@
 - `web/default/src/features/system-settings/security/audit-section.tsx` — 安全审计页面新增「记录请求内容」开关，并在保存审计设置时更新 RecordRequestMessageEnabled
 - `web/default/src/features/system-settings/security/section-registry.tsx` — 将 RecordRequestMessageEnabled 服务端配置传入安全审计表单
 - `web/default/src/features/system-settings/security/index.tsx` — 安全审计设置补充与后端一致的关闭默认值
-- `web/default/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 回归测试覆盖请求内容记录开关在安全审计页面的展示和启用状态
+- `web/default/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 测试覆盖请求内容记录开关在安全审计页面的展示和启用状态
 - `web/default/src/features/system-settings/types.ts` — 将 RecordRequestMessageEnabled 从 OperationsSettings 迁移到 SecuritySettings
 - `web/src/features/system-settings/security/audit-section.tsx` — 安全审计设置改为响应式卡片布局，统一功能说明、时间设置区域与开关层级；桌面端非工作时间审计和请求内容审计并排半宽展示，移动端保持单列。
-- `web/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 补充安全审计卡片结构、半宽布局、时间区域及开关状态的回归断言。
+- `web/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 补充安全审计卡片结构、半宽布局、时间区域及开关状态的测试断言。
 - `web/src/i18n/locales/*.json` — 补齐非工作时间审计和图片审计卡片说明的七语言翻译。
 - `relay/common/relay_info.go` — RelayInfo 新增 ClientApp 字段，在基础中继信息生成时保存原始 User-Agent
 - `relay/common/client_app.go` — 新增 DetectClientApp，返回请求携带的原始 User-Agent，不做客户端名称映射
@@ -84,16 +84,16 @@
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 令牌列和详情列摘要仅在管理员日志视图中展示分组倍率或用户专属倍率，避免普通用户及「仅自己」视图泄露倍率
 - `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情弹框的计费明细仅向管理员日志视图展示分组倍率或用户专属倍率
 - `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 多条请求消息新增单个胶囊按钮，可根据当前状态一键切换全部展开或收起；复制反馈按消息唯一标识隔离，避免重复内容同时显示已复制。
-- `web/src/features/usage-logs/components/dialogs/__tests__/request-content-collapse.test.tsx`、`request-content-copy.test.tsx` — 回归覆盖批量展开/收起、单条折叠以及重复消息仅高亮实际点击的复制按钮。
+- `web/src/features/usage-logs/components/dialogs/__tests__/request-content-collapse.test.tsx`、`request-content-copy.test.tsx` — 测试覆盖批量展开/收起、单条折叠以及重复消息仅高亮实际点击的复制按钮。
 
 ## 「仅自己」用户信息展示修复
 
 - `model/log.go` — 抽取日志用户资料批量补充逻辑，并让个人日志接口同步返回 display_name、avatar_url、open_id 和 gender，确保「仅自己」模式与全部日志保持一致的头像及身份数据
-- `model/log_user_filter_test.go` — 新增个人日志返回展示名、头像、飞书 open_id 和性别字段的回归测试
+- `model/log_user_filter_test.go` — 新增个人日志返回展示名、头像、飞书 open_id 和性别字段的测试
 - `web/src/features/usage-logs/components/usage-logs-table.tsx` — 将日志数据范围与用户列/资料卡权限拆分，管理员切换「仅自己」后仍显示用户列并允许加载完整资料
 - `web/src/features/usage-logs/lib/columns.ts` — 用户列工厂改为接收独立的列可见性和资料加载权限选项
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 用户列支持独立显示控制，并在完整资料异步加载后同步刷新头像、展示名和用户名
-- `web/src/features/usage-logs/components/columns/__tests__/self-scope-user-details.test.tsx` — 新增「仅自己」模式下头像、用户身份文本和悬停资料卡入口保持可见的组件回归测试
+- `web/src/features/usage-logs/components/columns/__tests__/self-scope-user-details.test.tsx` — 新增「仅自己」模式下头像、用户身份文本和悬停资料卡入口保持可见的组件测试
 
 ## 2026-08-19 渠道和分组倍率权限收紧
 
@@ -105,7 +105,7 @@
 ## 2026-08-21 普通日志渠道搜索
 
 - `controller/log.go` — 普通日志列表和统计接口保留渠道搜索字符串，支持后端按渠道 ID 或渠道名称处理。
-- `model/log.go` — 从主数据库渠道表解析渠道 ID 和渠道名称模糊匹配结果，再过滤日志数据库中的普通日志和统计数据；新增渠道 ID/名称查询回归覆盖。
+- `model/log.go` — 从主数据库渠道表解析渠道 ID 和渠道名称模糊匹配结果，再过滤日志数据库中的普通日志和统计数据；新增渠道 ID/名称查询测试覆盖。
 - `model/log_user_filter_test.go` — 验证普通日志按渠道 ID 精确查询和按渠道名称模糊查询。
 - `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 普通日志筛选框文案由「Channel ID」改为「Channel」。
 - `web/src/features/usage-logs/lib/utils.ts`、`web/src/features/usage-logs/types.ts` — 渠道筛选参数改为字符串，保留渠道 ID 或渠道名称输入后传给接口。
@@ -119,19 +119,19 @@
 ## 2026-08-25 渠道名称搜索忽略大小写
 
 - `model/log.go` — 渠道名称模糊匹配统一对字段和搜索参数应用 `LOWER`，确保 SQLite、MySQL 和 PostgreSQL 下均不区分大小写，并同步作用于日志列表和统计查询。
-- `model/log_user_filter_test.go` — 使用大写搜索词匹配混合大小写渠道名称，回归保护大小写不敏感的模糊搜索行为。
+- `model/log_user_filter_test.go` — 使用大写搜索词匹配混合大小写渠道名称，验证大小写不敏感的模糊搜索行为。
 
 ## 2026-08-24 模型映射详情悬浮展示
 
 - `web/src/features/usage-logs/components/model-badge.tsx` — 模型映射详情由点击弹窗改为悬浮或键盘聚焦显示，浮层宽度调整为 24rem，并允许请求模型和实际模型的长名称完整换行。
-- `web/src/features/usage-logs/components/__tests__/model-badge-interaction.test.tsx` — 回归覆盖模型映射详情使用悬浮卡片、24rem 宽度及长模型名称不截断。
+- `web/src/features/usage-logs/components/__tests__/model-badge-interaction.test.tsx` — 测试覆盖模型映射详情使用悬浮卡片、24rem 宽度及长模型名称不截断。
 
 ## 2026-09-01 演示模式日志隐私遮蔽
 
 - `web/src/lib/demo-mode.ts` — 增加通用金额遮蔽函数，仅将格式化后的金额数字替换为星号并保留货币符号。
-- `web/src/lib/__tests__/demo-mode.test.ts` — 回归覆盖美元、人民币及无货币符号金额的演示模式遮蔽规则。
+- `web/src/lib/__tests__/demo-mode.test.ts` — 测试覆盖美元、人民币及无货币符号金额的演示模式遮蔽规则。
 - `web/src/features/usage-logs/components/log-cost-display.tsx` — 使用日志费用列在演示模式下隐藏普通费用和订阅费用数字，同时保留配置的货币符号。
-- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx` — 回归覆盖普通费用、订阅费用及货币符号保留行为。
+- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx` — 测试覆盖普通费用、订阅费用及货币符号保留行为。
 - `web/src/features/usage-logs/lib/channel-visibility.ts` — 演示模式统一遮蔽渠道编号、渠道名称和悬浮详情，避免无名称渠道继续泄露编号。
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 渠道徽章、悬浮详情和重试链隐藏渠道信息；详情列金额保留货币符号并隐藏数字；令牌列不再展示分组倍率；请求内容列改为星号占位并移除完整内容入口。
 - `web/src/features/usage-logs/components/columns/column-helpers.tsx` — 任务日志和绘图日志共用渠道列在演示模式下隐藏渠道编号并禁用复制。
@@ -147,10 +147,10 @@
 ## 2026-09-10 审计日志用户列统一
 
 - `model/audit_log.go`、`model/log.go` — 审计列表复用使用日志的用户资料批量查询，首屏响应直接补齐 display_name、avatar_url、open_id 和 gender，不再等待前端悬停后逐条加载。
-- `controller/access_token_audit_test.go` — 接口与数据库矩阵回归覆盖审计列表首屏返回完整用户展示资料。
+- `controller/access_token_audit_test.go` — 接口与数据库矩阵测试覆盖审计列表首屏返回完整用户展示资料。
 - `web/src/features/usage-logs/components/log-user-cell.tsx`、`components/columns/common-logs-columns.tsx` — 抽取并复用日志用户单元格，统一头像、显示名/用户名双行、演示模式遮蔽、飞书跳转和悬停资料卡行为。
 - `web/src/features/usage-logs/audit/api.ts`、`components/audit-log-columns.tsx`、`components/audit-log-viewer.tsx` — 审计日志用户列首屏消费完整展示资料；仅管理员全部记录范围在悬停时按需加载资料卡的其余字段，个人范围不发起无权限请求。
-- `web/src/features/usage-logs/audit/__tests__/viewer.test.tsx` — 回归覆盖详情接口调用前已经展示审计日志用户头像、显示名和用户名，悬停后再加载完整资料。
+- `web/src/features/usage-logs/audit/__tests__/viewer.test.tsx` — 测试覆盖详情接口调用前已经展示审计日志用户头像、显示名和用户名，悬停后再加载完整资料。
 
 ## 2026-09-10 使用日志列字重统一
 
@@ -158,7 +158,7 @@
 - `web/src/components/data-table/core/data-table-header.tsx`、`column-header.tsx`、`web/src/tanstack-table.d.ts` — 通用数据表格列元数据支持指定列头字重，并确保无排序与可排序列头都将样式应用到标题文字。
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`log-user-cell.tsx` — 使用日志时间和用户列头改为半粗体，时间值、日志类型标签、用户名称和头像回退文字保持常规字重；令牌和 IP 地址徽章显式使用常规字重，IP 地球图标改为细描边。
 - `web/src/features/usage-logs/audit/components/audit-log-columns.tsx`、`audit-log-details-dialog.tsx` — 审计日志时间和用户列头改为半粗体，时间与用户单元格内容保持常规字重，详情列按钮中的“详情”文字使用常规字重。
-- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx`、`group-price-display.test.tsx`、`components/columns/__tests__/self-scope-user-details.test.tsx`、`audit/__tests__/viewer.test.tsx` — 回归覆盖日志列头与内容字重、费用和令牌/IP 样式，以及审计详情按钮字重。
+- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx`、`group-price-display.test.tsx`、`components/columns/__tests__/self-scope-user-details.test.tsx`、`audit/__tests__/viewer.test.tsx` — 测试覆盖日志列头与内容字重、费用和令牌/IP 样式，以及审计详情按钮字重。
 
 ## 2026-09-10 审计日志详情弹框尺寸统一
 

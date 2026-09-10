@@ -52,7 +52,7 @@
 ## 2026-08-05 无订阅用户额度展示
 
 - `controller/user.go` — 用户管理列表显式返回有效订阅状态；有有效订阅时沿用订阅已用/总额，无有效订阅时改为显示当前自然月消耗，以及自然月消耗加钱包剩余额度，并在订阅查询失败时避免误判为无订阅。
-- `controller/user_manage_test.go` — 覆盖有订阅用户沿用订阅额度、无订阅用户按自然月消耗加钱包余额计算总额，并排除月外消耗的回归路径。
+- `controller/user_manage_test.go` — 覆盖有订阅用户沿用订阅额度、无订阅用户按自然月消耗加钱包余额计算总额，并排除月外消耗的测试路径。
 - `web/src/features/users/types.ts` — 用户列表响应类型补充有效订阅状态。
 - `web/src/features/users/components/shared-user-columns.tsx` — 共享额度列根据显式订阅状态展示无订阅用户的有效 `0 / 0`，并避免总额为零时产生无效进度百分比；额度说明沿用原有文案。
 
@@ -92,7 +92,7 @@
 
 - `model/user.go` — 新增 `GetCostCenter` 解析 `cost_center` 的部门与公司归属。
 - `service/data_overview_company.go` — 新增 `queryCostCenterUsers` 按成本中心归属本地用户（不受公司名与 open_id 限制，内存过滤兼容三种数据库）；`matchOverviewDepartmentMembers` 改用公司对象并接入成本中心归属用户。
-- `service/feishu_department.go`、`service/data_overview_company_test.go` — 部门受众构建与回归测试同步支持成本中心归属。
+- `service/feishu_department.go`、`service/data_overview_company_test.go` — 部门受众构建与相关测试同步支持成本中心归属。
 
 ## 2026-09-09 用户分组倍率展示
 

@@ -5,7 +5,7 @@
 ### 2026-09-10 部门用户列表列结构统一
 
 - `web/src/features/data-overview/components/department-users-table.tsx` — 部门用户列表启用共享用户列的“任职概况”和“时间”合并模式，以两行摘要统一展示部门、岗位职级、入职日期，以及最后登录、创建时间；注册状态列继续紧跟时间列。
-- `web/src/features/data-overview/components/__tests__/department-users-columns.test.tsx` — 回归覆盖合并表头替代五个独立表头，并验证两个合并单元格包含完整信息。
+- `web/src/features/data-overview/components/__tests__/department-users-columns.test.tsx` — 测试覆盖合并表头替代五个独立表头，并验证两个合并单元格包含完整信息。
 
 ### 2026-09-10 部门树选择器导航与可访问性修复
 
@@ -32,7 +32,7 @@
 ### 2026-08-25 费用文案间距统一
 
 - `web/src/i18n/locales/zh.json` — 将费用阈值标题统一为“费用 > 10 人数/占比”，说明改为“消费超过 10 元的人数及占比”，并为费用分布中的数值与“元”“人”等中文单位补充空格
-- `web/src/features/data-overview/components/__tests__/stats-card-tooltip.test.tsx` — 新增中文费用阈值和费用分布文案间距回归测试
+- `web/src/features/data-overview/components/__tests__/stats-card-tooltip.test.tsx` — 新增中文费用阈值和费用分布文案间距测试
 
 ### 2026-08-17 费用分布人数柱状图
 
@@ -72,8 +72,8 @@
 
 - `service/data_overview_company.go` — 平台通讯录已不再返回的禁用账号，按本地 `users.departments` 首个 `department_id` 回补到对应部门受众，继续参与部门人数、用量、排行和日志统计
 - `service/feishu_department.go` — 部门用户注册状态新增 `departed`，禁用账号显示为离职并保留已注册账号的统计能力；注册状态筛选同步支持离职
-- `service/data_overview_company_test.go` — 覆盖禁用账号不在平台成员列表中但本地部门匹配时仍被纳入统计的回归路径
-- `web/src/features/data-overview/` — 部门用户列表和 Excel 导出展示离职状态，筛选器新增离职选项，并补充状态兼容逻辑与前端回归测试
+- `service/data_overview_company_test.go` — 覆盖禁用账号不在平台成员列表中但本地部门匹配时仍被纳入统计的测试路径
+- `web/src/features/data-overview/` — 部门用户列表和 Excel 导出展示离职状态，筛选器新增离职选项，并补充状态兼容逻辑与前端测试
 - `web/src/i18n/` — 新增 Departed 的 7 语言翻译及静态翻译键
 
 ### 2026-07-30 公司平台 Token 自动刷新修复
@@ -176,7 +176,7 @@
 - `web/src/features/data-overview/components/user-logs-section.tsx` — 用户与部门日志请求携带公司 ID
 - `web/src/features/data-overview/components/export-dialog.tsx` — 数据总览导出按公司范围加载统计与用户数据
 - `web/src/components/data-table/hooks/use-data-table.ts` — 为未显式传入的列筛选和全局筛选初始化受控状态，修复公司管理表格工具栏读取 `columnFilters.length` 时崩溃
-- `web/src/components/data-table/hooks/__tests__/state.test.tsx` — 覆盖仅启用全局搜索时列筛选状态仍初始化为空数组的回归场景
+- `web/src/components/data-table/hooks/__tests__/state.test.tsx` — 覆盖仅启用全局搜索时列筛选状态仍初始化为空数组的测试场景
 - `web/src/features/companies/__tests__/company-behavior.test.ts` — 覆盖平台凭据字段、Secret 掩码、配置状态和无删除操作等公司管理契约
 - `web/src/features/companies/__tests__/editor-dialog.test.tsx` — 覆盖公司创建和编辑均使用 Dialog，且不显示已删除的冗余 Secret 提示
 - `web/src/features/data-overview/__tests__/company-selection.test.ts` — 覆盖公司参数透传、旧模式兼容、无平台公司选择和错误公司跳过逻辑
@@ -201,7 +201,7 @@
 - `service/data_overview_company.go` — 删除 `CompanyDataOverviewEnabled()` 及其内部 `CountCompanies()` 调用，`resolveCompanyOverviewAudience` 改为直接以 `companyID <= 0` 快速拒绝；新增 `DepartmentOverviewRequest`、`DepartmentOverviewResponse` 类型；新增 `GetDepartmentOverview`：一次调用 `resolveCompanyOverviewAudience` 解析 audience 后，通过 `errgroup` 并行执行 `buildCompanyDepartmentStats`、`buildCompanySubDepartmentStats`、`buildCompanyUsageAnalysis`、`buildCompanyDepartmentUsers`、`buildCompanyDepartmentUserRankings` 五个计算，聚合为单一响应返回；`getCompanyDepartmentTree` 新增空公司列表快速返回路径；`createDepartmentQueryParams` 改为对缺失 `company_id` 抛出明确错误
 - `controller/department.go` — 新增 `GetDepartmentOverview` controller；`validateDepartmentCompanyID` 移除对 `CompanyDataOverviewEnabled()` 的调用，直接以 `companyID <= 0` 拒绝；`validateDepartmentUserCompanyID` 移除 root 用户豁免分支，统一走 `validateDepartmentCompanyID`
 - `router/api-router.go` — 注册 `POST /api/department/overview` 路由
-- `service/data_overview_company_test.go` — 覆盖 `GetDepartmentOverview` 的无公司快速返回、缺失 `company_id` 拒绝和 audience 解析失败行为；补充子部门主归属分桶、audience 缓存复用及未注册用户姓名仅按当前分页加载的回归测试
+- `service/data_overview_company_test.go` — 覆盖 `GetDepartmentOverview` 的无公司快速返回、缺失 `company_id` 拒绝和 audience 解析失败行为；补充子部门主归属分桶、audience 缓存复用及未注册用户姓名仅按当前分页加载的测试
 - `web/src/features/data-overview/index.tsx` — 首屏改为并行发起 stats、sub-stats、usage-analysis、users、user-rankings 五个独立请求，各板块就绪后立即渲染；`getOverviewLoadingState` 控制搜索按钮与分板块骨架，避免单接口最慢任务拖慢整页
 - `web/src/features/data-overview/lib/overview-loading.ts` — 新增，根据各查询 fetching/data 状态计算搜索中状态与 stats/sub-stats/usage/users/rankings 骨架展示
 - `web/src/features/data-overview/components/department-users-table.tsx` — `initialUsers`/`initialRankings` 改为可选，并新增 `initialUsersLoading`/`initialRankingsLoading`，首屏加载中展示表格骨架与排行旋转指示
@@ -211,7 +211,7 @@
 - `web/src/features/data-overview/lib/department-users-query.ts` — 集中定义用户列表查询的初始分页大小、排序字段和排序方向常量
 - `web/src/features/data-overview/__tests__/overview-loading.test.ts` — 覆盖分板块骨架与搜索中状态的渐进加载契约
 - `web/src/features/data-overview/__tests__/department-users-query.test.ts` — 覆盖用户列表查询初始常量与参数构造，并改为断言独立 users 结果作为首屏表格数据
-- `web/src/features/data-overview/__tests__/company-selection.test.ts` — 补充缺失 `company_id` 节点的禁用和抛出行为回归
+- `web/src/features/data-overview/__tests__/company-selection.test.ts` — 补充缺失 `company_id` 节点的禁用和抛出行为测试
 - `web/src/features/data-overview/lib/department-selection.ts` — `isDepartmentNodeDisabled` 新增对缺失 `company_id` 的节点禁用；`createDepartmentQueryParams` 改为对 `company_id` 缺失抛出异常而非默认 0
 
 ### 2026-07-24 overview 共享用户用量统计
@@ -222,7 +222,7 @@
 ### 2026-07-25 四类 Token 统计口径与明细
 
 - `model/log.go` — 用户、模型、每日趋势和部门统计的总 Token 统一改为非缓存输入、非缓存输出、缓存读取与缓存写入四类字段相加；部门统计响应同时下发四类 Token 明细
-- `service/data_overview_company_test.go` — overview 共享统计回归数据补充四类 Token，确保聚合结果不再依赖旧 `token_used` 字段
+- `service/data_overview_company_test.go` — overview 共享统计测试数据补充四类 Token，确保聚合结果不再依赖旧 `token_used` 字段
 - `web/src/features/data-overview/types.ts` — 部门统计类型补充四类 Token 明细字段
 - `web/src/features/data-overview/components/department-stats-cards.tsx` — 总 Token 卡片 Tooltip 展示四类 Token 数值与口径说明
 - `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐四类 Token 名称与说明文案
@@ -231,7 +231,7 @@
 
 - `model/user.go` — 新增主归属部门解析，固定读取 `users.departments` JSON 数组中首个对象的 `department_id`
 - `service/data_overview_company.go` — 数据总览的平台成员匹配增加主归属部门校验，仅当 `open_id`、公司及首个 `department_id` 均匹配当前部门或其下级范围时才计入注册用户和部门统计，避免多部门人员重复归属
-- `service/data_overview_company_test.go` — 覆盖只认首个部门 ID、忽略后续部门命中、保留真实未注册成员及按统计结束时间判断注册状态的回归场景
+- `service/data_overview_company_test.go` — 覆盖只认首个部门 ID、忽略后续部门命中、保留真实未注册成员及按统计结束时间判断注册状态的测试场景
 
 ### 2026-07-28 管理员跨公司查看用户统计
 

@@ -17,7 +17,7 @@
 - `relay/image_handler.go`、`constant/context_key.go`、`service/text_quota.go` — 图片生成消费日志写入结构化参数详情，覆盖尺寸、品质、生成数量、背景、输出格式、输出压缩、审核敏感度、水印等配置。
 - `relay/helper/valid_request.go` — 图片请求校验新增生成数量上限，超过 4 张时直接拒绝。
 - `web/default/src/features/usage-logs/components/dialogs/details-dialog.tsx`、`web/default/src/features/usage-logs/types.ts` — 使用日志详情新增图片参数区块，按结构化字段本地化展示图片生成配置。
-- `relay/channel/openai/adaptor.go`、`relay/channel/openai/image_edit_test.go` — OpenAI 图生图支持将前端 JSON data URL 图片转换为 multipart 文件上传，补齐 Content-Length 并增加回归测试，避免上游空图或 EOF。
+- `relay/channel/openai/adaptor.go`、`relay/channel/openai/image_edit_test.go` — OpenAI 图生图支持将前端 JSON data URL 图片转换为 multipart 文件上传，补齐 Content-Length 并增加测试，避免上游空图或 EOF。
 - `web/default/src/features/image-studio/index.tsx`、`web/default/src/features/image-studio/lib/image-utils.ts` — 历史生成结果支持一键带入图生图，远程图片会先转换为 data URL；重置时清空提示词、参考图、当前结果与错误。
 - `web/default/src/features/image-studio/components/generate-panel.tsx`、`web/default/src/features/image-studio/components/result-grid.tsx` — 生成进度文案移除单图预估时间，思考动画加快，清空按钮改为重置。
 - `web/default/src/i18n/locales/*.json`、`web/default/src/i18n/locales/_reports/*.json`、`web/default/src/i18n/locales/_extras/*.json` — 补齐图片参数日志详情和并行生成失败占位文案的多语言翻译，并更新同步报告、清理过期额外翻译清单。
@@ -43,18 +43,18 @@
 - `constant/context_key.go`、`dto/openai_image.go`、`relay/channel/openai/relay_image.go`、`relay/image_handler.go`、`relay/image_studio_hook.go` — 新增原生 API 生图自动归档链路：从成功响应提取 URL 或 base64 图片，跳过 Playground 重复记录，并在响应完成后异步调度存储。
 - `controller/image_studio_relay_hook.go` — 下载或解码原生 API 生成图片，写入对象存储和在线生图历史；失败时清理已存文件，并按配置裁剪超限历史。
 - `setting/system_setting/audit_setting.go`、`model/image_studio.go`、`controller/image_studio_storage.go` — 新增原生 API 生图自动保存开关与每用户历史存储上限（1–1000，当前默认 50），列表和裁剪统一读取管理员配置，超限记录连同对象存储图片一并删除。
-- `web/src/features/system-settings/security/`、`web/src/features/system-settings/types.ts`、`web/src/i18n/locales/*.json` — 安全审计设置新增自动保存开关和历史上限输入，串接默认值、类型、表单校验、回归测试及七语言文案。
+- `web/src/features/system-settings/security/`、`web/src/features/system-settings/types.ts`、`web/src/i18n/locales/*.json` — 安全审计设置新增自动保存开关和历史上限输入，串接默认值、类型、表单校验、测试及七语言文案。
 - `model/image_studio.go`、`controller/image_studio_storage.go`、`controller/image_studio_relay_hook.go`、`relay/image_studio_hook.go` — 生图记录采集 User-Agent：ImageStudioGeneration 新增 UserAgent 字段（varchar(512)，随 AutoMigrate 加列），在线生图 UI 存储路径取 `c.Request.UserAgent()`，原生 API 中继路径 ImageAutoRecordInput 携带 `info.ClientApp`；与使用日志同源，仅记录原始 User-Agent 不做客户端名称映射。
 - `web/src/features/security-audit/types.ts`、`web/src/features/security-audit/components/image-audit-request-content-dialog.tsx` — ImageAuditItem 新增可选 user_agent 字段，图片审计请求内容弹框在头像右侧模型/模式/时间行下方单独一行完整展示 User-Agent（break-all 不截断），与使用日志请求内容弹框展示口径一致。
 - `setting/system_setting/audit_setting.go`、`setting/system_setting/audit_setting_test.go` — 将历史限制拆分为独立的在线生图展示上限与存储上限，保留旧配置键作为存储上限以兼容已有部署；展示上限默认值调整为 20，存储上限默认值调整为 50，并覆盖两个上限的默认值、独立配置和边界钳制。
-- `model/image_studio.go`、`model/image_studio_test.go` — 生图记录新增 `hidden_from_studio` 展示隐藏标记；普通历史查询排除隐藏记录，单条移除与清空仅设置隐藏状态，不删除数据库数据；存储裁剪继续统计全部记录并永久删除超限的最旧记录，补充隐藏、清空和裁剪回归测试。
+- `model/image_studio.go`、`model/image_studio_test.go` — 生图记录新增 `hidden_from_studio` 展示隐藏标记；普通历史查询排除隐藏记录，单条移除与清空仅设置隐藏状态，不删除数据库数据；存储裁剪继续统计全部记录并永久删除超限的最旧记录，补充隐藏、清空和裁剪测试。
 - `controller/image_studio_storage.go`、`controller/image_studio_relay_hook.go` — 历史列表按展示上限查询并向前端下发展示数量；在线生图删除接口改为仅隐藏记录，只有 UI 保存和原生 API 自动归档后的存储裁剪会永久删除数据库记录及 MinIO 图片。
-- `web/src/features/system-settings/security/`、`web/src/features/system-settings/types.ts` — 安全审计设置将原历史上限拆分为“在线生图展示上限”和“在线生图存储上限”，分别保存独立配置并补充设置界面回归测试。
-- `web/src/features/image-studio/` — 历史加载及新增记录统一使用服务端下发的动态展示上限，前端无服务端响应时的展示兜底值调整为 20；删除和清空文案明确仅从在线生图历史隐藏，补充展示裁剪、删除行为和可访问文案回归测试。
+- `web/src/features/system-settings/security/`、`web/src/features/system-settings/types.ts` — 安全审计设置将原历史上限拆分为“在线生图展示上限”和“在线生图存储上限”，分别保存独立配置并补充设置界面测试。
+- `web/src/features/image-studio/` — 历史加载及新增记录统一使用服务端下发的动态展示上限，前端无服务端响应时的展示兜底值调整为 20；删除和清空文案明确仅从在线生图历史隐藏，补充展示裁剪、删除行为和可访问文案测试。
 - `web/src/i18n/locales/*.json` — 补齐展示上限、存储上限及历史隐藏行为的七语言文案。
 - `model/ability.go` — 分组可用模型按名称倒序返回，使在线生图默认优先选择名称以 g 开头的模型。
-- `controller/model_list_test.go` — 补充分组模型名称倒序接口回归测试，固定 `gpt-image` 排在 `dall-e` 前的契约。
+- `controller/model_list_test.go` — 补充分组模型名称倒序接口测试，固定 `gpt-image` 排在 `dall-e` 前的契约。
 - `web/src/features/image-studio/lib/model-params/`、`web/src/features/image-studio/types.ts` — 将模型参数重构为可辨识联合类型和模型适配器注册表，由各适配器集中管理默认值、支持范围、参数校验、配置归一化与请求构建；GPT Image 和 Seedream 参数类型、尺寸及数量约束相互隔离。
 - `web/src/features/image-studio/hooks/use-image-studio-state.ts`、`web/src/features/image-studio/hooks/use-image-studio.ts` — 默认选择 `gpt-image-2`，按模型族缓存并恢复参数，模型或分组切换时归一化配置；生成过程中禁用参数和模型切换，单次任务使用启动时的参数快照，避免异步生成期间配置漂移。
 - `web/src/features/image-studio/components/generate-panel.tsx`、`web/src/features/image-studio/components/params-panel.tsx`、`web/src/features/image-studio/index.tsx` — 参数面板改为基于当前模型适配器渲染，数量参数下沉至模型专属配置，并统一生成按钮、参考图和模型选择器的禁用状态。
-- `web/src/features/image-studio/components/__tests__/*.test.tsx`、`web/src/features/image-studio/hooks/__tests__/generation-progress.test.tsx` — 更新模型专属参数布局测试，并增加生成期间锁定模型与参数控件的回归覆盖。
+- `web/src/features/image-studio/components/__tests__/*.test.tsx`、`web/src/features/image-studio/hooks/__tests__/generation-progress.test.tsx` — 更新模型专属参数布局测试，并增加生成期间锁定模型与参数控件的测试覆盖。

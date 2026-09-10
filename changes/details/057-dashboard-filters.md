@@ -38,4 +38,4 @@
 - `web/src/features/dashboard/lib/charts.ts` — 模型调用分析图表统一使用四类 Token 合计值
 - `web/src/features/dashboard/lib/flow.ts` — Flow 节点 Token 指标统一使用四类 Token 合计值
 - `web/src/features/dashboard/types.ts` — 数据看板与 Flow 数据类型补充四类 Token 字段
-- `web/src/features/dashboard/lib/flow.test.ts` — Flow 回归数据补充四类 Token 明细，保护新统计口径
+- `web/src/features/dashboard/lib/flow.test.ts` — Flow 测试数据补充四类 Token 明细，保护新统计口径

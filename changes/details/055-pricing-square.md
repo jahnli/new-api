@@ -12,10 +12,10 @@
 - `web/default/src/features/pricing/components/pricing-sidebar.tsx` — 分组筛选项按权限显示或隐藏倍率后缀。
 - `web/src/features/pricing/components/model-details.tsx` — 模型详情按权限过滤分组：管理员可查看全部分组与倍率，普通用户仅能查看所属分组，并隐藏倍率与自动分组链；将同一可见分组范围传入 API 速率限制区域；独立详情页使用模型实际有效分组倍率。
 - `web/src/features/pricing/components/model-details-price.tsx` — 模型详情基础价格按当前筛选分组或用户实际所属分组计算，覆盖 Token、按次及动态表达式计费，并保留供应商分组倍率。
-- `web/src/features/pricing/components/__tests__/base-price-group.test.tsx` — 覆盖筛选分组优先、全部分组时回退用户所属分组，以及动态计费应用实际分组倍率的回归场景。
+- `web/src/features/pricing/components/__tests__/base-price-group.test.tsx` — 覆盖筛选分组优先、全部分组时回退用户所属分组，以及动态计费应用实际分组倍率的测试场景。
 - `web/src/features/pricing/components/model-details-api.tsx` — API 速率限制表按权限过滤后的可见分组渲染，无可见分组时隐藏该区域。
 - `web/src/features/pricing/lib/mock-stats.ts` — 速率限制数据生成支持显式指定可见分组，并区分未指定分组与空可见分组。
-- `web/src/features/pricing/components/__tests__/rate-limit-visibility.test.ts` — 覆盖普通用户仅查看所属分组、管理员查看全部分组以及无可见分组时隐藏速率限制的回归场景。
+- `web/src/features/pricing/components/__tests__/rate-limit-visibility.test.ts` — 覆盖普通用户仅查看所属分组、管理员查看全部分组以及无可见分组时隐藏速率限制的测试场景。
 - `web/src/features/pricing/components/model-card-grid.tsx` — 将当前用户所在分组传递给模型卡片。
 - `web/src/features/pricing/components/model-card.tsx` — 模型卡片计费标签旁优先显示当前用户所在分组。
 - `web/src/features/pricing/lib/model-helpers.ts` — 新增模型卡片分组显示解析逻辑，兼容未登录或用户分组为空时的回退展示。
@@ -98,7 +98,7 @@
 - `web/src/features/pricing/components/model-recommendation-badge.tsx` — 统一科技风格的推荐标记。
 - `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 在卡片和表格中按当前语言展示推荐模型的适用场景。
 - `web/src/features/pricing/components/model-card.tsx`、`web/src/features/pricing/components/pricing-columns.tsx` — 卡片和表格模型名称旁显示标记。
-- `web/src/features/pricing/components/__tests__/recommendation-badge.test.tsx` — 标记启停、多场景去重、精确模型匹配、价格及详情交互、长名称布局和语言切换回归测试。
+- `web/src/features/pricing/components/__tests__/recommendation-badge.test.tsx` — 标记启停、多场景去重、精确模型匹配、价格及详情交互、长名称布局和语言切换测试。
 - `web/src/features/pricing/index.tsx`、`web/src/features/pricing/types.ts`、`web/src/features/pricing/hooks/use-pricing-data.ts` — 接入推荐数据，复用分组价格、搜索和筛选条件。
 - `web/vitest.config.ts` — 将 Lobe 图标依赖交给测试转换器处理，支持使用真实模型卡片进行交互测试。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 推荐管理与展示文案。
@@ -108,6 +108,6 @@
 - `go build ./...`：通过。
 - `go test ./setting ./model ./controller ./router -run "ModelSquare|GetPricing" -count=1`：通过，包含真实路由的超级管理员鉴权和推荐数据加密/分组过滤验证。
 - `go test ./model -run "^TestModelSquareOptionPersistence$" -count=1 -v`：SQLite **3.50.4** 通过；覆盖首次保存、覆盖更新、重新加载、清空及保存失败后旧值不变。MySQL 和 PostgreSQL 因未配置 `TEST_MYSQL_DSN`、`TEST_POSTGRES_DSN` 跳过，当前也无可用 Docker；**尚未完成三库兼容验证**。后续须提供独立测试数据库并使用同一命令运行，记录实际版本与结果。
-- 推荐功能初次实现时，前端相关回归测试共 133 项通过。入口迁入系统设置并移除推荐排序字段后，执行模型推荐设置及展示相关测试：4 个文件、23 项测试通过，覆盖新入口、旧地址跳转、权限、保存、缓存回显和推荐标记；原独立侧栏开关及其测试已移除。
+- 推荐功能初次实现时，前端相关测试共 133 项通过。入口迁入系统设置并移除推荐排序字段后，执行模型推荐设置及展示相关测试：4 个文件、23 项测试通过，覆盖新入口、旧地址跳转、权限、保存、缓存回显和推荐标记；原独立侧栏开关及其测试已移除。
 - `bun run typecheck`、涉及文件的 oxlint 检查、`bun run build`：通过。
 - 尚未执行真实浏览器与已部署后端联调。上线前应使用超级管理员保存推荐，再以不同可用分组的普通用户和访客确认展示范围，检查关闭推荐、模型下架和多节点同步后的页面结果。
