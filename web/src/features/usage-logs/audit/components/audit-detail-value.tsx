@@ -26,10 +26,13 @@ export function AuditDetailValue(props: {
   value: string
   mono?: boolean
   copyable?: boolean
+  className?: string
 }) {
   const { t } = useTranslation()
   return (
-    <div className='flex min-w-0 items-start gap-1 text-xs'>
+    <div
+      className={cn('flex min-w-0 items-start gap-1 text-xs', props.className)}
+    >
       <span
         className={cn(
           'min-w-0 flex-1 leading-5 wrap-anywhere break-normal whitespace-pre-wrap',

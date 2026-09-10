@@ -148,6 +148,7 @@ export function AuditLogDetailsDialog(props: { entry: AuditLog }) {
                   value={props.entry.user_agent}
                   mono
                   copyable
+                  className='w-4/5'
                 />
               }
             />
