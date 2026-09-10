@@ -40,6 +40,22 @@ type UserStatusCounts struct {
 	Disabled int64 `json:"disabled_count"`
 }
 
+type NotificationUser struct {
+	Id     int
+	OpenId string
+	Email  string
+}
+
+func ListEnabledNotificationUsers() ([]NotificationUser, error) {
+	var users []NotificationUser
+	err := DB.Model(&User{}).
+		Select("id", "open_id", "email").
+		Where("status = ?", common.UserStatusEnabled).
+		Order("id asc").
+		Find(&users).Error
+	return users, err
+}
+
 func NewUserSortOptions(sortBy string, sortOrder string) UserSortOptions {
 	normalizedSortBy := strings.ToLower(strings.TrimSpace(sortBy))
 	normalizedSortOrder := strings.ToLower(strings.TrimSpace(sortOrder))

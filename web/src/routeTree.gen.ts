@@ -36,6 +36,7 @@ import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
 import { Route as AuthenticatedCompaniesIndexRouteImport } from './routes/_authenticated/companies/index'
+import { Route as AuthenticatedCompanyNotificationsIndexRouteImport } from './routes/_authenticated/company-notifications/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedDataOverviewIndexRouteImport } from './routes/_authenticated/data-overview/index'
@@ -210,6 +211,12 @@ const AuthenticatedCompaniesIndexRoute =
   AuthenticatedCompaniesIndexRouteImport.update({
     id: '/companies/',
     path: '/companies/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCompanyNotificationsIndexRoute =
+  AuthenticatedCompanyNotificationsIndexRouteImport.update({
+    id: '/company-notifications/',
+    path: '/company-notifications/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedDashboardIndexRoute =
@@ -476,6 +483,7 @@ export interface FileRoutesByFullPath {
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/companies/': typeof AuthenticatedCompaniesIndexRoute
+  '/company-notifications/': typeof AuthenticatedCompanyNotificationsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/data-overview/': typeof AuthenticatedDataOverviewIndexRoute
   '/image-studio/': typeof AuthenticatedImageStudioIndexRoute
@@ -541,6 +549,7 @@ export interface FileRoutesByTo {
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/companies': typeof AuthenticatedCompaniesIndexRoute
+  '/company-notifications': typeof AuthenticatedCompanyNotificationsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/data-overview': typeof AuthenticatedDataOverviewIndexRoute
   '/image-studio': typeof AuthenticatedImageStudioIndexRoute
@@ -610,6 +619,7 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/companies/': typeof AuthenticatedCompaniesIndexRoute
+  '/_authenticated/company-notifications/': typeof AuthenticatedCompanyNotificationsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/data-overview/': typeof AuthenticatedDataOverviewIndexRoute
   '/_authenticated/image-studio/': typeof AuthenticatedImageStudioIndexRoute
@@ -678,6 +688,7 @@ export interface FileRouteTypes {
     | '/usage-logs/audit'
     | '/channels/'
     | '/companies/'
+    | '/company-notifications/'
     | '/dashboard/'
     | '/data-overview/'
     | '/image-studio/'
@@ -743,6 +754,7 @@ export interface FileRouteTypes {
     | '/usage-logs/audit'
     | '/channels'
     | '/companies'
+    | '/company-notifications'
     | '/dashboard'
     | '/data-overview'
     | '/image-studio'
@@ -811,6 +823,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/audit'
     | '/_authenticated/channels/'
     | '/_authenticated/companies/'
+    | '/_authenticated/company-notifications/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/data-overview/'
     | '/_authenticated/image-studio/'
@@ -1053,6 +1066,13 @@ declare module '@tanstack/react-router' {
       path: '/companies'
       fullPath: '/companies/'
       preLoaderRoute: typeof AuthenticatedCompaniesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/company-notifications/': {
+      id: '/_authenticated/company-notifications/'
+      path: '/company-notifications'
+      fullPath: '/company-notifications/'
+      preLoaderRoute: typeof AuthenticatedCompanyNotificationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/': {
@@ -1429,6 +1449,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsAuditRoute: typeof AuthenticatedUsageLogsAuditRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedCompaniesIndexRoute: typeof AuthenticatedCompaniesIndexRoute
+  AuthenticatedCompanyNotificationsIndexRoute: typeof AuthenticatedCompanyNotificationsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDataOverviewIndexRoute: typeof AuthenticatedDataOverviewIndexRoute
   AuthenticatedImageStudioIndexRoute: typeof AuthenticatedImageStudioIndexRoute
@@ -1461,6 +1482,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsAuditRoute: AuthenticatedUsageLogsAuditRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedCompaniesIndexRoute: AuthenticatedCompaniesIndexRoute,
+  AuthenticatedCompanyNotificationsIndexRoute:
+    AuthenticatedCompanyNotificationsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedDataOverviewIndexRoute: AuthenticatedDataOverviewIndexRoute,
   AuthenticatedImageStudioIndexRoute: AuthenticatedImageStudioIndexRoute,

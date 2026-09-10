@@ -39,6 +39,7 @@ describe('company platform credential visibility', () => {
     assert.deepEqual(getPlatformCredentialFields('dingtalk'), [
       'dingtalk_client_id',
       'dingtalk_client_secret',
+      'dingtalk_agent_id',
     ])
   })
 })

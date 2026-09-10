@@ -1,21 +1,33 @@
 package common
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"mime"
+	"mime/multipart"
+	"mime/quotedprintable"
+	"net/mail"
 	"net/smtp"
+	"net/textproto"
 	"slices"
 	"strings"
 	"time"
 )
 
-func generateMessageID() (string, error) {
-	split := strings.Split(SMTPFrom, "@")
+type EmailAttachment struct {
+	Filename    string
+	ContentType string
+	Data        []byte
+}
+
+func generateMessageID(from string) (string, error) {
+	split := strings.Split(from, "@")
 	if len(split) < 2 {
 		return "", fmt.Errorf("invalid SMTP account")
 	}
-	domain := strings.Split(SMTPFrom, "@")[1]
+	domain := split[1]
 	return fmt.Sprintf("<%d.%s@%s>", time.Now().UnixNano(), GetRandomString(12), domain), nil
 }
 
@@ -76,24 +88,117 @@ func newSMTPClient(addr string) (*smtp.Client, error) {
 }
 
 func SendEmail(subject string, receiver string, content string) error {
-	if SMTPFrom == "" { // for compatibility
-		SMTPFrom = SMTPAccount
+	mail, err := buildHTMLMessage(subject, receiver, content, nil)
+	if err != nil {
+		return err
 	}
-	id, err2 := generateMessageID()
-	if err2 != nil {
-		return err2
+	return sendSMTPMessage(receiver, mail)
+}
+
+func SendEmailWithAttachments(subject string, receiver string, content string, attachments []EmailAttachment) error {
+	mail, err := buildHTMLMessage(subject, receiver, content, attachments)
+	if err != nil {
+		return err
+	}
+	return sendSMTPMessage(receiver, mail)
+}
+
+func buildHTMLMessage(subject string, receiver string, content string, attachments []EmailAttachment) ([]byte, error) {
+	from := SMTPFrom
+	if from == "" { // for compatibility
+		from = SMTPAccount
+	}
+	id, err := generateMessageID(from)
+	if err != nil {
+		return nil, err
 	}
 	if SMTPServer == "" && SMTPAccount == "" {
-		return fmt.Errorf("SMTP 服务器未配置")
+		return nil, fmt.Errorf("SMTP 服务器未配置")
 	}
+	if strings.ContainsAny(subject, "\r\n") || strings.ContainsAny(receiver, "\r\n") || strings.ContainsAny(SystemName, "\r\n") {
+		return nil, fmt.Errorf("invalid email header")
+	}
+	fromAddress, err := mail.ParseAddress(from)
+	if err != nil || fromAddress.Address != from {
+		return nil, fmt.Errorf("invalid sender address")
+	}
+	for _, address := range strings.Split(receiver, ";") {
+		if _, err := mail.ParseAddress(strings.TrimSpace(address)); err != nil {
+			return nil, fmt.Errorf("invalid receiver address: %w", err)
+		}
+	}
+	for _, attachment := range attachments {
+		mediaType, _, err := mime.ParseMediaType(attachment.ContentType)
+		if err != nil || mediaType != attachment.ContentType || !strings.HasPrefix(mediaType, "image/") {
+			return nil, fmt.Errorf("invalid attachment content type")
+		}
+	}
+
 	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
-	mail := []byte(fmt.Sprintf("To: %s\r\n"+
-		"From: %s <%s>\r\n"+
+	formattedFrom := (&mail.Address{Name: SystemName, Address: from}).String()
+	header := fmt.Sprintf("To: %s\r\n"+
+		"From: %s\r\n"+
 		"Subject: %s\r\n"+
 		"Date: %s\r\n"+
-		"Message-ID: %s\r\n"+ // 添加 Message-ID 头
-		"Content-Type: text/html; charset=UTF-8\r\n\r\n%s\r\n",
-		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, content))
+		"Message-ID: %s\r\n"+
+		"MIME-Version: 1.0\r\n",
+		receiver, formattedFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id)
+
+	if len(attachments) == 0 {
+		return []byte(header + "Content-Type: text/html; charset=UTF-8\r\n\r\n" + content + "\r\n"), nil
+	}
+
+	var body bytes.Buffer
+	multipartWriter := multipart.NewWriter(&body)
+	if _, err := body.WriteString(header + "Content-Type: multipart/mixed; boundary=\"" + multipartWriter.Boundary() + "\"\r\n\r\n"); err != nil {
+		return nil, err
+	}
+	textHeader := make(textproto.MIMEHeader)
+	textHeader.Set("Content-Type", "text/html; charset=UTF-8")
+	textHeader.Set("Content-Transfer-Encoding", "quoted-printable")
+	textPart, err := multipartWriter.CreatePart(textHeader)
+	if err != nil {
+		return nil, err
+	}
+	quotedWriter := quotedprintable.NewWriter(textPart)
+	if _, err := quotedWriter.Write([]byte(content)); err != nil {
+		return nil, err
+	}
+	if err := quotedWriter.Close(); err != nil {
+		return nil, err
+	}
+
+	for _, attachment := range attachments {
+		partHeader := make(textproto.MIMEHeader)
+		partHeader.Set("Content-Type", attachment.ContentType)
+		partHeader.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": attachment.Filename}))
+		partHeader.Set("Content-Transfer-Encoding", "base64")
+		part, err := multipartWriter.CreatePart(partHeader)
+		if err != nil {
+			return nil, err
+		}
+		encoded := base64.StdEncoding.EncodeToString(attachment.Data)
+		for len(encoded) > 76 {
+			if _, err := fmt.Fprintf(part, "%s\r\n", encoded[:76]); err != nil {
+				return nil, err
+			}
+			encoded = encoded[76:]
+		}
+		if _, err := fmt.Fprintf(part, "%s\r\n", encoded); err != nil {
+			return nil, err
+		}
+	}
+	if err := multipartWriter.Close(); err != nil {
+		return nil, err
+	}
+	return body.Bytes(), nil
+}
+
+func sendSMTPMessage(receiver string, mail []byte) error {
+	from := SMTPFrom
+	if from == "" {
+		from = SMTPAccount
+	}
 	auth := getSMTPAuth()
 	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
 	to := strings.Split(receiver, ";")
@@ -108,11 +213,11 @@ func SendEmail(subject string, receiver string, content string) error {
 			return err
 		}
 	}
-	if err = client.Mail(SMTPFrom); err != nil {
+	if err = client.Mail(from); err != nil {
 		return err
 	}
 	for _, receiver := range to {
-		if err = client.Rcpt(receiver); err != nil {
+		if err = client.Rcpt(strings.TrimSpace(receiver)); err != nil {
 			return err
 		}
 	}
@@ -132,5 +237,7 @@ func SendEmail(subject string, receiver string, content string) error {
 	if err != nil {
 		SysError(fmt.Sprintf("failed to send email to %s: %v", receiver, err))
 	}
-	return err
+	// DATA was already accepted by the SMTP server. A QUIT failure does not
+	// mean delivery failed and must not encourage callers to resend the mail.
+	return nil
 }

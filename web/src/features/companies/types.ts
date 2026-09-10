@@ -12,6 +12,7 @@ export type CompanyLoginMethod = z.infer<typeof companyLoginMethodSchema>
 export const companyCredentialsSchema = z.object({
   app_id: z.string().optional(),
   client_id: z.string().optional(),
+  agent_id: z.number().optional(),
   app_secret_configured: z.boolean().optional().default(false),
   client_secret_configured: z.boolean().optional().default(false),
 })

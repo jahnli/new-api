@@ -33,6 +33,7 @@ type CompanyApiRecord = {
     }
     dingtalk: {
       client_id: string
+      agent_id: number
       configured: boolean
     }
   }
@@ -55,6 +56,7 @@ type CompanyWriteRequest = {
     dingtalk: {
       client_id: string
       client_secret: string
+      agent_id: number
     }
   }
 }
@@ -75,6 +77,7 @@ function buildCompanyRequest(values: CompanyFormValues): CompanyWriteRequest {
       dingtalk: {
         client_id: values.dingtalk_client_id.trim(),
         client_secret: values.dingtalk_client_secret.trim(),
+        agent_id: Number(values.dingtalk_agent_id),
       },
     },
   }
@@ -92,6 +95,7 @@ function normalizeCompany(record: CompanyApiRecord): Company {
     platform_credentials: {
       app_id: record.config.feishu.app_id,
       client_id: record.config.dingtalk.client_id,
+      agent_id: record.config.dingtalk.agent_id,
       app_secret_configured: record.config.feishu.configured,
       client_secret_configured: record.config.dingtalk.configured,
     },
