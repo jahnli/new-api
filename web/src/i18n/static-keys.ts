@@ -687,6 +687,7 @@ export const STATIC_I18N_KEYS = [
   'Use 8–128 characters.',
   'Verification email could not be sent. Start email verification again.',
   'Your identity has been verified. Continue to the provider to finish linking your account.',
+  'Add a password after verifying your identity',
   'Set Password',
   'Password set successfully',
   'Confirm email',
