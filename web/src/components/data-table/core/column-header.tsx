@@ -58,11 +58,14 @@ export function DataTableColumnHeader<TData, TValue>({
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const { t } = useTranslation()
   const description = column.columnDef.meta?.description
+  const titleContent = (
+    <span className={column.columnDef.meta?.headerClassName}>{title}</span>
+  )
 
   if (!column.getCanSort()) {
     return (
       <div className={cn('flex items-center gap-1.5', className)}>
-        {title}
+        {titleContent}
         {description && <DescriptionTooltip description={description} />}
       </div>
     )
@@ -88,7 +91,7 @@ export function DataTableColumnHeader<TData, TValue>({
             />
           }
         >
-          <span>{title}</span>
+          {titleContent}
           {description && descriptionPosition === 'after-title' ? (
             <DescriptionTooltip description={description} />
           ) : null}

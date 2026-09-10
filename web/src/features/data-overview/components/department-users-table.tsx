@@ -116,6 +116,8 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
     modelAccessor: 'common_model',
     requestCountAccessor: 'total_requests',
     quotaHeaderDescription: undefined,
+    combineActivityTimes: true,
+    combineEmploymentOverview: true,
   })
 
   const [statsUser, setStatsUser] = useState<DepartmentUser | null>(null)

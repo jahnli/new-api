@@ -669,14 +669,30 @@ it('renders the audit user column with the usage-log identity UI', async () => {
     </QueryClientProvider>
   )
 
-  expect(
-    await screen.findByRole('columnheader', { name: 'User' })
-  ).toBeVisible()
+  const timeHeader = await screen.findByRole('columnheader', { name: 'Time' })
+  const userHeader = screen.getByRole('columnheader', { name: 'User' })
+  expect(timeHeader).toHaveClass('font-semibold')
+  expect(userHeader).toHaveClass('font-semibold')
   const displayName = await screen.findByText('Alice Example')
+  expect(displayName).toHaveClass('font-normal')
+  expect(displayName).not.toHaveClass('font-medium')
   const username = screen.getByText('alice')
   const userCell = username.closest('td')
   expect(userCell?.querySelector('[data-slot="avatar"]')).not.toBeNull()
   expect(get).not.toHaveBeenCalledWith('/api/user/42')
+
+  const row = displayName.closest('tr')
+  expect(row).not.toBeNull()
+  const timeValue = within(row as HTMLElement)
+    .getAllByRole('cell')[0]
+    .querySelector('.tabular-nums')
+  expect(timeValue).toHaveClass('font-normal')
+  expect(timeValue).not.toHaveClass('font-medium')
+  const detailsButton = within(row as HTMLElement).getByRole('button', {
+    name: 'Details',
+  })
+  expect(detailsButton).toHaveClass('font-normal')
+  expect(detailsButton).not.toHaveClass('font-medium')
 
   const identity = displayName.parentElement?.parentElement
   expect(identity).not.toBeNull()

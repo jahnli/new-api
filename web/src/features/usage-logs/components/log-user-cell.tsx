@@ -84,19 +84,19 @@ export function LogUserCell(props: LogUserCellProps) {
   )
 
   if (demoMode) {
-    return <LongText className='w-[120px] font-medium'>{primaryName}</LongText>
+    return <LongText className='w-[120px] font-normal'>{primaryName}</LongText>
   }
 
   if (!props.sensitiveVisible) {
     return (
       <div className='flex min-w-0 items-center gap-2'>
         <Avatar size='sm' className='shrink-0'>
-          <AvatarFallback className='bg-muted text-muted-foreground text-xs font-medium'>
+          <AvatarFallback className='bg-muted text-muted-foreground text-xs font-normal'>
             •
           </AvatarFallback>
         </Avatar>
         <div className='flex min-w-0 flex-1 flex-col gap-1'>
-          <LongText className='max-w-full font-medium'>••••</LongText>
+          <LongText className='max-w-full font-normal'>••••</LongText>
         </div>
       </div>
     )
@@ -128,7 +128,7 @@ export function LogUserCell(props: LogUserCellProps) {
     <Avatar size='sm' className='shrink-0'>
       {avatarUrl && <AvatarImage src={avatarUrl} alt={primaryName} />}
       <AvatarFallback
-        className='text-xs font-medium text-white'
+        className='text-xs font-normal text-white'
         style={avatarFallbackStyle}
       >
         {avatarFallback}
@@ -162,7 +162,7 @@ export function LogUserCell(props: LogUserCellProps) {
         avatarLink
       )}
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
-        <LongText className='max-w-full font-medium'>{primaryName}</LongText>
+        <LongText className='max-w-full font-normal'>{primaryName}</LongText>
         {primaryName !== resolvedUsername ? (
           <div className='text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs'>
             <LongText className='min-w-0 flex-1'>{resolvedUsername}</LongText>

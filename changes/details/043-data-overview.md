@@ -2,6 +2,11 @@
 
 **日期**: 2026-06-25 ~ 09-10（最后更新 09-10）
 
+### 2026-09-10 部门用户列表列结构统一
+
+- `web/src/features/data-overview/components/department-users-table.tsx` — 部门用户列表启用共享用户列的“任职概况”和“时间”合并模式，以两行摘要统一展示部门、岗位职级、入职日期，以及最后登录、创建时间；注册状态列继续紧跟时间列。
+- `web/src/features/data-overview/components/__tests__/department-users-columns.test.tsx` — 回归覆盖合并表头替代五个独立表头，并验证两个合并单元格包含完整信息。
+
 ### 2026-09-10 部门树选择器导航与可访问性修复
 
 - `web/src/features/data-overview/components/department-tree-select.tsx` — 禁用的公司或部门祖先节点仍可用于展开其下已授权部门，点击和右方向键均可进入下级；弹层打开时通过组件焦点 API 聚焦搜索框，补充展开状态、键盘焦点与 Enter/空格操作；仅在打开弹层时初始化路径，避免懒加载树更新重置当前导航状态

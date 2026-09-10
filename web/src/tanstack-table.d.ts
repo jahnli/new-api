@@ -5,6 +5,7 @@ declare module '@tanstack/react-table' {
     label?: string
     description?: string
     className?: string
+    headerClassName?: string
     pinned?: 'left' | 'right'
     // Mobile card list layout hints (used by MobileCardList)
     mobileTitle?: boolean // card title area (left, larger text)
