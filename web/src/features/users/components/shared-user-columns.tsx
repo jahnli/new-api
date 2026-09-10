@@ -33,6 +33,7 @@ import { LongText } from '@/components/long-text'
 import { StatusBadge } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
   Tooltip,
@@ -559,25 +560,33 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
               <span className='text-muted-foreground text-sm'>-</span>
             )}
           </div>
-          {(jobLevel || joinDate) && (
-            <div className='flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-xs'>
-              <span className='text-foreground w-[88px] max-w-[88px] shrink-0 truncate'>
-                <span className='sr-only'>{t('Job Level')}:</span>
-                {jobLevel || '-'}
-              </span>
-              <span className='text-muted-foreground inline-flex min-w-0 shrink items-center gap-1'>
-                <HugeiconsIcon
-                  icon={Calendar03Icon}
-                  size={13}
-                  strokeWidth={1.8}
-                  className='shrink-0'
-                  aria-hidden='true'
-                />
-                <span className='sr-only'>{t('Join Date')}:</span>
-                <span className='truncate tabular-nums'>{joinDate || '-'}</span>
-              </span>
+          {jobLevel || joinDate ? (
+            <div className='flex w-full min-w-0 items-center gap-1.5 overflow-hidden'>
+              <div className='w-[88px] shrink-0 overflow-hidden'>
+                {jobLevel ? (
+                  <Badge variant='secondary' className='max-w-full font-normal'>
+                    <span className='sr-only'>{t('Job Level')}:</span>
+                    <span className='truncate'>{jobLevel}</span>
+                  </Badge>
+                ) : null}
+              </div>
+              {joinDate ? (
+                <Badge
+                  variant='outline'
+                  className='text-muted-foreground min-w-0 font-normal'
+                >
+                  <HugeiconsIcon
+                    icon={Calendar03Icon}
+                    size={13}
+                    strokeWidth={1.8}
+                    aria-hidden='true'
+                  />
+                  <span className='sr-only'>{t('Join Date')}:</span>
+                  <span className='truncate tabular-nums'>{joinDate}</span>
+                </Badge>
+              ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       )
     },
