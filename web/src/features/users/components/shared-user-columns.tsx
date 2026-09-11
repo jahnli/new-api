@@ -511,7 +511,9 @@ export function userJobLevelColumn<T extends UserColumnRow>(
       const customFields = parseCustomFields(row.original.custom_field_values)
       const level = customFields?.[CUSTOM_FIELD_KEYS.JOB_LEVEL]
       return (
-        <span className='text-muted-foreground text-sm'>{level || '-'}</span>
+        <span className='text-muted-foreground !text-[13px]'>
+          {level || '-'}
+        </span>
       )
     },
     size: 120,
@@ -528,7 +530,7 @@ export function userJoinDateColumn<T extends UserColumnRow>(
     cell: ({ row }) => {
       const date = row.original.join_date
       return (
-        <span className='text-muted-foreground text-sm'>{date || '-'}</span>
+        <span className='text-muted-foreground !text-[13px]'>{date || '-'}</span>
       )
     },
     size: 120,
@@ -569,7 +571,7 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
                 {jobLevel ? (
                   <Badge variant='secondary' className='max-w-full font-normal'>
                     <span className='sr-only'>{t('Job Level')}:</span>
-                    <span className='truncate'>{jobLevel}</span>
+                    <span className='truncate !text-[13px]'>{jobLevel}</span>
                   </Badge>
                 ) : null}
               </div>
@@ -585,7 +587,9 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
                     aria-hidden='true'
                   />
                   <span className='sr-only'>{t('Join Date')}:</span>
-                  <span className='truncate tabular-nums'>{joinDate}</span>
+                  <span className='truncate !text-[13px] tabular-nums'>
+                    {joinDate}
+                  </span>
                 </Badge>
               ) : null}
             </div>
