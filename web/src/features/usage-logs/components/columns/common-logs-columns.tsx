@@ -803,7 +803,7 @@ export function useCommonLogsColumns(
           return <span className='text-muted-foreground/40'>—</span>
         }
 
-        const userAgent = parseLogOther(log.other)?.user_agent
+        const client = parseLogOther(log.other)?.user_agent
         const messages = parseUserMessages(requestMessage.user_content)
         const latestMessage = messages.at(-1) ?? ''
 
@@ -842,7 +842,7 @@ export function useCommonLogsColumns(
                 open_id: log.open_id || undefined,
                 gender: log.gender,
               }}
-              userAgent={userAgent ? String(userAgent) : undefined}
+              client={client ? String(client) : undefined}
               open={dialogOpen}
               onOpenChange={setDialogOpen}
             />
@@ -857,14 +857,14 @@ export function useCommonLogsColumns(
   columns.push({
     id: 'user_agent',
     accessorFn: (row) => parseLogOther(row.other)?.user_agent ?? '',
-    header: t('User-Agent'),
-    cell: function UserAgentCell({ row }) {
+    header: t('Client'),
+    cell: function ClientCell({ row }) {
       const log = row.original
       if (!isDisplayableLogType(log.type)) return null
 
       const other = parseLogOther(log.other)
-      const userAgent = other?.user_agent
-      if (!userAgent) {
+      const client = other?.user_agent
+      if (!client) {
         return <span className='text-muted-foreground/40'>—</span>
       }
 
@@ -873,14 +873,14 @@ export function useCommonLogsColumns(
           <Tooltip>
             <TooltipTrigger render={<div className='max-w-[180px]' />}>
               <span className='text-muted-foreground block truncate font-mono text-xs'>
-                {userAgent}
+                {client}
               </span>
             </TooltipTrigger>
             <TooltipContent
               side='top'
               className='max-w-md font-mono text-xs break-all'
             >
-              {userAgent}
+              {client}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
