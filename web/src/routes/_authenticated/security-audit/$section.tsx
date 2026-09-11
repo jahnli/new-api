@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import z from 'zod'
 
-import { SecurityAudit } from '@/features/security-audit'
 import {
   isSecurityAuditSectionId,
   SECURITY_AUDIT_DEFAULT_SECTION,
@@ -21,7 +20,7 @@ const securityAuditSearchSchema = z.object({
 
 export const Route = createFileRoute('/_authenticated/security-audit/$section')(
   {
-    beforeLoad: ({ params }) => {
+    beforeLoad: ({ params, search }) => {
       const { auth } = useAuthStore.getState()
 
       if (!auth.user || auth.user.role < ROLE.SUPER_ADMIN) {
@@ -29,14 +28,17 @@ export const Route = createFileRoute('/_authenticated/security-audit/$section')(
           to: '/403',
         })
       }
-      if (!isSecurityAuditSectionId(params.section)) {
-        throw redirect({
-          to: '/security-audit/$section',
-          params: { section: SECURITY_AUDIT_DEFAULT_SECTION },
-        })
-      }
+      throw redirect({
+        to: '/usage-logs/audit',
+        search: {
+          ...search,
+          section: isSecurityAuditSectionId(params.section)
+            ? params.section
+            : SECURITY_AUDIT_DEFAULT_SECTION,
+        },
+        replace: true,
+      })
     },
     validateSearch: securityAuditSearchSchema,
-    component: SecurityAudit,
   }
 )

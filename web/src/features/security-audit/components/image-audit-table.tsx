@@ -12,7 +12,7 @@ import { useImageAuditColumns } from './image-audit-columns'
 import { ImageAuditPreviewDialog } from './image-audit-preview-dialog'
 import { ImageAuditRequestContentDialog } from './image-audit-request-content-dialog'
 
-const route = getRouteApi('/_authenticated/security-audit/$section')
+const route = getRouteApi('/_authenticated/usage-logs/audit')
 
 interface ImageAuditTableProps {
   startTimestamp: number
@@ -23,7 +23,6 @@ interface ImageAuditTableProps {
 export function ImageAuditTable(props: ImageAuditTableProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const params = route.useParams()
   const search = route.useSearch()
 
   const pagination: PaginationState = {
@@ -35,8 +34,7 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
     (updater) => {
       const next = typeof updater === 'function' ? updater(pagination) : updater
       void navigate({
-        to: '/security-audit/$section',
-        params,
+        to: '/usage-logs/audit',
         search: (prev: Record<string, unknown>) => ({
           ...prev,
           imageAuditPage: next.pageIndex + 1,
@@ -45,7 +43,7 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
       })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [navigate, params, pagination.pageIndex, pagination.pageSize]
+    [navigate, pagination.pageIndex, pagination.pageSize]
   )
 
   const { data, isLoading, isFetching } = useQuery({

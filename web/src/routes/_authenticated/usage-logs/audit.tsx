@@ -16,12 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import z from 'zod'
 
 import { AuditLogs } from '@/features/usage-logs/audit'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 const auditSearchSchema = z.object({
+  section: z
+    .enum(['off-hours', 'image-studio', 'general'])
+    .optional()
+    .catch('general'),
+  offHoursPage: z.number().optional().catch(1),
+  offHoursPageSize: z.number().optional().catch(undefined),
+  imageAuditPage: z.number().optional().catch(1),
+  imageAuditPageSize: z.number().optional().catch(undefined),
+  username: z.string().optional().catch(''),
+  startTime: z.number().optional(),
+  endTime: z.number().optional(),
   auditPage: z.number().optional().catch(1),
   auditPageSize: z.number().optional().catch(undefined),
   auditStartTime: z.number().optional(),
@@ -37,6 +50,14 @@ const auditSearchSchema = z.object({
 
 export const Route = createFileRoute('/_authenticated/usage-logs/audit')({
   validateSearch: auditSearchSchema,
+  beforeLoad: ({ search }) => {
+    if (search.section && search.section !== 'general') {
+      const user = useAuthStore.getState().auth.user
+      if (!user || user.role < ROLE.SUPER_ADMIN) {
+        throw redirect({ to: '/403' })
+      }
+    }
+  },
   component: AuditLogsRoute,
 })
 

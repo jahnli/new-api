@@ -17,10 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
+import { LoadingState } from '@/components/loading-state'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getUserProfile } from '@/features/profile/api'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
@@ -35,6 +36,12 @@ import { useAuthStore } from '@/stores/auth-store'
 import type { AuditSearchState } from './api'
 import { AuditLogViewer } from './components/audit-log-viewer'
 
+const SecurityAudit = lazy(() =>
+  import('@/features/security-audit').then((module) => ({
+    default: module.SecurityAudit,
+  }))
+)
+
 export function AuditLogs(
   props: {
     search?: AuditSearchState
@@ -46,6 +53,11 @@ export function AuditLogs(
   const queryClient = useQueryClient()
   const [scope, setScope] = useState<'all' | 'self'>('all')
   const [accessRevoked, setAccessRevoked] = useState(false)
+  const canReadSecurityAudit = !!user && user.role >= ROLE.SUPER_ADMIN
+  const section = canReadSecurityAudit
+    ? (props.search?.section ?? 'general')
+    : 'general'
+  const isGeneralAudit = section === 'general'
   const canReadAll =
     !!user &&
     user.role >= ROLE.ADMIN &&
@@ -98,7 +110,7 @@ export function AuditLogs(
     <SectionPageLayout fixedContent>
       <SectionPageLayout.Title>{t('Audit Logs')}</SectionPageLayout.Title>
       <SectionPageLayout.Actions>
-        {canReadAll && !accessRevoked && (
+        {isGeneralAudit && canReadAll && !accessRevoked && (
           <Tabs
             value={scope}
             onValueChange={(value) =>
@@ -114,20 +126,62 @@ export function AuditLogs(
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         <div className='flex h-full min-h-0 flex-col gap-3'>
-          {accessRevoked && (
+          {canReadSecurityAudit && (
+            <Tabs
+              value={section}
+              onValueChange={(value) => {
+                if (
+                  value !== 'off-hours' &&
+                  value !== 'image-studio' &&
+                  value !== 'general'
+                ) {
+                  return
+                }
+                props.navigate?.({
+                  search: (previous) => ({
+                    ...previous,
+                    section: value,
+                    offHoursPage: undefined,
+                    imageAuditPage: undefined,
+                    auditPage: undefined,
+                  }),
+                })
+              }}
+            >
+              <TabsList
+                aria-label={t('Audit type')}
+                className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'
+              >
+                <TabsTrigger value='general'>{t('General Audit')}</TabsTrigger>
+                <TabsTrigger value='off-hours'>
+                  {t('Off-Hours Requests')}
+                </TabsTrigger>
+                <TabsTrigger value='image-studio'>
+                  {t('Image Audit')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          {isGeneralAudit && accessRevoked && (
             <p role='status' className='text-muted-foreground shrink-0 text-xs'>
               {t('Audit access changed. Showing only your records.')}
             </p>
           )}
-          <div className='min-h-0 flex-1'>
-            <AuditLogViewer
-              key={`${userId}:${effectiveScope}`}
-              scope={effectiveScope}
-              onAccessDenied={handleAccessDenied}
-              search={props.search}
-              navigate={props.navigate}
-            />
-          </div>
+          {isGeneralAudit ? (
+            <div className='min-h-0 flex-1'>
+              <AuditLogViewer
+                key={`${userId}:${effectiveScope}`}
+                scope={effectiveScope}
+                onAccessDenied={handleAccessDenied}
+                search={props.search}
+                navigate={props.navigate}
+              />
+            </div>
+          ) : (
+            <Suspense fallback={<LoadingState className='min-h-0 flex-1' />}>
+              <SecurityAudit section={section} />
+            </Suspense>
+          )}
         </div>
       </SectionPageLayout.Content>
     </SectionPageLayout>

@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-10
+**日期**: 2026-09-11
 
 ## 涉及文件
 
@@ -176,3 +176,13 @@
 - `controller/user.go` — 登录审计不再向 `other.user_agent` 重复写入 User-Agent，统一由审计日志顶层字段保存。
 - `model/audit_other.go` — 将 `AuditOther.UserAgent` 标记为仅供历史记录解码兼容的废弃字段，新记录不再赋值。
 - `model/log.go` — 更新登录审计注释，明确 User-Agent 统一写入审计表顶层字段。
+
+## 2026-09-11 安全审计整合至审计日志
+
+- `web/src/features/usage-logs/audit/index.tsx`、`api.ts` — 审计日志页新增常规审计、非工作时间请求和图片审计分类；仅超级管理员显示安全审计分类，切换分类时隔离各表分页状态，并按需加载安全审计界面。
+- `web/src/features/security-audit/index.tsx` — 安全审计改为嵌入审计日志页面，复用统一分类导航与页面布局；保留日期、用户名筛选，并在审计开关关闭时展示配置引导。
+- `web/src/features/security-audit/components/image-audit-table.tsx`、`off-hours-table.tsx` — 图片审计和非工作时间审计的分页、筛选状态统一写入审计日志路由。
+- `web/src/routes/_authenticated/usage-logs/audit.tsx` — 审计日志路由接管安全审计分类、筛选和分页参数，并在非超级管理员直接访问安全审计分类时跳转无权限页面。
+- `web/src/routes/_authenticated/security-audit/$section.tsx` — 原安全审计路由保留为兼容入口，将合法分类和现有查询参数重定向到审计日志页面。
+- `web/src/hooks/use-sidebar-data.ts` — 移除重复的独立安全审计侧边栏入口，统一从审计日志进入。
+- `web/src/i18n/locales/en.json`、`zh.json`、`zh-TW.json`、`fr.json`、`ja.json`、`ru.json`、`vi.json` — 补齐审计类型、常规审计、禁用状态和配置引导的七语言文案。

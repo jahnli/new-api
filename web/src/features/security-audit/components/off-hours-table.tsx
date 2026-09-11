@@ -11,7 +11,7 @@ import type { AuditRow, OffHoursDetailTarget, OffHoursUserRow } from '../types'
 import { useOffHoursColumns } from './off-hours-columns'
 import { OffHoursDetailDialog } from './off-hours-detail-dialog'
 
-const route = getRouteApi('/_authenticated/security-audit/$section')
+const route = getRouteApi('/_authenticated/usage-logs/audit')
 
 function buildAuditRows(items: OffHoursUserRow[]): AuditRow[] {
   return items.map((user) => ({
@@ -40,7 +40,6 @@ interface OffHoursTableProps {
 export function OffHoursTable(props: OffHoursTableProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const params = route.useParams()
   const search = route.useSearch()
 
   const pagination: PaginationState = {
@@ -52,8 +51,7 @@ export function OffHoursTable(props: OffHoursTableProps) {
     (updater) => {
       const next = typeof updater === 'function' ? updater(pagination) : updater
       void navigate({
-        to: '/security-audit/$section',
-        params,
+        to: '/usage-logs/audit',
         search: (prev: Record<string, unknown>) => ({
           ...prev,
           offHoursPage: next.pageIndex + 1,
@@ -62,7 +60,7 @@ export function OffHoursTable(props: OffHoursTableProps) {
       })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [navigate, params, pagination.pageIndex, pagination.pageSize]
+    [navigate, pagination.pageIndex, pagination.pageSize]
   )
 
   const { data, isLoading, isFetching } = useQuery({

@@ -17,7 +17,6 @@ import {
   Radio,
   ServerCog,
   Settings,
-  ShieldAlert,
   ShieldCheck,
   User,
   Users,
@@ -170,13 +169,6 @@ export function useSidebarData(): SidebarData {
             title: t('Company Management'),
             url: '/companies',
             icon: Building2,
-            requiredRole: ROLE.SUPER_ADMIN,
-          },
-          {
-            title: t('Security Audit'),
-            url: '/security-audit/off-hours',
-            activeUrls: ['/security-audit'],
-            icon: ShieldAlert,
             requiredRole: ROLE.SUPER_ADMIN,
           },
           {
