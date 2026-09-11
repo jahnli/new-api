@@ -33,7 +33,7 @@ import { parseUserMessages } from '../request-messages-provider'
 interface RequestContentDialogProps {
   requestMessage: RequestMessage
   user: UserColumnRow
-  userAgent?: string
+  client?: string
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -233,11 +233,11 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
                         )}
                       </Button>
                     </div>
-                    {props.userAgent && (
+                    {props.client && (
                       <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
-                        <span className='shrink-0'>{t('User-Agent')}:</span>
+                        <span className='shrink-0'>{t('Client')}:</span>
                         <span className='min-w-0 break-all'>
-                          {props.userAgent}
+                          {props.client}
                         </span>
                       </div>
                     )}
