@@ -57,6 +57,7 @@ export interface AuditFilters {
 }
 
 export interface AuditSearchState extends Record<string, unknown> {
+  section?: 'off-hours' | 'image-studio' | 'general'
   auditPage?: number
   auditPageSize?: number
   auditStartTime?: number

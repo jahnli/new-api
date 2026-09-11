@@ -11,34 +11,17 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/empty-state'
-import { SectionPageLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
 import dayjs from '@/lib/dayjs'
 
 import { getSecurityAuditSetting } from './api'
-import { getVisibleSecurityAuditSectionIds } from './audit-visibility'
 import { ImageAuditTable } from './components/image-audit-table'
 import { OffHoursTable } from './components/off-hours-table'
-import {
-  SECURITY_AUDIT_SECTION_IDS,
-  isSecurityAuditSectionId,
-  SECURITY_AUDIT_DEFAULT_SECTION,
-  type SecurityAuditSectionId,
-} from './section-registry'
+import type { SecurityAuditSectionId } from './section-registry'
 
-const route = getRouteApi('/_authenticated/security-audit/$section')
-
-const SECTION_META: Record<SecurityAuditSectionId, { titleKey: string }> = {
-  'off-hours': {
-    titleKey: 'Off-Hours Requests',
-  },
-  'image-studio': {
-    titleKey: 'Image Audit',
-  },
-}
+const route = getRouteApi('/_authenticated/usage-logs/audit')
 
 function formatHour(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`
@@ -54,16 +37,11 @@ function getDefaultTimeRange(): {
   }
 }
 
-export function SecurityAudit() {
+export function SecurityAudit(props: { section: SecurityAuditSectionId }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const params = route.useParams()
   const search = route.useSearch()
-  const activeSection: SecurityAuditSectionId = isSecurityAuditSectionId(
-    params.section
-  )
-    ? params.section
-    : SECURITY_AUDIT_DEFAULT_SECTION
+  const activeSection = props.section
   const isOffHoursSection = activeSection === 'off-hours'
 
   const settingQuery = useQuery({
@@ -74,32 +52,6 @@ export function SecurityAudit() {
   const auditSetting = settingQuery.data?.data
   const imageStudioEnabled = auditSetting?.image_studio !== false
   const offHoursEnabled = auditSetting?.off_hours.enabled !== false
-  const visibleSectionIds = useMemo(
-    () =>
-      getVisibleSecurityAuditSectionIds(
-        SECURITY_AUDIT_SECTION_IDS,
-        offHoursEnabled,
-        imageStudioEnabled
-      ),
-    [imageStudioEnabled, offHoursEnabled]
-  )
-
-  useEffect(() => {
-    if (
-      settingQuery.isLoading ||
-      visibleSectionIds.includes(activeSection) ||
-      visibleSectionIds.length === 0
-    ) {
-      return
-    }
-    void navigate({
-      to: '/security-audit/$section',
-      params: { section: visibleSectionIds[0] },
-      search: (previousSearch: Record<string, unknown>) => previousSearch,
-      replace: true,
-    })
-  }, [activeSection, navigate, settingQuery.isLoading, visibleSectionIds])
-
   const defaultTimeRange = useMemo(() => getDefaultTimeRange(), [])
   const startTimestamp = search.startTime ?? defaultTimeRange.startTime.unix()
   const endTimestamp = search.endTime ?? defaultTimeRange.endTime.unix()
@@ -117,6 +69,10 @@ export function SecurityAudit() {
     setEndTimeInput(new Date(endTimestamp * 1000))
   }, [startTimestamp, endTimestamp])
 
+  useEffect(() => {
+    setUsernameInput(search.username ?? '')
+  }, [search.username])
+
   const handleRangeChange = useCallback(
     (range: { start?: Date; end?: Date }) => {
       if (range.start) setStartTimeInput(range.start)
@@ -127,8 +83,7 @@ export function SecurityAudit() {
 
   const applyFilters = useCallback(() => {
     void navigate({
-      to: '/security-audit/$section',
-      params: { section: activeSection },
+      to: '/usage-logs/audit',
       search: (previousSearch: Record<string, unknown>) => ({
         ...previousSearch,
         startTime: dayjs(startTimeInput).unix(),
@@ -140,7 +95,7 @@ export function SecurityAudit() {
         imageAuditPageSize: undefined,
       }),
     })
-  }, [navigate, activeSection, startTimeInput, endTimeInput, usernameInput])
+  }, [navigate, startTimeInput, endTimeInput, usernameInput])
 
   const resetFilters = useCallback(() => {
     const defaultTimeRange = getDefaultTimeRange()
@@ -148,8 +103,7 @@ export function SecurityAudit() {
     setEndTimeInput(defaultTimeRange.endTime.toDate())
     setUsernameInput('')
     void navigate({
-      to: '/security-audit/$section',
-      params: { section: activeSection },
+      to: '/usage-logs/audit',
       search: (previousSearch: Record<string, unknown>) => ({
         ...previousSearch,
         startTime: undefined,
@@ -161,37 +115,20 @@ export function SecurityAudit() {
         imageAuditPageSize: undefined,
       }),
     })
-  }, [navigate, activeSection])
+  }, [navigate])
 
-  const handleSectionChange = useCallback(
-    (section: string) => {
-      void navigate({
-        to: '/security-audit/$section',
-        params: { section: section as SecurityAuditSectionId },
-        // 跨 tab 保留时间与用户名筛选,仅重置页码
-        search: (previousSearch: Record<string, unknown>) => ({
-          ...previousSearch,
-          offHoursPage: undefined,
-          offHoursPageSize: undefined,
-          imageAuditPage: undefined,
-          imageAuditPageSize: undefined,
-        }),
-      })
-    },
-    [navigate]
-  )
-
-  const noAuditEnabled =
-    !settingQuery.isLoading && visibleSectionIds.length === 0
+  const auditDisabled =
+    !settingQuery.isLoading &&
+    !(isOffHoursSection ? offHoursEnabled : imageStudioEnabled)
 
   let sectionContent: ReactNode = null
-  if (noAuditEnabled) {
+  if (auditDisabled) {
     sectionContent = (
       <EmptyState
         icon={ShieldOff}
-        title={t('No security audits enabled')}
+        title={t('This audit is disabled')}
         description={t(
-          'Enable at least one audit in System Settings → Security & Limits → Security Audit.'
+          'Enable this audit in System Settings → Security & Limits → Security Audit.'
         )}
         className='min-h-0 flex-1'
       />
@@ -222,59 +159,42 @@ export function SecurityAudit() {
   }
 
   return (
-    <SectionPageLayout fixedContent>
-      <SectionPageLayout.Content>
-        <div className='flex h-full min-h-0 flex-col gap-4'>
-          {!noAuditEnabled && (
-            <>
-              <div className='flex flex-wrap items-center gap-2'>
-                <Tabs value={activeSection} onValueChange={handleSectionChange}>
-                  <TabsList className='max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto'>
-                    {visibleSectionIds.map((section) => (
-                      <TabsTrigger key={section} value={section}>
-                        {t(SECTION_META[section].titleKey)}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
-              </div>
-              <div className='flex flex-wrap items-center gap-2'>
-                <CompactDateTimeRangePicker
-                  start={startTimeInput}
-                  end={endTimeInput}
-                  onChange={handleRangeChange}
-                  className='w-[320px] max-w-full'
-                />
-                <Input
-                  value={usernameInput}
-                  onChange={(event) => setUsernameInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') applyFilters()
-                  }}
-                  placeholder={t('Search username')}
-                  className='h-8 w-[180px]'
-                />
-                <Button type='button' variant='outline' onClick={resetFilters}>
-                  <RotateCcw className='size-4' />
-                  {t('Reset')}
-                </Button>
-                <Button type='button' onClick={applyFilters}>
-                  <Search className='size-4' />
-                  {t('Search')}
-                </Button>
-                {isOffHoursSection && auditSetting && (
-                  <span className='text-muted-foreground ml-2 text-sm'>
-                    {t('Audit window')}:{' '}
-                    {formatHour(auditSetting.off_hours.start_hour)} -{' '}
-                    {formatHour(auditSetting.off_hours.end_hour)}
-                  </span>
-                )}
-              </div>
-            </>
+    <div className='flex min-h-0 flex-1 flex-col gap-4'>
+      {!auditDisabled && (
+        <div className='flex flex-wrap items-center gap-2'>
+          <CompactDateTimeRangePicker
+            start={startTimeInput}
+            end={endTimeInput}
+            onChange={handleRangeChange}
+            className='w-[320px] max-w-full'
+          />
+          <Input
+            value={usernameInput}
+            onChange={(event) => setUsernameInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') applyFilters()
+            }}
+            placeholder={t('Search username')}
+            className='h-8 w-[180px]'
+          />
+          <Button type='button' variant='outline' onClick={resetFilters}>
+            <RotateCcw className='size-4' />
+            {t('Reset')}
+          </Button>
+          <Button type='button' onClick={applyFilters}>
+            <Search className='size-4' />
+            {t('Search')}
+          </Button>
+          {isOffHoursSection && auditSetting && (
+            <span className='text-muted-foreground ml-2 text-sm'>
+              {t('Audit window')}:{' '}
+              {formatHour(auditSetting.off_hours.start_hour)} -{' '}
+              {formatHour(auditSetting.off_hours.end_hour)}
+            </span>
           )}
-          {sectionContent}
         </div>
-      </SectionPageLayout.Content>
-    </SectionPageLayout>
+      )}
+      {sectionContent}
+    </div>
   )
 }
