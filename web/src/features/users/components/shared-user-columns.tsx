@@ -630,7 +630,7 @@ export function userActivityTimeColumn<T extends UserColumnRow>(
         createdLabelIcon={
           <HugeiconsIcon
             icon={UserAdd01Icon}
-            size={14}
+            size={16}
             strokeWidth={1.8}
             aria-hidden='true'
           />
@@ -638,13 +638,14 @@ export function userActivityTimeColumn<T extends UserColumnRow>(
         lastLabelIcon={
           <HugeiconsIcon
             icon={Login03Icon}
-            size={14}
+            size={16}
             strokeWidth={1.8}
             aria-hidden='true'
           />
         }
         format='absolute'
         order='last-first'
+        textClassName='!text-[14px]'
       />
     ),
     size: 260,

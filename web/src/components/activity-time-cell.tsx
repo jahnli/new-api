@@ -115,6 +115,14 @@ export function ActivityTimeCell(props: {
   format?: 'relative' | 'absolute'
   layout?: 'rows' | 'columns'
   order?: 'created-first' | 'last-first'
+  /**
+   * Overrides the text size of both entries. Omit to keep the default `text-xs`.
+   *
+   * The shared data-table CSS pins `data-table-text="secondary"` elements to
+   * `text-xs` through a descendant selector, so a larger size must be passed
+   * with the `!` prefix to win that comparison.
+   */
+  textClassName?: string
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -141,7 +149,8 @@ export function ActivityTimeCell(props: {
     <div
       data-table-text='secondary'
       className={cn(
-        'grid min-w-0 gap-y-1 text-xs font-normal',
+        'grid min-w-0 gap-y-1 font-normal',
+        props.textClassName ?? 'text-xs',
         props.layout === 'columns'
           ? 'grid-flow-col grid-cols-2 grid-rows-[auto_1fr] items-start gap-x-3'
           : 'grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2'
