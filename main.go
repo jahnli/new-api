@@ -62,7 +62,11 @@ func main() {
 		return
 	}
 
-	common.SysLog("New API " + common.Version + " started")
+	systemName := strings.TrimSpace(common.SystemName)
+	if systemName == "" {
+		systemName = common.DefaultSystemName
+	}
+	common.SysLog(systemName + " " + common.Version + " started")
 	if os.Getenv("GIN_MODE") != "debug" {
 		gin.SetMode(gin.ReleaseMode)
 	}

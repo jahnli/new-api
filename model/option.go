@@ -193,6 +193,9 @@ func loadOptionsFromDatabase() {
 	if err := migrateLegacyAuditSetting(); err != nil {
 		common.SysError("failed to migrate legacy audit setting: " + err.Error())
 	}
+	if err := migrateLegacySystemName(); err != nil {
+		common.SysError("failed to migrate legacy system name: " + err.Error())
+	}
 	passkeyOptionMutex.Lock()
 	defer passkeyOptionMutex.Unlock()
 	options, _ := AllOption()
@@ -208,6 +211,22 @@ func loadOptionsFromDatabase() {
 		}
 	}
 	applyPasskeyDomainOptions(passkeyOptions)
+}
+
+func migrateLegacySystemName() error {
+	var option Option
+	if err := DB.Where("key = ?", "SystemName").First(&option).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil
+		}
+		return err
+	}
+	if strings.TrimSpace(option.Value) != "New API" {
+		return nil
+	}
+	return DB.Model(&Option{}).
+		Where("key = ?", "SystemName").
+		Update("value", common.DefaultSystemName).Error
 }
 
 func migrateLegacyAuditSetting() error {
