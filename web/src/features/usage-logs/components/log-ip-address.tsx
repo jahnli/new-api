@@ -48,7 +48,7 @@ export function LogIpAddress(props: LogIpAddressProps) {
               copyText={sensitiveVisible ? props.ipAddress : undefined}
               size='sm'
               showDot={false}
-              className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 font-mono font-normal [&_svg]:stroke-[1.5]'
+              className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 font-mono [&_svg]:stroke-[1.5]'
             />
           </TooltipTrigger>
           {sensitiveVisible && props.ipAddress.length > 15 && (

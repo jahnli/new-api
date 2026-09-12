@@ -203,7 +203,7 @@ export function AuditLogViewer(props: {
         className='h-auto min-h-0 flex-1'
         applyHeaderSize
         getColumnClassName={() => 'py-2'}
-        tableClassName='[&_[data-slot=table]]:text-[13px] [&_[data-slot=table-body]_td]:font-normal [&_[data-slot=table-body]_td_*]:font-normal [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
+        tableClassName='[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
         toolbar={
           <div className='shrink-0 space-y-2'>
             <AuditLogFilterBar

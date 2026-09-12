@@ -31,8 +31,7 @@ function Table({
     <table
       data-slot='table'
       className={cn(
-        'w-full caption-bottom !text-[13px] tabular-nums [&_td]:!text-[13px] [&_td_*]:!text-[13px] [&_th]:!text-[13px] [&_th_*]:!text-[13px]',
-        '[font-family:var(--font-body)] [&_:is(th,td)_*]:[font-family:inherit] [&_:is(th,td)_*]:[font-size:inherit] [&_:is(th,td)_*]:[font-weight:inherit]',
+        'w-full caption-bottom text-sm tabular-nums [font-family:var(--font-body)] [&_td]:text-sm [&_td]:font-medium [&_th]:text-sm [&_:is(th,td)_*]:[font-family:inherit] [&_:is(th,td)_*]:[font-size:inherit] [&_:is(th,td)_*]:[font-weight:inherit]',
         '[&_[data-table-text=secondary]]:text-xs [&_[data-table-text=secondary]]:font-normal',
         className
       )}

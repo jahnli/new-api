@@ -68,7 +68,7 @@ function QuotaBadge(props: { quota: number; masked?: boolean }) {
   const amount = props.masked ? DEMO_MODE_MASK : quotaDisplay.amount
 
   return (
-    <span className='border-border/80 bg-muted/60 inline-flex h-6 w-fit items-center rounded-md border px-2 [font-family:var(--font-body)] text-sm leading-none font-normal tabular-nums'>
+    <span className='border-border/80 bg-muted/60 inline-flex h-6 w-fit items-center rounded-md border px-2 [font-family:var(--font-body)] text-sm leading-none font-semibold tabular-nums'>
       {quotaDisplay.prefix ? (
         <span className='mr-1'>{quotaDisplay.prefix}</span>
       ) : null}

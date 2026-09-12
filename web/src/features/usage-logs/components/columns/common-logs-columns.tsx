@@ -427,7 +427,7 @@ export function useCommonLogsColumns(
 
         return (
           <div className='flex min-w-0 flex-col gap-0.5'>
-            <span className='truncate font-mono text-xs font-normal tabular-nums'>
+            <span className='truncate font-mono text-xs tabular-nums'>
               {formatTimestampToDate(timestamp)}
             </span>
             <StatusBadge
@@ -435,7 +435,7 @@ export function useCommonLogsColumns(
               variant={config.color as StatusBadgeProps['variant']}
               size='sm'
               copyable={false}
-              className='!text-xs font-normal [&_span]:!text-xs'
+              className='-ml-1.5 !text-xs [&_span]:!text-xs'
             />
           </div>
         )
@@ -447,7 +447,6 @@ export function useCommonLogsColumns(
       },
       enableHiding: false,
       size: 155,
-      meta: { headerClassName: 'font-semibold' },
     },
   ]
 
@@ -472,7 +471,6 @@ export function useCommonLogsColumns(
           />
         )
       },
-      meta: { headerClassName: 'font-semibold' },
     })
   }
 
@@ -491,7 +489,6 @@ export function useCommonLogsColumns(
             <ModelBadge
               modelName={modelInfo.name}
               actualModel={modelInfo.actualModel}
-              className='font-normal'
             />
           </div>
         )
@@ -849,13 +846,17 @@ export function useCommonLogsColumns(
         const log = row.original
         const requestMessage = useRequestMessage(log.request_id)
         if (demoMode) {
-          return <span className='text-muted-foreground'>***</span>
+          return <span className='text-muted-foreground !font-normal'>***</span>
         }
         if (!sensitiveVisible) {
-          return <span className='text-muted-foreground/40'>••••</span>
+          return (
+            <span className='text-muted-foreground/40 !font-normal'>••••</span>
+          )
         }
         if (!requestMessage) {
-          return <span className='text-muted-foreground/40'>—</span>
+          return (
+            <span className='text-muted-foreground/40 !font-normal'>—</span>
+          )
         }
 
         const client = parseLogOther(log.other)?.user_agent
@@ -866,15 +867,15 @@ export function useCommonLogsColumns(
           <>
             <button
               type='button'
-              className='group flex max-w-[190px] min-w-0 items-center gap-1 text-left text-xs'
+              className='group flex max-w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
               onClick={() => setDialogOpen(true)}
               title={t('Click to view the full conversation')}
             >
-              <span className='text-muted-foreground min-w-0 flex-1 truncate hover:underline'>
+              <span className='text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline'>
                 {latestMessage}
               </span>
               {messages.length > 1 && (
-                <span className='text-muted-foreground/40 shrink-0'>
+                <span className='text-muted-foreground/40 shrink-0 !font-normal'>
                   +{messages.length - 1}
                 </span>
               )}
@@ -920,14 +921,14 @@ export function useCommonLogsColumns(
       const other = parseLogOther(log.other)
       const client = other?.user_agent
       if (!client) {
-        return <span className='text-muted-foreground/40'>—</span>
+        return <span className='text-muted-foreground/40 !font-normal'>—</span>
       }
 
       return (
         <TooltipProvider delay={100}>
           <Tooltip>
             <TooltipTrigger render={<div className='max-w-[180px]' />}>
-              <span className='text-muted-foreground block truncate font-mono text-xs'>
+              <span className='text-muted-foreground block truncate font-mono text-xs !font-normal'>
                 {client}
               </span>
             </TooltipTrigger>
@@ -1057,11 +1058,16 @@ export function useCommonLogsColumns(
         if (isErrorLog) {
           contentTextClassName = 'text-red-600 dark:text-red-400'
         }
-        let detailContent = <span className='text-muted-foreground/40'>—</span>
+        let detailContent = (
+          <span className='text-muted-foreground/40 !font-normal'>—</span>
+        )
         if (log.content) {
           detailContent = (
             <span
-              className={cn('truncate hover:underline', contentTextClassName)}
+              className={cn(
+                'truncate !font-normal hover:underline',
+                contentTextClassName
+              )}
             >
               {log.content}
             </span>
@@ -1071,13 +1077,13 @@ export function useCommonLogsColumns(
           detailContent = (
             <span
               className={cn(
-                'truncate leading-snug hover:underline',
+                'truncate !font-normal leading-snug hover:underline',
                 primaryTextClassName
               )}
             >
               {primary.text}
               {hasMore && (
-                <span className='text-muted-foreground/40 ml-0.5'>
+                <span className='text-muted-foreground/40 ml-0.5 !font-normal'>
                   +{segments.length - 1}
                 </span>
               )}
@@ -1089,7 +1095,7 @@ export function useCommonLogsColumns(
           <>
             <button
               type='button'
-              className='group flex max-w-[150px] items-center gap-1 text-left text-xs'
+              className='group flex max-w-[150px] items-center gap-1 text-left text-xs !font-normal'
               onClick={() => setDialogOpen(true)}
               title={t('Click to view full details')}
             >
