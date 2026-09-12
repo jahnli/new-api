@@ -7170,6 +7170,9 @@
     "Your Discord OAuth Client ID": "Discord OAuth Client ID của bạn",
     "Your Discord OAuth Client Secret": "Discord OAuth Client Secret của bạn",
     "Your Telegram Bot Token": "Mã thông báo bot Telegram của bạn",
-    "Zhipu GLM": "Zhipu GLM"
+    "Zhipu GLM": "Zhipu GLM",
+    "Consumption": "Tiêu thụ",
+    "Sort by": "Sắp xếp theo",
+    "Tokens, total cost, and unit price per 100M tokens": "Token, tổng chi phí và đơn giá trên 100 triệu token"
   }
 }

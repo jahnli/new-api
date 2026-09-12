@@ -7170,6 +7170,9 @@
     "Your Discord OAuth Client ID": "Votre ID client OAuth Discord",
     "Your Discord OAuth Client Secret": "Votre secret client OAuth Discord",
     "Your Telegram Bot Token": "Votre Jeton de Bot Telegram",
-    "Zhipu GLM": "Zhipu GLM"
+    "Zhipu GLM": "Zhipu GLM",
+    "Consumption": "Consommation",
+    "Sort by": "Trier par",
+    "Tokens, total cost, and unit price per 100M tokens": "Jetons, coût total et prix unitaire pour 100 M de tokens"
   }
 }

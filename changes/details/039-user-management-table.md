@@ -1,6 +1,6 @@
 # 用户管理表格统计增强
 
-**日期**: 2026-06-30 ~ 09-11（最后更新 09-11）
+**日期**: 2026-06-30 ~ 09-12（最后更新 09-12）
 
 ## 涉及文件
 
@@ -115,3 +115,12 @@
 
 - `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与部门人员列表的单价列统一按每亿 Token 展示：标题改为“单价 / 亿 Token”，内容改为“金额 / 亿”，并加宽列以容纳完整标题。
 - `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐单价列标题和亿级单位的七语言文案。
+
+## 2026-09-12 消耗列合并与排序字段切换
+
+- `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与部门人员列表的共享列把原 Token、总费用、单价三列合并为单个“消耗”列：首行显示 Token 消耗量与金额，次行以 `text-muted-foreground/70` 弱化色和 13px 字号显示每亿 Token 单价；三项数据均保留悬停完整明细（含精确 Token 数）与屏幕阅读器标签，列宽由三列合计 360px 收窄为 200px；移除 `userTokensColumn`、`userCostColumn`、`userAveragePriceColumn`，新增 `userConsumptionColumn`。
+- `web/src/components/data-table/core/column-header.tsx` — 共享列头支持列 `meta.sortFields`：下拉菜单新增“排序字段”单选组，升/降序作用于当前选中字段，并同步显示该字段的排序方向图标；未声明 `sortFields` 的列行为完全不变。
+- `web/src/components/data-table/core/data-table-header.tsx` — 把表头上下文中的 table 实例透传给列头，使字符串表头（`header: t('...')`）也能读写排序状态。
+- `web/src/components/data-table/core/types.ts` — 新增 `DataTableSortField` 类型，描述合并列对外暴露的可排序字段。
+- `web/src/tanstack-table.d.ts` — 列 meta 新增 `sortFields` 声明，供合并列声明多个服务端排序字段。
+- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐“消耗”“排序字段”和消耗列说明的七语言文案。

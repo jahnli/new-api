@@ -7170,6 +7170,9 @@
     "Your Discord OAuth Client ID": "您的 Discord OAuth 客户端 ID",
     "Your Discord OAuth Client Secret": "您的 Discord OAuth 客户端密钥",
     "Your Telegram Bot Token": "您的 Telegram 机器人令牌",
-    "Zhipu GLM": "智谱GLM"
+    "Zhipu GLM": "智谱GLM",
+    "Consumption": "消耗",
+    "Sort by": "排序字段",
+    "Tokens, total cost, and unit price per 100M tokens": "Token 用量、总费用与每亿 Token 单价"
   }
 }

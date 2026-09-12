@@ -7170,6 +7170,9 @@
     "Your Discord OAuth Client ID": "Discord OAuth クライアント ID",
     "Your Discord OAuth Client Secret": "Discord OAuth クライアント シークレット",
     "Your Telegram Bot Token": "あなたのTelegramボットトークン",
-    "Zhipu GLM": "Zhipu GLM"
+    "Zhipu GLM": "Zhipu GLM",
+    "Consumption": "消費",
+    "Sort by": "並べ替え項目",
+    "Tokens, total cost, and unit price per 100M tokens": "トークン使用量、総コスト、1億トークンあたりの単価"
   }
 }

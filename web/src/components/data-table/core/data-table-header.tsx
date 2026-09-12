@@ -264,15 +264,28 @@ function getHeaderSizeStyle<TData>(
 function renderHeaderContent<TData>(header: Header<TData, unknown>) {
   if (header.isPlaceholder) return null
   const { header: headerDef, meta } = header.column.columnDef
+  const context = header.getContext()
   // A string header means the user wrote e.g. `header: t('Name')` — auto-render
   // with DataTableColumnHeader so sorting works without boilerplate.
   // A function (including TanStack's default accessor-key fallback) is passed
   // through as-is. meta.label is kept as a fallback for legacy columns.
   if (typeof headerDef === 'string') {
-    return <DataTableColumnHeader column={header.column} title={headerDef} />
+    return (
+      <DataTableColumnHeader
+        column={header.column}
+        title={headerDef}
+        table={context.table}
+      />
+    )
   }
   if (meta?.label) {
-    return <DataTableColumnHeader column={header.column} title={meta.label} />
+    return (
+      <DataTableColumnHeader
+        column={header.column}
+        title={meta.label}
+        table={context.table}
+      />
+    )
   }
-  return flexRender(headerDef, header.getContext())
+  return flexRender(headerDef, context)
 }

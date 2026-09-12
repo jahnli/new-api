@@ -288,119 +288,88 @@ export function userQuotaColumn<T extends UserColumnRow>(
   }
 }
 
-export function userCostColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-  opts: { accessor: string; header?: string }
-): ColumnDef<T> {
-  return {
-    accessorKey: opts.accessor,
-    header: opts.header ?? t('Total Cost'),
-    cell: ({ row }) => (
-      <span className='text-sm font-medium tabular-nums'>
-        {formatAmountCny(
-          (row.original as Record<string, unknown>)[opts.accessor] as
-            | number
-            | undefined
-        )}
-      </span>
-    ),
-    size: 120,
-    meta: { mobileHidden: true },
-  }
-}
-
-export function userAveragePriceColumn<T extends UserColumnRow>(
+/**
+ * Single column for monthly/range consumption: token usage, total cost, and the
+ * unit price per 100M tokens. The three metrics share one cell to save
+ * horizontal space, and the header still exposes every original sort field via
+ * `meta.sortFields`.
+ */
+export function userConsumptionColumn<T extends UserColumnRow>(
   t: (key: string) => string,
   opts: { costAccessor: string; tokensAccessor: string }
 ): ColumnDef<T> {
   return {
-    id: 'average_price',
-    accessorFn: (row) => {
-      const source = row as Record<string, unknown>
+    id: 'consumption',
+    header: t('Consumption'),
+    cell: ({ row }) => {
+      const source = row.original as Record<string, unknown>
       const cost = Number(source[opts.costAccessor] ?? 0)
       const tokens = Number(source[opts.tokensAccessor] ?? 0)
+      const hasCost = Number.isFinite(cost) && cost > 0
+      const hasTokens = Number.isFinite(tokens) && tokens > 0
 
-      if (
-        !Number.isFinite(cost) ||
-        !Number.isFinite(tokens) ||
-        cost <= 0 ||
-        tokens <= 0
-      ) {
-        return 0
-      }
-
-      return calculateUnitPricePer100MTokens(cost, tokens)
-    },
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title={t('Unit Price / 100M Tokens')}
-      />
-    ),
-    cell: ({ row }) => {
-      const averagePrice = row.getValue('average_price') as number
-
-      if (!Number.isFinite(averagePrice) || averagePrice <= 0) {
+      if (!hasCost && !hasTokens) {
         return <span className='text-muted-foreground text-sm'>-</span>
       }
+
+      const formattedCost = formatAmountCny(cost)
+      const formattedTokens = formatUserTokens(tokens)
+      const unitPrice =
+        hasCost && hasTokens ? calculateUnitPricePer100MTokens(cost, tokens) : 0
+      const formattedUnitPrice =
+        unitPrice > 0 ? `${formatAmountCny(unitPrice)} / ${t('100M')}` : '-'
 
       return (
         <Tooltip>
           <TooltipTrigger
-            render={<span className='cursor-default text-sm tabular-nums' />}
+            render={
+              <div className='w-full min-w-0 cursor-help space-y-0.5 overflow-hidden' />
+            }
           >
-            {formatAmountCny(averagePrice)} / {t('100M')}
+            <div className='flex min-w-0 items-baseline gap-x-1.5'>
+              <span className='sr-only'>{t('Tokens')}:</span>
+              <span className='min-w-0 truncate text-sm font-medium tabular-nums'>
+                {formattedTokens}
+              </span>
+              <span aria-hidden='true'>·</span>
+              <span className='sr-only'>{t('Total Cost')}:</span>
+              <span className='min-w-0 truncate text-sm font-medium tabular-nums'>
+                {formattedCost}
+              </span>
+            </div>
+            <div className='text-muted-foreground/70 flex min-w-0 items-baseline gap-x-1.5 !text-[13px] tabular-nums'>
+              <span className='sr-only'>{t('Unit Price / 100M Tokens')}:</span>
+              <span className='min-w-0 truncate'>{formattedUnitPrice}</span>
+            </div>
           </TooltipTrigger>
           <TooltipContent>
-            <span className='text-xs'>{t('Unit price per 100M tokens')}</span>
+            <div className='space-y-1 text-xs'>
+              <div>
+                {t('Tokens')}: {formatUserTokensDetail(tokens)}
+              </div>
+              <div>
+                {t('Total Cost')}: {formattedCost}
+              </div>
+              <div>
+                {t('Unit Price / 100M Tokens')}: {formattedUnitPrice}
+              </div>
+            </div>
           </TooltipContent>
         </Tooltip>
       )
     },
-    enableSorting: true,
-    size: 140,
+    minSize: 180,
+    size: 200,
     meta: {
+      label: t('Consumption'),
+      description: t('Tokens, total cost, and unit price per 100M tokens'),
       mobileHidden: true,
-      description: t('Unit price per 100M tokens'),
+      sortFields: [
+        { id: opts.tokensAccessor, label: t('Tokens') },
+        { id: opts.costAccessor, label: t('Total Cost') },
+        { id: 'average_price', label: t('Unit Price / 100M Tokens') },
+      ],
     },
-  }
-}
-
-export function userTokensColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-  opts: { accessor: string; header?: string }
-): ColumnDef<T> {
-  return {
-    accessorKey: opts.accessor,
-    header: opts.header ?? t('Tokens'),
-    cell: ({ row }) => {
-      const tokens = (row.original as Record<string, unknown>)[
-        opts.accessor
-      ] as number | undefined
-      const display = formatUserTokens(tokens)
-      const detail = formatUserTokensDetail(tokens)
-      if (detail && detail !== display) {
-        return (
-          <Tooltip>
-            <TooltipTrigger
-              render={<span className='cursor-default text-sm tabular-nums' />}
-            >
-              {display}
-            </TooltipTrigger>
-            <TooltipContent>
-              <span className='font-mono text-xs'>{detail}</span>
-            </TooltipContent>
-          </Tooltip>
-        )
-      }
-      return (
-        <span className='text-muted-foreground text-sm tabular-nums'>
-          {display}
-        </span>
-      )
-    },
-    size: 100,
-    meta: { mobileHidden: true },
   }
 }
 
@@ -814,9 +783,7 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       userQuotaColumn<T>(t, {
         headerDescription: opts.quotaHeaderDescription,
       }),
-      userTokensColumn<T>(t, { accessor: opts.tokensAccessor }),
-      userCostColumn<T>(t, { accessor: opts.costAccessor }),
-      userAveragePriceColumn<T>(t, {
+      userConsumptionColumn<T>(t, {
         costAccessor: opts.costAccessor,
         tokensAccessor: opts.tokensAccessor,
       }),

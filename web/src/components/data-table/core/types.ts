@@ -24,6 +24,19 @@ export type DataTableColumnClassName = (
   kind: 'header' | 'cell'
 ) => string | undefined
 
+/**
+ * Sortable field exposed by a merged column.
+ *
+ * A single visible column can summarize several metrics (for example cost,
+ * tokens, and unit price). Each entry maps a menu option to the column id the
+ * table uses for server-side sorting, so merging columns does not remove any
+ * sort option.
+ */
+export type DataTableSortField = {
+  id: string
+  label: string
+}
+
 export type DataTablePinnedColumn = {
   columnId: string
   side: 'left' | 'right'
