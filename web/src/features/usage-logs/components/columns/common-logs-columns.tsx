@@ -34,6 +34,18 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDemoMode } from '@/hooks/use-demo-mode'
+import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
+import {
+  normalizeTierLabel,
+  parseTaskTiersFromExpr,
+} from '@/features/pricing/lib/billing-expr'
+import {
+  formatTaskUsageUnitPrice,
+  getTaskUsagePriceUnitLabelKey,
+} from '@/features/pricing/lib/dynamic-price'
+import { pluginUsageSchema } from '@/features/pricing/lib/plugin-pricing'
+import { taskUsageUnitLabel } from '@/features/pricing/lib/task-price-display'
+import type { BillingUsageSchema } from '@/features/pricing/types'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { DEMO_MODE_MASK, maskFormattedCurrencyAmount } from '@/lib/demo-mode'
 import {
@@ -53,6 +65,7 @@ import {
   getEffectiveLogGroupRatio,
   getFirstResponseTimeColor,
   getResponseTimeColor,
+  decodeBillingExprB64,
   getTieredBillingSummary,
   hasAnyCacheTokens,
   isViolationFeeLog,
@@ -120,7 +133,9 @@ function buildDetailSegments(
   t: (key: string, opts?: Record<string, unknown>) => string,
   isAdmin = false,
   canViewGroupRatio = isAdmin,
-  demoMode = false
+  demoMode = false,
+  language = 'en',
+  usageSchema?: BillingUsageSchema
 ): DetailSegment[] {
   const segments = buildTypeDetailSegments(
     log,
@@ -128,7 +143,9 @@ function buildDetailSegments(
     t,
     isAdmin,
     canViewGroupRatio,
-    demoMode
+    demoMode,
+    language,
+    usageSchema
   )
   const adminSegments: DetailSegment[] = []
   // Quota saturation is a rare, admin-only anomaly marker; surface it first
@@ -137,13 +154,6 @@ function buildDetailSegments(
   // defense in depth so the marker never leaks if that changes.
   if (isAdmin && other?.admin_info?.quota_saturation) {
     adminSegments.push({ text: t('Quota clamped'), danger: true })
-  }
-  const plugin = isAdmin ? other?.admin_info?.task_plugin : undefined
-  if (plugin) {
-    const version = plugin.version ? ` @ ${plugin.version}` : ''
-    adminSegments.push({
-      text: `${t('Plugin')}: ${plugin.name || plugin.key}${version}`,
-    })
   }
   return [...adminSegments, ...segments]
 }
@@ -154,7 +164,9 @@ function buildTypeDetailSegments(
   t: (key: string, opts?: Record<string, unknown>) => string,
   isAdmin: boolean,
   canViewGroupRatio = isAdmin,
-  demoMode = false
+  demoMode = false,
+  language = 'en',
+  usageSchema?: BillingUsageSchema
 ): DetailSegment[] {
   // Top-up, audit, and login logs can carry a localized operation descriptor.
   if (log.type === 1 || log.type === 3 || log.type === 7) {
@@ -209,7 +221,46 @@ function buildTypeDetailSegments(
   const isTieredExpr = other.billing_mode === 'tiered_expr'
   const tieredSummary = getTieredBillingSummary(other)
   const groupPriceRatio = getEffectiveLogGroupRatio(other)
-  if (isTieredExpr) {
+  if (isTieredExpr && other.is_task) {
+    const tiers = parseTaskTiersFromExpr(
+      decodeBillingExprB64(other.expr_b64),
+      usageSchema,
+      true
+    )
+    const tier = tiers.find(
+      (entry) =>
+        Boolean(other.matched_tier) &&
+        normalizeTierLabel(entry.label) ===
+          normalizeTierLabel(other.matched_tier)
+    )
+    if (tier) {
+      const formatTaskPrice = (price: number) => {
+        const formatted = formatTaskUsageUnitPrice(price * groupPriceRatio, {
+          tokenUnit: 'M',
+        })
+        return demoMode ? maskFormattedCurrencyAmount(formatted) : formatted
+      }
+      const prices = Object.entries(tier.unitPrices).map(([field, price]) => {
+        const definition = usageSchema?.[field]
+        const unitKey = getTaskUsagePriceUnitLabelKey(definition?.unit)
+        const unitLabel = taskUsageUnitLabel(definition, language, t(unitKey))
+        return `${field} ${formatTaskPrice(price)}/${unitLabel}`
+      })
+      if (tier.constant > 0) {
+        prices.push(
+          `${t('Additional charge')} ${formatTaskPrice(tier.constant)}/${t('request')}`
+        )
+      }
+      segments.push({
+        text: `${tier.label || t('Default')} · ${prices.join(' · ')}`,
+      })
+    } else {
+      segments.push({
+        text: `${t('Dynamic Pricing')} · ${t('No matching results')}`,
+        muted: true,
+      })
+    }
+  } else if (isTieredExpr) {
     if (tieredSummary) {
       const baseEntries = tieredSummary.priceEntries
         .filter((entry) => ['inputPrice', 'outputPrice'].includes(entry.field))
@@ -248,9 +299,10 @@ function buildTypeDetailSegments(
               'cacheCreate1hPrice',
             ].includes(entry.field)
         )
-        .map(
-          (entry) =>
-            `${t(entry.shortLabel)} ${formatPrice(entry.price * groupPriceRatio)}`
+        .map((entry) =>
+          entry.unit
+            ? `${tieredSummary.tier.label || t('Default')} · ${t(entry.shortLabel)} ${formatPriceCompact(entry.price * groupPriceRatio)}/${t(entry.unit)}`
+            : `${t(entry.shortLabel)} ${formatPrice(entry.price * groupPriceRatio)}`
         )
       if (otherEntries.length > 0) {
         segments.push({
@@ -349,18 +401,21 @@ interface UseCommonLogsColumnsOptions {
 
 export function useCommonLogsColumns(
   isAdmin: boolean,
-  options: UseCommonLogsColumnsOptions = {}
+  options: UseCommonLogsColumnsOptions | boolean = {}
 ): ColumnDef<UsageLog>[] {
   const { t } = useTranslation()
   const demoMode = useDemoMode()
   const currentUserRole = useAuthStore((state) => state.auth.user?.role)
   const isSuperAdmin = (currentUserRole ?? 0) >= ROLE.SUPER_ADMIN
-  const canFetchUserDetails = options.canFetchUserDetails ?? isAdmin
-  const showUserColumn = options.showUserColumn ?? isAdmin
-  const showChannelColumn = options.showChannelColumn ?? isAdmin
-  const canViewChannelDetails = options.canViewChannelDetails ?? isAdmin
-  const canViewGroupRatio = options.canViewGroupRatio ?? isAdmin
-  const isRoot = options.isRoot ?? false
+  // Accept the upstream `isRoot` boolean shorthand alongside the local options object.
+  const resolvedOptions: UseCommonLogsColumnsOptions =
+    typeof options === 'boolean' ? { isRoot: options } : options
+  const canFetchUserDetails = resolvedOptions.canFetchUserDetails ?? isAdmin
+  const showUserColumn = resolvedOptions.showUserColumn ?? isAdmin
+  const showChannelColumn = resolvedOptions.showChannelColumn ?? isAdmin
+  const canViewChannelDetails = resolvedOptions.canViewChannelDetails ?? isAdmin
+  const canViewGroupRatio = resolvedOptions.canViewGroupRatio ?? isAdmin
+  const isRoot = resolvedOptions.isRoot ?? false
   const columns: ColumnDef<UsageLog>[] = [
     {
       accessorKey: 'created_at',
@@ -962,18 +1017,31 @@ export function useCommonLogsColumns(
       accessorKey: 'content',
       header: t('Details'),
       cell: function DetailsCell({ row }) {
-        const { t } = useTranslation()
+        const { t, i18n } = useTranslation()
         const [dialogOpen, setDialogOpen] = useState(false)
         const log = row.original
         const other = parseLogOther(log.other)
 
+        const pricingData = usePricingData(
+          log.type === 2 &&
+            other?.is_task === true &&
+            other.billing_mode === 'tiered_expr'
+        )
+        const usageSchema = pluginUsageSchema(
+          pricingData.models.find(
+            (model) => model.model_name === log.model_name
+          ),
+          other?.admin_info?.task_plugin?.key
+        )
         const segments = buildDetailSegments(
           log,
           other,
           t,
           isAdmin,
           canViewGroupRatio,
-          demoMode
+          demoMode,
+          i18n.language,
+          usageSchema
         )
         const primary = segments[0]
         const hasMore = segments.length > 1

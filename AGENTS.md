@@ -8,11 +8,12 @@ DO NOT send optional commentary
 
 ## 技术栈
 
-- **后端**: Go 1.22+、Gin Web 框架、GORM v2 ORM
-- **前端**: React 19、TypeScript、Rsbuild、Base UI、Tailwind CSS
-- **数据库**: SQLite、MySQL、PostgreSQL（三者必须同时支持）
+- **后端**: Go 1.25.1（以各模块 `go.mod` 为准）、Gin Web 框架、GORM v2 ORM
+- **前端**: React 19、TypeScript、Rsbuild 2、TanStack Router/Query/Table、Zustand、Base UI、Tailwind CSS 4
+- **数据库**: 主库 SQLite、MySQL、PostgreSQL（三者必须同时支持）；独立配置的日志库还支持 ClickHouse
 - **缓存**: Redis (go-redis) + 内存缓存
-- **认证**: JWT、WebAuthn/Passkeys、OAuth（GitHub、Discord、OIDC 等）
+- **认证**: 浏览器会话、API Token 与个人访问令牌、JWT、WebAuthn/Passkeys、TOTP、OAuth/OIDC（当前保留 OIDC、微信）；`service/authz/` 中的 Casbin 授权
+- **扩展**: 由 Sobek 执行的 JavaScript 任务插件；Electron 桌面壳
 - **前端包管理器**: Bun（优先于 npm/yarn/pnpm）
 
 ## 架构
@@ -38,6 +39,11 @@ pkg/           — 内部包（cachex、ionet）
 web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
   src/i18n/    — 前端国际化（i18next，en/zh/zh-TW/fr/ru/ja/vi）
 ```
+
+- Go 网关在 `router/`、`middleware/`、`controller/`、`service/`、`model/`、`relay/` 中承担管理 API、上游中继、计费与后台任务。
+- `relaykit/` 是独立的 Go 模块，只承载协议 DTO 与协议转换；传输、认证、数据库访问与计费逻辑保留在宿主模块中。
+- JavaScript 任务插件位于 `plugins/tasks/`，经 `pkg/jsplugin/` 执行，并与宿主任务轮询与结算集成。
+- `web/` 是 React 前端（详见 `web/AGENTS.md`）；`electron/` 是桌面壳。
 
 ## 国际化 (i18n)
 
@@ -75,6 +81,22 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 
 ### 后端规则
 
+**现代 Go 约定：** 对新增或修改的 Go 代码（包括测试与 `relaykit/`）适用以下约定，前提是不改变行为并能提升可读性。以相关模块 `go.mod` 中声明的 Go 版本作为兼容基线。
+
+- 使用 `any` 替代 `interface{}`，包括 map 值、slice 元素、参数与返回值。
+- 定次数循环优先使用 `for i := range n`，索引未使用时用 `for range n`；按下标遍历 slice 优先 `for i := range items`。若循环边界在迭代中变化，或需要不同的起始值/步长，则保留常规写法。
+- 当切分结果只被遍历一次、既不按下标访问也不复用，优先使用 `strings.SplitSeq` / `bytes.SplitSeq`，而不是用 `Split` 分配 slice。
+- 在第一个分隔符处切分使用 `strings.Cut`；判断并去除前后缀使用 `strings.CutPrefix` / `strings.CutSuffix`。避免为同一操作分别做查找与手工切片。
+- 成员判断使用 `slices.Contains` / `slices.ContainsFunc`，有序可比较类型的自然排序使用 `slices.Sort`，不要写等价的手工循环或 sort 回调。
+- map 浅拷贝与合并使用 `maps.Copy`。按需初始化目标 map，并保持 nil 与空 map 的区别，以及后写入值覆盖先写入值的顺序；它不替代深拷贝。
+- 简单边界使用内置 `min` / `max`，不要写等价的 if 赋值。保持数值语义：它们不会防止参数溢出，也不替代计费校验与安全配额转换。
+- 循环内重复字符串拼接使用 `strings.Builder`；简单固定表达式仍直接拼接。
+- 类型在编译期已知时使用 `reflect.TypeFor[T]()`，并使用 `reflect.Pointer` 替代 `reflect.Ptr`；需要值的动态类型时保留 `reflect.TypeOf`。
+- 适用于 `Add(1)` / goroutine / `defer Done()` 模式且生命周期与 panic 契约成立时，优先使用 `sync.WaitGroup.Go`；保留既有 recover 行为，传给 `Go` 的函数不得 panic。
+- 仅为 Go 1.22 之前闭包捕获而存在的循环变量副本（如 `tc := tc`）应删除；确需快照语义或在循环外被赋值的变量保留副本。
+- 只有在确认当前 JSON 编码器输出不变的前提下，才移除非指针结构体字段上无效的 `omitempty` 标签。不得在样式清理中改变字段类型或省略行为；可选的中继标量字段仍须遵守下文的指针规则。
+- 完成上述改动后，对修改过的 Go 文件执行 `gofmt` 并移除未使用的 import。
+
 **RelayKit 模块独立性：** `relaykit/` Go 模块必须始终能够独立构建。
 
 - `relaykit/` 下的代码不得导入或依赖根 `new-api` 模块中的包，也不得依赖仅存在于根模块的配置、生成文件或 workspace 连接。
@@ -89,6 +111,8 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - `common.GetJsonType(data json.RawMessage) string`
 
 禁止在业务代码中直接导入或调用 `encoding/json`。`json.RawMessage`、`json.Number` 等 `encoding/json` 中的类型定义仍可作为类型引用，但实际的序列化/反序列化调用必须通过 `common.*` 进行。
+
+在 `relaykit/` 内，请使用 `relaykit/relayconvert/kitutil/json.go` 提供的 `kitutil.*`，绝不使用宿主模块的 `common`；直接调用编码器只允许出现在 codec 实现内部。
 
 **数据库兼容性：** 所有数据库代码必须同时兼容 SQLite、MySQL >= 5.7.8 和 PostgreSQL >= 9.6。
 
@@ -115,6 +139,13 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - 在上游中继请求 DTO 中保留显式零值：客户端 JSON 中不存在的字段必须变为 `nil` 并在序列化时省略，而显式设为 `0`、`0.0` 或 `false` 的值必须保持非 `nil` 并发送到上游。
 - 避免对可选请求参数使用非指针标量配合 `omitempty`，因为零值会在序列化时被静默丢弃。
 
+**JavaScript 任务插件（强制）：**
+
+- 在实现、修改或审查 JavaScript 任务插件或其宿主 API/运行时之前，必须先阅读 [Task Plugin API v1](docs/plugin-api/v1.md)，包括其中的描述撰写与翻译约定。变更插件契约时，还要同步检查 `docs/plugin-api/v1.schema.json` 与 `docs/plugin-api/v1.d.ts` 保持一致。
+- `usageSchema` 与 `usageProfiles[].schema` 中的数值计费字段，其 `description` 必须写明**计费对象 + 单价**，因为它会作为 UI 上价格输入项的标签。例如 `image_count` 使用 `Image generation unit price` / `图片生成单价`，而不是 `Generated image count` / `生成图片张数`；`seconds` 使用 `Video generation unit price` / `视频生成单价`。字段值仍是使用量，不是价格。
+- 单位写入 `unit`。协议限制、用量来源、默认值、估算与结算细节放在代码注释或技术文档中。描述必须简短、各语言间等价、不含具体价格数字、结尾不带标点。动作、布尔与其他枚举条件的措辞遵循 API 文档的单独规则。
+- 完成插件工作前显式复核元数据措辞。上述属于撰写要求：编译通过、schema 校验通过或测试通过都不能证明描述符合要求。
+
 **计费表达式系统：** 处理分级/动态计费（基于表达式的定价）时，必须先阅读 `pkg/billingexpr/expr.md`。该文档描述了设计理念、表达式语言、完整架构、token 归一化规则、配额转换和表达式版本控制。所有计费表达式的代码变更必须遵循该文档。
 
 **内置模型定价：** 新增内置模型价格必须在 `setting/billing_setting/builtin_billing.go` 中定义为自包含的计费表达式，使用真实的美元/百万 Token 价格。不得向旧模型、补全或缓存倍率表新增内置价格。保留管理员显式设置的价格覆盖。仅在明确要求时迁移已有旧价格。核实公开价格，并覆盖适用的上下文长度阈值和缓存类别。
@@ -133,6 +164,8 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 
 **文档文件：** 除非用户明确要求，否则不得在 `docs/` 及其子目录中新增文件。
 
+此外，不得在本仓库的插件目录（包括 `plugins/tasks/<plugin>/` 及其子目录）创建或生成任何文档文件，例如 README、变更日志、使用指南等任何格式的文档。
+
 ### 前端规则
 
 - **优先复用现有 UI 组件（强制）：** 实现或修改前端 UI 前，先阅读 `web/AGENTS.md` 和项目 `shadcn-ui` 技能，搜索 `web/src/components/` 及相关功能目录，阅读匹配组件的实现与调用处。检查仓库现有实现前，不得直接从自定义标记或安装组件库组件开始。
@@ -145,6 +178,7 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
   - `bun run i18n:*` 国际化工具
 - 前端 UI 文本必须使用 `i18next`/`react-i18next` 支持国际化。使用 `web/src/i18n/locales/{lang}.json` 中的扁平 JSON 区域文件，以英文原文为键。
 - 在 React 组件中使用 `useTranslation()` 并调用 `t('English key')` 处理用户可见文本。
+- 详细前端约定（TypeScript、组件结构、样式、可访问性与构建检查）以 `web/AGENTS.md` 为准。
 
 ### 拉取请求
 

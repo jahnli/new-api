@@ -1,11 +1,11 @@
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
 import { Label } from '@/components/ui/label'
 import { formatQuota, formatCompactNumber } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 
 import { getUserInfo } from '../../api'
 import type { UserInfo } from '../../types'
@@ -62,12 +62,11 @@ export function UserInfoDialog({
             isLoading: false,
           })
         } else {
-          toast.error(result.message || t('Failed to fetch user information'))
+          handleServerError(result, t('Failed to fetch user information'))
         }
       } catch (error) {
         if (cancelled) return
-        console.error('Failed to fetch user info:', error)
-        toast.error(t('Failed to fetch user information'))
+        handleServerError(error, t('Failed to fetch user information'))
       } finally {
         if (!cancelled) {
           setRequestState((current) => ({ ...current, isLoading: false }))
@@ -124,6 +123,35 @@ export function UserInfoDialog({
             <InfoItem label={t('User Group')} value={userInfo.group} />
           )}
         </div>
+
+        {/* Invitation Info */}
+        {(userInfo.aff_code ||
+          userInfo.aff_count !== undefined ||
+          (userInfo.aff_quota !== undefined && userInfo.aff_quota > 0)) && (
+          <>
+            <div className='grid grid-cols-2 gap-4'>
+              {userInfo.aff_code && (
+                <InfoItem
+                  label={t('Invitation Code')}
+                  value={userInfo.aff_code}
+                />
+              )}
+              {userInfo.aff_count !== undefined && (
+                <InfoItem
+                  label={t('Invited Users')}
+                  value={formatCompactNumber(userInfo.aff_count)}
+                />
+              )}
+            </div>
+
+            {userInfo.aff_quota !== undefined && userInfo.aff_quota > 0 && (
+              <InfoItem
+                label={t('Invitation Quota')}
+                value={formatQuota(userInfo.aff_quota)}
+              />
+            )}
+          </>
+        )}
 
         {/* Remark */}
         {userInfo.remark && (

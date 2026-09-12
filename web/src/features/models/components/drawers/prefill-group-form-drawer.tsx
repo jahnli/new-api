@@ -45,6 +45,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { handleServerError } from '@/lib/handle-server-error'
 
 import { createPrefillGroup, updatePrefillGroup } from '../../api'
 import { ENDPOINT_TEMPLATES } from '../../constants'
@@ -125,7 +126,6 @@ export function PrefillGroupFormDrawer({
 
   const handleSubmit = async (values: PrefillGroupFormValues) => {
     setIsSaving(true)
-
     let items: PrefillGroupFormValues['items'] = []
     if (values.type === 'endpoint') {
       if (typeof values.items === 'string') {
@@ -136,7 +136,6 @@ export function PrefillGroupFormDrawer({
     } else if (Array.isArray(values.items)) {
       items = values.items
     }
-
     const payload = {
       name: values.name.trim(),
       type: values.type,
@@ -145,12 +144,13 @@ export function PrefillGroupFormDrawer({
     }
 
     try {
-      const response = currentGroup?.id
-        ? await updatePrefillGroup({
-            id: currentGroup.id,
-            ...payload,
-          })
-        : await createPrefillGroup(payload)
+      const response =
+        isEdit && currentGroup
+          ? await updatePrefillGroup({
+              id: currentGroup.id,
+              ...payload,
+            })
+          : await createPrefillGroup(payload)
 
       if (response.success) {
         toast.success(
@@ -161,10 +161,10 @@ export function PrefillGroupFormDrawer({
         })
         onClose()
       } else {
-        toast.error(response.message || 'Operation failed')
+        handleServerError(response, t('Operation failed'))
       }
     } catch (err: unknown) {
-      toast.error((err as Error)?.message || 'Operation failed')
+      handleServerError(err, t('Operation failed'))
     } finally {
       setIsSaving(false)
     }

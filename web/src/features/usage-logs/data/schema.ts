@@ -21,15 +21,15 @@ export const usageLogSchema = z.object({
   is_stream: z.boolean().default(false),
   channel: z.number().default(0),
   channel_name: z.string().nullish().default(''),
-  display_name: z.string().default(''),
-  avatar_url: z.string().default(''),
+  display_name: z.string().optional(),
+  avatar_url: z.string().optional(),
   token_id: z.number().default(0),
   group: z.string().default(''),
   ip: z.string().default(''),
   other: z.string().default(''),
   request_id: z.string().default(''),
   upstream_request_id: z.string().default(''),
-  open_id: z.string().default(''),
+  open_id: z.string().optional(),
   gender: z.number().optional(),
 })
 

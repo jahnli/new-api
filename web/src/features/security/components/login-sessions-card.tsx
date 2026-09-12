@@ -30,6 +30,8 @@ import {
   revokeOtherLoginSessions,
 } from '@/features/profile/api'
 import { clearAuthenticatedClientState } from '@/lib/api'
+import { handleServerError } from '@/lib/handle-server-error'
+import { createServerError } from '@/lib/server-error-message'
 import type { LoginSession } from '@/stores/auth-store'
 
 import { LoginSessionDialogs } from './login-session-dialogs'
@@ -49,7 +51,7 @@ export function LoginSessionsCard() {
     queryFn: async () => {
       const response = await getLoginSessions()
       if (!response.success) {
-        throw new Error(response.message || t('Failed to load login sessions'))
+        throw createServerError(response, t('Failed to load login sessions'))
       }
       return response.data ?? []
     },
@@ -59,7 +61,7 @@ export function LoginSessionsCard() {
     mutationFn: async (sid: string) => {
       const response = await revokeLoginSession(sid)
       if (!response.success) {
-        throw new Error(response.message || t('Failed to sign out session'))
+        throw createServerError(response, t('Failed to sign out session'))
       }
       return sid
     },
@@ -76,15 +78,16 @@ export function LoginSessionsCard() {
       toast.success(t('Session signed out'))
       await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => handleServerError(error),
   })
 
   const revokeOthersMutation = useMutation({
     mutationFn: async () => {
       const response = await revokeOtherLoginSessions()
       if (!response.success) {
-        throw new Error(
-          response.message || t('Failed to sign out other sessions')
+        throw createServerError(
+          response,
+          t('Failed to sign out other sessions')
         )
       }
     },
@@ -93,7 +96,7 @@ export function LoginSessionsCard() {
       toast.success(t('Other sessions signed out'))
       await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => handleServerError(error),
   })
 
   const sessions = sessionsQuery.data ?? []

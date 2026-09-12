@@ -23,6 +23,7 @@ import {
   ADMIN_PERMISSION_RESOURCES,
   hasPermission,
 } from '@/lib/admin-permissions'
+import { handleServerError } from '@/lib/handle-server-error'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
@@ -123,14 +124,10 @@ export function MultiKeyManageDialog({
           setManualDisabledCount(response.data.manual_disabled_count || 0)
           setAutoDisabledCount(response.data.auto_disabled_count || 0)
         } else {
-          toast.error(response.message || t('Failed to load key status'))
+          handleServerError(response, t('Failed to load key status'))
         }
       } catch (error: unknown) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : t('Failed to load key status')
-        )
+        handleServerError(error, t('Failed to load key status'))
       } finally {
         setIsLoading(false)
       }
@@ -159,15 +156,11 @@ export function MultiKeyManageDialog({
           setManualDisabledCount(response.data.manual_disabled_count || 0)
           setAutoDisabledCount(response.data.auto_disabled_count || 0)
         } else {
-          toast.error(response.message || t('Failed to load key status'))
+          handleServerError(response, t('Failed to load key status'))
         }
       } catch (error: unknown) {
         if (cancelled) return
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : t('Failed to load key status')
-        )
+        handleServerError(error, t('Failed to load key status'))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -236,12 +229,10 @@ export function MultiKeyManageDialog({
           void loadKeyStatus(currentPage, pageSize, statusFilter)
         }
       } else {
-        toast.error(response?.message || t('Operation failed'))
+        handleServerError(response, t('Operation failed'))
       }
     } catch (error: unknown) {
-      toast.error(
-        error instanceof Error ? error.message : t('Operation failed')
-      )
+      handleServerError(error, t('Operation failed'))
     } finally {
       setIsPerformingAction(false)
       setConfirmAction(null)

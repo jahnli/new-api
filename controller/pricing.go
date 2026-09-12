@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"maps"
 	"net/http"
 	"os"
 
@@ -47,9 +48,7 @@ func GetPricing(c *gin.Context) {
 	userId, exists := c.Get("id")
 	usableGroup := map[string]string{}
 	groupRatio := map[string]float64{}
-	for s, f := range ratio_setting.GetGroupRatioCopy() {
-		groupRatio[s] = f
-	}
+	maps.Copy(groupRatio, ratio_setting.GetGroupRatioCopy())
 	groupVendorRatio := ratio_setting.GetGroupVendorRatioCopy()
 	// 命中用户特殊倍率的分组（特殊倍率优先于供应商倍率，前端据此判定）
 	groupSpecialRatios := make([]string, 0)

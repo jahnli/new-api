@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { handleServerError } from '@/lib/handle-server-error'
+import { createServerError } from '@/lib/server-error-message'
 
 import { previewUpstreamDiff, syncUpstream } from '../../api'
 import { getSyncLocaleOptions } from '../../constants'
@@ -104,7 +105,7 @@ export function SyncWizardDialog(props: {
     mutationFn: async () => {
       const response = await previewUpstreamDiff({ locale })
       if (!response.success || !response.data) {
-        throw new Error(response.message || t('Failed to preview metadata'))
+        throw createServerError(response, t('Failed to preview metadata'))
       }
       return response.data
     },
@@ -123,7 +124,7 @@ export function SyncWizardDialog(props: {
         selections,
       })
       if (!response.success || !response.data) {
-        throw new Error(response.message || t('Metadata sync failed'))
+        throw createServerError(response, t('Metadata sync failed'))
       }
       return response.data
     },

@@ -25,8 +25,11 @@ import {
 import { getChannels } from '@/features/channels/api'
 import { CHANNEL_STATUS } from '@/features/channels/constants'
 import { channelsQueryKeys } from '@/features/channels/lib/channel-actions'
-import { getUserModels } from '@/lib/api'
+import { getGroups } from '@/features/users/api'
+import { useMediaQuery } from '@/hooks'
+import { getUserGroups, getUserModels } from '@/lib/api'
 import { ROLE, getRoleLabelKey } from '@/lib/roles'
+import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
@@ -127,6 +130,7 @@ export function CommonLogsFilterBar<TData>(
   props: CommonLogsFilterBarProps<TData>
 ) {
   const { t } = useTranslation()
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const searchParams = route.useSearch()
@@ -190,6 +194,24 @@ export function CommonLogsFilterBar<TData>(
       .sort((first, second) => first.localeCompare(second))
       .map((model) => ({ value: model, label: model }))
   }, [availableChannels, isAdmin, userModels])
+  const { data: adminGroups } = useQuery({
+    queryKey: ['groups'],
+    queryFn: async () => requireServerSuccess(await getGroups()),
+    enabled: isAdmin,
+  })
+  const { data: userGroups } = useQuery({
+    queryKey: ['user-groups'],
+    queryFn: async () => requireServerSuccess(await getUserGroups()),
+    enabled: !isAdmin,
+  })
+  const groupOptions = useMemo(() => {
+    const groups = isAdmin
+      ? (adminGroups?.data ?? [])
+      : Object.keys(userGroups?.data ?? {})
+    return groups
+      .filter((group) => group !== 'auto')
+      .map((group) => ({ label: group, value: group }))
+  }, [isAdmin, adminGroups, userGroups])
 
   const searchState = useMemo<CommonLogDraft>(() => {
     const { start, end } = getDefaultTimeRange()
@@ -304,34 +326,40 @@ export function CommonLogsFilterBar<TData>(
     [searchState]
   )
 
-  const handleApply = useCallback(() => {
-    const normalizedFilters: CommonLogFilters = {
-      ...filters,
-      userCategory: isSuperAdmin
-        ? getUserCategoryFilterValue(filters.userCategory, userCategoryOptions)
-        : undefined,
-    }
-    const filterParams = buildSearchParams(normalizedFilters, 'common')
-    navigate({
-      to: '/usage-logs/$section',
-      params: { section: 'common' },
-      search: {
-        ...filterParams,
-        type: [logType],
-        commonPage: undefined,
-        commonPageSize: undefined,
-      },
-    })
-    queryClient.invalidateQueries({ queryKey: ['logs'] })
-    queryClient.invalidateQueries({ queryKey: ['usage-logs-stats'] })
-  }, [
-    filters,
-    isSuperAdmin,
-    logType,
-    navigate,
-    queryClient,
-    userCategoryOptions,
-  ])
+  const handleApply = useCallback(
+    (nextFilters: CommonLogFilters = filters) => {
+      const normalizedFilters: CommonLogFilters = {
+        ...nextFilters,
+        userCategory: isSuperAdmin
+          ? getUserCategoryFilterValue(
+              nextFilters.userCategory,
+              userCategoryOptions
+            )
+          : undefined,
+      }
+      const filterParams = buildSearchParams(normalizedFilters, 'common')
+      navigate({
+        to: '/usage-logs/$section',
+        params: { section: 'common' },
+        search: {
+          ...filterParams,
+          type: [logType],
+          commonPage: undefined,
+          commonPageSize: undefined,
+        },
+      })
+      queryClient.invalidateQueries({ queryKey: ['logs'] })
+      queryClient.invalidateQueries({ queryKey: ['usage-logs-stats'] })
+    },
+    [
+      filters,
+      isSuperAdmin,
+      logType,
+      navigate,
+      queryClient,
+      userCategoryOptions,
+    ]
+  )
 
   const handleReset = useCallback(() => {
     const { start, end } = getDefaultTimeRange()
@@ -413,11 +441,7 @@ export function CommonLogsFilterBar<TData>(
     'Only used to find historical logs. New records are available in Audit Logs.'
   )
 
-  const statsBar = (
-    <div className='flex flex-wrap items-center gap-2'>
-      <CommonLogsStats />
-    </div>
-  )
+  const statsBar = <CommonLogsStats />
   const sensitiveToggle = (
     <Tooltip>
       <TooltipTrigger
@@ -427,7 +451,7 @@ export function CommonLogsFilterBar<TData>(
             size='icon'
             onClick={() => setSensitiveVisible(!sensitiveVisible)}
             aria-label={sensitiveVisible ? t('Hide') : t('Show')}
-            className='text-muted-foreground hover:text-foreground size-7'
+            className='text-muted-foreground hover:text-foreground size-7 max-sm:size-11'
           />
         }
       >
@@ -447,6 +471,9 @@ export function CommonLogsFilterBar<TData>(
         onChange={({ start, end }) => {
           handleChange('startTime', start)
           handleChange('endTime', end)
+          if (isMobile) {
+            handleApply({ ...filters, startTime: start, endTime: end })
+          }
         }}
       />
     </LogsFilterField>
@@ -467,13 +494,16 @@ export function CommonLogsFilterBar<TData>(
     </LogsFilterField>
   )
   const groupFilter = (
-    <LogsFilterField>
-      <LogsFilterInput
+    <LogsFilterField className={sensitiveInputClass}>
+      <Combobox
+        options={groupOptions}
+        allowCustomValue
+        aria-label={t('Group')}
+        emptyText={t('No group found.')}
         placeholder={t('Group')}
-        className={sensitiveInputClass}
-        autoComplete='off'
+        className='h-8 min-w-0 text-sm leading-5'
         value={filters.group || ''}
-        onChange={(e) => handleChange('group', e.target.value)}
+        onValueChange={(value) => handleChange('group', value ?? '')}
         onKeyDown={handleKeyDown}
       />
     </LogsFilterField>
@@ -500,6 +530,7 @@ export function CommonLogsFilterBar<TData>(
         }}
       >
         <SelectTrigger
+          aria-label={t('Type')}
           aria-description={
             selectedLogType?.deprecated ? deprecatedTypeDescription : undefined
           }
@@ -632,6 +663,7 @@ export function CommonLogsFilterBar<TData>(
   return (
     <LogsFilterToolbar
       table={props.table}
+      compactMobile
       stats={statsBar}
       actionStart={sensitiveToggle}
       primaryFiltersClassName='sm:grid-cols-[minmax(15rem,1.5fr)_repeat(4,minmax(8rem,1fr))]'
@@ -662,7 +694,7 @@ export function CommonLogsFilterBar<TData>(
       hasAdvancedActiveFilters={hasExpandedFilters}
       advancedFilterCount={expandedFilterCount}
       hasActiveFilters={hasAdditionalFilters}
-      onSearch={handleApply}
+      onSearch={() => handleApply()}
       searchLoading={fetchingLogs > 0}
       onReset={handleReset}
     />

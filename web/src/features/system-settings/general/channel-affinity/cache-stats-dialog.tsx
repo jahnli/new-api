@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
 import { formatTimestampToDate } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 
 import { getAffinityUsageCache } from './api'
 
@@ -68,15 +68,15 @@ export function CacheStatsDialog(props: Props) {
             loading: false,
             stats: (res.data as Record<string, unknown>) || {},
           })
-        } else toast.error(res.message || t('Request failed'))
+        } else handleServerError(res, t('Request failed'))
       })
       .finally(() => {
         if (seq !== seqRef.current) return
         setRequestState((current) => ({ ...current, loading: false }))
       })
-      .catch(() => {
+      .catch((error) => {
         if (seq !== seqRef.current) return
-        toast.error(t('Request failed'))
+        handleServerError(error, t('Request failed'))
       })
   }, [props.open, props.target, t, targetKey])
 

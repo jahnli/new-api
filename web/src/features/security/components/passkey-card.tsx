@@ -31,6 +31,7 @@ import {
   useSecureVerification,
 } from '@/features/auth/secure-verification'
 import dayjs from '@/lib/dayjs'
+import { handleServerError } from '@/lib/handle-server-error'
 import { AuthOperationError } from '@/lib/secure-verification'
 
 interface PasskeyCardProps {
@@ -67,7 +68,7 @@ export function PasskeyCard({ loading: pageLoading }: PasskeyCardProps) {
       toast.success(t('Passkey registered successfully'))
     } catch (error) {
       const failure = AuthOperationError.from(error)
-      if (failure.code !== 'AUTH_CANCELLED') toast.error(t(failure.message))
+      if (failure.code !== 'AUTH_CANCELLED') handleServerError(failure)
     }
   }, [register, registering, removing, t, verification])
 
@@ -83,7 +84,7 @@ export function PasskeyCard({ loading: pageLoading }: PasskeyCardProps) {
       toast.success(t('Passkey removed successfully'))
     } catch (error) {
       const failure = AuthOperationError.from(error)
-      if (failure.code !== 'AUTH_CANCELLED') toast.error(t(failure.message))
+      if (failure.code !== 'AUTH_CANCELLED') handleServerError(failure)
     }
   }, [registering, remove, removing, t, verification])
 

@@ -160,6 +160,8 @@ export interface LogOtherData {
   text_input?: number
   text_output?: number
   cache_tokens?: number
+  image_cache_tokens?: number
+  billing_tokens?: Record<string, number>
   cache_creation_tokens?: number
   cache_creation_tokens_5m?: number
   cache_creation_tokens_1h?: number
@@ -183,6 +185,9 @@ export interface LogOtherData {
   // expression; the matched tier and request-rule traces come from the actual
   // settlement run.
   billing_mode?: string
+  billing_unit?: 'token' | 'request'
+  fixed_price?: number
+  image_count?: number
   expr_b64?: string
   matched_tier?: string
   request_rules?: RequestRuleTrace[]
@@ -509,6 +514,9 @@ export interface UserInfo {
   used_quota: number
   request_count: number
   group?: string
+  aff_code?: string
+  aff_count?: number
+  aff_quota?: number
   remark?: string
   email?: string
   avatar_url?: string

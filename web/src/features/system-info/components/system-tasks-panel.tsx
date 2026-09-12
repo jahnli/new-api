@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 import { useQuery } from '@tanstack/react-query'
 import { ListChecks, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +40,7 @@ import type {
 } from '@/features/system-settings/types'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatTimestampRelative, formatTimestampToDate } from '@/lib/format'
+import { createServerError } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 const TASK_LIMIT = 20
@@ -193,7 +212,7 @@ export function SystemTasksPanel() {
     queryFn: async () => {
       const res = await listSystemTasks(TASK_LIMIT)
       if (!res.success || !Array.isArray(res.data)) {
-        throw new Error(res.message || t('We could not load system tasks.'))
+        throw createServerError(res, t('We could not load system tasks.'))
       }
       return res.data
     },
@@ -269,9 +288,10 @@ export function SystemTasksPanel() {
       <div aria-busy={tasksQuery.isFetching}>
         {loading && (
           <div className='space-y-2 p-4 sm:p-5'>
-            {['first', 'second', 'third', 'fourth'].map((key) => (
-              <Skeleton key={key} className='h-9 w-full rounded-md' />
-            ))}
+            <Skeleton className='h-9 w-full rounded-md' />
+            <Skeleton className='h-9 w-full rounded-md' />
+            <Skeleton className='h-9 w-full rounded-md' />
+            <Skeleton className='h-9 w-full rounded-md' />
           </div>
         )}
         {!loading && tasksQuery.isError && (
@@ -301,7 +321,7 @@ export function SystemTasksPanel() {
             </p>
           </div>
         )}
-        {!loading && !tasksQuery.isError && tasks.length > 0 && (
+        {!loading && !tasksQuery.isError && !(tasks.length === 0) && (
           <div className='space-y-4 p-4 sm:p-5'>
             <div>
               <div className='mb-2 flex items-center justify-between gap-3'>

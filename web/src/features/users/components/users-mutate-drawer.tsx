@@ -72,8 +72,10 @@ import {
 } from '@/lib/admin-permissions'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 import { accountPasswordSchema } from '@/lib/password-policy'
 import { ROLE } from '@/lib/roles'
+import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
@@ -129,7 +131,7 @@ export function UsersMutateDrawer({
   // Permission catalog is owned by the backend; fetched once and reused.
   const { data: permissionCatalog = EMPTY_PERMISSION_CATALOG } = useQuery({
     queryKey: ['admin-permission-catalog'],
-    queryFn: getPermissionCatalog,
+    queryFn: async () => requireServerSuccess(await getPermissionCatalog()),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -146,14 +148,16 @@ export function UsersMutateDrawer({
         .then((result) => {
           if (result.success && result.data) {
             form.reset(transformUserToFormDefaults(result.data))
+          } else {
+            handleServerError(result, t('Failed to load'))
           }
         })
-        .catch(() => undefined)
+        .catch((error) => handleServerError(error, t('Failed to load')))
     } else if (open && !isUpdate) {
       // For create, reset to defaults
       form.reset(USER_FORM_DEFAULT_VALUES)
     }
-  }, [open, isUpdate, currentRow, form])
+  }, [open, isUpdate, currentRow, form, t])
 
   const { meta: currencyMeta } = getCurrencyDisplay()
   const currencyLabel = getCurrencyLabel()
@@ -207,15 +211,10 @@ export function UsersMutateDrawer({
         onOpenChange(false)
         triggerRefresh()
       } else {
-        toast.error(
-          result.message ||
-            (isUpdate
-              ? t(ERROR_MESSAGES.UPDATE_FAILED)
-              : t(ERROR_MESSAGES.CREATE_FAILED))
-        )
+        handleServerError(result, t(ERROR_MESSAGES.CREATE_FAILED))
       }
-    } catch {
-      toast.error(t(ERROR_MESSAGES.UNEXPECTED))
+    } catch (error) {
+      handleServerError(error, t(ERROR_MESSAGES.UNEXPECTED))
     } finally {
       setIsSubmitting(false)
     }
@@ -223,11 +222,15 @@ export function UsersMutateDrawer({
 
   const refreshUserData = async () => {
     if (!currentRow) return
-    const result = await getUser(currentRow.id)
-    if (result.success && result.data) {
-      form.reset(transformUserToFormDefaults(result.data))
+    try {
+      const result = requireServerSuccess(await getUser(currentRow.id))
+      if (result.success && result.data) {
+        form.reset(transformUserToFormDefaults(result.data))
+      }
+      triggerRefresh()
+    } catch (error) {
+      handleServerError(error, t('Failed to load'))
     }
-    triggerRefresh()
   }
 
   return (

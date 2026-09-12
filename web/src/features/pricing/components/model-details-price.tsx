@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { DEMO_MODE_MASK } from '@/lib/demo-mode'
 
 import { FILTER_ALL } from '../constants'
+import { useBillingTime } from '../hooks/use-billing-time'
 import {
   getDynamicDisplayGroupRatio,
   getDynamicPriceUnitLabelKey,
@@ -44,11 +45,13 @@ export function PriceSection(props: {
 
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = props.tokenUnit === 'K' ? '1K' : '1M'
+  const billingTime = useBillingTime(props.model.billing_expr)
   let pricingGroup = props.currentUserGroup
   if (props.selectedGroup && props.selectedGroup !== FILTER_ALL) {
     pricingGroup = props.selectedGroup
   }
   const dynamicSummary = getDynamicPricingSummary(props.model, {
+    now: billingTime === undefined ? undefined : new Date(billingTime),
     tokenUnit: props.tokenUnit,
     showRechargePrice: props.showRechargePrice,
     priceRate: props.priceRate,

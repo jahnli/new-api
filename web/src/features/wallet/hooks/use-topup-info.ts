@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
+import { handleServerError } from '@/lib/handle-server-error'
+
 import { getTopupInfo } from '../api'
 import {
   generatePresetAmounts,
@@ -157,8 +159,7 @@ export function useTopupInfo() {
       const response = await getTopupInfo()
 
       if (!response.success || !response.data) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch topup info:', response.message)
+        handleServerError(response)
         return
       }
 
@@ -190,8 +191,7 @@ export function useTopupInfo() {
         setPresetAmounts(defaultPresets)
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch topup info:', err)
+      handleServerError(err)
     } finally {
       setLoading(false)
     }

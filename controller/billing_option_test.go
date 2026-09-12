@@ -101,53 +101,16 @@ func TestUpdateOptionRejectsUsageExpressionWithoutTaskPlugin(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "no task plugin usage schema")
 }
 
-func setupBillingAliasOptionDB(t *testing.T) {
-	t.Helper()
-	previousDB, previousLogDB := model.DB, model.LOG_DB
-	previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
-	previousMaster, previousSQLite := common.IsMasterNode, common.SQLitePath
-	previousCache, previousRedis := common.MemoryCacheEnabled, common.RedisEnabled
-	previousMap := common.OptionMap
-
-	common.IsMasterNode = false
-	common.SQLitePath = "file:billing-alias?mode=memory&cache=shared"
-	common.MemoryCacheEnabled = false
-	common.RedisEnabled = false
-	common.OptionMap = map[string]string{}
-	t.Setenv("SQL_DSN", "local")
-	t.Setenv("LOG_SQL_DSN", "")
-	require.NoError(t, model.InitDB())
-	model.LOG_DB = model.DB
-	require.NoError(t, model.DB.AutoMigrate(
-		&model.Channel{},
-		&model.Option{},
-		&model.Log{},
-		&model.AuditLog{},
-		&model.User{},
-	))
-
-	t.Cleanup(func() {
-		connection, err := model.DB.DB()
-		if err == nil {
-			require.NoError(t, connection.Close())
-		}
-		model.DB, model.LOG_DB = previousDB, previousLogDB
-		common.SetDatabaseTypes(previousMain, previousLog)
-		common.IsMasterNode, common.SQLitePath = previousMaster, previousSQLite
-		common.MemoryCacheEnabled, common.RedisEnabled = previousCache, previousRedis
-		common.OptionMap = previousMap
-		model.InitChannelCache()
-	})
-}
-
 func TestUpdateOptionAliasBillingExprUsesPluginSchema(t *testing.T) {
-	setupBillingAliasOptionDB(t)
+	database := modelManagementDB(t, "sqlite", "")
+	require.NoError(t, database.AutoMigrate(&model.Log{}))
 	const pluginKey = "billing-alias-probe"
 	source := `
 export const meta = {
   apiVersion: 1, key: "billing-alias-probe", name: "Billing Alias Probe", version: "1.0.0", author: {name: "Test"},
   models: ["declared-model"], fetchMode: "per_task",
-  usageSchema: {seconds: {type: "number", unit: "second"}}
+  usageSchema: {seconds: {type: "number", unit: "second"}, image_count: {type: "number", unit: "count"}},
+  usageProfiles: [{models: ["declared-model"], schema: {seconds: {type: "number", unit: "second"}}}]
 };
 export function buildSubmitRequest() { return {}; }
 export function parseSubmitResponse() { return {}; }
@@ -200,10 +163,14 @@ export function parseTaskResult() { return {}; }
 	assert.Equal(t, http.StatusOK, accepted.Code)
 	assert.Contains(t, accepted.Body.String(), `"success":true`)
 
-	rejectedKey := putExpr("alias-model", `u("clips")`)
+	rejectedKey := putExpr("alias-model", `u("image_count")`)
 	assert.Equal(t, http.StatusOK, rejectedKey.Code)
 	assert.Contains(t, rejectedKey.Body.String(), `"success":false`)
-	assert.Contains(t, rejectedKey.Body.String(), `usage key \"clips\" is not declared`)
+	assert.Contains(t, rejectedKey.Body.String(), `usage key \"image_count\" is not declared`)
+
+	rejectedDeclared := putExpr("declared-model", `u("image_count")`)
+	assert.Contains(t, rejectedDeclared.Body.String(), `"success":false`)
+	assert.Contains(t, rejectedDeclared.Body.String(), `usage key \"image_count\" is not declared`)
 
 	unresolvable := putExpr("unknown-alias-model", `u("seconds")`)
 	assert.Equal(t, http.StatusOK, unresolvable.Code)

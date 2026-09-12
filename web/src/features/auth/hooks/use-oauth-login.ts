@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import { clearAuthentication } from '@/lib/api'
+import { handleServerError } from '@/lib/handle-server-error'
+import { AuthOperationError } from '@/lib/secure-verification'
+import { createServerError } from '@/lib/server-error-message'
 
 import { createOAuthFlow, logout } from '../api'
 import { buildOIDCOAuthUrl } from '../lib/oauth'
@@ -22,7 +24,7 @@ export function useOAuthLogin(
   const resetSession = async () => {
     const response = await logout()
     if (!response.success) {
-      throw new Error(response.message || t('Failed to sign out session'))
+      throw createServerError(response, t('Failed to sign out session'))
     }
     clearAuthentication()
   }
@@ -42,8 +44,10 @@ export function useOAuthLogin(
         state
       )
       window.open(url, '_self')
-    } catch {
-      toast.error(t('Failed to start OIDC login'))
+    } catch (error) {
+      handleServerError(
+        AuthOperationError.from(error, t('Failed to start OIDC login'))
+      )
     } finally {
       setIsLoading(false)
     }
@@ -69,9 +73,12 @@ export function useOAuthLogin(
       }
 
       window.open(url.toString(), '_self')
-    } catch {
-      toast.error(
-        t('Failed to start {{provider}} login', { provider: provider.name })
+    } catch (error) {
+      handleServerError(
+        AuthOperationError.from(
+          error,
+          t('Failed to start {{provider}} login', { provider: provider.name })
+        )
       )
     } finally {
       setIsLoading(false)
