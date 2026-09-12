@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { DEMO_MODE_MASK } from '@/lib/demo-mode'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { FILTER_ALL } from '../constants'
 import { useBillingTime } from '../hooks/use-billing-time'
@@ -46,6 +47,9 @@ export function PriceSection(props: {
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = props.tokenUnit === 'K' ? '1K' : '1M'
   const billingTime = useBillingTime(props.model.billing_expr)
+  // Currency is read indirectly by the price formatter; subscribe so a
+  // currency change re-renders the base price card.
+  useSystemConfigStore((state) => state.config.currency)
   let pricingGroup = props.currentUserGroup
   if (props.selectedGroup && props.selectedGroup !== FILTER_ALL) {
     pricingGroup = props.selectedGroup

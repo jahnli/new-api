@@ -26,6 +26,7 @@ import {
   DataTableRow,
   useDataTable,
 } from '@/components/data-table'
+import { useMediaQuery } from '@/hooks'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { ROLE } from '@/lib/roles'
@@ -83,6 +84,7 @@ interface UsageLogsTableProps {
 export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const { t } = useTranslation()
   const demoMode = useDemoMode()
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const {
     canManageScope,
     isAdminView: isAdmin,
@@ -227,6 +229,7 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
         columns={columns as ColumnDef<Record<string, unknown>>[]}
         isLoading={isLoadingData}
         isFetching={isFetching}
+        compactPagination={isMobile && isCommon}
         emptyTitle={t('No Logs Found')}
         emptyDescription={t(
           'No usage logs available. Logs will appear here once API calls are made.'
