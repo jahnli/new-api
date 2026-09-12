@@ -538,6 +538,7 @@ export function useCommonLogsColumns(
                 variant={timeVariant as StatusBadgeProps['variant']}
                 size='sm'
                 copyable={false}
+                opticalCenter
                 className={cn('rounded-md font-mono', timingBgMap[timeVariant])}
               />
               {log.is_stream &&
@@ -548,6 +549,7 @@ export function useCommonLogsColumns(
                     size='sm'
                     showDot={false}
                     copyable={false}
+                    opticalCenter
                     className={cn(
                       'rounded-md font-mono',
                       timingBgMap[frtVariant]
@@ -560,6 +562,7 @@ export function useCommonLogsColumns(
                     size='sm'
                     showDot={false}
                     copyable={false}
+                    opticalCenter
                     className={cn('rounded-md font-mono', timingBgMap.neutral)}
                   />
                 ))}

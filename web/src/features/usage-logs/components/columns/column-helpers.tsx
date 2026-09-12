@@ -136,6 +136,7 @@ export function createDurationColumn<T>(config: {
           variant={variant}
           size='sm'
           copyable={false}
+          opticalCenter
           className={cn('rounded-md font-mono', durationBgMap[variant])}
         />
       )

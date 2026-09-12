@@ -133,6 +133,15 @@ export interface StatusBadgeProps extends Omit<
   copyable?: boolean
   copyText?: string
   autoColor?: string
+  /**
+   * Lifts the label by half of its bottom padding so the visible glyphs land on
+   * the pill's optical center. Flex centering aligns the label's *line box*, and
+   * a font's ascent is much larger than its descent, so cap-height ink ends up
+   * slightly below that box's center. Monospace faces — the timing/cost pills —
+   * show ~0.05em of this sink, which reads as text sitting low; proportional UI
+   * faces barely show it, so it stays opt-in.
+   */
+  opticalCenter?: boolean
   /** Visual style. Defaults to 'badge'. Can be overridden via StatusBadgeTypeContext. */
   type?: StatusBadgeType
 }
@@ -148,6 +157,7 @@ export function StatusBadge({
   copyable = true,
   copyText,
   autoColor,
+  opticalCenter = false,
   type: typeProp,
   className,
   onClick,
@@ -169,13 +179,21 @@ export function StatusBadge({
     onClick?.(e)
   }
 
+  const isBadge = type === 'badge'
+
   const content =
     children ??
     (label ? (
-      <span className='min-w-0 truncate leading-normal'>{label}</span>
+      <span
+        className={cn(
+          'min-w-0 truncate leading-normal',
+          isBadge && opticalCenter && 'pb-[0.05em]'
+        )}
+      >
+        {label}
+      </span>
     ) : null)
 
-  const isBadge = type === 'badge'
   const title = copyable
     ? `Click to copy: ${copyText || label || ''}`
     : label || undefined
