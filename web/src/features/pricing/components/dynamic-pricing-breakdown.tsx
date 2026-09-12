@@ -557,8 +557,7 @@ export function DynamicPricingBreakdown({
                       const value = field.value(tier)
                       const showPrice =
                         value > 0 ||
-                        ((field.unit === 'request' ||
-                          field.unit === 'image') &&
+                        ((field.unit === 'request' || field.unit === 'image') &&
                           Number.isFinite(value))
                       let displayedPrice = '-'
                       if (maskPrices) {

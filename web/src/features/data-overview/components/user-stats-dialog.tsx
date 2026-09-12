@@ -158,10 +158,7 @@ export function UserStatsDialog(props: UserStatsDialogProps) {
             <UserProfileHoverCard user={userColumnRow}>
               <Avatar className='size-9 shrink-0'>
                 {props.user.avatar_url && (
-                  <AvatarImage
-                    src={props.user.avatar_url}
-                    alt={displayName}
-                  />
+                  <AvatarImage src={props.user.avatar_url} alt={displayName} />
                 )}
                 <AvatarFallback
                   className='text-sm font-semibold text-white'

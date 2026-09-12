@@ -33,7 +33,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useDemoMode } from '@/hooks/use-demo-mode'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 import {
   normalizeTierLabel,
@@ -46,6 +45,7 @@ import {
 import { pluginUsageSchema } from '@/features/pricing/lib/plugin-pricing'
 import { taskUsageUnitLabel } from '@/features/pricing/lib/task-price-display'
 import type { BillingUsageSchema } from '@/features/pricing/types'
+import { useDemoMode } from '@/hooks/use-demo-mode'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { DEMO_MODE_MASK, maskFormattedCurrencyAmount } from '@/lib/demo-mode'
 import {

@@ -351,14 +351,7 @@ export function CommonLogsFilterBar<TData>(
       queryClient.invalidateQueries({ queryKey: ['logs'] })
       queryClient.invalidateQueries({ queryKey: ['usage-logs-stats'] })
     },
-    [
-      filters,
-      isSuperAdmin,
-      logType,
-      navigate,
-      queryClient,
-      userCategoryOptions,
-    ]
+    [filters, isSuperAdmin, logType, navigate, queryClient, userCategoryOptions]
   )
 
   const handleReset = useCallback(() => {

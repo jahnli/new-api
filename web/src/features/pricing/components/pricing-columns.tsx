@@ -107,7 +107,9 @@ export function usePricingColumns(
       ),
       cell: ({ row }) =>
         maskPrices ? (
-          <span className='font-mono text-sm tabular-nums'>{DEMO_MODE_MASK}</span>
+          <span className='font-mono text-sm tabular-nums'>
+            {DEMO_MODE_MASK}
+          </span>
         ) : (
           <ModelPriceCell model={row.original} options={options} />
         ),
@@ -121,7 +123,9 @@ export function usePricingColumns(
       header: t('Cached'),
       cell: ({ row }) =>
         maskPrices ? (
-          <span className='font-mono text-sm tabular-nums'>{DEMO_MODE_MASK}</span>
+          <span className='font-mono text-sm tabular-nums'>
+            {DEMO_MODE_MASK}
+          </span>
         ) : (
           <CachedPriceCell model={row.original} options={options} />
         ),

@@ -530,7 +530,9 @@ export function userJoinDateColumn<T extends UserColumnRow>(
     cell: ({ row }) => {
       const date = row.original.join_date
       return (
-        <span className='text-muted-foreground !text-[13px]'>{date || '-'}</span>
+        <span className='text-muted-foreground !text-[13px]'>
+          {date || '-'}
+        </span>
       )
     },
     size: 120,

@@ -55,10 +55,10 @@ import {
   formatUptimePct,
   getSuccessRateTextClass,
 } from '@/features/performance-metrics/lib/format'
+import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
 import { useIsAdmin } from '@/hooks/use-admin'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { DEMO_MODE_MASK } from '@/lib/demo-mode'
-import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
@@ -1252,9 +1252,7 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
 
     return { [props.currentUserGroup]: currentGroupSettings }
   }, [props.currentUserGroup, showGroupRatios, props.usableGroup])
-  const visibleAutoGroups = showGroupRatios
-    ? props.autoGroups
-    : EMPTY_GROUPS
+  const visibleAutoGroups = showGroupRatios ? props.autoGroups : EMPTY_GROUPS
   const visibleModelGroups = useMemo(
     () =>
       showGroupRatios
