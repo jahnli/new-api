@@ -7173,6 +7173,6 @@
     "Zhipu GLM": "Zhipu GLM",
     "Consumption": "消費",
     "Sort by": "並べ替え項目",
-    "Tokens, total cost, and unit price per 100M tokens": "トークン使用量、総コスト、1億トークンあたりの単価"
+    "Tokens, cost, and unit price per 100M tokens": "トークン使用量、コスト、1億トークンあたりの単価"
   }
 }

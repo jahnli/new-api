@@ -7173,6 +7173,6 @@
     "Zhipu GLM": "Zhipu GLM",
     "Consumption": "Расход",
     "Sort by": "Сортировать по",
-    "Tokens, total cost, and unit price per 100M tokens": "Токены, общая стоимость и цена за 100 млн токенов"
+    "Tokens, cost, and unit price per 100M tokens": "Токены, стоимость и цена за 100 млн токенов"
   }
 }

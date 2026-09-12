@@ -7173,6 +7173,6 @@
     "Zhipu GLM": "智谱GLM",
     "Consumption": "消耗",
     "Sort by": "排序字段",
-    "Tokens, total cost, and unit price per 100M tokens": "Token 用量、总费用与每亿 Token 单价"
+    "Tokens, cost, and unit price per 100M tokens": "Token 用量、费用与每亿 Token 单价"
   }
 }

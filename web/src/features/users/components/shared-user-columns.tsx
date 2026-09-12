@@ -289,7 +289,7 @@ export function userQuotaColumn<T extends UserColumnRow>(
 }
 
 /**
- * Single column for monthly/range consumption: token usage, total cost, and the
+ * Single column for monthly/range consumption: token usage, cost, and the
  * unit price per 100M tokens. The three metrics share one cell to save
  * horizontal space, and the header still exposes every original sort field via
  * `meta.sortFields`.
@@ -332,7 +332,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
                 {formattedTokens}
               </span>
               <span aria-hidden='true'>·</span>
-              <span className='sr-only'>{t('Total Cost')}:</span>
+              <span className='sr-only'>{t('Cost')}:</span>
               <span className='min-w-0 truncate text-sm font-medium tabular-nums'>
                 {formattedCost}
               </span>
@@ -348,7 +348,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
                 {t('Tokens')}: {formatUserTokensDetail(tokens)}
               </div>
               <div>
-                {t('Total Cost')}: {formattedCost}
+                {t('Cost')}: {formattedCost}
               </div>
               <div>
                 {t('Unit Price / 100M Tokens')}: {formattedUnitPrice}
@@ -362,11 +362,11 @@ export function userConsumptionColumn<T extends UserColumnRow>(
     size: 200,
     meta: {
       label: t('Consumption'),
-      description: t('Tokens, total cost, and unit price per 100M tokens'),
+      description: t('Tokens, cost, and unit price per 100M tokens'),
       mobileHidden: true,
       sortFields: [
         { id: opts.tokensAccessor, label: t('Tokens') },
-        { id: opts.costAccessor, label: t('Total Cost') },
+        { id: opts.costAccessor, label: t('Cost') },
         { id: 'average_price', label: t('Unit Price / 100M Tokens') },
       ],
     },
