@@ -213,7 +213,7 @@ export function userNameColumn<T extends UserColumnRow>(
       )
     },
     enableHiding: false,
-    size: 170,
+    size: 140,
     meta: { mobileTitle: true },
   }
 }
@@ -290,7 +290,7 @@ export function userQuotaColumn<T extends UserColumnRow>(
         </Tooltip>
       )
     },
-    size: opts?.width ? opts.width + 20 : 180,
+    size: opts?.width ? opts.width + 20 : 205,
     meta: { description: headerDescription },
   }
 }
@@ -341,24 +341,22 @@ export function userConsumptionColumn<T extends UserColumnRow>(
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className='w-full min-w-0 cursor-help space-y-0.5 overflow-hidden' />
+              <div className='w-full min-w-0 cursor-help space-y-0.5 overflow-hidden px-2' />
             }
           >
-            <div className='flex min-w-0 items-baseline gap-x-2.5'>
+            <div className='flex min-w-0 items-baseline justify-between gap-x-2.5'>
               <span className='sr-only'>{t('Tokens')}:</span>
               <span className='min-w-0 truncate text-sm font-medium tabular-nums'>
                 {formattedTokens}
               </span>
-              <span aria-hidden='true'>·</span>
               <span className='sr-only'>{t('Cost')}:</span>
               <span className='min-w-0 truncate text-sm font-medium tabular-nums'>
                 {formattedCost}
               </span>
             </div>
-            <div className='text-muted-foreground/70 flex min-w-0 items-baseline gap-x-2.5 !text-[13px] tabular-nums'>
+            <div className='text-muted-foreground/70 flex min-w-0 items-baseline justify-between gap-x-2.5 !text-[13px] tabular-nums'>
               <span className='sr-only'>{t('Request Count')}:</span>
               <span className='min-w-0 truncate'>{formattedRequests}</span>
-              <span aria-hidden='true'>·</span>
               <span className='sr-only'>{t('Unit Price / 100M Tokens')}:</span>
               <span className='min-w-0 truncate'>{formattedUnitPrice}</span>
             </div>
@@ -382,12 +380,15 @@ export function userConsumptionColumn<T extends UserColumnRow>(
         </Tooltip>
       )
     },
-    minSize: 175,
-    size: 195,
+    minSize: 205,
+    size: 225,
     meta: {
       label: t('Consumption'),
       description: t('Tokens, cost, requests, and unit price per 100M tokens'),
       mobileHidden: true,
+      // The cell content is inset by `px-2`; mirror it on the title so the
+      // header text lines up with the two metric rows below it.
+      headerClassName: 'px-2',
       sortFields: [
         { id: opts.tokensAccessor, label: t('Tokens') },
         { id: opts.costAccessor, label: t('Cost') },
@@ -428,7 +429,10 @@ export function userModelColumn<T extends UserColumnRow>(
         </Tooltip>
       )
     },
-    size: 190,
+    // Model badges are short (~90px); the previous width left a wide empty
+    // strip to the right of this column. The released share is redistributed
+    // to the columns on its left, moving their boundaries rightwards.
+    size: 130,
     meta: { mobileHidden: true },
   }
 }
@@ -528,7 +532,7 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
       return (
         <div
           data-table-text='secondary'
-          className='w-[280px] max-w-[280px] space-y-1.5 overflow-hidden font-normal'
+          className='w-[280px] max-w-[280px] space-y-1.5 overflow-hidden px-2 font-normal'
         >
           <div className='w-full min-w-0 overflow-hidden'>
             <span className='sr-only'>{t('Department')}:</span>
@@ -574,7 +578,12 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
     },
     size: 200,
     minSize: 180,
-    meta: { mobileHidden: true },
+    meta: {
+      mobileHidden: true,
+      // Match the `px-2` inset on the cell so the title aligns with the
+      // department row below it.
+      headerClassName: 'px-2',
+    },
   }
 }
 
@@ -727,7 +736,7 @@ export function userStatusColumn<T extends UserColumnRow>(
       )
     },
     enableSorting: false,
-    size: 120,
+    size: 92,
     meta: { mobileBadge: true },
   }
 }
