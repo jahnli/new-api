@@ -7173,6 +7173,6 @@
     "Zhipu GLM": "Zhipu GLM",
     "Consumption": "Tiêu thụ",
     "Sort by": "Sắp xếp theo",
-    "Tokens, cost, and unit price per 100M tokens": "Token, chi phí và đơn giá trên 100 triệu token"
+    "Tokens, cost, requests, and unit price per 100M tokens": "Token, chi phí, số yêu cầu và đơn giá trên 100 triệu token"
   }
 }

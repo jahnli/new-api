@@ -102,6 +102,13 @@ export function formatUserRequests(requests: number | undefined): string {
   return Intl.NumberFormat().format(value)
 }
 
+/** Exact request count, used for tooltip detail where the 万 suffix loses precision. */
+export function formatUserRequestsDetail(requests: number | undefined): string {
+  const value = requests ?? 0
+  if (value <= 0) return '-'
+  return Intl.NumberFormat().format(value)
+}
+
 // ============================================================================
 // Column Factories
 // ============================================================================
@@ -248,7 +255,7 @@ export function userQuotaColumn<T extends UserColumnRow>(
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className='w-full max-w-full min-w-0 cursor-help space-y-1.5 overflow-hidden' />
+              <div className='w-full max-w-full min-w-0 cursor-help space-y-1.5 overflow-hidden pe-3' />
             }
           >
             <div className='flex min-w-0 items-center justify-between gap-x-4 text-xs'>
@@ -283,20 +290,24 @@ export function userQuotaColumn<T extends UserColumnRow>(
         </Tooltip>
       )
     },
-    size: opts?.width ? opts.width + 20 : 150,
+    size: opts?.width ? opts.width + 20 : 180,
     meta: { description: headerDescription },
   }
 }
 
 /**
- * Single column for monthly/range consumption: token usage, cost, and the
- * unit price per 100M tokens. The three metrics share one cell to save
+ * Single column for monthly/range consumption: token usage, cost, request count,
+ * and the unit price per 100M tokens. The four metrics share one cell to save
  * horizontal space, and the header still exposes every original sort field via
  * `meta.sortFields`.
  */
 export function userConsumptionColumn<T extends UserColumnRow>(
   t: (key: string) => string,
-  opts: { costAccessor: string; tokensAccessor: string }
+  opts: {
+    costAccessor: string
+    tokensAccessor: string
+    requestsAccessor: string
+  }
 ): ColumnDef<T> {
   return {
     id: 'consumption',
@@ -305,15 +316,22 @@ export function userConsumptionColumn<T extends UserColumnRow>(
       const source = row.original as Record<string, unknown>
       const cost = Number(source[opts.costAccessor] ?? 0)
       const tokens = Number(source[opts.tokensAccessor] ?? 0)
+      const requests = Number(source[opts.requestsAccessor] ?? 0)
       const hasCost = Number.isFinite(cost) && cost > 0
       const hasTokens = Number.isFinite(tokens) && tokens > 0
+      const hasRequests = Number.isFinite(requests) && requests > 0
 
-      if (!hasCost && !hasTokens) {
+      if (!hasCost && !hasTokens && !hasRequests) {
         return <span className='text-muted-foreground text-sm'>-</span>
       }
 
       const formattedCost = formatAmountCny(cost)
       const formattedTokens = formatUserTokens(tokens)
+      // 合并列里同时出现 Token 的「亿」与请求次数的「万」，给请求次数补上量词
+      // 「次」才能与 Token 区分开。
+      const formattedRequests = hasRequests
+        ? `${formatUserRequests(requests)} ${t('times')}`
+        : formatUserRequests(requests)
       const unitPrice =
         hasCost && hasTokens ? calculateUnitPricePer100MTokens(cost, tokens) : 0
       const formattedUnitPrice =
@@ -338,6 +356,9 @@ export function userConsumptionColumn<T extends UserColumnRow>(
               </span>
             </div>
             <div className='text-muted-foreground/70 flex min-w-0 items-baseline gap-x-1.5 !text-[13px] tabular-nums'>
+              <span className='sr-only'>{t('Request Count')}:</span>
+              <span className='min-w-0 truncate'>{formattedRequests}</span>
+              <span aria-hidden='true'>·</span>
               <span className='sr-only'>{t('Unit Price / 100M Tokens')}:</span>
               <span className='min-w-0 truncate'>{formattedUnitPrice}</span>
             </div>
@@ -351,6 +372,9 @@ export function userConsumptionColumn<T extends UserColumnRow>(
                 {t('Cost')}: {formattedCost}
               </div>
               <div>
+                {t('Request Count')}: {formatUserRequestsDetail(requests)}
+              </div>
+              <div>
                 {t('Unit Price / 100M Tokens')}: {formattedUnitPrice}
               </div>
             </div>
@@ -362,35 +386,15 @@ export function userConsumptionColumn<T extends UserColumnRow>(
     size: 200,
     meta: {
       label: t('Consumption'),
-      description: t('Tokens, cost, and unit price per 100M tokens'),
+      description: t('Tokens, cost, requests, and unit price per 100M tokens'),
       mobileHidden: true,
       sortFields: [
         { id: opts.tokensAccessor, label: t('Tokens') },
         { id: opts.costAccessor, label: t('Cost') },
+        { id: opts.requestsAccessor, label: t('Request Count') },
         { id: 'average_price', label: t('Unit Price / 100M Tokens') },
       ],
     },
-  }
-}
-
-export function userRequestsColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-  opts: { accessor: string; header?: string }
-): ColumnDef<T> {
-  return {
-    accessorKey: opts.accessor,
-    header: opts.header ?? t('Request Count'),
-    cell: ({ row }) => (
-      <span className='text-sm tabular-nums'>
-        {formatUserRequests(
-          (row.original as Record<string, unknown>)[opts.accessor] as
-            | number
-            | undefined
-        )}
-      </span>
-    ),
-    size: 100,
-    meta: { mobileHidden: true },
   }
 }
 
@@ -786,8 +790,8 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       userConsumptionColumn<T>(t, {
         costAccessor: opts.costAccessor,
         tokensAccessor: opts.tokensAccessor,
+        requestsAccessor: opts.requestsAccessor,
       }),
-      userRequestsColumn<T>(t, { accessor: opts.requestsAccessor }),
     ]
 
     if (!externalMode) {

@@ -118,9 +118,10 @@
 
 ## 2026-09-12 消耗列合并与排序字段切换
 
-- `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与部门人员列表的共享列把原 Token、费用、单价三列合并为单个“消耗”列：首行显示 Token 消耗量与金额，次行以 `text-muted-foreground/70` 弱化色和 13px 字号显示每亿 Token 单价（费用标签复用已有「费用」文案）；三项数据均保留悬停完整明细（含精确 Token 数）与屏幕阅读器标签，列宽由三列合计 360px 收窄为 200px；移除 `userTokensColumn`、`userCostColumn`、`userAveragePriceColumn`，新增 `userConsumptionColumn`。
+- `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与部门人员列表的共享列把原 Token、费用、请求次数、单价四列合并为单个“消耗”列：首行显示 Token 消耗量与金额，次行以 `text-muted-foreground/70` 弱化色和 13px 字号显示请求次数（复用已有 `times` 文案补「次」量词，避免与 Token 的「亿」混淆）与每亿 Token 单价（费用标签复用已有「费用」文案）；四项数据均保留悬停完整明细（含精确 Token 数与精确请求次数，新增 `formatUserRequestsDetail`）与屏幕阅读器标签，列宽由四列合计 460px 收窄为 200px；移除 `userTokensColumn`、`userCostColumn`、`userAveragePriceColumn`、`userRequestsColumn`，新增 `userConsumptionColumn`。
 - `web/src/components/data-table/core/column-header.tsx` — 共享列头支持列 `meta.sortFields`：下拉菜单新增“排序字段”单选组，升/降序作用于当前选中字段，并同步显示该字段的排序方向图标；未声明 `sortFields` 的列行为完全不变。
 - `web/src/components/data-table/core/data-table-header.tsx` — 把表头上下文中的 table 实例透传给列头，使字符串表头（`header: t('...')`）也能读写排序状态。
 - `web/src/components/data-table/core/types.ts` — 新增 `DataTableSortField` 类型，描述合并列对外暴露的可排序字段。
 - `web/src/tanstack-table.d.ts` — 列 meta 新增 `sortFields` 声明，供合并列声明多个服务端排序字段。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐“消耗”“排序字段”和消耗列说明的七语言文案。
+- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐“消耗”“排序字段”和消耗列说明的七语言文案；说明随合并范围扩为四项指标（Token、费用、请求次数、单价）。
+- `web/src/features/users/components/shared-user-columns.tsx` — 共享「已用/总额」列的默认列宽由 150px 加宽到 180px，让已用值与总额值各两位小数（如 `¥1,234.56`）并排时不再挤压；同时在额度列内容右侧增加 12px 内边距，避免右对齐的总额值紧贴「消耗」列内容。
