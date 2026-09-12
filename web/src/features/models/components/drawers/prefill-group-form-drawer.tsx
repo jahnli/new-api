@@ -126,13 +126,9 @@ export function PrefillGroupFormDrawer({
 
   const handleSubmit = async (values: PrefillGroupFormValues) => {
     setIsSaving(true)
-    let items: PrefillGroupFormValues['items'] = []
+    let items: string | string[] = []
     if (values.type === 'endpoint') {
-      if (typeof values.items === 'string') {
-        items = values.items
-      } else {
-        items = ''
-      }
+      items = typeof values.items === 'string' ? values.items : ''
     } else if (Array.isArray(values.items)) {
       items = values.items
     }
@@ -172,13 +168,6 @@ export function PrefillGroupFormDrawer({
 
   const meta =
     PREFILL_GROUP_TYPE_META[selectedType] || PREFILL_GROUP_TYPE_META.model
-
-  let submitLabel = t('Create')
-  if (isSaving) {
-    submitLabel = t('Saving...')
-  } else if (isEdit) {
-    submitLabel = t('Save changes')
-  }
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -391,7 +380,9 @@ export function PrefillGroupFormDrawer({
           </SheetClose>
           <Button type='submit' form='prefill-group-form' disabled={isSaving}>
             {isSaving && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            {submitLabel}
+            {isSaving && t('Saving...')}
+            {!isSaving && isEdit && t('Save changes')}
+            {!isSaving && !isEdit && t('Create')}
           </Button>
         </SheetFooter>
       </SheetContent>

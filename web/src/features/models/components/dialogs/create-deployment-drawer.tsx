@@ -247,14 +247,6 @@ export function CreateDeploymentDrawer({
 
   const nameAvailable =
     nameCheckData?.success === true ? nameCheckData?.data?.available : undefined
-  let nameAvailabilityText = ''
-  if (isCheckingName) {
-    nameAvailabilityText = t('Checking name...')
-  } else if (nameAvailable === true) {
-    nameAvailabilityText = t('Name is available')
-  } else if (nameAvailable === false) {
-    nameAvailabilityText = t('Name is not available')
-  }
 
   const createMutation = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -432,7 +424,18 @@ export function CreateDeploymentDrawer({
                     </FormControl>
                     {open && field.value?.trim() ? (
                       <div className='text-muted-foreground text-xs'>
-                        {nameAvailabilityText}
+                        {isCheckingName && t('Checking name...')}
+                        {!isCheckingName &&
+                          nameAvailable === true &&
+                          t('Name is available')}
+                        {!isCheckingName &&
+                          !(nameAvailable === true) &&
+                          nameAvailable === false &&
+                          t('Name is not available')}
+                        {!isCheckingName &&
+                          !(nameAvailable === true) &&
+                          !(nameAvailable === false) &&
+                          ''}
                       </div>
                     ) : null}
                     <FormMessage />

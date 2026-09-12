@@ -725,10 +725,10 @@ const TaskUsagePricingEditorImpl = memo(function TaskUsagePricingEditor(
 })
 
 export function TaskUsagePricingEditor(props: TaskUsagePricingEditorProps) {
-  const currency = useMemo(() => resolveLegacyCurrency(props), [
-    props.currency,
-    props.currencySymbol,
-    props.exchangeRate,
-  ])
-  return <TaskUsagePricingEditorImpl {...props} currency={currency} />
+  const { currency, currencySymbol, exchangeRate } = props
+  const resolvedCurrency = useMemo(
+    () => resolveLegacyCurrency({ currency, currencySymbol, exchangeRate }),
+    [currency, currencySymbol, exchangeRate]
+  )
+  return <TaskUsagePricingEditorImpl {...props} currency={resolvedCurrency} />
 }
