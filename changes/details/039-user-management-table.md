@@ -126,3 +126,4 @@
 - `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐“消耗”“排序字段”和消耗列说明的七语言文案；说明随合并范围扩为四项指标（Token、费用、请求次数、单价）。
 - `web/src/features/users/components/shared-user-columns.tsx` — 共享「已用/总额」列的默认列宽由 150px 加宽到 180px，让已用值与总额值各两位小数（如 `¥1,234.56`）并排时不再挤压；同时在额度列内容右侧增加 12px 内边距，避免右对齐的总额值紧贴「消耗」列内容。
 - `web/src/components/activity-time-cell.tsx`、`web/src/features/users/components/shared-user-columns.tsx` — 时间列（最后登录 / 创建时间）的文字由 12px 放大到 14px，与图标尺寸及表格正文一致：`ActivityTimeCell` 新增可选 `textClassName` 覆盖文字字号，用户管理与部门人员列表传入 `!text-[14px]`；因共享表格 CSS 会通过后代选择器把 `data-table-text="secondary"` 固定为 `text-xs`，覆盖必须带 `!` 前缀，API 密钥时间列未传该属性、行为保持不变；同列「新增用户」「登录」图标由 14px 放大到 16px，正好填满原有 16px 标签容器，网格列宽不变。
+- `web/src/features/users/components/shared-user-columns.tsx` — 「任职概况」列的部门信息由 12px 放大到 14px（`!text-[14px]`，与空值占位及部门列保持一致）；「消耗」列默认列宽由 200px 加宽到 220px、`minSize` 由 180px 调整到 200px，给四项指标并排留出余量。

@@ -344,7 +344,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
               <div className='w-full min-w-0 cursor-help space-y-0.5 overflow-hidden' />
             }
           >
-            <div className='flex min-w-0 items-baseline gap-x-1.5'>
+            <div className='flex min-w-0 items-baseline gap-x-2.5'>
               <span className='sr-only'>{t('Tokens')}:</span>
               <span className='min-w-0 truncate text-sm font-medium tabular-nums'>
                 {formattedTokens}
@@ -355,7 +355,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
                 {formattedCost}
               </span>
             </div>
-            <div className='text-muted-foreground/70 flex min-w-0 items-baseline gap-x-1.5 !text-[13px] tabular-nums'>
+            <div className='text-muted-foreground/70 flex min-w-0 items-baseline gap-x-2.5 !text-[13px] tabular-nums'>
               <span className='sr-only'>{t('Request Count')}:</span>
               <span className='min-w-0 truncate'>{formattedRequests}</span>
               <span aria-hidden='true'>·</span>
@@ -382,8 +382,8 @@ export function userConsumptionColumn<T extends UserColumnRow>(
         </Tooltip>
       )
     },
-    minSize: 180,
-    size: 200,
+    minSize: 175,
+    size: 195,
     meta: {
       label: t('Consumption'),
       description: t('Tokens, cost, requests, and unit price per 100M tokens'),
@@ -533,7 +533,7 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
           <div className='w-full min-w-0 overflow-hidden'>
             <span className='sr-only'>{t('Department')}:</span>
             {department ? (
-              <LongText className='text-foreground w-full min-w-0 font-normal'>
+              <LongText className='text-foreground w-full min-w-0 !text-[14px] font-normal'>
                 {department}
               </LongText>
             ) : (
