@@ -222,7 +222,9 @@ function DescriptionTooltip({ description }: { description: string }) {
         }
       />
       <TooltipContent className='max-w-64'>
-        <p className='text-xs leading-relaxed'>{description}</p>
+        <p className='text-xs leading-relaxed whitespace-pre-line'>
+          {description}
+        </p>
       </TooltipContent>
     </Tooltip>
   )

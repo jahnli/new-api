@@ -311,7 +311,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
 ): ColumnDef<T> {
   return {
     id: 'consumption',
-    header: t('Consumption'),
+    header: t('Usage'),
     cell: ({ row }) => {
       const source = row.original as Record<string, unknown>
       const cost = Number(source[opts.costAccessor] ?? 0)
@@ -383,7 +383,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
     minSize: 205,
     size: 225,
     meta: {
-      label: t('Consumption'),
+      label: t('Usage'),
       description: t('Tokens, cost, requests, and unit price per 100M tokens'),
       mobileHidden: true,
       // The cell content is inset by `px-2`; mirror it on the title so the

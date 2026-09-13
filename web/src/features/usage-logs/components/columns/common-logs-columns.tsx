@@ -1067,10 +1067,7 @@ export function useCommonLogsColumns(
         if (log.content) {
           detailContent = (
             <span
-              className={cn(
-                'truncate !font-normal hover:underline',
-                contentTextClassName
-              )}
+              className={cn('truncate hover:underline', contentTextClassName)}
             >
               {log.content}
             </span>
@@ -1080,7 +1077,7 @@ export function useCommonLogsColumns(
           detailContent = (
             <span
               className={cn(
-                'truncate !font-normal leading-snug hover:underline',
+                'truncate leading-snug hover:underline',
                 primaryTextClassName
               )}
             >
@@ -1098,7 +1095,7 @@ export function useCommonLogsColumns(
           <>
             <button
               type='button'
-              className='group flex max-w-[150px] items-center gap-1 text-left text-xs !font-normal'
+              className='group flex max-w-[150px] items-center gap-1 text-left text-xs'
               onClick={() => setDialogOpen(true)}
               title={t('Click to view full details')}
             >

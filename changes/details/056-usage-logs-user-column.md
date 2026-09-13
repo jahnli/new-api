@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-11
+**日期**: 2026-09-09 ~ 09-13（最后更新 09-13）
 
 ## 涉及文件
 
@@ -186,3 +186,7 @@
 - `web/src/routes/_authenticated/security-audit/$section.tsx` — 原安全审计路由保留为兼容入口，将合法分类和现有查询参数重定向到审计日志页面。
 - `web/src/hooks/use-sidebar-data.ts` — 移除重复的独立安全审计侧边栏入口，统一从审计日志进入。
 - `web/src/i18n/locales/en.json`、`zh.json`、`zh-TW.json`、`fr.json`、`ja.json`、`ru.json`、`vi.json` — 补齐审计类型、常规审计、禁用状态和配置引导的七语言文案。
+
+## 2026-09-13 普通日志详情列加重
+
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 普通日志「详情」列的日志内容与计费摘要改用表格默认字重（半粗体），不再强制常规字重；省略占位符与「+N」折叠计数继续使用常规字重以保持层次。
