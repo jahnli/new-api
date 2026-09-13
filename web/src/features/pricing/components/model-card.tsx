@@ -63,6 +63,12 @@ export interface ModelCardProps {
    * recommendation, so it is stated once by the section heading instead.
    */
   showRecommendationBadge?: boolean
+  /** Hide the description; the recommendation shelf keeps its cards compact. */
+  showDescription?: boolean
+  /** Hide the group list; the recommendation shelf keeps its cards compact. */
+  showGroups?: boolean
+  /** Hide the endpoint list; the recommendation shelf keeps its cards compact. */
+  showEndpoints?: boolean
   perf?: ModelPerfBadgeData
 }
 
@@ -73,11 +79,16 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const usdExchangeRate = props.usdExchangeRate ?? 1
   const showRechargePrice = props.showRechargePrice ?? false
   const showRecommendationBadge = props.showRecommendationBadge ?? true
+  const showDescription = props.showDescription ?? true
+  const showGroups = props.showGroups ?? true
+  const showEndpoints = props.showEndpoints ?? true
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const tags = parseTags(props.model.tags)
   const groups = props.model.enable_groups || []
-  const endpoints = props.model.supported_endpoint_types || []
+  const endpoints = showEndpoints
+    ? props.model.supported_endpoint_types || []
+    : []
   const modelIconKey = props.model.icon || props.model.vendor_icon
   const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 28) : null
   const initial = props.model.model_name?.charAt(0).toUpperCase() || '?'
@@ -120,7 +131,12 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   )
   const showTaskFieldLabels =
     getTaskNumberFields(props.model.billing_usage_schema).length > 1
-  const displayGroup = getModelDisplayGroup(props.model, props.currentUserGroup)
+  // With the endpoint list already gated above, nulling the group here makes
+  // the metadata row below disappear when both are hidden, and drop to one
+  // column when only the endpoints remain.
+  const displayGroup = showGroups
+    ? getModelDisplayGroup(props.model, props.currentUserGroup)
+    : null
   const hiddenGroupCount = displayGroup
     ? Math.max(groups.length - (groups.includes(displayGroup) ? 1 : 0), 0)
     : 0
@@ -329,28 +345,32 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
         />
       </CardHeader>
       <CardContent className='flex flex-1 flex-col gap-3'>
-        <div className='flex min-w-0 flex-col gap-1.5'>
-          <p className='text-muted-foreground line-clamp-2 text-[13px] leading-5 break-words'>
-            {props.model.description || t('No description available.')}
-          </p>
-          {tags.length > 0 && (
-            <div
-              role='group'
-              aria-label={t('Tags')}
-              className='text-muted-foreground flex min-w-0 items-baseline gap-1.5 text-xs'
-            >
-              <span className='shrink-0'>{t('Tags')}</span>
-              <span className='truncate' title={tags.join(', ')}>
-                {tags.slice(0, 2).join(', ')}
-              </span>
-              {tags.length > 2 && (
-                <span className='shrink-0' title={tags.slice(2).join(', ')}>
-                  +{tags.length - 2}
+        {(showDescription || tags.length > 0) && (
+          <div className='flex min-w-0 flex-col gap-1.5'>
+            {showDescription && (
+              <p className='text-muted-foreground line-clamp-2 text-[13px] leading-5 break-words'>
+                {props.model.description || t('No description available.')}
+              </p>
+            )}
+            {tags.length > 0 && (
+              <div
+                role='group'
+                aria-label={t('Tags')}
+                className='text-muted-foreground flex min-w-0 items-baseline gap-1.5 text-xs'
+              >
+                <span className='shrink-0'>{t('Tags')}</span>
+                <span className='truncate' title={tags.join(', ')}>
+                  {tags.slice(0, 2).join(', ')}
                 </span>
-              )}
-            </div>
-          )}
-        </div>
+                {tags.length > 2 && (
+                  <span className='shrink-0' title={tags.slice(2).join(', ')}>
+                    +{tags.length - 2}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {props.model.is_recommended && (
           <ModelRecommendationScenarios
             scenarios={props.model.recommendation_scenarios}

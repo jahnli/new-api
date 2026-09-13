@@ -147,6 +147,9 @@ export function RecommendedModelsShelf(props: RecommendedModelsShelfProps) {
             <ModelCard
               model={model}
               showRecommendationBadge={false}
+              showDescription={false}
+              showGroups={false}
+              showEndpoints={false}
               tokenUnit={tokenUnit}
               priceRate={props.priceRate}
               usdExchangeRate={props.usdExchangeRate}
