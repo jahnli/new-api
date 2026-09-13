@@ -44,7 +44,12 @@ export type PricingModel = {
   /** Derived from enabled recommendations in the viewer's pricing response. */
   is_recommended?: boolean
   /** Enabled recommendation scenarios associated with this model. */
-  recommendation_scenarios?: ModelRecommendationScenario[]
+  recommendation_scenarios?: string[]
+  /**
+   * Position of this model in the admin-configured recommendation order.
+   * Absent when the model is not recommended.
+   */
+  recommendation_rank?: number
   description?: string
   icon?: string
   vendor_id?: number
@@ -125,17 +130,11 @@ export type PricingData = {
 
 export type ModelRecommendation = {
   model_name: string
-  scenario: ModelRecommendationScenario
+  /** Ordered scenario labels; empty when the model is recommended without tags. */
+  scenarios: string[]
   reason: string
   enabled: boolean
 }
-
-export type ModelRecommendationScenario =
-  | 'general'
-  | 'coding'
-  | 'chat'
-  | 'writing'
-  | 'image'
 
 export type TokenUnit = 'M' | 'K'
 export type PriceType =

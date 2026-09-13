@@ -9,31 +9,46 @@ await i18n.init({ lng: 'en', resources: { en: { translation: {} } } })
 const schema = createModelSquareConfigSchema(i18n.t)
 const entry: ModelSquareRecommendation = {
   model_name: 'actual-model',
-  scenario: 'coding',
+  scenarios: ['Coding'],
   enabled: true,
 }
 
 describe('recommendation configuration validation', () => {
-  test('preserves exact model names without requiring a reason', () => {
+  test('preserves exact model names and scenario order without requiring a reason', () => {
     const config = schema.parse({
       enabled: false,
       recommendations: [
         {
           ...entry,
           model_name: ' actual-model ',
+          scenarios: ['Custom review', 'Coding'],
         },
       ],
     })
     expect(config.recommendations[0]).toEqual({
       ...entry,
       model_name: ' actual-model ',
+      scenarios: ['Custom review', 'Coding'],
     })
+  })
+
+  test('accepts a recommendation without any scenario', () => {
+    expect(
+      schema.safeParse({
+        enabled: true,
+        recommendations: [{ ...entry, scenarios: [] }],
+      }).success
+    ).toBe(true)
   })
 
   test.each([
     ['empty model', { model_name: '' }],
     ['long model', { model_name: 'm'.repeat(129) }],
-    ['unknown scenario', { scenario: 'other' }],
+    ['long scenario', { scenarios: ['s'.repeat(41)] }],
+    [
+      'too many scenarios',
+      { scenarios: Array.from({ length: 11 }, (_, index) => `s${index}`) },
+    ],
   ])('rejects %s before saving', (_name, override) => {
     expect(
       schema.safeParse({
@@ -43,7 +58,7 @@ describe('recommendation configuration validation', () => {
     ).toBe(false)
   })
 
-  test('rejects duplicate models in one scenario but allows the same model across scenarios', () => {
+  test('rejects a model that appears twice', () => {
     const duplicate = schema.safeParse({
       enabled: true,
       recommendations: [entry, { ...entry, enabled: false }],
@@ -56,12 +71,21 @@ describe('recommendation configuration validation', () => {
         'model_name',
       ])
     }
-    expect(
-      schema.safeParse({
-        enabled: true,
-        recommendations: [entry, { ...entry, scenario: 'chat' }],
-      }).success
-    ).toBe(true)
+  })
+
+  test('rejects a scenario repeated inside one recommendation', () => {
+    const duplicate = schema.safeParse({
+      enabled: true,
+      recommendations: [{ ...entry, scenarios: ['Coding', 'Coding'] }],
+    })
+    expect(duplicate.success).toBe(false)
+    if (!duplicate.success) {
+      expect(duplicate.error.issues[0].path).toEqual([
+        'recommendations',
+        0,
+        'scenarios',
+      ])
+    }
   })
 
   test('strips legacy reasons when saving recommendation configuration', () => {

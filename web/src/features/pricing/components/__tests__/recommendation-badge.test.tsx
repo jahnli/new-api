@@ -13,7 +13,11 @@ import { I18nextProvider } from 'react-i18next'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import { usePricingData } from '../../hooks/use-pricing-data'
-import type { PricingData, PricingModel } from '../../types'
+import type {
+  ModelRecommendation,
+  PricingData,
+  PricingModel,
+} from '../../types'
 import { ModelCard } from '../model-card'
 import { PricingTable } from '../pricing-table'
 
@@ -27,7 +31,7 @@ const model: PricingModel = {
   enable_groups: ['default'],
   group_ratio: { default: 0.5 },
   is_recommended: true,
-  recommendation_scenarios: ['coding', 'chat'],
+  recommendation_scenarios: ['Coding', 'Daily chat'],
 }
 const i18n = createInstance()
 await i18n.init({
@@ -40,6 +44,7 @@ await i18n.init({
         Scenario: '适用场景',
         Coding: '编程',
         'Daily chat': '日常对话',
+        'Model tuning': '模型调优',
       },
     },
   },
@@ -176,7 +181,13 @@ test('catalog joins enabled recommendations by exact name without duplicates or 
   client.setQueryData(['status'], {})
   const data: PricingData = {
     success: true,
-    data: [model, { ...model, id: 2, model_name: 'ordinary-model' }],
+    data: [
+      model,
+      { ...model, id: 2, model_name: 'ordinary-model' },
+      { ...model, id: 3, model_name: 'custom-scenario-model' },
+      { ...model, id: 4, model_name: 'untagged-model' },
+      { ...model, id: 5, model_name: 'legacy-payload-model' },
+    ],
     vendors: [],
     group_ratio: { default: 1 },
     usable_group: {},
@@ -186,25 +197,37 @@ test('catalog joins enabled recommendations by exact name without duplicates or 
       {
         model_name: model.model_name,
         enabled: true,
-        scenario: 'coding',
+        scenarios: ['Coding', 'Daily chat'],
         reason: 'Legacy reason never shown',
       },
       {
-        model_name: model.model_name,
+        model_name: 'custom-scenario-model',
         enabled: true,
-        scenario: 'chat',
+        scenarios: ['Model tuning'],
         reason: '',
       },
       {
+        model_name: 'untagged-model',
+        enabled: true,
+        scenarios: [],
+        reason: '',
+      },
+      {
+        model_name: 'legacy-payload-model',
+        enabled: true,
+        scenario: 'Coding',
+        reason: '',
+      } as unknown as ModelRecommendation,
+      {
         model_name: 'ordinary-model',
         enabled: false,
-        scenario: 'general',
+        scenarios: ['General recommendations'],
         reason: '',
       },
       {
         model_name: 'hidden-model',
         enabled: true,
-        scenario: 'general',
+        scenarios: ['General recommendations'],
         reason: '',
       },
     ],
@@ -217,12 +240,22 @@ test('catalog joins enabled recommendations by exact name without duplicates or 
       </I18nextProvider>
     </QueryClientProvider>
   )
-  expect(screen.getAllByText('Recommended')).toHaveLength(1)
-  expect(screen.getByText('Coding')).toBeVisible()
+  expect(screen.getAllByText('Recommended')).toHaveLength(3)
+  expect(screen.getAllByText('Coding')).toHaveLength(2)
   expect(screen.getByText('Daily chat')).toBeVisible()
+  // A scenario with no translation renders verbatim, so custom text works.
+  expect(screen.getByText('Model tuning')).toBeVisible()
   expect(
     screen.getAllByRole('heading').map((item) => item.textContent)
-  ).toEqual(['recommended-model', 'ordinary-model'])
+  ).toEqual([
+    'recommended-model',
+    'ordinary-model',
+    'custom-scenario-model',
+    'untagged-model',
+    'legacy-payload-model',
+  ])
+  const untagged = screen.getByRole('heading', { name: 'untagged-model' })
+  expect(untagged.parentElement).not.toHaveTextContent('Recommended')
   expect(
     screen.queryByText('Legacy reason never shown')
   ).not.toBeInTheDocument()

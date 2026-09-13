@@ -7174,6 +7174,13 @@
     "Your Telegram Bot Token": "あなたのTelegramボットトークン",
     "Zhipu GLM": "Zhipu GLM",
     "Sort by": "並べ替え項目",
-    "Tokens, cost, requests, and unit price per 100M tokens": "トークン使用量、コスト\nリクエスト数、1億トークンあたりの単価"
+    "Tokens, cost, requests, and unit price per 100M tokens": "トークン使用量、コスト\nリクエスト数、1億トークンあたりの単価",
+    "A scenario must not exceed 40 characters": "シーンは 40 文字以内で入力してください",
+    "Add a scenario or type your own": "シーンを追加、または自由入力",
+    "Self-hosted models": "セルフホストモデル",
+    "This model is already recommended": "このモデルはすでに推薦されています",
+    "This scenario is already added": "このシーンはすでに追加されています",
+    "Usage scenarios": "利用シーン",
+    "You can configure up to 10 scenarios per recommendation": "1 件の推薦につき最大 10 個のシーンを設定できます"
   }
 }

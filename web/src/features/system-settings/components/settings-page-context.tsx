@@ -92,6 +92,12 @@ type SettingsPageFormActionsProps = {
   resetLabel?: string
   resetVariant?: ComponentProps<typeof Button>['variant']
   saveButtonRef?: RefObject<HTMLButtonElement | null>
+  /**
+   * Render the buttons in place, pushed to the end of their row, instead of
+   * portaling them into the page header. For forms whose actions share a row
+   * with their first field.
+   */
+  inline?: boolean
 }
 
 export function SettingsPageFormActions(props: SettingsPageFormActionsProps) {
@@ -100,8 +106,8 @@ export function SettingsPageFormActions(props: SettingsPageFormActionsProps) {
     ? (props.savingLabel ?? 'Saving...')
     : (props.saveLabel ?? 'Save Changes')
 
-  return (
-    <SettingsPageActionsPortal>
+  const actions = (
+    <>
       {props.onReset && (
         <Button
           type='button'
@@ -124,6 +130,16 @@ export function SettingsPageFormActions(props: SettingsPageFormActionsProps) {
         <Save data-icon='inline-start' />
         <span>{t(saveLabel)}</span>
       </Button>
-    </SettingsPageActionsPortal>
+    </>
   )
+
+  if (props.inline) {
+    return (
+      <div className='ml-auto flex flex-wrap items-center justify-end gap-2'>
+        {actions}
+      </div>
+    )
+  }
+
+  return <SettingsPageActionsPortal>{actions}</SettingsPageActionsPortal>
 }

@@ -1,6 +1,6 @@
 # 模型广场优化
 
-**日期**: 2026-09-05 ~ 09-13
+**日期**: 2026-09-05 ~ 09-14
 
 ## 涉及文件
 
@@ -178,3 +178,41 @@
 ## 自 CHANGELOG 说明列迁入
 
 模型广场与分组定价优化：动态计费标签改为主题色；管理员可查看全部分组、分组倍率及 API 速率限制，普通用户仅见所属分组；模型卡片显示当前用户分组；模型详情基础价格按筛选分组或用户实际所属分组显示；新增分组 × 供应商倍率配置，按用户特殊倍率 > 供应商倍率 > 基础倍率的优先级统一计费、日志审计与广场价格展示，并提供可视化编辑器及多语言文案；广场完整定价响应改用环境变量密钥做 AES-256-GCM 加密，前端解密校验后展示，兼容加密响应的倍率同步与本地、Docker 部署；新增独立的超级管理员「模型广场配置」入口，可按场景配置推荐模型及启停，广场按用户可见模型与筛选条件显示推荐标记与适用场景，复用现有价格与详情交互；筛选工具栏之上新增「推荐模型」顶部横滑区，集中展示全部推荐模型卡片，复用现有模型卡片的价格、分组、性能徽章与详情交互，无推荐模型时不渲染；横滑区与卡片网格共用抽出的性能指标查询 hook，命中同一缓存条目而不产生额外请求；轮播上/下一张按钮的无障碍文案由硬编码英文改为 i18next 并补齐七语言
+
+## 推荐配置自由化与横滑区优化
+
+「使用场景」由固定五值枚举改为自由文本多值有序列表：管理员既可点选预置项（综合推荐 / 图像生成 / 自建模型），也可直接输入自定义场景，chips 带序号并支持拖拽排序；推荐条目本身也可拖拽或用上下方向键调整顺序，条目顺序即横滑区展示顺序。不带场景的推荐同样生效。
+
+### 涉及文件
+
+- `setting/model_square.go` — `ModelSquareRecommendation.Scenario`（固定枚举）改为 `Scenarios []string`；解析同时接受旧 `scenario` 单值字段并迁移旧枚举值（大小写与首尾空格不敏感）；规格为 ≤10 项、单项 1..40 rune、条目内精确重复报错；唯一键由 `[scenario, model_name]` 改为 `model_name`，同一模型不再允许重复推荐。
+- `setting/model_square_test.go`、`model/model_square_test.go`、`controller/model_square_test.go` — 用例改用 `scenarios` 字段，覆盖旧字段迁移、自定义场景被接受、重复模型与场景超限报错；API 往返用例改为两个不同模型。
+- `web/src/features/model-square-settings/types.ts` — 删除场景枚举联合类型与旧常量，改为 `MODEL_SQUARE_SCENARIO_PRESETS` 及场景数量、长度上限常量。
+- `web/src/features/model-square-settings/lib/schema.ts` — 场景校验改为数组（非空、≤10 项、单项 ≤40 字符），新增「模型重复」与「同一条目内场景重复」两条 `superRefine` 检查。
+- `web/src/features/model-square-settings/components/recommendation-fields.tsx` — 场景输入由 `NativeSelect` 单选换成 `MultiSelect`（预置项 + 自由输入 + 批量粘贴 + 序号 + 拖拽排序）；卡片改为 `Reorder.Item` 并加拖拽手柄（`useDragControls`，手柄同时支持上下方向键排序），标题序号改为徽标。
+- `web/src/features/model-square-settings/components/settings-form.tsx` — 推荐列表改用 `Reorder.Group` 包裹（以 `entries.swap` 交换条目，避免输入项卸载）；「启用模型推荐」开关与保存/重置按钮合并到同一行；新增 `FormDirtyIndicator`；底部动作行只保留「添加推荐」。
+- `web/src/features/model-square-settings/index.tsx` — 页面骨架改用共享的 `SettingsPageFrame`，移除自写的 `SectionPageLayout` 结构。
+- `web/src/components/multi-select.tsx` — 兼容扩展三个默认关闭的可选属性：`showChipOrder`（chip 序号徽标）、`reorderable`（原生 HTML5 拖拽重排，另支持 `Alt` + 左右方向键）、`inputAriaLabel`（输入框可访问名），既有调用方行为不变。
+- `web/src/features/pricing/types.ts` — 删除 `ModelRecommendationScenario` 联合类型，`scenario` 改为 `scenarios: string[]`。
+- `web/src/features/pricing/hooks/use-pricing-data.ts` — 推荐判定改为「出现在推荐条目中即为推荐」，空场景不再被判为未推荐；多来源场景按配置顺序拼接去重。
+- `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 删除穷举的场景到文案映射，直接 `t(scenario)` 渲染，自动兼容任意自定义文本。
+- `web/src/features/pricing/components/model-recommendation-badge.tsx` — 新增可选 `count`，在标签后显示数量徽标。
+- `web/src/features/pricing/components/recommended-models-shelf.tsx` — 标题显示推荐模型数量；`AutoScroll` 不再把整行标题纳入暂停区域，暂停范围收窄为卡片视口；上/下一张按钮点击前先 `autoScroll.reset()`，让漂移停下后再滚动。
+- `web/src/features/system-settings/components/settings-page.tsx` — 导出 `SettingsPageFrame`，使非 `SettingsPage` 驱动的页面也能复用同一套头部插槽接线。
+- `web/src/features/system-settings/components/settings-page-context.tsx` — `SettingsPageFormActions` 新增 `inline` 模式，按钮在表单行内右对齐渲染而不 portal 到页头；既有调用方仍走 portal。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json`、`web/src/i18n/static-keys.ts` — 新增 8 个文案键并补齐七语言；以常量数组经 `t(value)` 渲染的 3 个预置场景标签登记进静态键。
+
+### 变更说明
+
+- 旧值迁移只发生在读取阶段：旧 `scenario` 字段与旧枚举文本（`general` / `coding` / `chat` / `writing` / `image`，忽略大小写与首尾空格）在解析时被改写为对应预置标签，DB 中的旧值在下一次保存时落成新形态，因此不需要数据迁移脚本。
+- 场景值不做大小写归一化，因为预置项本身就是 i18n 键；校验只拒绝空值、超长与精确重复，未知自定义场景一律放行，历史脏数据因此可被修复而不是阻断定价接口。
+- `multi-select.tsx` 的 `reorderable` 使用原生 HTML5 拖拽（chip 即拖拽源，`onDragStart` 命中删除按钮时取消），落点判定沿用仓库既有的左右半区模式；键盘重排为 `Alt` + 左右方向键交换相邻项。仓库另有 `motion/react` 的 `Reorder` 范式，但它要求独立手柄且面向纵向列表，推荐条目排序按其范式实现，横向 chips 保留原生拖拽。
+- 横滑区暂停范围回到 embla 默认 root node（即卡片视口）。此前为让箭头可用而让整行标题也暂停漂移，现在箭头改为点击时先 `reset()` 停止漂移、滚动 settle 后自动恢复，因此标题与箭头悬停不再暂停滚动。
+- 「保存 / 重置 / 未保存的更改」最初位于页面底部动作行，随后移入页头，最终与「启用模型推荐」开关同行；`FormDirtyIndicator` 仍走在标题状态位，与其余设置页保持一致。
+
+### 本次验证
+
+- `bun run typecheck`、`bun run lint`（改动文件无 error）、对改动文件执行 `bunx oxfmt --write`、`bun run build`：通过；后端 `gofmt -l` 无输出，`go build ./...` 通过，`go test ./setting/... ./model/... ./controller/... -run ModelSquare` 全部通过。
+- `bun run format:check` 会报 `model-recommendation-badge.tsx`，经 `git status` 确认该文件在 HEAD 中即未格式化，与本次改动无关。
+- **未执行** SQLite / MySQL / PostgreSQL 三库验证矩阵（本机无 docker、mysql、psql 客户端）：本次未涉及模型、迁移、索引或裸 SQL 改动，但 `TestModelSquareOptionPersistence` 的 mysql 与 postgres 子用例因缺 DSN 被跳过，跨库兼容性属未验证。
+- 未执行真实浏览器验证。上线前应确认：场景 chips 的拖拽与序号、推荐条目的拖拽排序、无场景的推荐仍在横滑区出现、悬停到卡片才暂停滚动、箭头点击后漂移能恢复、开启系统「减少动态效果」后横滑区保持静止。

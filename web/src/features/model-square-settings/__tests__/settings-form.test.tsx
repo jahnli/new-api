@@ -5,7 +5,14 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { AxiosAdapter } from 'axios'
 import { afterEach, describe, expect, test } from 'vitest'
@@ -44,8 +51,18 @@ function renderSettings(
   return userEvent.setup()
 }
 
+async function addScenario(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string
+) {
+  await user.click(screen.getByRole('combobox', { name: 'Usage scenarios' }))
+  await user.click(await screen.findByRole('option', { name: label }))
+  // An open popup hides the rest of the page from the accessibility tree.
+  await user.keyboard('{Escape}')
+}
+
 describe('model square settings interactions', () => {
-  test('uses the full content width with an equal two-column grid', async () => {
+  test('uses the full content width with a single reorderable column', async () => {
     renderSettings(async (config) => ({
       status: 200,
       statusText: 'OK',
@@ -58,12 +75,12 @@ describe('model square settings interactions', () => {
           recommendations: [
             {
               model_name: 'coding-model',
-              scenario: 'coding',
+              scenarios: ['Coding'],
               enabled: true,
             },
             {
               model_name: 'chat-model',
-              scenario: 'chat',
+              scenarios: ['Daily chat'],
               enabled: true,
             },
           ],
@@ -79,17 +96,20 @@ describe('model square settings interactions', () => {
       name: 'Recommendation 2',
     })
     const form = screen.getByRole('form', { name: 'Model Square Settings' })
+    const firstItem = firstCard.parentElement
+    const list = firstItem?.parentElement
 
     expect(form).toHaveClass('w-full')
     expect(form).not.toHaveClass('max-w-5xl')
-    expect(firstCard.parentElement).toBe(secondCard.parentElement)
-    expect(firstCard.parentElement).toHaveClass(
-      'grid',
-      'w-full',
-      'grid-cols-1',
-      'md:grid-cols-2'
-    )
-    expect(firstCard.parentElement).not.toHaveClass('flex', 'flex-col')
+    expect(firstItem?.tagName).toBe('LI')
+    expect(secondCard.parentElement?.parentElement).toBe(list)
+    expect(list).toHaveClass('flex', 'w-full', 'flex-col')
+    expect(list).not.toHaveClass('grid', 'md:grid-cols-2')
+    expect(
+      within(firstCard).getByRole('button', {
+        name: 'Drag Recommendation 1 to reorder',
+      })
+    ).toBeVisible()
   })
 
   test.each([
@@ -101,7 +121,7 @@ describe('model square settings interactions', () => {
       recommendations: [
         {
           model_name: 'cached-model',
-          scenario: 'chat',
+          scenarios: ['Daily chat'],
           enabled: true,
         },
       ],
@@ -111,7 +131,7 @@ describe('model square settings interactions', () => {
       recommendations: [
         {
           model_name: 'fresh-model',
-          scenario: 'coding',
+          scenarios: ['Coding'],
           enabled: true,
         },
       ],
@@ -146,10 +166,7 @@ describe('model square settings interactions', () => {
       'cached-model'
     )
     if (editBeforeRefresh) {
-      await user.selectOptions(
-        screen.getByRole('combobox', { name: 'Scenario' }),
-        'writing'
-      )
+      await addScenario(user, 'Writing')
     }
     await act(async () => {
       finishLoad(fresh)
@@ -163,9 +180,11 @@ describe('model square settings interactions', () => {
     )
 
     await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Scenario' })).toHaveValue(
-        editBeforeRefresh ? 'writing' : 'coding'
-      )
+      expect(
+        within(
+          screen.getByRole('group', { name: 'Recommendation 1' })
+        ).getByText(editBeforeRefresh ? 'Writing' : 'Coding')
+      ).toBeVisible()
     )
     expect(screen.getByRole('combobox', { name: 'Model' })).toHaveValue(
       editBeforeRefresh ? 'cached-model' : 'fresh-model'
@@ -212,10 +231,7 @@ describe('model square settings interactions', () => {
     await user.click(screen.getByRole('button', { name: 'Add recommendation' }))
     await user.type(screen.getByRole('combobox', { name: 'Model' }), 'gpt')
     await user.click(await screen.findByRole('option', { name: 'gpt-code' }))
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Scenario' }),
-      'coding'
-    )
+    await addScenario(user, 'Coding')
     expect(
       screen.queryByRole('textbox', { name: 'Recommendation reason' })
     ).not.toBeInTheDocument()
@@ -227,7 +243,7 @@ describe('model square settings interactions', () => {
         recommendations: [
           {
             model_name: 'gpt-code',
-            scenario: 'coding',
+            scenarios: ['Coding'],
             enabled: false,
           },
         ],
@@ -248,7 +264,7 @@ describe('model square settings interactions', () => {
       recommendations: [
         {
           model_name: 'retired-model',
-          scenario: 'chat',
+          scenarios: ['Daily chat'],
           reason: 'Legacy chat',
           enabled: true,
         },
@@ -277,14 +293,11 @@ describe('model square settings interactions', () => {
     expect(
       screen.getByRole('button', { name: 'Add recommendation' })
     ).toBeDisabled()
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Scenario' }),
-      'writing'
-    )
+    await addScenario(user, 'Writing')
     await user.click(screen.getByRole('button', { name: 'Reset changes' }))
-    expect(screen.getByRole('combobox', { name: 'Scenario' })).toHaveValue(
-      'chat'
-    )
+    const card = screen.getByRole('group', { name: 'Recommendation 1' })
+    expect(within(card).getByText('Daily chat')).toBeVisible()
+    expect(within(card).queryByText('Writing')).not.toBeInTheDocument()
     await user.click(
       screen.getByRole('switch', { name: 'Enable model recommendations' })
     )
@@ -293,7 +306,7 @@ describe('model square settings interactions', () => {
       expect(saved?.recommendations).toEqual([
         {
           model_name: 'retired-model',
-          scenario: 'chat',
+          scenarios: ['Daily chat'],
           enabled: true,
         },
       ])
@@ -350,7 +363,7 @@ describe('model square settings interactions', () => {
     await waitFor(() => expect(writes).toBe(1))
     expect(saved?.recommendations[0]).toEqual({
       model_name: 'actual-model',
-      scenario: 'general',
+      scenarios: [],
       enabled: true,
     })
   })
@@ -390,7 +403,9 @@ describe('model square settings interactions', () => {
     expect(
       await screen.findByRole('button', { name: 'Saving...' })
     ).toBeDisabled()
-    expect(screen.getByRole('combobox', { name: 'Scenario' })).toBeDisabled()
+    expect(
+      screen.getByRole('combobox', { name: 'Usage scenarios' })
+    ).toBeDisabled()
     expect(
       screen.getByRole('switch', { name: 'Enable model recommendations' })
     ).toHaveAttribute('aria-disabled', 'true')

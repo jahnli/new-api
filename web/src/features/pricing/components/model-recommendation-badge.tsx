@@ -9,6 +9,8 @@ export function ModelRecommendationBadge(props: {
   prominent?: boolean
   /** Overrides the default "Recommended" label, e.g. when used as a heading. */
   label?: string
+  /** Model count shown after the label, e.g. on the recommendation shelf heading. */
+  count?: number
 }) {
   const { t } = useTranslation()
 
@@ -29,7 +31,14 @@ export function ModelRecommendationBadge(props: {
         )}
         strokeWidth={1.5}
       />
-      <span className='min-w-0 truncate'>{props.label ?? t('Recommended')}</span>
+      <span className='min-w-0 truncate'>
+        {props.label ?? t('Recommended')}
+      </span>
+      {props.count !== undefined && (
+        <span className='shrink-0 rounded-full bg-amber-500/15 px-1.5 font-semibold tabular-nums dark:bg-amber-400/15'>
+          {props.count}
+        </span>
+      )}
     </span>
   )
 }

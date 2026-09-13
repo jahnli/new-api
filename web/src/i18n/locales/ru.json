@@ -7174,6 +7174,13 @@
     "Your Telegram Bot Token": "Ваш токен Telegram-бота",
     "Zhipu GLM": "Zhipu GLM",
     "Sort by": "Сортировать по",
-    "Tokens, cost, requests, and unit price per 100M tokens": "Токены, стоимость\nЗапросы, цена за 100 млн токенов"
+    "Tokens, cost, requests, and unit price per 100M tokens": "Токены, стоимость\nЗапросы, цена за 100 млн токенов",
+    "A scenario must not exceed 40 characters": "Сценарий не должен превышать 40 символов",
+    "Add a scenario or type your own": "Добавьте сценарий или введите свой",
+    "Self-hosted models": "Собственные модели",
+    "This model is already recommended": "Эта модель уже рекомендована",
+    "This scenario is already added": "Этот сценарий уже добавлен",
+    "Usage scenarios": "Сценарии использования",
+    "You can configure up to 10 scenarios per recommendation": "Для одной рекомендации можно задать до 10 сценариев"
   }
 }

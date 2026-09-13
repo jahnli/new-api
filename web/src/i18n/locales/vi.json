@@ -7174,6 +7174,13 @@
     "Your Telegram Bot Token": "Mã thông báo bot Telegram của bạn",
     "Zhipu GLM": "Zhipu GLM",
     "Sort by": "Sắp xếp theo",
-    "Tokens, cost, requests, and unit price per 100M tokens": "Token, chi phí\nSố yêu cầu, đơn giá trên 100 triệu token"
+    "Tokens, cost, requests, and unit price per 100M tokens": "Token, chi phí\nSố yêu cầu, đơn giá trên 100 triệu token",
+    "A scenario must not exceed 40 characters": "Tình huống không được vượt quá 40 ký tự",
+    "Add a scenario or type your own": "Thêm tình huống hoặc tự nhập",
+    "Self-hosted models": "Mô hình tự triển khai",
+    "This model is already recommended": "Mô hình này đã được đề xuất",
+    "This scenario is already added": "Tình huống này đã được thêm",
+    "Usage scenarios": "Tình huống sử dụng",
+    "You can configure up to 10 scenarios per recommendation": "Bạn có thể cấu hình tối đa 10 tình huống cho mỗi đề xuất"
   }
 }

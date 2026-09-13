@@ -7174,6 +7174,13 @@
     "Your Telegram Bot Token": "您的 Telegram 机器人令牌",
     "Zhipu GLM": "智谱GLM",
     "Sort by": "排序字段",
-    "Tokens, cost, requests, and unit price per 100M tokens": "Token 用量、费用\n请求次数、每亿 Token 单价"
+    "Tokens, cost, requests, and unit price per 100M tokens": "Token 用量、费用\n请求次数、每亿 Token 单价",
+    "A scenario must not exceed 40 characters": "场景不能超过 40 个字符",
+    "Add a scenario or type your own": "添加场景或输入自定义场景",
+    "Self-hosted models": "自建模型",
+    "This model is already recommended": "该模型已被推荐",
+    "This scenario is already added": "该场景已添加",
+    "Usage scenarios": "使用场景",
+    "You can configure up to 10 scenarios per recommendation": "每条推荐最多可配置 10 个场景"
   }
 }

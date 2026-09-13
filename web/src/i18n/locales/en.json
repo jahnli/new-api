@@ -7174,6 +7174,13 @@
     "Your Telegram Bot Token": "Your Telegram Bot Token",
     "Zhipu GLM": "Zhipu GLM",
     "Sort by": "Sort by",
-    "Tokens, cost, requests, and unit price per 100M tokens": "Tokens, cost\nRequest count, unit price per 100M tokens"
+    "Tokens, cost, requests, and unit price per 100M tokens": "Tokens, cost\nRequest count, unit price per 100M tokens",
+    "A scenario must not exceed 40 characters": "A scenario must not exceed 40 characters",
+    "Add a scenario or type your own": "Add a scenario or type your own",
+    "Self-hosted models": "Self-hosted models",
+    "This model is already recommended": "This model is already recommended",
+    "This scenario is already added": "This scenario is already added",
+    "Usage scenarios": "Usage scenarios",
+    "You can configure up to 10 scenarios per recommendation": "You can configure up to 10 scenarios per recommendation"
   }
 }

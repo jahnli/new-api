@@ -2,18 +2,8 @@ import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
-import type { ModelRecommendationScenario } from '../types'
-
-const scenarioLabelKeys: Record<ModelRecommendationScenario, string> = {
-  general: 'General recommendations',
-  coding: 'Coding',
-  chat: 'Daily chat',
-  writing: 'Writing',
-  image: 'Image generation',
-}
-
 type ModelRecommendationScenariosProps = {
-  scenarios?: ModelRecommendationScenario[]
+  scenarios?: string[]
   compact?: boolean
 }
 
@@ -22,7 +12,12 @@ export function ModelRecommendationScenarios(
 ) {
   const { t } = useTranslation()
 
-  if (!props.scenarios?.length) return null
+  // Preset scenarios are stored as their i18n key; custom text falls through
+  // to the key itself, which is exactly what should be displayed.
+  const scenarios = (props.scenarios ?? []).filter((scenario) =>
+    scenario.trim()
+  )
+  if (scenarios.length === 0) return null
 
   return (
     <div
@@ -33,7 +28,7 @@ export function ModelRecommendationScenarios(
         props.compact ? 'mt-1.5' : 'mt-3 gap-2'
       )}
     >
-      {props.scenarios.map((scenario) => (
+      {scenarios.map((scenario) => (
         <span
           key={scenario}
           role='listitem'
@@ -44,7 +39,7 @@ export function ModelRecommendationScenarios(
               : 'rounded-md px-2.5 py-1 text-[13px] leading-4'
           )}
         >
-          {t(scenarioLabelKeys[scenario])}
+          {t(scenario)}
         </span>
       ))}
     </div>

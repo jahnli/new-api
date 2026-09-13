@@ -99,7 +99,7 @@ func TestModelSquareConfigAPIRoundTrip(t *testing.T) {
 	require.NoError(t, db.Create(&model.Ability{Group: "default", Model: "live", ChannelId: 9101, Enabled: true}).Error)
 	model.InvalidatePricingCache()
 	setModelSquareTestOption(t, `{"enabled":true,"recommendations":[{"model_name":"retired","scenario":"coding","reason":"old","enabled":true}]}`)
-	body := `{"enabled":true,"recommendations":[{"model_name":"retired","scenario":"coding","reason":"edited","enabled":false},{"model_name":" live ","scenario":"chat","reason":" 推荐 ","enabled":true}]}`
+	body := `{"enabled":true,"recommendations":[{"model_name":"retired","scenarios":["Coding"],"reason":"edited","enabled":false},{"model_name":" live ","scenarios":["Daily chat","自定义"],"reason":" 推荐 ","enabled":true}]}`
 	recorder := httptest.NewRecorder()
 	context, _ := gin.CreateTestContext(recorder)
 	context.Request = httptest.NewRequest(http.MethodPut, "/api/model-square/config", strings.NewReader(body))
@@ -114,6 +114,7 @@ func TestModelSquareConfigAPIRoundTrip(t *testing.T) {
 	require.True(t, response.Success)
 	assert.Equal(t, "推荐", response.Data.Recommendations[1].Reason)
 	assert.Equal(t, "live", response.Data.Recommendations[1].ModelName)
+	assert.Equal(t, []string{"Daily chat", "自定义"}, response.Data.Recommendations[1].Scenarios)
 	recorder = httptest.NewRecorder()
 	context, _ = gin.CreateTestContext(recorder)
 	GetModelSquareConfig(context)
@@ -140,7 +141,7 @@ func TestModelSquarePricingRecommendationsStayEncryptedAndRespectGroups(t *testi
 		{Group: "restricted-model-square-test", Model: "secret", ChannelId: 9103, Enabled: true},
 	}).Error)
 	model.InvalidatePricingCache()
-	setModelSquareTestOption(t, `{"enabled":true,"recommendations":[{"model_name":"visible","scenario":"coding","reason":"visible reason","enabled":true},{"model_name":"secret","scenario":"chat","reason":"secret reason","enabled":true}]}`)
+	setModelSquareTestOption(t, `{"enabled":true,"recommendations":[{"model_name":"visible","scenarios":["Coding","自定义"],"reason":"visible reason","enabled":true},{"model_name":"secret","scenario":"chat","reason":"secret reason","enabled":true}]}`)
 	recorder := httptest.NewRecorder()
 	context, _ := gin.CreateTestContext(recorder)
 	context.Request = httptest.NewRequest(http.MethodGet, "/api/pricing", nil)
@@ -155,5 +156,6 @@ func TestModelSquarePricingRecommendationsStayEncryptedAndRespectGroups(t *testi
 	require.NoError(t, common.Unmarshal(plaintext, &response))
 	require.Len(t, response.Recommendations, 1)
 	assert.Equal(t, "visible", response.Recommendations[0].ModelName)
+	assert.Equal(t, []string{"Coding", "自定义"}, response.Recommendations[0].Scenarios)
 	assert.NotContains(t, string(plaintext), "secret reason")
 }

@@ -835,4 +835,9 @@ export const STATIC_I18N_KEYS = [
   'Vendor name and icon must not exceed 128 characters.',
   'Shown',
   'Not shown',
+
+  // Model square preset scenarios (rendered through t(value) at runtime).
+  'General recommendations',
+  'Image generation',
+  'Self-hosted models',
 ] as const

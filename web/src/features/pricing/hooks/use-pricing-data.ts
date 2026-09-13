@@ -5,7 +5,6 @@ import { useStatus } from '@/hooks/use-status'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getPricing } from '../api'
-import type { ModelRecommendationScenario } from '../types'
 
 export function usePricingData(enabled = true) {
   const { status } = useStatus()
@@ -31,21 +30,28 @@ export function usePricingData(enabled = true) {
     if (!data?.data || !data?.vendors) return []
 
     const vendorMap = new Map(data.vendors.map((v) => [v.id, v]))
-    const recommendationScenarios = new Map<
-      string,
-      ModelRecommendationScenario[]
-    >()
+    const recommendationScenarios = new Map<string, string[]>()
+    // The admin's recommendation order drives the shelf order, so keep the
+    // rank of each enabled entry alongside its scenarios.
+    const recommendationRanks = new Map<string, number>()
     for (const recommendation of data.recommendations ?? []) {
       if (!recommendation.enabled) continue
+      const values = (recommendation.scenarios ?? []).filter((scenario) =>
+        scenario.trim()
+      )
       const scenarios = recommendationScenarios.get(recommendation.model_name)
-      if (scenarios) {
-        if (!scenarios.includes(recommendation.scenario)) {
-          scenarios.push(recommendation.scenario)
+      if (!scenarios) {
+        recommendationScenarios.set(recommendation.model_name, values)
+        recommendationRanks.set(
+          recommendation.model_name,
+          recommendationRanks.size
+        )
+        continue
+      }
+      for (const scenario of values) {
+        if (!scenarios.includes(scenario)) {
+          scenarios.push(scenario)
         }
-      } else {
-        recommendationScenarios.set(recommendation.model_name, [
-          recommendation.scenario,
-        ])
       }
     }
     const groupVendorRatio = data.group_vendor_ratio || {}
@@ -76,8 +82,11 @@ export function usePricingData(enabled = true) {
       return {
         ...model,
         key: model.model_name,
-        is_recommended: scenarios.length > 0,
+        // A curated model counts as recommended even without scenarios: the
+        // admin may pin a model without tagging it.
+        is_recommended: recommendationScenarios.has(model.model_name),
         recommendation_scenarios: scenarios,
+        recommendation_rank: recommendationRanks.get(model.model_name),
         vendor_name: vendor?.name,
         vendor_icon: vendor?.icon,
         vendor_description: vendor?.description,

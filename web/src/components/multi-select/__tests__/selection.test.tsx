@@ -32,6 +32,8 @@ function Fixture(props: {
   initialSelected?: string[]
   allowCreate?: boolean
   disabled?: boolean
+  reorderable?: boolean
+  showChipOrder?: boolean
 }) {
   const [selected, setSelected] = useState(props.initialSelected ?? [])
 
@@ -43,6 +45,8 @@ function Fixture(props: {
         onChange={setSelected}
         allowCreate={props.allowCreate ?? true}
         disabled={props.disabled}
+        reorderable={props.reorderable}
+        showChipOrder={props.showChipOrder}
       />
       <output aria-label='Selected values'>{selected.join(',')}</output>
     </>
@@ -155,5 +159,48 @@ describe('multi-select batch paste', () => {
     expect(input).toBeDisabled()
     expect(screen.getByLabelText('Selected values')).toBeEmptyDOMElement()
     expect(input).toHaveValue('')
+  })
+})
+
+describe('multi-select chip ordering', () => {
+  const handleAt = (index: number) =>
+    screen.getAllByRole('button', { name: /^Drag .+ to reorder$/ })[index]
+
+  it('numbers the chips in selection order when requested', () => {
+    render(<Fixture initialSelected={['a', 'c']} showChipOrder />)
+
+    expect(screen.getByText('1')).toBeVisible()
+    expect(screen.getByText('2')).toBeVisible()
+  })
+
+  it('reorders the chips with the arrow keys on a drag handle', async () => {
+    const user = userEvent.setup()
+    render(<Fixture initialSelected={['a', 'c', 'x']} reorderable />)
+
+    await user.click(handleAt(2))
+    await user.keyboard('{ArrowUp}')
+    expect(screen.getByLabelText('Selected values')).toHaveTextContent(
+      /^a,x,c$/
+    )
+
+    await user.click(handleAt(1))
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByLabelText('Selected values')).toHaveTextContent(
+      /^a,c,x$/
+    )
+  })
+
+  it('ignores reordering past either end without opening the popup', async () => {
+    const user = userEvent.setup()
+    render(<Fixture initialSelected={['a', 'c']} reorderable />)
+
+    await user.click(handleAt(0))
+    await user.keyboard('{ArrowUp}')
+
+    expect(screen.getByLabelText('Selected values')).toHaveTextContent(/^a,c$/)
+    expect(screen.getByRole('combobox')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    )
   })
 })

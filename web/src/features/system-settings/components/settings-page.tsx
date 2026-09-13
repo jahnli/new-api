@@ -37,7 +37,12 @@ type SettingsPageFrameProps = {
   children: ReactNode
 }
 
-function SettingsPageFrame(props: SettingsPageFrameProps) {
+/**
+ * Page frame that owns the settings action/title-status portal containers.
+ * Pages that are not driven by `SettingsPage` can render their own content
+ * inside it to reuse the same header wiring.
+ */
+export function SettingsPageFrame(props: SettingsPageFrameProps) {
   const [actionsContainer, setActionsContainer] =
     useState<HTMLDivElement | null>(null)
   const [titleStatusContainer, setTitleStatusContainer] =

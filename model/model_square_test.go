@@ -19,8 +19,8 @@ import (
 )
 
 func TestModelSquareAssociationsPreserveUnavailableAndRejectUnknown(t *testing.T) {
-	previous := setting.ModelSquareConfig{Recommendations: []setting.ModelSquareRecommendation{{ModelName: "retired", Scenario: "coding"}}}
-	config := setting.ModelSquareConfig{Recommendations: []setting.ModelSquareRecommendation{{ModelName: "retired", Scenario: "coding", Reason: "edited"}, {ModelName: "live", Scenario: "chat"}}}
+	previous := setting.ModelSquareConfig{Recommendations: []setting.ModelSquareRecommendation{{ModelName: "retired", Scenarios: []string{"Coding"}}}}
+	config := setting.ModelSquareConfig{Recommendations: []setting.ModelSquareRecommendation{{ModelName: "retired", Scenarios: []string{"Coding"}, Reason: "edited"}, {ModelName: "live", Scenarios: []string{"Daily chat"}}}}
 	pricing := []Pricing{{ModelName: "live"}}
 	require.NoError(t, ValidateModelSquareAssociations(config, previous, pricing))
 	require.NoError(t, ValidateModelSquareAssociations(setting.ModelSquareConfig{}, previous, pricing))
@@ -75,11 +75,12 @@ func TestModelSquareOptionPersistence(t *testing.T) {
 				common.OptionMapRWMutex.Unlock()
 			})
 			config := setting.ModelSquareConfig{Enabled: true, Recommendations: []setting.ModelSquareRecommendation{
-				{ModelName: " live ", Scenario: "coding", Reason: " 编程推荐 ", Enabled: true},
+				{ModelName: " live ", Scenarios: []string{" Coding ", "自定义"}, Reason: " 编程推荐 ", Enabled: true},
 			}}
 			saved, err := SaveModelSquareConfig(config)
 			require.NoError(t, err)
 			assert.Equal(t, "live", saved.Recommendations[0].ModelName)
+			assert.Equal(t, []string{"Coding", "自定义"}, saved.Recommendations[0].Scenarios)
 			var option Option
 			require.NoError(t, db.First(&option, Option{Key: setting.ModelSquareConfigKey}).Error)
 			persisted, err := setting.ParseModelSquareConfig(option.Value)

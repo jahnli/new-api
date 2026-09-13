@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Add01Icon } from '@hugeicons/core-free-icons'
+import { Add01Icon, DragDropVerticalIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -77,6 +77,26 @@ interface MultiSelectProps {
    * instead of being inert. The remove (×) button keeps its own behaviour.
    */
   copyChipOnClick?: boolean
+  /**
+   * Renders a 1-based order badge inside each chip, so the selected values
+   * read as an explicit sequence.
+   */
+  showChipOrder?: boolean
+  /**
+   * Lets the chips be reordered by dragging a grip handle, or with
+   * ArrowUp/ArrowDown while the handle is focused. Reordering is reported
+   * through `onChange`.
+   *
+   * Chips hidden by `maxVisibleChips` are not rendered and therefore cannot be
+   * dragged; avoid combining both props when the order matters.
+   */
+  reorderable?: boolean
+  /**
+   * Accessible name for the search input. Defaults to the placeholder, which
+   * is hidden once a value is selected — pass an explicit label for fields
+   * that use `<FieldLabel>`.
+   */
+  inputAriaLabel?: string
 }
 
 const COMMA_REGEX = /[,，\n]/
@@ -93,6 +113,21 @@ function splitDraft(value: string): { completed: string[]; draft: string } {
     .map((part) => part.trim())
     .filter(Boolean)
   return { completed, draft }
+}
+
+function reorderValues(
+  values: string[],
+  source: string,
+  target: string,
+  position: 'before' | 'after'
+): string[] {
+  const from = values.indexOf(source)
+  const to = values.indexOf(target)
+  if (from < 0 || to < 0 || from === to) return values
+  const next = [...values]
+  const [moved] = next.splice(from, 1)
+  next.splice(next.indexOf(target) + (position === 'after' ? 1 : 0), 0, moved)
+  return next
 }
 
 /**
@@ -123,6 +158,11 @@ export function MultiSelect(props: MultiSelectProps) {
   const [inputValue, setInputValue] = React.useState('')
   const [open, setOpen] = React.useState(false)
   const [expanded, setExpanded] = React.useState(false)
+  const [draggingValue, setDraggingValue] = React.useState<string | null>(null)
+  const [dropTarget, setDropTarget] = React.useState<{
+    value: string
+    position: 'before' | 'after'
+  } | null>(null)
 
   const selectedSet = React.useMemo(
     () => new Set(props.selected),
@@ -227,6 +267,20 @@ export function MultiSelect(props: MultiSelectProps) {
     }
   }
 
+  const moveSelectedValue = (value: string, offset: number) => {
+    const from = props.selected.indexOf(value)
+    const target = props.selected[from + offset]
+    if (from < 0 || target === undefined) return
+    props.onChange(
+      reorderValues(
+        props.selected,
+        value,
+        target,
+        offset < 0 ? 'before' : 'after'
+      )
+    )
+  }
+
   const handleCopyChip = React.useCallback(
     async (
       event: React.MouseEvent<HTMLButtonElement>,
@@ -279,6 +333,19 @@ export function MultiSelect(props: MultiSelectProps) {
       <ComboboxChips
         ref={chipsAnchorRef}
         className={cn('w-full', props.className)}
+        onDragOver={
+          props.reorderable ? (event) => event.preventDefault() : undefined
+        }
+        onDrop={
+          props.reorderable
+            ? (event) => {
+                // A drop that misses every chip must not be inserted as text.
+                event.preventDefault()
+                setDraggingValue(null)
+                setDropTarget(null)
+              }
+            : undefined
+        }
       >
         <ComboboxValue>
           {(values: string[]) => {
@@ -301,8 +368,107 @@ export function MultiSelect(props: MultiSelectProps) {
               <>
                 {visibleValues.map((value) => {
                   const label = labelMap.get(value) ?? value
+                  const position = props.selected.indexOf(value)
+                  const dropPosition =
+                    dropTarget?.value === value ? dropTarget.position : null
+                  const reorderLabel = t('Drag {{group}} to reorder', {
+                    group: label,
+                  })
                   return (
-                    <ComboboxChip key={value}>
+                    <ComboboxChip
+                      key={value}
+                      className={cn(
+                        dropPosition === 'before' &&
+                          'border-l-primary border-l-2',
+                        dropPosition === 'after' &&
+                          'border-r-primary border-r-2'
+                      )}
+                      onDragOver={(event) => {
+                        if (!props.reorderable || !draggingValue) return
+                        if (draggingValue === value) return
+                        event.preventDefault()
+                        event.dataTransfer.dropEffect = 'move'
+                        const rect = event.currentTarget.getBoundingClientRect()
+                        setDropTarget({
+                          value,
+                          position:
+                            event.clientX - rect.left > rect.width / 2
+                              ? 'after'
+                              : 'before',
+                        })
+                      }}
+                      onDrop={(event) => {
+                        if (!props.reorderable) return
+                        event.preventDefault()
+                        const source =
+                          draggingValue ??
+                          event.dataTransfer.getData('text/plain')
+                        props.onChange(
+                          reorderValues(
+                            props.selected,
+                            source,
+                            value,
+                            dropTarget?.value === value
+                              ? dropTarget.position
+                              : 'before'
+                          )
+                        )
+                        setDraggingValue(null)
+                        setDropTarget(null)
+                      }}
+                    >
+                      {props.reorderable && (
+                        <button
+                          type='button'
+                          draggable
+                          aria-label={reorderLabel}
+                          title={reorderLabel}
+                          className='text-muted-foreground/70 hover:text-foreground -ml-1 shrink-0 cursor-grab active:cursor-grabbing'
+                          // Base UI cancels the native drag when its own
+                          // mousedown handler reaches the chips container.
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onDragStart={(event) => {
+                            event.dataTransfer.effectAllowed = 'move'
+                            event.dataTransfer.setData('text/plain', value)
+                            setDraggingValue(value)
+                          }}
+                          onDragEnd={() => {
+                            setDraggingValue(null)
+                            setDropTarget(null)
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              event.key !== 'ArrowUp' &&
+                              event.key !== 'ArrowDown'
+                            ) {
+                              return
+                            }
+                            // Keep these keys away from the chip's own handler,
+                            // which would open the popup instead.
+                            event.preventDefault()
+                            event.stopPropagation()
+                            moveSelectedValue(
+                              value,
+                              event.key === 'ArrowUp' ? -1 : 1
+                            )
+                          }}
+                        >
+                          <HugeiconsIcon
+                            icon={DragDropVerticalIcon}
+                            strokeWidth={2}
+                            className='pointer-events-none size-3'
+                          />
+                        </button>
+                      )}
+                      {props.showChipOrder && (
+                        <span
+                          aria-hidden='true'
+                          className='bg-primary/10 text-primary flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums'
+                        >
+                          {position + 1}
+                        </span>
+                      )}
                       {props.copyChipOnClick ? (
                         <button
                           type='button'
@@ -366,7 +532,7 @@ export function MultiSelect(props: MultiSelectProps) {
           }
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          aria-label={placeholder}
+          aria-label={props.inputAriaLabel ?? placeholder}
         />
       </ComboboxChips>
 
