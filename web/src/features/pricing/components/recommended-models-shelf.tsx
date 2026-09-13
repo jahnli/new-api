@@ -121,6 +121,9 @@ export function RecommendedModelsShelf(props: RecommendedModelsShelfProps) {
         <h2 id={headingId} className='flex items-center'>
           <ModelRecommendationBadge
             prominent
+            /* Taller and slightly narrower than the card badge: it heads the row
+               and lines up with the 28px carousel arrows sharing it. */
+            className='px-3 py-1.5'
             label={t('Recommended models')}
             count={recommendedModels.length}
           />

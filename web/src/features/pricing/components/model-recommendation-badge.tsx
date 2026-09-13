@@ -11,6 +11,8 @@ export function ModelRecommendationBadge(props: {
   label?: string
   /** Model count shown after the label, e.g. on the recommendation shelf heading. */
   count?: number
+  /** Per-usage spacing tweaks, e.g. a taller pill where the badge is a heading. */
+  className?: string
 }) {
   const { t } = useTranslation()
 
@@ -19,8 +21,9 @@ export function ModelRecommendationBadge(props: {
       className={cn(
         'inline-flex max-w-full shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-[11px] leading-4 font-normal text-amber-800 dark:text-amber-300',
         props.prominent
-          ? 'model-recommendation-glow relative isolate gap-1.5 rounded-lg border border-amber-300/70 bg-amber-50 px-3.5 py-1.5 text-sm leading-4 shadow-xs dark:border-amber-700/70 dark:bg-amber-950'
-          : 'bg-amber-500/10 dark:bg-amber-400/10'
+          ? 'model-recommendation-glow relative isolate gap-1.5 rounded-lg border border-amber-300/70 bg-amber-50 px-3.5 py-1 text-sm leading-4 shadow-xs dark:border-amber-700/70 dark:bg-amber-950'
+          : 'bg-amber-500/10 dark:bg-amber-400/10',
+        props.className
       )}
     >
       <Star
