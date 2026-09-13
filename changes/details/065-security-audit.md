@@ -10,7 +10,7 @@
 - `model/audit_setting_migration_test.go` — 覆盖配置迁移。
 - `model/security_audit.go` — 聚合非工作时段请求，支持用户筛选、按天数排序和常用模型统计。
 - `model/security_audit_test.go` — 覆盖时间窗口、聚合、分页、中文显示名模糊筛选和模型排行。
-- `setting/system_setting/audit_setting.go` — 使用结构化非工作时段配置。
+- `setting/system_setting/audit_setting.go` — 用结构化非工作时段配置。
 - `router/api-router.go` — 注册安全审计路由。
 - `web/default/src/features/security-audit/` — 新增安全审计页、筛选、表格、日志详情和用户资料展示，详情弹框高度统一为视口 85%。
 - `web/default/src/features/system-settings/security/` — 新增安全审计设置页。

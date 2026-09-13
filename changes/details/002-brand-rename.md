@@ -10,7 +10,7 @@
 - Electron: 包名 / appId / extraResources
 - 前端 web/default: title / 品牌文案 / i18n 6 语言键值 / 常量标识 / 文档链接 → 飞书
 - README 全部语言版本
-- 本次补充: 后端 controller / middleware / relay / service、文档、Electron 与前端脚本中的 `New API`、`NewAPIError`、品牌链接等残留统一为 `AI Gateway`、`AIGatewayError` 与飞书链接
+- 本次补充: 后端 controller / middleware / relay / service、文档、Electron 与前端脚本中残留的 `New API`、`NewAPIError`、品牌链接统一为 `AI Gateway`、`AIGatewayError` 与飞书链接
 
 ## 未改
 

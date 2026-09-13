@@ -7,16 +7,16 @@
 - `web/default/src/features/pricing/components/model-card.tsx` — 「动态计费」标签颜色从橙色改为主题色。
 - `web/default/src/components/status-badge.tsx` — 新增 primary variant 支持主题色状态标签。
 - `controller/pricing.go` — 超级管理员可查看全部分组。
-- `web/src/features/pricing/index.tsx` — 根据当前用户角色判断是否展示分组倍率，并将用户所属分组和当前筛选分组传入模型卡片与模型详情。
+- `web/src/features/pricing/index.tsx` — 按当前用户角色判断是否展示分组倍率，并把用户所属分组和当前筛选分组传入模型卡片与模型详情。
 - `web/default/src/features/pricing/components/pricing-toolbar.tsx` — 向筛选侧边栏透传分组倍率可见性。
 - `web/default/src/features/pricing/components/pricing-sidebar.tsx` — 分组筛选项按权限显示或隐藏倍率后缀。
-- `web/src/features/pricing/components/model-details.tsx` — 模型详情按权限过滤分组：管理员可查看全部分组与倍率，普通用户仅能查看所属分组，并隐藏倍率与自动分组链；将同一可见分组范围传入 API 速率限制区域；独立详情页使用模型实际有效分组倍率。
-- `web/src/features/pricing/components/model-details-price.tsx` — 模型详情基础价格按当前筛选分组或用户实际所属分组计算，覆盖 Token、按次及动态表达式计费，并保留供应商分组倍率。
-- `web/src/features/pricing/components/__tests__/base-price-group.test.tsx` — 覆盖筛选分组优先、全部分组时回退用户所属分组，以及动态计费应用实际分组倍率的测试场景。
+- `web/src/features/pricing/components/model-details.tsx` — 模型详情按权限过滤分组：管理员可查看全部分组与倍率，普通用户仅可见所属分组并隐藏倍率与自动分组链；同一可见分组范围传入 API 速率限制区域；独立详情页使用模型实际有效分组倍率。
+- `web/src/features/pricing/components/model-details-price.tsx` — 模型详情基础价格按当前筛选分组或用户实际所属分组计算，覆盖 Token、按次及动态表达式计费，保留供应商分组倍率。
+- `web/src/features/pricing/components/__tests__/base-price-group.test.tsx` — 覆盖筛选分组优先、全部分组时回退用户所属分组以及动态计费应用实际分组倍率。
 - `web/src/features/pricing/components/model-details-api.tsx` — API 速率限制表按权限过滤后的可见分组渲染，无可见分组时隐藏该区域。
 - `web/src/features/pricing/lib/mock-stats.ts` — 速率限制数据生成支持显式指定可见分组，并区分未指定分组与空可见分组。
-- `web/src/features/pricing/components/__tests__/rate-limit-visibility.test.ts` — 覆盖普通用户仅查看所属分组、管理员查看全部分组以及无可见分组时隐藏速率限制的测试场景。
-- `web/src/features/pricing/components/model-card-grid.tsx` — 将当前用户所在分组传递给模型卡片。
+- `web/src/features/pricing/components/__tests__/rate-limit-visibility.test.ts` — 覆盖普通用户仅查看所属分组、管理员查看全部分组及无可见分组时隐藏速率限制。
+- `web/src/features/pricing/components/model-card-grid.tsx` — 把当前用户所在分组传给模型卡片。
 - `web/src/features/pricing/components/model-card.tsx` — 模型卡片计费标签旁优先显示当前用户所在分组。
 - `web/src/features/pricing/lib/model-helpers.ts` — 新增模型卡片分组显示解析逻辑，兼容未登录或用户分组为空时的回退展示。
 - `web/src/features/pricing/lib/__tests__/model-display-group.test.ts` — 覆盖当前用户分组优先、空分组回退及模型无分组场景。
@@ -27,21 +27,21 @@
 - `controller/option.go` — 为 `GroupVendorRatio` option 增加配置合法性校验。
 - `controller/pricing.go` — 模型广场接口下发按可用分组过滤的供应商倍率及当前用户特殊倍率分组标记。
 - `model/option.go` — 注册并持久化 `GroupVendorRatio` option。
-- `model/pricing.go` — 在模型定价缓存中维护模型到启用供应商 ID 的映射，供计费路径快速解析。
+- `model/pricing.go` — 定价缓存维护模型到启用供应商 ID 的映射，供计费路径快速解析。
 - `relay/helper/price.go` — 主计费链路统一按“用户特殊倍率 > 分组供应商倍率 > 分组基础倍率”解析最终分组倍率。
-- `service/quota.go` — Realtime WebSocket 预扣费同步使用统一的供应商倍率解析逻辑。
-- `service/task_billing.go` — 任务按 Token 重算同步使用统一的供应商倍率解析逻辑。
-- `service/log_info_generate.go` — 命中供应商倍率时在消费日志中记录供应商 ID 与最终供应商分组倍率。
+- `service/quota.go` — Realtime WebSocket 预扣费同步使用统一供应商倍率解析逻辑。
+- `service/task_billing.go` — 任务按 Token 重算同步使用统一供应商倍率解析逻辑。
+- `service/log_info_generate.go` — 命中供应商倍率时在消费日志记录供应商 ID 与最终供应商分组倍率。
 - `setting/ratio_setting/group_ratio.go` — 新增分组供应商倍率配置、校验、复制、JSON 转换及统一优先级解析器。
 - `setting/ratio_setting/group_vendor_ratio_test.go` — 覆盖倍率优先级、免费倍率、无供应商回退、配置校验及 JSON 往返行为。
 - `types/price_data.go` — 扩展分组倍率信息，携带供应商倍率命中状态与供应商 ID。
-- `web/src/features/pricing/hooks/use-pricing-data.ts` — 按模型供应商生成有效分组倍率，并保持用户特殊倍率最高优先级。
+- `web/src/features/pricing/hooks/use-pricing-data.ts` — 按模型供应商生成有效分组倍率，保持用户特殊倍率最高优先级。
 - `web/src/features/pricing/index.tsx` — 模型详情使用所选模型计算后的有效分组倍率。
 - `web/src/features/pricing/types.ts` — 补充供应商倍率和特殊倍率分组的接口类型。
 - `web/src/features/system-settings/billing/index.tsx` — 计费设置表单默认值补充 `GroupVendorRatio`。
 - `web/src/features/system-settings/billing/section-registry.tsx` — 计费设置字段注册表补充 `GroupVendorRatio`。
 - `web/src/features/system-settings/models/group-ratio-form.tsx` — JSON 编辑模式与计费指南增加供应商倍率配置及优先级说明。
-- `web/src/features/system-settings/models/group-ratio-visual-editor.tsx` — 可视化编辑器支持按分组添加、选择、修改和删除供应商倍率，并以供应商名称展示、ID 存储。
+- `web/src/features/system-settings/models/group-ratio-visual-editor.tsx` — 可视化编辑器支持按分组添加/选择/修改/删除供应商倍率，以供应商名称展示、ID 存储。
 - `web/src/features/system-settings/models/index.tsx` — 分组设置默认值补充 `GroupVendorRatio`。
 - `web/src/features/system-settings/models/ratio-settings-card.tsx` — 分组倍率卡片注册并保存供应商倍率配置。
 - `web/src/features/system-settings/types.ts` — 系统设置类型补充 `GroupVendorRatio`。
@@ -60,13 +60,13 @@
 
 ## 模型广场响应加密
 
-- `common/aes_gcm.go` — 新增基于 SHA-256 密钥派生、随机 nonce 和附加认证数据的 AES-256-GCM 加解密工具，并要求密钥材料至少 32 字节。
+- `common/aes_gcm.go` — 新增基于 SHA-256 密钥派生、随机 nonce 和附加认证数据的 AES-256-GCM 加解密工具，要求密钥材料至少 32 字节。
 - `common/aes_gcm_test.go` — 覆盖加解密往返、随机 nonce、空密钥、短密钥及附加认证数据不一致等边界。
-- `controller/pricing.go` — 将完整模型广场响应序列化后加密为 Base64 文本返回，禁止缓存；密钥缺失或加密失败时拒绝降级返回明文。
+- `controller/pricing.go` — 完整模型广场响应序列化后加密为 Base64 文本返回，禁止缓存；密钥缺失或加密失败时拒绝降级返回明文。
 - `controller/pricing_encryption_test.go` — 验证接口不暴露模型明文、密文可还原原始响应、响应类型与缓存头正确，以及缺少密钥时返回错误。
-- `controller/ratio_sync.go` — 倍率同步支持识别并解密加密后的 `/api/pricing` 响应，同时保持对原有明文 JSON 上游的兼容。
+- `controller/ratio_sync.go` — 倍率同步支持识别并解密加密后的 `/api/pricing` 响应，同时兼容原有明文 JSON 上游。
 - `web/src/features/pricing/api.ts` — 模型广场请求改为接收文本响应，解密成功后继续以原 `PricingData` 类型交给页面。
-- `web/src/features/pricing/lib/pricing-encryption.ts` — 使用浏览器 Web Crypto API 完成 Base64 解码、AES-GCM 解密、UTF-8 转换、JSON 解析和响应结构校验。
+- `web/src/features/pricing/lib/pricing-encryption.ts` — 用浏览器 Web Crypto API 完成 Base64 解码、AES-GCM 解密、UTF-8 转换、JSON 解析和响应结构校验。
 - `web/src/features/pricing/lib/__tests__/pricing-encryption.test.ts` — 覆盖正确密钥解密、错误密钥、短密钥和非法响应结构。
 - `web/src/env.d.ts` — 声明模型广场前端构建期密钥常量。
 - `web/rsbuild.config.ts` — 从进程环境或仓库根目录 `.env` 读取模型广场密钥并在前端构建时注入。
@@ -77,14 +77,14 @@
 
 ## 独立模型推荐配置
 
-超级管理员通过「系统设置 → 模型与路由 → 模型广场配置」（`/system-settings/model-square`）维护推荐，不依赖原有模型元信息页面。旧地址 `/model-square-settings` 自动跳转至新地址，页面沿用系统设置侧边栏和超级管理员权限。后台保留场景及启停配置；广场在模型卡片右上边缘显示「推荐」标记，并在卡片正文下方展示适用场景，表格在模型名称旁显示标记、名称下方显示紧凑场景标签，不再展示独立推荐区域，不改变原列表排序、搜索、筛选和分页。同一模型配置多个场景时合并展示且仍只显示一个推荐标记。
+超级管理员通过「系统设置 → 模型与路由 → 模型广场配置」（`/system-settings/model-square`）维护推荐，不依赖原有模型元信息页面。旧地址 `/model-square-settings` 自动跳转至新地址，页面沿用系统设置侧边栏与超级管理员权限。后台保留场景及启停配置；广场在模型卡片右上边缘显示「推荐」标记、卡片正文下方展示适用场景，表格在模型名称旁显示标记、名称下方显示紧凑场景标签，不再展示独立推荐区域，原列表排序、搜索、筛选和分页不变。同一模型配置多个场景时合并展示且仍只显示一个推荐标记。
 
-配置默认关闭、推荐列表为空。配置以独立 `ModelSquareConfig` JSON 项存储于既有 `options` 表，无新增模型字段或表迁移。保存节点立即更新内存，其他节点通过既有配置同步周期刷新（默认 60 秒）；浏览器沿用定价查询缓存，保存后主动使该缓存失效。已下架模型保留在后台配置中以供修改或删除，公开推荐仅包含当前用户可见的启用模型。推荐标记采用暖金色实心星标、淡琥珀色胶囊底和清晰文字，固定在卡片右上边缘且不占用内容布局；星标与边缘微光以同一 3 秒周期同步呼吸，并遵循系统减少动态效果设置。表格复用紧凑的静态样式，兼容浅色/深色主题及七语言文案。
+配置默认关闭、推荐列表为空。配置以独立 `ModelSquareConfig` JSON 项存于既有 `options` 表，无新增模型字段或表迁移。保存节点立即更新内存，其他节点经既有配置同步周期刷新（默认 60 秒）；浏览器沿用定价查询缓存，保存后主动使其失效。已下架模型保留在后台配置中供修改或删除，公开推荐仅含当前用户可见的启用模型。推荐标记采用暖金色实心星标、淡琥珀色胶囊底与清晰文字，固定在卡片右上边缘且不占用内容布局；星标与边缘微光以同一 3 秒周期同步呼吸，并遵循系统减少动态效果设置。表格复用紧凑静态样式，兼容浅色/深色主题及七语言文案。
 
-推荐理由已从后台表单和广场展示中移除；后端保留兼容历史 JSON 的字段解析，省略或 null 会归一化为空字符串，后台重新保存时不再提交理由。推荐配置只控制模型是否显示标记。
+推荐理由已从后台表单和广场展示移除；后端保留兼容历史 JSON 的字段解析，省略或 null 归一化为空字符串，后台重新保存时不再提交理由。推荐配置只控制模型是否显示标记。
 
 - `setting/model_square.go` — 配置类型、大小/字段/重复校验、快照读取及可见推荐过滤。
-- `model/model_square.go` — 校验真实模型关联，以事务保存配置，并按传入的可见模型过滤推荐。
+- `model/model_square.go` — 校验真实模型关联，事务保存配置，并按传入的可见模型过滤推荐。
 - `model/option.go` — 通用持久化入口增加推荐配置结构校验。
 - `controller/model_square.go` — 独立配置读取/保存接口，请求限制为 256 KiB。
 - `controller/option.go` — 阻止通用 option API 绕过独立配置接口的模型关联校验。
@@ -96,11 +96,11 @@
 - `web/src/routes/_authenticated/model-square-settings/index.tsx` — 旧地址兼容跳转。
 - `web/src/components/layout/config/system-settings.config.ts` — 在「模型与路由」分组中加入配置入口。
 - `web/src/features/pricing/components/model-recommendation-badge.tsx` — 统一科技风格的推荐标记。
-- `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 在卡片和表格中按当前语言展示推荐模型的适用场景。
+- `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 在卡片和表格中按当前语言展示推荐模型适用场景。
 - `web/src/features/pricing/components/model-card.tsx`、`web/src/features/pricing/components/pricing-columns.tsx` — 卡片和表格模型名称旁显示标记。
 - `web/src/features/pricing/components/__tests__/recommendation-badge.test.tsx` — 标记启停、多场景去重、精确模型匹配、价格及详情交互、长名称布局和语言切换测试。
 - `web/src/features/pricing/index.tsx`、`web/src/features/pricing/types.ts`、`web/src/features/pricing/hooks/use-pricing-data.ts` — 接入推荐数据，复用分组价格、搜索和筛选条件。
-- `web/vitest.config.ts` — 将 Lobe 图标依赖交给测试转换器处理，支持使用真实模型卡片进行交互测试。
+- `web/vitest.config.ts` — 把 Lobe 图标依赖交给测试转换器，支持用真实模型卡片做交互测试。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 推荐管理与展示文案。
 
 ### 本次验证
@@ -108,15 +108,15 @@
 - `go build ./...`：通过。
 - `go test ./setting ./model ./controller ./router -run "ModelSquare|GetPricing" -count=1`：通过，包含真实路由的超级管理员鉴权和推荐数据加密/分组过滤验证。
 - `go test ./model -run "^TestModelSquareOptionPersistence$" -count=1 -v`：SQLite **3.50.4** 通过；覆盖首次保存、覆盖更新、重新加载、清空及保存失败后旧值不变。MySQL 和 PostgreSQL 因未配置 `TEST_MYSQL_DSN`、`TEST_POSTGRES_DSN` 跳过，当前也无可用 Docker；**尚未完成三库兼容验证**。后续须提供独立测试数据库并使用同一命令运行，记录实际版本与结果。
-- 推荐功能初次实现时，前端相关测试共 133 项通过。入口迁入系统设置并移除推荐排序字段后，执行模型推荐设置及展示相关测试：4 个文件、23 项测试通过，覆盖新入口、旧地址跳转、权限、保存、缓存回显和推荐标记；原独立侧栏开关及其测试已移除。
+- 推荐功能初次实现时前端相关测试共 133 项通过。入口迁入系统设置并移除推荐排序字段后，执行模型推荐设置及展示测试：4 个文件、23 项通过，覆盖新入口、旧地址跳转、权限、保存、缓存回显和推荐标记；原独立侧栏开关及其测试已移除。
 - `bun run typecheck`、涉及文件的 oxlint 检查、`bun run build`：通过。
-- 尚未执行真实浏览器与已部署后端联调。上线前应使用超级管理员保存推荐，再以不同可用分组的普通用户和访客确认展示范围，检查关闭推荐、模型下架和多节点同步后的页面结果。
+- 尚未执行真实浏览器与已部署后端联调。上线前应以超级管理员保存推荐，再以不同可用分组的普通用户和访客确认展示范围，检查关闭推荐、模型下架和多节点同步后的页面结果。
 
 ## 顶部推荐横滑区
 
-模型广场在筛选工具栏之上新增「推荐模型」横滑区，把全部推荐模型集中展示在首屏，无需清空筛选或翻页即可访问。横滑区复用现有模型卡片，推荐标记、适用场景、分组价格、按次与动态计费、性能徽章及详情抽屉交互与网格、表格保持一致；无推荐模型时不渲染该区域，不占用布局。此处与前述「不再展示独立推荐区域」不冲突：卡片与表格内仍不插入独立推荐块，本次新增的是工具栏之上的顶部横滑区，与卡片右上角推荐标记并存。
+模型广场在筛选工具栏之上新增「推荐模型」横滑区，把全部推荐模型集中到首屏，无需清空筛选或翻页即可访问。横滑区复用现有模型卡片，推荐标记、适用场景、分组价格、按次与动态计费、性能徽章及详情抽屉交互与网格、表格一致；无推荐模型时不渲染该区域，不占用布局。此处与前述「不再展示独立推荐区域」不冲突：卡片与表格内仍不插入独立推荐块，本次新增的是工具栏之上的横滑区，与卡片右上角推荐标记并存。
 
-横滑区与卡片网格共用抽出的性能指标查询 hook，两者命中同一 TanStack Query 缓存条目，不产生额外请求。轮播组件的上/下一张按钮无障碍文案由硬编码英文改为 i18next 键，并补齐七语言。
+横滑区与卡片网格共用抽出的性能指标查询 hook，命中同一 TanStack Query 缓存条目，不产生额外请求。轮播组件上/下一张按钮的无障碍文案由硬编码英文改为 i18next 键，并补齐七语言。
 
 - `web/src/features/pricing/components/recommended-models-shelf.tsx` — 顶部推荐横滑区：基于 embla 轮播横向展示推荐模型卡片并复用 `ModelCard`，标题与轮播按钮同排，无推荐模型时返回空。
 - `web/src/features/pricing/index.tsx` — 在主内容列的筛选工具栏之上渲染推荐横滑区，透传价格、分组、Token 单位与演示模式等参数。
@@ -130,3 +130,7 @@
 
 - `bun run typecheck`、涉及文件的 oxlint 检查、`bun run format:check`、`bun run build`：通过。
 - 未执行真实浏览器与已部署后端联调。上线前应以已配置推荐的超级管理员确认首屏横滑区的展示范围、横向拖拽与按钮翻页行为。
+
+## 自 CHANGELOG 说明列迁入
+
+模型广场与分组定价优化：动态计费标签改为主题色；管理员可查看全部分组、分组倍率及 API 速率限制，普通用户仅见所属分组；模型卡片显示当前用户分组；模型详情基础价格按筛选分组或用户实际所属分组显示；新增分组 × 供应商倍率配置，按用户特殊倍率 > 供应商倍率 > 基础倍率的优先级统一计费、日志审计与广场价格展示，并提供可视化编辑器及多语言文案；广场完整定价响应改用环境变量密钥做 AES-256-GCM 加密，前端解密校验后展示，兼容加密响应的倍率同步与本地、Docker 部署；新增独立的超级管理员「模型广场配置」入口，可按场景配置推荐模型及启停，广场按用户可见模型与筛选条件显示推荐标记与适用场景，复用现有价格与详情交互；筛选工具栏之上新增「推荐模型」顶部横滑区，集中展示全部推荐模型卡片，复用现有模型卡片的价格、分组、性能徽章与详情交互，无推荐模型时不渲染；横滑区与卡片网格共用抽出的性能指标查询 hook，命中同一缓存条目而不产生额外请求；轮播上/下一张按钮的无障碍文案由硬编码英文改为 i18next 并补齐七语言

@@ -4,7 +4,7 @@
 
 ## 变更概要
 
-- 新增 Azure Sky（碧空）主题预设（primary `#0064fa`、secondary `#eaf5ff`），设为默认预设并置于列表首位
+- 新增 Azure Sky（碧空）主题预设（primary `#0064fa`、secondary `#eaf5ff`），设为默认并置于列表首位
 - 移除 Ocean Breeze（海风）主题预设
 - 侧边栏选中菜单项文字颜色改为主题色（`text-primary`）
 - 移除颜色预设色块下方的名称文字，删除所有 `preset.*` 翻译 key

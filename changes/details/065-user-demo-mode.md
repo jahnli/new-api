@@ -18,6 +18,6 @@
 
 - `web/src/lib/demo-mode.ts` — 用户名统一遮罩为 `***`。
 - `web/src/features/usage-logs/components/columns/task-logs-columns.tsx`、`web/src/features/usage-logs/components/usage-logs-mobile-card.tsx` — 任务日志和移动端日志同步遮罩用户名与身份入口。
-- `web/src/features/security-audit/components/off-hours-columns.tsx`、`web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 遮罩审计用户列和日志详情标题，后台查询仍使用原用户名。
+- `web/src/features/security-audit/components/off-hours-columns.tsx`、`web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 遮罩审计用户列和日志详情标题，后台查询仍用原用户名。
 - `web/src/features/security-audit/components/image-audit-columns.tsx` — 遮罩图片审计用户名并禁用真实头像和资料悬停请求。
 - `web/src/lib/__tests__/demo-mode.test.ts`、`web/src/features/users/components/__tests__/username-visibility.test.tsx`、`web/src/features/security-audit/components/__tests__/user-visibility.test.tsx` — 覆盖 `***`、普通模式原值及姓名、头像、链接不泄露。

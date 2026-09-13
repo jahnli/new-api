@@ -6,11 +6,11 @@
 
 - `common/constants.go` — 删除 `RoleCenterBP = 3` 常量，`IsValidateRole` 移除对应判断
 - `middleware/auth.go` — `canAccessDataOverview` 去掉 `RoleCenterBP` 分支，仅保留 `RoleBUBP`
-- `service/feishu_department.go` — 部门树裁剪逻辑中移除 `RoleCenterBP` 条件
-- `middleware/data_overview_access_test.go` — 删除 Center BP 测试用例，AI BP 用例改名为 BP
+- `service/feishu_department.go` — 部门树裁剪移除 `RoleCenterBP` 条件
+- `middleware/data_overview_access_test.go` — 删除 Center BP 用例，AI BP 用例改名 BP
 - `service/report_notify_test.go` — `TestGetReportNotifyScopesUsesBpLevelCenter` 中 `RoleCenterBP` 改为 `RoleBUBP`
 - `web/src/lib/roles.ts` — 移除 `CENTER_BP: 3`，标签键 `'AI BP'` 改为 `'BP'`，`canAccessDataOverview` 去掉 CENTER_BP 分支
-- `web/src/features/users/constants.ts` — 移除 `CENTER_BP`，移除 `Briefcase` 导入，`labelKey` 与 `getUserRoleOptions` 改为 `'BP'`，删除 Center BP 选项
+- `web/src/features/users/constants.ts` — 移除 `CENTER_BP` 与 `Briefcase` 导入，`labelKey`、`getUserRoleOptions` 改为 `'BP'`，删除 Center BP 选项
 - `web/src/features/users/types.ts` — 注释更新，移除 role=3 描述
 - `web/src/features/users/components/user-profile-hover-card.tsx` — 移除 `CENTER_BP` tooltip，`'事业部 AI BP'` 改为 `'BP'`
 - `web/src/features/users/components/users-mutate-drawer.tsx` — 角色下拉删除 `value='3'` Center BP 选项，`targetIsBP` 去掉 CENTER_BP 判断，`'AI BP'` 改为 `'BP'`
