@@ -120,6 +120,7 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
         )}
         skeletonKeyPrefix='security-audit-image-studio'
         toolbarProps={null}
+        tableClassName='[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
       />
       <ImageAuditPreviewDialog
         open={previewOpen}

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/tooltip'
 import { getUserInfo } from '@/features/usage-logs/api'
 import { ModelBadge } from '@/features/usage-logs/components/model-badge'
+import { getUsageLogChannelDisplay } from '@/features/usage-logs/lib/channel-visibility'
 import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
 import type { UserColumnRow } from '@/features/users/types'
 import { useDemoMode } from '@/hooks/use-demo-mode'
@@ -100,11 +101,11 @@ export function ImageAuditUserCell(props: {
 
   return (
     <div
-      className='flex min-w-0 items-center gap-2 pl-2'
+      className='flex w-[120px] min-w-0 items-center gap-2'
       onMouseEnter={props.demoMode ? undefined : handleFetchUser}
     >
       {props.demoMode ? (
-        <LongText className='w-[162px] font-medium'>{primaryName}</LongText>
+        <LongText className='w-[120px] font-medium'>{primaryName}</LongText>
       ) : (
         <>
           <UserProfileHoverCard user={userData ?? fallbackUser}>
@@ -113,14 +114,14 @@ export function ImageAuditUserCell(props: {
                 <AvatarImage src={props.item.avatar_url} alt={primaryName} />
               ) : null}
               <AvatarFallback
-                className='text-xs font-medium text-white'
+                className='text-xs font-semibold text-white'
                 style={avatarFallbackStyle}
               >
                 {avatarFallback}
               </AvatarFallback>
             </Avatar>
           </UserProfileHoverCard>
-          <div className='flex w-[130px] min-w-0 flex-col gap-1'>
+          <div className='flex min-w-0 flex-1 flex-col gap-1'>
             <LongText className='max-w-full font-medium'>
               {primaryName}
             </LongText>
@@ -208,7 +209,6 @@ export function useImageAuditColumns(
         id: 'identity',
         header: t('User'),
         meta: { mobileTitle: true },
-        size: 180,
         cell: ({ row }) => (
           <ImageAuditUserCell item={row.original} demoMode={demoMode} />
         ),
@@ -218,7 +218,7 @@ export function useImageAuditColumns(
         header: t('Duration'),
         size: 90,
         cell: ({ row }) => (
-          <span className='text-sm tabular-nums'>
+          <span className='text-muted-foreground !font-normal tabular-nums'>
             {row.original.duration_ms > 0
               ? `${(row.original.duration_ms / 1000).toFixed(1)}s`
               : '-'}
@@ -249,7 +249,7 @@ export function useImageAuditColumns(
               )}
               <button
                 type='button'
-                className='text-muted-foreground line-clamp-2 max-w-[240px] cursor-pointer text-left text-xs leading-snug break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
+                className='text-muted-foreground line-clamp-2 max-w-[240px] cursor-pointer text-left !text-[13px] leading-snug !font-normal break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
                 onClick={() => onViewRequestContent(row.original)}
                 disabled={!row.original.prompt}
                 title={row.original.prompt ? t('Request Content') : undefined}
@@ -263,39 +263,42 @@ export function useImageAuditColumns(
       {
         id: 'channel_id',
         header: t('Channel'),
-        size: 120,
+        size: 145,
         cell: ({ row }) => {
           const channelId = row.original.channel_id
-          const channelName = row.original.channel_name
           if (!channelId) {
             return <span className='text-muted-foreground/60 text-xs'>-</span>
           }
-          const channelTooltip = channelName
-            ? `${channelName} #${channelId}`
-            : `#${channelId}`
+          // This page is super-admin only, so channel details stay unmasked.
+          const channelDisplay = getUsageLogChannelDisplay(
+            row.original.channel_name,
+            channelId,
+            true,
+            demoMode
+          )
           return (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <div className='flex max-w-[105px] flex-col gap-0.5' />
+                    <div className='flex max-w-[125px] flex-col gap-0.5' />
                   }
                 >
                   <StatusBadge
-                    label={`#${channelId}`}
-                    autoColor={String(channelId)}
+                    label={channelDisplay.id}
+                    copyable={!demoMode}
                     copyText={String(channelId)}
                     size='sm'
                     showDot={false}
-                    className='font-mono'
+                    className='text-muted-foreground/70 font-mono'
                   />
-                  {channelName ? (
+                  {channelDisplay.name ? (
                     <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
-                      {channelName}
+                      {channelDisplay.name}
                     </span>
                   ) : null}
                 </TooltipTrigger>
-                <TooltipContent>{channelTooltip}</TooltipContent>
+                <TooltipContent>{channelDisplay.tooltip}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )
@@ -322,7 +325,7 @@ export function useImageAuditColumns(
       {
         id: 'params',
         header: t('Parameters'),
-        size: 160,
+        size: 130,
         cell: ({ row }) => {
           const parts = [
             row.original.size,
@@ -333,7 +336,7 @@ export function useImageAuditColumns(
             return <span className='text-muted-foreground text-xs'>-</span>
           }
           return (
-            <span className='text-muted-foreground text-xs'>
+            <span className='text-muted-foreground block max-w-[120px] truncate text-xs'>
               {parts.join(' · ')}
             </span>
           )
