@@ -114,11 +114,13 @@
 
 ## 顶部推荐横滑区
 
-模型广场在筛选工具栏之上新增「推荐模型」横滑区，把全部推荐模型集中到首屏，无需清空筛选或翻页即可访问。横滑区复用现有模型卡片，推荐标记、适用场景、分组价格、按次与动态计费、性能徽章及详情抽屉交互与网格、表格一致；无推荐模型时不渲染该区域，不占用布局。此处与前述「不再展示独立推荐区域」不冲突：卡片与表格内仍不插入独立推荐块，本次新增的是工具栏之上的横滑区，与卡片右上角推荐标记并存。
+模型广场在筛选工具栏之上新增「推荐模型」横滑区，把全部推荐模型集中到首屏，无需清空筛选或翻页即可访问。横滑区复用现有模型卡片，适用场景、分组价格、按次与动态计费、性能徽章及详情抽屉交互与网格、表格一致；横滑区内每张卡片都是推荐模型，因此不再逐张显示卡片右上角的「推荐」标记，改由标题承担：标题本身就是一枚带边框的「推荐模型」胶囊徽章，不再另写文案；无推荐模型时不渲染该区域，不占用布局。此处与前述「不再展示独立推荐区域」不冲突：卡片与表格内仍不插入独立推荐块，本次新增的是工具栏之上的横滑区，网格与表格中的卡片仍保留右上角推荐标记。
 
 横滑区与卡片网格共用抽出的性能指标查询 hook，命中同一 TanStack Query 缓存条目，不产生额外请求。轮播组件上/下一张按钮的无障碍文案由硬编码英文改为 i18next 键，并补齐七语言。
 
-- `web/src/features/pricing/components/recommended-models-shelf.tsx` — 顶部推荐横滑区：基于 embla 轮播横向展示推荐模型卡片并复用 `ModelCard`，标题与轮播按钮同排，无推荐模型时返回空。
+- `web/src/features/pricing/components/recommended-models-shelf.tsx` — 顶部推荐横滑区：基于 embla 轮播横向展示推荐模型卡片并复用 `ModelCard`，标题与轮播按钮同排，无推荐模型时返回空；标题由小星图标加文字改为直接复用 `ModelRecommendationBadge` 的 `prominent` 胶囊徽章，文案经 `label` 传入「推荐模型」，标题节点不再单独输出文案。
+- `web/src/features/pricing/components/model-recommendation-badge.tsx` — 新增可选 `label`，默认仍为「推荐」，供徽章作为区域标题时替换文案；`prominent` 变体的上下内边距由 `py-0.75` 增至 `py-1.5`，胶囊更饱满（卡片角标与横滑区标题同用该变体）。
+- `web/src/features/pricing/components/model-card.tsx` — 新增 `showRecommendationBadge` 开关，默认显示右上角「推荐」标记；横滑区传 `false` 关闭，避免同一区域内反复声明推荐。
 - `web/src/features/pricing/index.tsx` — 在主内容列的筛选工具栏之上渲染推荐横滑区，透传价格、分组、Token 单位与演示模式等参数。
 - `web/src/features/pricing/components/index.ts` — 导出推荐横滑区组件。
 - `web/src/features/pricing/hooks/use-model-perf-badges.ts` — 抽出近 24 小时性能指标查询及按模型名索引的映射，供横滑区与卡片网格共用同一缓存条目。
@@ -130,6 +132,48 @@
 
 - `bun run typecheck`、涉及文件的 oxlint 检查、`bun run format:check`、`bun run build`：通过。
 - 未执行真实浏览器与已部署后端联调。上线前应以已配置推荐的超级管理员确认首屏横滑区的展示范围、横向拖拽与按钮翻页行为。
+
+## 推荐横滑区自动循环滚动
+
+横滑区改为自动向前匀速漂移并首尾循环，用户无需手动翻页即可看完所有推荐模型；卡片尺寸同步放大，单张卡片承载更多信息。指针悬停、键盘焦点进入或用户拖拽时暂停，拖拽结束后恢复；系统开启「减少动态效果」时完全不启动自动滚动，仅保留手动拖拽与翻页按钮；推荐模型不足以铺满一屏时不会漂移，此时翻页按钮一并隐藏。
+
+- `web/src/features/pricing/components/recommended-models-shelf.tsx` — 接入 embla 官方 `AutoScroll` 插件，轮播开启 `loop`；用 `setApi` 拿到 embla 实例，在 `reInit` / `resize` 时比较容器滚动宽度与视口宽度，据此决定是否渲染翻页按钮；`plugins` 用 `useMemo` 保持引用稳定（embla 的 `arePluginsEqual` 只比对插件 options，但避免每次渲染新建插件实例）；以 `useMediaQuery('(prefers-reduced-motion: reduce)')` 作为自动滚动的开关；卡片宽度由 `basis-[85%] sm:basis-[340px]` 调整为 `basis-[88%] sm:basis-[380px]`。
+- `web/package.json`、`bun.lock` — 新增依赖 `embla-carousel-auto-scroll@^8.6.0`，与既有 `embla-carousel-react@^8.6.0` 同版本线（peer 依赖要求 `embla-carousel@8.6.0`，MIT）。
+
+### 变更说明
+
+- 滚动速度 `speed: 2`（像素/帧，约 120px/s）。
+- `startDelay: 0`：插件用同一个定时器处理首次启动与每次暂停后的恢复，默认 1000ms 会让鼠标移出后像卡住一样；设为 0 后移开指针立即继续漂移。
+- `stopOnInteraction: false` + `stopOnMouseEnter: true`：悬停暂停、移开恢复，拖拽结束后也恢复，避免一次拖拽就永久停住。
+- 悬停暂停的 `rootNode` 指向整个横滑区（`Carousel` 根节点，含标题行与翻页按钮），而非插件默认的轮播视口。自动滚动进行中会接管 `engine.scrollBody`，此时翻页按钮的目标位置会被自动滚动覆盖而失效，因此必须让指针移到按钮上也触发暂停，按钮才可用；不可滚动时按钮直接不渲染，避免出现永远点不动的控件。
+- `loop: true` 交给 embla 自行判定：`createEngine` 在 `slideLooper.canLoop()` 为 false 时自动降级为 `loop: false`，因此推荐模型数量不足以铺满视口时不会出现异常回绕；AutoScroll 自身在 `scrollSnapList().length <= 1` 时也不会启动。
+- `canLoop()` 要求轨道长度达到「视口宽度 + 单张卡片宽度」，即推荐模型数量少于一屏时无法无缝循环。曾尝试按需复制卡片填满轨道以实现「任何数量都滚动」，但复制会让同一模型在行内重复出现，与推荐区的语义冲突，已放弃；当前行为是卡片不足一屏则不滚动。
+- 自动滚动属于持续 5 秒以上的动效，暂停能力由悬停暂停、焦点暂停与减少动态效果三处提供。
+
+### 本次验证
+
+- `bun run typecheck`、`bunx oxlint -c .oxlintrc.json <改动文件>`、`bunx oxfmt --check <改动文件>`、`bun run build`：通过。
+- 未执行真实浏览器验证。上线前应确认循环滚动无明显跳帧、悬停与拖拽后能恢复、开启系统「减少动态效果」后横滑区保持静止。
+
+## 模型卡片悬停边框
+
+模型广场的模型卡片悬停时只做一件事——边框淡入淡出：卡片常驻一圈极淡的描边，指针移入后推荐卡片变为琥珀色、其他卡片加深，移出后按同样的 150ms 渐变还原；不使用卡片通用的浮起位移与投影动效。
+
+- `web/src/features/pricing/components/model-card.tsx` — 卡片根节点传 `data-card-hover='false'` 退出全局卡片悬停浮起，用 `border border-foreground/10` 取代 Card 自带的 `ring-1`（以 `ring-0` 关闭），推荐卡片的琥珀色描边由常驻改为仅悬停生效，非推荐卡片的 `hover:ring-foreground/20` 改为 `hover:border-foreground/20`，边框过渡由保留下来的 `transition-colors` 提供。
+
+### 变更说明
+
+- `data-card-hover='false'` 是 `web/src/styles/index.css` 中既有的卡片微交互开关（`titled-card.tsx`、个人资料与安全设置等多处已在用），这里复用它让模型卡片不参与浮起与投影，`styles/index.css` 不需要任何改动，其他卡片行为不变。
+- 退出该规则后，Card 自带的 `ring-1 ring-foreground/10` 不会再被悬停规则抹掉。若继续保留 `border-transparent`，悬停时会出现「默认淡描边 + 琥珀边框」双重描边，因此改为 `ring-0` 关掉 ring，并把这条描边本身做成实边框 `border-foreground/10`，观感与原先的 ring 一致。
+- `ring-0` 与 Card 基础的 `ring-1`、`ring-foreground/10` 同属 Tailwind ring 工具类，`cn()` 走 tailwind-merge，会正确丢弃 `ring-1` 并保留 `ring-0`。
+- 边框过渡回到 ModelCard 自己的 `transition-colors`（含 `border-color`，150ms）。它此前不生效是因为 `styles/index.css` 的卡片微交互规则没有写进 `@layer`，无层级样式整体压过 Tailwind utilities；模型卡片退出该规则后即恢复生效，无需改动 `styles/index.css`。
+- 原先的 `border-amber-300/70`、`dark:border-amber-700/60` 与 `hover:ring-foreground/20` 都不会生效：Card 基础样式用的是 `ring-1`，本身没有 `border` 宽度，只给 `border-color` 画不出边；`hover:ring-*` 则被上述无层级样式覆盖，表现为「悬停时边框消失」。
+- 浅色模式下 `--background` 与 `--card` 同为纯白，这圈极淡描边是卡片与页面背景之间唯一的边界，因此保留而未改成完全无描边。
+
+### 本次验证
+
+- `bun run typecheck`、`bunx oxlint -c .oxlintrc.json <改动文件>`、`bun run build`：通过；编译产物确认 `transition-colors` 含 `border-color`、`ring-0` 已生成，`styles/index.css` 的卡片规则与改动前一致。
+- 未执行真实浏览器验证。上线前应确认悬停只有边框渐变、没有位移与投影，移出后同样渐变还原，推荐卡片与其他模型卡片的反馈一致。
 
 ## 自 CHANGELOG 说明列迁入
 

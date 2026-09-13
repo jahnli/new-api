@@ -58,6 +58,11 @@ export interface ModelCardProps {
   selectedGroup?: string
   currentUserGroup?: string
   maskPrices?: boolean
+  /**
+   * Hide the corner "Recommended" badge on surfaces where every card is a
+   * recommendation, so it is stated once by the section heading instead.
+   */
+  showRecommendationBadge?: boolean
   perf?: ModelPerfBadgeData
 }
 
@@ -67,6 +72,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const priceRate = props.priceRate ?? 1
   const usdExchangeRate = props.usdExchangeRate ?? 1
   const showRechargePrice = props.showRechargePrice ?? false
+  const showRecommendationBadge = props.showRecommendationBadge ?? true
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const tags = parseTags(props.model.tags)
@@ -275,14 +281,15 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
 
   return (
     <Card
+      data-card-hover='false'
       className={cn(
-        'relative h-full min-w-0 gap-3 overflow-visible transition-colors',
+        'relative h-full min-w-0 gap-3 overflow-visible border border-foreground/10 ring-0 transition-colors',
         props.model.is_recommended
-          ? 'border-amber-300/70 bg-linear-to-br from-amber-50/60 via-card to-card hover:border-amber-400 dark:border-amber-700/60 dark:from-amber-950/20 dark:hover:border-amber-600'
-          : 'hover:ring-foreground/20'
+          ? 'bg-linear-to-br from-amber-50/60 via-card to-card hover:border-amber-400 dark:from-amber-950/20 dark:hover:border-amber-600'
+          : 'hover:border-foreground/20'
       )}
     >
-      {props.model.is_recommended && (
+      {props.model.is_recommended && showRecommendationBadge && (
         <div className='pointer-events-none absolute top-0 right-3 z-10 flex max-w-[calc(100%-1.5rem)] -translate-y-1/2'>
           <ModelRecommendationBadge prominent />
         </div>
