@@ -79,3 +79,4 @@
 | 074 | 2026-09-05 | 任务插件官方市场标题去除 New API 品牌前缀，统一显示为 Official Plugins，并补齐七语言翻译 | [详情](details/074-task-plugin-official-title.md) |
 | 075 | 2026-09-07 | 新增对外模式：系统行为设置中可隐藏用户内部信息（部门、岗位职级、入职日期），后端同步不传这些字段 | [详情](details/075-external-mode.md) |
 | 076 | 2026-09-10 | 前端开发规范移除测试章节及测试强制要求：新增功能、缺陷修复或 UI 行为变更不再强制同步新增或更新测试，提交前不再要求运行受影响测试 | `web/AGENTS.md` |
+| 077 | 2026-09-13 | 移除顶栏的系统更新版本入口：登录后顶栏与公开页头不再显示版本号及其更新检查按钮，版本号与更新检查保留在系统设置的「更新检查」区块 | `web/src/components/layout/components/app-header.tsx`、`web/src/components/layout/components/public-header.tsx` |
