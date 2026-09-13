@@ -125,7 +125,7 @@ export function ImageAuditUserCell(props: {
               {primaryName}
             </LongText>
             {hasDistinctUsername ? (
-              <LongText className='text-muted-foreground max-w-full text-xs'>
+              <LongText className='text-muted-foreground/70 max-w-full !text-[13px]'>
                 {props.item.username}
               </LongText>
             ) : null}
