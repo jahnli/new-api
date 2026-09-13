@@ -52,11 +52,9 @@ import { type SubmitErrorHandler, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { Dialog } from '@/components/dialog'
 import {
-  sideDrawerContentClassName,
-  sideDrawerFooterClassName,
   sideDrawerFormClassName,
-  sideDrawerHeaderClassName,
   sideDrawerSwitchItemClassName,
 } from '@/components/drawer-layout'
 import { EmptyState } from '@/components/empty-state'
@@ -69,6 +67,7 @@ import { MultiSelect } from '@/components/multi-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DialogClose } from '@/components/ui/dialog'
 import {
   Form,
   FormControl,
@@ -90,15 +89,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
@@ -417,13 +407,6 @@ export function ChannelMutateDrawer({
     useState<ChannelConnectionInfo | null>(null)
 
   const isEditing = Boolean(currentRow)
-  const requestedSide = isEditing ? 'left' : 'right'
-  const [drawerSide, setDrawerSide] = useState<'left' | 'right'>(requestedSide)
-  // The parent clears currentRow as soon as closing starts. Keep the last
-  // open direction until the next opening, including the entire exit animation.
-  if (open && drawerSide !== requestedSide) {
-    setDrawerSide(requestedSide)
-  }
   const channelId = currentRow?.id ?? null
   const sensitiveLocked = isEditing && !canEditSensitive
   const [providerTarget, setProviderTarget] =
@@ -1461,9 +1444,9 @@ export function ChannelMutateDrawer({
     return () => window.cancelAnimationFrame(frame)
   }, [pendingErrorFocus, configurationSection, showProviderPicker])
 
-  // Handle drawer close
+  // Handle dialog close
   const handleOpenChange = useCallback<
-    NonNullable<ComponentProps<typeof Sheet>['onOpenChange']>
+    NonNullable<ComponentProps<typeof Dialog>['onOpenChange']>
   >(
     (v, details) => {
       if (!v && isSubmitting) return
@@ -4195,96 +4178,92 @@ export function ChannelMutateDrawer({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetContent
-          side={drawerSide}
-          className={sideDrawerContentClassName('sm:max-w-7xl')}
-        >
-          <SheetHeader className={sideDrawerHeaderClassName('pr-12 sm:pr-14')}>
-            <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-              <div className='min-w-0 flex-1'>
-                <div className='flex min-w-0 items-center gap-2 sm:gap-3'>
-                  <SheetTitle className='flex shrink-0 items-center gap-2 sm:gap-3'>
-                    <IconBadge tone='info' size='title'>
-                      <Server className='size-5' />
-                    </IconBadge>
-                    <span>
-                      {isEditing ? t('Edit Channel') : t('Create Channel')}
-                    </span>
-                  </SheetTitle>
-                  {(!showProviderPicker || providerTarget) && (
-                    <Button
-                      ref={providerControlRef}
-                      type='button'
-                      variant='outline'
-                      aria-label={
-                        showProviderPicker
-                          ? t('Back to configuration')
-                          : t('Change provider')
-                      }
-                      aria-description={providerLabel}
-                      title={providerLabel}
-                      className='min-w-0 shrink gap-2 sm:max-w-md'
-                      disabled={
-                        isSubmitting ||
-                        (!showProviderPicker &&
-                          (!canEditSensitive ||
-                            (isEditing && !channelData?.data)))
-                      }
-                      onClick={() => setChoosingProvider(!showProviderPicker)}
-                    >
-                      {showProviderPicker ? (
-                        <>
-                          <ArrowLeft className='size-4' aria-hidden='true' />
-                          <span className='shrink-0 sm:hidden'>
-                            {t('Back')}
-                          </span>
-                          <span className='hidden shrink-0 sm:inline'>
-                            {t('Back to configuration')}
-                          </span>
-                        </>
-                      ) : (
-                        <ChannelTypeLogo
-                          type={currentType}
-                          plugin={boundTaskPlugin}
-                          size={18}
-                        />
-                      )}
-                      <span className='min-w-0 truncate'>{providerLabel}</span>
-                      {!showProviderPicker && (
-                        <>
-                          <span className='hidden shrink-0 sm:inline'>
-                            {t('Change provider')}
-                          </span>
-                          <ChevronDown className='size-4' aria-hidden='true' />
-                        </>
-                      )}
-                    </Button>
+      <Dialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={
+          <>
+            <IconBadge tone='info' size='title'>
+              <Server className='size-5' />
+            </IconBadge>
+            <span className='min-w-0 truncate'>
+              {isEditing ? t('Edit Channel') : t('Create Channel')}
+            </span>
+          </>
+        }
+        titleClassName='flex min-w-0 items-center gap-2 sm:gap-3'
+        description={
+          <span
+            className={cn(
+              'block',
+              showProviderPicker && providerTarget && 'truncate'
+            )}
+            title={
+              showProviderPicker && providerTarget ? description : undefined
+            }
+          >
+            {description}
+          </span>
+        }
+        headerTrailing={
+          (!showProviderPicker || Boolean(providerTarget)) && (
+            // Rendered last so the actions sit below the title and description.
+            <div className='order-last flex flex-wrap items-center gap-2'>
+              {isEditing && channelData?.data && (
+                <Badge variant='secondary'>
+                  {t(
+                    CHANNEL_STATUS_LABELS[
+                      currentStatus as keyof typeof CHANNEL_STATUS_LABELS
+                    ] || 'Unknown'
                   )}
-                </div>
-                {isEditing && channelData?.data && (
-                  <Badge variant='secondary' className='mt-2'>
-                    {t(
-                      CHANNEL_STATUS_LABELS[
-                        currentStatus as keyof typeof CHANNEL_STATUS_LABELS
-                      ] || 'Unknown'
-                    )}
-                  </Badge>
-                )}
-                <SheetDescription
-                  className={cn(
-                    'mt-1',
-                    showProviderPicker && providerTarget && 'truncate'
-                  )}
-                  title={
-                    showProviderPicker && providerTarget
-                      ? description
-                      : undefined
+                </Badge>
+              )}
+              {(!showProviderPicker || providerTarget) && (
+                <Button
+                  ref={providerControlRef}
+                  type='button'
+                  variant='outline'
+                  aria-label={
+                    showProviderPicker
+                      ? t('Back to configuration')
+                      : t('Change provider')
                   }
+                  aria-description={providerLabel}
+                  title={providerLabel}
+                  className='min-w-0 shrink gap-2 sm:max-w-md'
+                  disabled={
+                    isSubmitting ||
+                    (!showProviderPicker &&
+                      (!canEditSensitive || (isEditing && !channelData?.data)))
+                  }
+                  onClick={() => setChoosingProvider(!showProviderPicker)}
                 >
-                  {description}
-                </SheetDescription>
-              </div>
+                  {showProviderPicker ? (
+                    <>
+                      <ArrowLeft className='size-4' aria-hidden='true' />
+                      <span className='shrink-0 sm:hidden'>{t('Back')}</span>
+                      <span className='hidden shrink-0 sm:inline'>
+                        {t('Back to configuration')}
+                      </span>
+                    </>
+                  ) : (
+                    <ChannelTypeLogo
+                      type={currentType}
+                      plugin={boundTaskPlugin}
+                      size={18}
+                    />
+                  )}
+                  <span className='min-w-0 truncate'>{providerLabel}</span>
+                  {!showProviderPicker && (
+                    <>
+                      <span className='hidden shrink-0 sm:inline'>
+                        {t('Change provider')}
+                      </span>
+                      <ChevronDown className='size-4' aria-hidden='true' />
+                    </>
+                  )}
+                </Button>
+              )}
               {!isEditing && !showProviderPicker && (
                 <Button
                   type='button'
@@ -4298,8 +4277,52 @@ export function ChannelMutateDrawer({
                 </Button>
               )}
             </div>
-          </SheetHeader>
-
+          )
+        }
+        contentClassName='flex h-[95vh] flex-col gap-0 p-0 sm:max-w-7xl sm:p-0'
+        headerClassName='border-b px-4 py-3 pr-12 sm:px-6 sm:py-4 sm:pr-14'
+        contentHeight='100%'
+        bodyContainerClassName='flex-1 max-h-none overflow-hidden'
+        bodyClassName='h-full min-h-0'
+        footerClassName='mx-0 mb-0 border-t px-4 py-3 sm:mx-0 sm:mb-0 sm:px-6 sm:py-4'
+        footer={
+          <>
+            {showProviderPicker && providerTarget ? (
+              <Button
+                type='button'
+                variant='outline'
+                disabled={isSubmitting}
+                onClick={() => setChoosingProvider(false)}
+              >
+                {t('Cancel')}
+              </Button>
+            ) : (
+              <DialogClose
+                render={<Button variant='outline' disabled={isSubmitting} />}
+              >
+                {t('Cancel')}
+              </DialogClose>
+            )}
+            {!showProviderPicker && (
+              <Button
+                form='channel-form'
+                type='submit'
+                disabled={
+                  isSubmitting ||
+                  (!isEditing && !canEditSensitive) ||
+                  (isEditing && !channelData?.data)
+                }
+              >
+                {isSubmitting && (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                )}
+                {isEditing ? t('Update Channel') : t('Create Channel')}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className='flex h-full min-h-0 flex-col'>
           {showProviderPicker && (
             <ChannelProviderPicker
               isCreating={!isEditing}
@@ -4316,42 +4339,49 @@ export function ChannelMutateDrawer({
             />
           )}
 
-          {sensitiveLocked && (
-            <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
-              <AlertDescription>
-                {t(
-                  'Sensitive channel settings are read-only for your account.'
-                )}{' '}
-                {t(
-                  'You can still edit non-sensitive operations fields such as models, groups, priority, and weight.'
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
+          {(sensitiveLocked ||
+            (!isEditing && !showProviderPicker && clipboardConnectionInfo)) && (
+            <div className='flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-6'>
+              {sensitiveLocked && (
+                <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
+                  <AlertDescription>
+                    {t(
+                      'Sensitive channel settings are read-only for your account.'
+                    )}{' '}
+                    {t(
+                      'You can still edit non-sensitive operations fields such as models, groups, priority, and weight.'
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          {!isEditing && !showProviderPicker && clipboardConnectionInfo && (
-            <Alert>
-              <AlertDescription className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-                <span>{t('Connection info detected in clipboard')}</span>
-                <span className='flex shrink-0 gap-2'>
-                  <Button
-                    type='button'
-                    size='sm'
-                    onClick={() => applyConnectionInfo(clipboardConnectionInfo)}
-                  >
-                    {t('Fill in')}
-                  </Button>
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='sm'
-                    onClick={() => setClipboardConnectionInfo(null)}
-                  >
-                    {t('Ignore')}
-                  </Button>
-                </span>
-              </AlertDescription>
-            </Alert>
+              {!isEditing && !showProviderPicker && clipboardConnectionInfo && (
+                <Alert>
+                  <AlertDescription className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+                    <span>{t('Connection info detected in clipboard')}</span>
+                    <span className='flex shrink-0 gap-2'>
+                      <Button
+                        type='button'
+                        size='sm'
+                        onClick={() =>
+                          applyConnectionInfo(clipboardConnectionInfo)
+                        }
+                      >
+                        {t('Fill in')}
+                      </Button>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => setClipboardConnectionInfo(null)}
+                      >
+                        {t('Ignore')}
+                      </Button>
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
           )}
 
           <Form {...form}>
@@ -4373,43 +4403,8 @@ export function ChannelMutateDrawer({
               {formContent}
             </form>
           </Form>
-
-          <SheetFooter className={sideDrawerFooterClassName()}>
-            {showProviderPicker && providerTarget ? (
-              <Button
-                type='button'
-                variant='outline'
-                disabled={isSubmitting}
-                onClick={() => setChoosingProvider(false)}
-              >
-                {t('Cancel')}
-              </Button>
-            ) : (
-              <SheetClose
-                render={<Button variant='outline' disabled={isSubmitting} />}
-              >
-                {t('Cancel')}
-              </SheetClose>
-            )}
-            {!showProviderPicker && (
-              <Button
-                form='channel-form'
-                type='submit'
-                disabled={
-                  isSubmitting ||
-                  (!isEditing && !canEditSensitive) ||
-                  (isEditing && !channelData?.data)
-                }
-              >
-                {isSubmitting && (
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                )}
-                {isEditing ? t('Update Channel') : t('Create Channel')}
-              </Button>
-            )}
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </Dialog>
 
       {open && modelConfiguration && (
         <ConfigureModelsDialog
