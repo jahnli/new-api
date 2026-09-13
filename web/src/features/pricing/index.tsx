@@ -16,6 +16,7 @@ import {
   PricingToolbar,
   ModelCardGrid,
   ModelDetailsDrawer,
+  RecommendedModelsShelf,
 } from './components'
 import { EXCLUDED_GROUPS, VIEW_MODES } from './constants'
 import { useFilters } from './hooks/use-filters'
@@ -219,6 +220,18 @@ export function Pricing() {
             />
 
             <main className='min-w-0 space-y-4'>
+              <RecommendedModelsShelf
+                models={models || []}
+                onModelClick={handleModelClick}
+                priceRate={priceRate}
+                usdExchangeRate={usdExchangeRate}
+                tokenUnit={tokenUnit}
+                showRechargePrice={showRechargePrice}
+                selectedGroup={groupFilter}
+                currentUserGroup={currentUserGroup}
+                maskPrices={demoMode}
+              />
+
               <PricingToolbar
                 filteredCount={filteredModels.length}
                 totalCount={models?.length}
