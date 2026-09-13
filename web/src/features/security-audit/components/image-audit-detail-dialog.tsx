@@ -1,10 +1,9 @@
 import { Copy, Download, PackageOpen, Star } from 'lucide-react'
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,11 +11,8 @@ import {
   downloadImagesAsZip,
   imageFileName,
 } from '@/features/image-studio/lib/image-utils'
-import { getUserInfo } from '@/features/usage-logs/api'
+import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 import { ModelBadge } from '@/features/usage-logs/components/model-badge'
-import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
-import type { UserColumnRow } from '@/features/users/types'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import dayjs from '@/lib/dayjs'
 
@@ -42,71 +38,10 @@ function DetailField(props: { label: string; children: ReactNode }) {
 /** Full generation record: user, every stored field, prompt and image grid. */
 export function ImageAuditDetailDialog(props: ImageAuditDetailDialogProps) {
   const { t } = useTranslation()
-  const [userData, setUserData] = useState<UserColumnRow | null>(null)
-  const fetchedUserId = useRef<number | null>(null)
-
-  const handleFetchUser = useCallback(() => {
-    const userId = props.item?.user_id
-    if (!userId || fetchedUserId.current === userId) return
-
-    fetchedUserId.current = userId
-    void getUserInfo(userId).then((response) => {
-      if (!response.success || !response.data) return
-
-      const userInfo = response.data
-      setUserData({
-        id: userInfo.id,
-        username: userInfo.username,
-        display_name: userInfo.display_name || userInfo.username,
-        email: userInfo.email,
-        avatar_url: userInfo.avatar_url,
-        remark: userInfo.remark,
-        quota: userInfo.quota,
-        used_quota: userInfo.used_quota,
-        sub_quota_used: 0,
-        sub_quota_total: 0,
-        request_count: userInfo.request_count,
-        group: userInfo.group || '',
-        status: userInfo.status ?? 1,
-        role: userInfo.role ?? 1,
-        department_name: userInfo.department_name,
-        custom_field_values: userInfo.custom_field_values,
-        join_date: userInfo.join_date,
-        job_number: userInfo.job_number,
-        job_title: userInfo.job_title,
-        description: userInfo.description,
-        background_image: userInfo.background_image,
-        mobile: userInfo.mobile,
-        open_id: userInfo.open_id,
-        gender: userInfo.gender,
-      })
-    })
-  }, [props.item?.user_id])
 
   if (!props.item) return null
   const item = props.item
 
-  const fallbackUser: UserColumnRow = {
-    id: item.user_id,
-    username: item.username,
-    display_name: item.display_name || item.username || `#${item.user_id}`,
-    avatar_url: item.avatar_url || undefined,
-    quota: 0,
-    used_quota: 0,
-    sub_quota_used: 0,
-    sub_quota_total: 0,
-    request_count: 0,
-    group: '',
-    status: 1,
-    role: 1,
-  }
-  const resolvedUser = userData ?? fallbackUser
-  const primaryName =
-    resolvedUser.display_name || resolvedUser.username || `#${item.user_id}`
-  const shouldShowUsername =
-    Boolean(resolvedUser.username) && resolvedUser.username !== primaryName
-  const avatarFallback = getUserAvatarFallback(primaryName)
-  const avatarFallbackStyle = getUserAvatarStyle(primaryName)
   const images = item.images ?? []
 
   const handleCopyPrompt = async () => {
@@ -153,29 +88,13 @@ export function ImageAuditDetailDialog(props: ImageAuditDetailDialogProps) {
     >
       <div className='flex h-full min-h-0 flex-col space-y-4'>
         <div className='flex shrink-0 items-center gap-3 border-b pb-3'>
-          <UserProfileHoverCard user={resolvedUser}>
-            <Avatar className='size-9 shrink-0' onMouseEnter={handleFetchUser}>
-              {resolvedUser.avatar_url && (
-                <AvatarImage src={resolvedUser.avatar_url} alt={primaryName} />
-              )}
-              <AvatarFallback
-                className='text-sm font-semibold text-white'
-                style={avatarFallbackStyle}
-              >
-                {avatarFallback}
-              </AvatarFallback>
-            </Avatar>
-          </UserProfileHoverCard>
-          <div className='flex min-w-0 flex-col'>
-            <span className='truncate text-base font-medium'>
-              {primaryName}
-            </span>
-            {shouldShowUsername && (
-              <span className='text-muted-foreground truncate text-sm'>
-                {resolvedUser.username}
-              </span>
-            )}
-          </div>
+          <LogUserIdentity
+            size='lg'
+            userId={item.user_id}
+            username={item.username}
+            displayName={item.display_name}
+            avatarUrl={item.avatar_url || undefined}
+          />
           <span className='text-muted-foreground ml-auto shrink-0 text-sm tabular-nums'>
             {dayjs(item.created_at).format('YYYY-MM-DD HH:mm:ss')}
           </span>

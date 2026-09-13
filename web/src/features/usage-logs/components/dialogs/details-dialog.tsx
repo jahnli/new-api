@@ -45,7 +45,11 @@ import { pluginUsageSchema } from '@/features/pricing/lib/plugin-pricing'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
-import { DEMO_MODE_MASK, maskFormattedCurrencyAmount } from '@/lib/demo-mode'
+import {
+  DEMO_MODE_MASK,
+  DEMO_MODE_USERNAME_MASK,
+  maskFormattedCurrencyAmount,
+} from '@/lib/demo-mode'
 import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -72,6 +76,7 @@ import {
   isTimingLogType,
 } from '../../lib/utils'
 import { USAGE_BILLING_PATH, type LogOtherData } from '../../types'
+import { LogUserIdentity } from '../log-user-identity'
 import { PluginAuthorLink } from '../plugin-author-link'
 import {
   DetailRow,
@@ -713,6 +718,8 @@ export function DetailsDialog(props: DetailsDialogProps) {
   const reasoningEffortVariant = getReasoningEffortVariant(
     other?.reasoning_effort
   )
+  // Logs without an author (system events) have no identity to show.
+  const showUserIdentity = props.log.user_id > 0 || Boolean(props.log.username)
 
   return (
     <Dialog
@@ -731,7 +738,24 @@ export function DetailsDialog(props: DetailsDialogProps) {
       }
       description={t('View the complete details for this log entry')}
       contentClassName={LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME}
-      headerClassName='max-sm:gap-1'
+      headerClassName='flex-row flex-wrap items-center gap-x-3 gap-y-1 max-sm:gap-x-2'
+      headerTrailing={
+        showUserIdentity ? (
+          <LogUserIdentity
+            size='sm'
+            className='flex-none'
+            userId={props.log.user_id}
+            username={demoMode ? '' : props.log.username}
+            displayName={
+              demoMode ? DEMO_MODE_USERNAME_MASK : props.log.display_name
+            }
+            avatarUrl={demoMode ? undefined : props.log.avatar_url || undefined}
+            openId={demoMode ? undefined : props.log.open_id || undefined}
+            gender={props.log.gender}
+            canFetchDetails={!demoMode}
+          />
+        ) : undefined
+      }
       titleClassName='flex items-center gap-2 text-base'
       descriptionClassName='sr-only'
       contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}

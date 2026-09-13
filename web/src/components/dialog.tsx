@@ -35,6 +35,10 @@ type DialogProps = React.ComponentProps<typeof DialogRoot> & {
   children: React.ReactNode
   trigger?: React.ReactElement
   footer?: React.ReactNode
+  /** Rendered before the title inside the header, e.g. an avatar or icon. */
+  headerLeading?: React.ReactNode
+  /** Rendered after the title inside the header, e.g. a badge trailing it. */
+  headerTrailing?: React.ReactNode
   contentHeight?: React.CSSProperties['height']
   contentClassName?: string
   headerClassName?: string
@@ -56,6 +60,8 @@ export function Dialog({
   children,
   trigger,
   footer,
+  headerLeading,
+  headerTrailing,
   contentHeight = 'auto',
   contentClassName,
   headerClassName,
@@ -88,7 +94,9 @@ export function Dialog({
         <DialogHeader
           className={cn('flex-shrink-0 text-start', headerClassName)}
         >
+          {headerLeading}
           <DialogTitle className={titleClassName}>{title}</DialogTitle>
+          {headerTrailing}
           {description ? (
             <DialogDescription className={descriptionClassName}>
               {description}

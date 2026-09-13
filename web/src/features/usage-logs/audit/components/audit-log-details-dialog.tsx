@@ -21,7 +21,9 @@ import { useTranslation } from 'react-i18next'
 import { Dialog } from '@/components/dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { useDemoMode } from '@/hooks/use-demo-mode'
 import dayjs from '@/lib/dayjs'
+import { DEMO_MODE_USERNAME_MASK } from '@/lib/demo-mode'
 
 import {
   DetailRow,
@@ -29,6 +31,7 @@ import {
   LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME,
   LOG_DETAILS_DIALOG_CONTENT_HEIGHT,
 } from '../../components/dialogs/log-detail-layout'
+import { LogUserIdentity } from '../../components/log-user-identity'
 import type { AuditLog } from '../api'
 import { auditFieldLabel, buildAuditDetails } from '../lib/audit-details'
 import { AuditDetailFields } from './audit-detail-fields'
@@ -36,6 +39,7 @@ import { AuditDetailValue } from './audit-detail-value'
 
 export function AuditLogDetailsDialog(props: { entry: AuditLog }) {
   const { t } = useTranslation()
+  const demoMode = useDemoMode()
   const detail = buildAuditDetails(props.entry, t)
   const identifiers = [
     { label: t('Route'), value: props.entry.route },
@@ -70,28 +74,42 @@ export function AuditLogDetailsDialog(props: { entry: AuditLog }) {
       contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}
       bodyClassName='space-y-3'
     >
-      <div className='min-w-0 space-y-1.5'>
-        <p className='text-sm leading-relaxed font-medium break-words'>
-          {detail.summary}
-        </p>
-        {detail.operation?.description && (
-          <p className='text-muted-foreground text-sm leading-relaxed break-words'>
-            {detail.operation.description}
+      <LogUserIdentity
+        userId={props.entry.user_id}
+        username={demoMode ? '' : props.entry.username}
+        displayName={
+          demoMode ? DEMO_MODE_USERNAME_MASK : props.entry.display_name
+        }
+        avatarUrl={demoMode ? undefined : props.entry.avatar_url || undefined}
+        openId={demoMode ? undefined : props.entry.open_id || undefined}
+        gender={props.entry.gender}
+        canFetchDetails={!demoMode}
+      >
+        <div className='min-w-0 space-y-1.5'>
+          <p className='text-sm leading-relaxed font-medium break-words'>
+            {detail.summary}
           </p>
-        )}
-        <div className='flex flex-wrap items-center gap-2 text-xs'>
-          <StatusBadge
-            label={props.entry.success ? t('Success') : t('Failed')}
-            variant={props.entry.success ? 'success' : 'danger'}
-            copyable={false}
-          />
-          {Number.isFinite(props.entry.created_at) && (
-            <span className='text-muted-foreground tabular-nums'>
-              {dayjs.unix(props.entry.created_at).format('YYYY-MM-DD HH:mm:ss')}
-            </span>
+          {detail.operation?.description && (
+            <p className='text-muted-foreground text-sm leading-relaxed break-words'>
+              {detail.operation.description}
+            </p>
           )}
+          <div className='flex flex-wrap items-center gap-2 text-xs'>
+            <StatusBadge
+              label={props.entry.success ? t('Success') : t('Failed')}
+              variant={props.entry.success ? 'success' : 'danger'}
+              copyable={false}
+            />
+            {Number.isFinite(props.entry.created_at) && (
+              <span className='text-muted-foreground tabular-nums'>
+                {dayjs
+                  .unix(props.entry.created_at)
+                  .format('YYYY-MM-DD HH:mm:ss')}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      </LogUserIdentity>
       {detail.operation && (
         <DetailSection
           label={

@@ -24,13 +24,18 @@ import { Dialog } from '@/components/dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Label } from '@/components/ui/label'
 import { useDemoMode } from '@/hooks/use-demo-mode'
-import { DEMO_MODE_MASK, maskFormattedCurrencyAmount } from '@/lib/demo-mode'
+import {
+  DEMO_MODE_MASK,
+  DEMO_MODE_USERNAME_MASK,
+  maskFormattedCurrencyAmount,
+} from '@/lib/demo-mode'
 import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { taskActionMapper, taskStatusMapper } from '../../lib/mappers'
 import { resolveTaskDetailAccess } from '../../lib/task-details'
 import type { TaskLog } from '../../types'
+import { LogUserIdentity } from '../log-user-identity'
 import { PluginAuthorLink } from '../plugin-author-link'
 
 function DetailRow(props: {
@@ -90,6 +95,9 @@ export function TaskDetailsDialog(props: TaskDetailsDialogProps) {
   const plugin = access.plugin
   const runtime = access.runtime
   const properties = props.log.properties
+  // Only the admin task list resolves the author; the self-service view has no
+  // username to show, so its own tasks would render as a bare user id.
+  const showUserIdentity = Boolean(props.log.username)
 
   return (
     <Dialog
@@ -113,6 +121,19 @@ export function TaskDetailsDialog(props: TaskDetailsDialogProps) {
       }
       description={t('View the complete details for this task')}
       contentClassName='min-w-0 overflow-hidden sm:max-w-2xl'
+      headerClassName='flex-row flex-wrap items-center gap-x-3 gap-y-1 max-sm:gap-x-2'
+      headerLeading={
+        showUserIdentity ? (
+          <LogUserIdentity
+            className='flex-none'
+            userId={props.log.user_id}
+            username={demoMode ? '' : props.log.username}
+            displayName={demoMode ? DEMO_MODE_USERNAME_MASK : undefined}
+            openId={demoMode ? undefined : props.log.open_id || undefined}
+            canFetchDetails={!demoMode}
+          />
+        ) : undefined
+      }
       contentHeight='min(72dvh, 720px)'
       bodyClassName='pr-2 sm:pr-4'
     >

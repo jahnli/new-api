@@ -7,27 +7,25 @@ import {
   Copy,
   ShieldAlert,
 } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Dialog } from '@/components/dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
 import type { UserColumnRow } from '@/features/users/types'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatTimestampToDate } from '@/lib/format'
 
-import { getUserInfo, notifyRequestMessageViolation } from '../../api'
+import { notifyRequestMessageViolation } from '../../api'
 import type { RequestMessage } from '../../types'
+import { LogUserIdentity } from '../log-user-identity'
 import { parseUserMessages } from '../request-messages-provider'
 
 interface RequestContentDialogProps {
@@ -53,52 +51,9 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
   const [messageOpenState, setMessageOpenState] = useState<
     Record<string, boolean>
   >({})
-  const [userData, setUserData] = useState<UserColumnRow>(props.user)
-  const fetchedUserRef = useRef(false)
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
   const messages = parseUserMessages(props.requestMessage.user_content)
   const canNotifyViolation = props.requestMessage.user_id > 0
-  const primaryName = userData.display_name || userData.username
-  const shouldShowUsername =
-    Boolean(userData.username) && userData.username !== primaryName
-  const avatarFallback = getUserAvatarFallback(primaryName)
-  const avatarFallbackStyle = getUserAvatarStyle(primaryName)
-  const handleFetchUser = useCallback(() => {
-    if (fetchedUserRef.current || props.user.id <= 0) return
-
-    fetchedUserRef.current = true
-    void getUserInfo(props.user.id).then((response) => {
-      if (!response.success || !response.data) return
-
-      const userInfo = response.data
-      setUserData({
-        id: userInfo.id,
-        username: userInfo.username,
-        display_name: userInfo.display_name || userInfo.username,
-        email: userInfo.email,
-        avatar_url: userInfo.avatar_url,
-        remark: userInfo.remark,
-        quota: userInfo.quota,
-        used_quota: userInfo.used_quota,
-        sub_quota_used: 0,
-        sub_quota_total: 0,
-        request_count: userInfo.request_count,
-        group: userInfo.group || '',
-        status: userInfo.status ?? 1,
-        role: userInfo.role ?? 1,
-        department_name: userInfo.department_name,
-        custom_field_values: userInfo.custom_field_values,
-        join_date: userInfo.join_date,
-        job_number: userInfo.job_number,
-        job_title: userInfo.job_title,
-        description: userInfo.description,
-        background_image: userInfo.background_image,
-        mobile: userInfo.mobile,
-        open_id: userInfo.open_id,
-        gender: userInfo.gender,
-      })
-    })
-  }, [props.user.id])
   const notifyViolationMutation = useMutation({
     mutationFn: async () => {
       const res = await notifyRequestMessageViolation({
@@ -170,80 +125,52 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
         <div className='flex h-full min-h-0 flex-col space-y-3'>
           <div className='shrink-0 border-b pb-3'>
             <div className='flex flex-wrap items-start justify-between gap-3'>
-              <div className='flex min-w-0 flex-1 items-start gap-3'>
-                <UserProfileHoverCard user={userData}>
-                  <Avatar
-                    className='size-9 shrink-0'
-                    onMouseEnter={handleFetchUser}
+              <LogUserIdentity
+                userId={props.user.id}
+                username={props.user.username}
+                displayName={props.user.display_name}
+                avatarUrl={props.user.avatar_url}
+                openId={props.user.open_id}
+                gender={props.user.gender}
+              >
+                <div className='text-muted-foreground flex min-w-0 flex-wrap items-center gap-1 text-sm'>
+                  <span>
+                    {props.requestMessage.model_name} ·{' '}
+                    {props.requestMessage.relay_format} ·{' '}
+                    {formatTimestampToDate(props.requestMessage.created_at)}
+                  </span>
+                  <span className='text-muted-foreground/60'>·</span>
+                  <span className='shrink-0'>{t('Request ID')}:</span>
+                  <span className='max-w-[28rem] truncate font-mono'>
+                    {props.requestMessage.request_id}
+                  </span>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-6 w-6 shrink-0 p-0'
+                    onClick={() =>
+                      void handleCopy(
+                        props.requestMessage.request_id,
+                        'request-id'
+                      )
+                    }
+                    title={t('Copy to clipboard')}
                   >
-                    {userData.avatar_url && (
-                      <AvatarImage
-                        src={userData.avatar_url}
-                        alt={primaryName}
-                      />
+                    {copiedTarget === 'request-id' &&
+                    copiedText === props.requestMessage.request_id ? (
+                      <Check className='size-3 text-green-600' />
+                    ) : (
+                      <Copy className='size-3' />
                     )}
-                    <AvatarFallback
-                      className='text-sm font-semibold text-white'
-                      style={avatarFallbackStyle}
-                    >
-                      {avatarFallback}
-                    </AvatarFallback>
-                  </Avatar>
-                </UserProfileHoverCard>
-                <div className='flex min-w-0 flex-1 flex-wrap items-start gap-x-4 gap-y-1'>
-                  <div className='flex min-w-24 shrink-0 flex-col'>
-                    <span className='truncate text-sm font-medium'>
-                      {primaryName || `#${props.requestMessage.user_id}`}
-                    </span>
-                    {shouldShowUsername && (
-                      <span className='text-muted-foreground truncate text-xs'>
-                        {userData.username}
-                      </span>
-                    )}
-                  </div>
-                  <div className='min-w-0 flex-1 space-y-1'>
-                    <div className='text-muted-foreground flex min-w-0 flex-wrap items-center gap-1 text-sm'>
-                      <span>
-                        {props.requestMessage.model_name} ·{' '}
-                        {props.requestMessage.relay_format} ·{' '}
-                        {formatTimestampToDate(props.requestMessage.created_at)}
-                      </span>
-                      <span className='text-muted-foreground/60'>·</span>
-                      <span className='shrink-0'>{t('Request ID')}:</span>
-                      <span className='max-w-[28rem] truncate font-mono'>
-                        {props.requestMessage.request_id}
-                      </span>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-6 w-6 shrink-0 p-0'
-                        onClick={() =>
-                          void handleCopy(
-                            props.requestMessage.request_id,
-                            'request-id'
-                          )
-                        }
-                        title={t('Copy to clipboard')}
-                      >
-                        {copiedTarget === 'request-id' &&
-                        copiedText === props.requestMessage.request_id ? (
-                          <Check className='size-3 text-green-600' />
-                        ) : (
-                          <Copy className='size-3' />
-                        )}
-                      </Button>
-                    </div>
-                    {props.client && (
-                      <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
-                        <span className='shrink-0'>{t('Client')}:</span>
-                        <span className='min-w-0 break-all'>
-                          {props.client}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  </Button>
                 </div>
-              </div>
+                {props.client && (
+                  <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
+                    <span className='shrink-0'>{t('Client')}:</span>
+                    <span className='min-w-0 break-all'>{props.client}</span>
+                  </div>
+                )}
+              </LogUserIdentity>
               {canNotifyViolation && (
                 <Button
                   variant='destructive'

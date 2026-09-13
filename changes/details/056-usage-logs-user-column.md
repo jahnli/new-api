@@ -190,3 +190,16 @@
 ## 2026-09-13 普通日志详情列加重
 
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 普通日志「详情」列的日志内容与计费摘要改用表格默认字重（半粗体），不再强制常规字重；省略占位符与「+N」折叠计数继续使用常规字重以保持层次。
+
+## 2026-09-13 用户身份组件统一
+
+- `web/src/features/usage-logs/components/log-user-identity.tsx` — 新增共用身份块组件 `LogUserIdentity`：头像 + 显示名/用户名 + 悬停资料卡；日志行自带作者信息，鼠标移入头像时按 user_id 懒加载完整资料；支持 `sm`/`default`/`lg` 三档字号、`canFetchDetails` 关闭拉取、`children` 承载右侧附加信息；头像统一 34px（`sm` 档 24px），用户名使用与使用日志表格一致的 `text-muted-foreground/70`，内外两层均垂直居中。
+- `web/src/components/dialog.tsx` — `Dialog` 新增 `headerLeading`（标题前）与 `headerTrailing`（标题后）两个插槽；未传时行为不变，不影响其它弹框。
+- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情弹框标题后挂载小尺寸身份块，仅在存在 user_id 或 username 时显示；去掉原本为占位新增的正文身份区块。
+- `web/src/features/usage-logs/components/dialogs/task-details-dialog.tsx` — 任务详情弹框标题前挂载身份块；仅管理员任务列表有 username 时显示；按演示模式遮蔽用户名与头像。
+- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 改为复用共用组件承载头像与显示名/用户名，模型、格式、时间、请求 ID 与 User-Agent 信息通过 `children` 传入，删除内联的头像渲染与资料拉取代码。
+- `web/src/features/usage-logs/audit/components/audit-log-details-dialog.tsx` — 审计日志详情弹框正文首行改为「身份块在左、日志摘要与成功/失败状态及时刻在右」的同排布局，删除内联身份代码并补齐演示模式遮蔽。
+- `web/src/features/security-audit/components/image-audit-detail-dialog.tsx` — 图片审计生成详情弹框顶栏改用共用组件的 `lg` 档，保留右侧时间。
+- `web/src/features/security-audit/components/image-audit-request-content-dialog.tsx` — 图片审计请求内容弹框改用共用组件，User-Agent 等信息通过 `children` 传入。
+- `web/src/features/data-overview/components/user-stats-dialog.tsx` — 用户统计弹框改用共用组件，删除为悬停卡片手工构造的完整 `UserColumnRow` 映射；身份信息与时间筛选合并为同一行（时间筛选按内容宽度靠右、小屏自动换行），去掉原分隔线并微调上下留白。
+- `web/src/features/users/components/data-table-row-actions.tsx` — 行操作传给用户统计弹框的临时用户对象补齐 `avatar_url`、`open_id`、`gender`，修复该弹框头像需悬停后才显示的问题。

@@ -1,17 +1,12 @@
 import { Check, Copy, ImageOff } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getUserInfo } from '@/features/usage-logs/api'
+import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 import { ModelBadge } from '@/features/usage-logs/components/model-badge'
-import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
-import type { UserColumnRow } from '@/features/users/types'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import dayjs from '@/lib/dayjs'
 
 import type { ImageAuditItem } from '../types'
@@ -40,71 +35,10 @@ export function ImageAuditRequestContentDialog(
 ) {
   const { t } = useTranslation()
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
-  const [userData, setUserData] = useState<UserColumnRow | null>(null)
-  const fetchedUserId = useRef<number | null>(null)
-
-  const handleFetchUser = useCallback(() => {
-    const userId = props.item?.user_id
-    if (!userId || fetchedUserId.current === userId) return
-
-    fetchedUserId.current = userId
-    void getUserInfo(userId).then((response) => {
-      if (!response.success || !response.data) return
-
-      const userInfo = response.data
-      setUserData({
-        id: userInfo.id,
-        username: userInfo.username,
-        display_name: userInfo.display_name || userInfo.username,
-        email: userInfo.email,
-        avatar_url: userInfo.avatar_url,
-        remark: userInfo.remark,
-        quota: userInfo.quota,
-        used_quota: userInfo.used_quota,
-        sub_quota_used: 0,
-        sub_quota_total: 0,
-        request_count: userInfo.request_count,
-        group: userInfo.group || '',
-        status: userInfo.status ?? 1,
-        role: userInfo.role ?? 1,
-        department_name: userInfo.department_name,
-        custom_field_values: userInfo.custom_field_values,
-        join_date: userInfo.join_date,
-        job_number: userInfo.job_number,
-        job_title: userInfo.job_title,
-        description: userInfo.description,
-        background_image: userInfo.background_image,
-        mobile: userInfo.mobile,
-        open_id: userInfo.open_id,
-        gender: userInfo.gender,
-      })
-    })
-  }, [props.item?.user_id])
 
   if (!props.item) return null
 
   const item = props.item
-  const fallbackUser: UserColumnRow = {
-    id: item.user_id,
-    username: item.username,
-    display_name: item.display_name || item.username || `#${item.user_id}`,
-    avatar_url: item.avatar_url || undefined,
-    quota: 0,
-    used_quota: 0,
-    sub_quota_used: 0,
-    sub_quota_total: 0,
-    request_count: 0,
-    group: '',
-    status: 1,
-    role: 1,
-  }
-  const resolvedUser = userData?.id === item.user_id ? userData : fallbackUser
-  const primaryName =
-    resolvedUser.display_name || resolvedUser.username || `#${item.user_id}`
-  const shouldShowUsername =
-    Boolean(resolvedUser.username) && resolvedUser.username !== primaryName
-  const avatarFallback = getUserAvatarFallback(primaryName)
-  const avatarFallbackStyle = getUserAvatarStyle(primaryName)
   const images = item.images ?? []
   const requestParameters = JSON.stringify(getRequestParameters(item), null, 2)
 
@@ -120,50 +54,30 @@ export function ImageAuditRequestContentDialog(
     >
       <div className='flex h-full min-h-0 flex-col space-y-3'>
         <div className='flex shrink-0 items-start gap-3 border-b pb-3'>
-          <UserProfileHoverCard user={resolvedUser}>
-            <Avatar className='size-9 shrink-0' onMouseEnter={handleFetchUser}>
-              {resolvedUser.avatar_url && (
-                <AvatarImage src={resolvedUser.avatar_url} alt={primaryName} />
-              )}
-              <AvatarFallback
-                className='text-sm font-semibold text-white'
-                style={avatarFallbackStyle}
-              >
-                {avatarFallback}
-              </AvatarFallback>
-            </Avatar>
-          </UserProfileHoverCard>
-          <div className='flex min-w-0 flex-1 flex-wrap items-start gap-x-4 gap-y-1'>
-            <div className='flex min-w-24 shrink-0 flex-col'>
-              <span className='truncate text-sm font-medium'>
-                {primaryName}
+          <LogUserIdentity
+            userId={item.user_id}
+            username={item.username}
+            displayName={item.display_name}
+            avatarUrl={item.avatar_url || undefined}
+          >
+            <div className='text-muted-foreground flex min-w-0 flex-wrap items-center gap-1 text-sm'>
+              <ModelBadge modelName={item.model} className='font-normal' />
+              <span className='text-muted-foreground/60'>·</span>
+              <Badge variant='secondary' className='font-normal'>
+                {t(imageAuditModeLabelKey(item.mode))}
+              </Badge>
+              <span className='text-muted-foreground/60'>·</span>
+              <span className='tabular-nums'>
+                {dayjs(item.created_at).format('YYYY-MM-DD HH:mm:ss')}
               </span>
-              {shouldShowUsername && (
-                <span className='text-muted-foreground truncate text-xs'>
-                  {resolvedUser.username}
-                </span>
-              )}
             </div>
-            <div className='min-w-0 flex-1 space-y-1'>
-              <div className='text-muted-foreground flex min-w-0 flex-wrap items-center gap-1 text-sm'>
-                <ModelBadge modelName={item.model} className='font-normal' />
-                <span className='text-muted-foreground/60'>·</span>
-                <Badge variant='secondary' className='font-normal'>
-                  {t(imageAuditModeLabelKey(item.mode))}
-                </Badge>
-                <span className='text-muted-foreground/60'>·</span>
-                <span className='tabular-nums'>
-                  {dayjs(item.created_at).format('YYYY-MM-DD HH:mm:ss')}
-                </span>
+            {item.user_agent && (
+              <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
+                <span className='shrink-0'>{t('User-Agent')}:</span>
+                <span className='min-w-0 break-all'>{item.user_agent}</span>
               </div>
-              {item.user_agent && (
-                <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
-                  <span className='shrink-0'>{t('User-Agent')}:</span>
-                  <span className='min-w-0 break-all'>{item.user_agent}</span>
-                </div>
-              )}
-            </div>
-          </div>
+            )}
+          </LogUserIdentity>
         </div>
 
         <div className='grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overscroll-contain lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden'>

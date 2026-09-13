@@ -3,7 +3,6 @@ import dayjs from 'dayjs'
 import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Dialog,
   DialogContent,
@@ -11,9 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
-import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
-import type { UserColumnRow } from '@/features/users/types'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
+import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 
 import { getUserUsageAnalysis } from '../api'
 import type { DepartmentUser } from '../types'
@@ -109,43 +106,6 @@ export function UserStatsDialog(props: UserStatsDialogProps) {
 
   if (!props.user) return null
 
-  const displayName = props.user.display_name || props.user.username
-  const shouldShowUsername =
-    Boolean(props.user.username) && props.user.username !== displayName
-  const avatarFallback = getUserAvatarFallback(displayName)
-  const avatarFallbackStyle = getUserAvatarStyle(displayName)
-
-  const userColumnRow: UserColumnRow = {
-    id: props.user.id,
-    username: props.user.username,
-    display_name: props.user.display_name,
-    email: props.user.email,
-    avatar_url: props.user.avatar_url,
-    remark: props.user.remark,
-    quota: props.user.quota,
-    used_quota: props.user.used_quota,
-    has_active_subscription: props.user.has_active_subscription,
-    sub_quota_used: props.user.sub_quota_used ?? 0,
-    sub_quota_total: props.user.sub_quota_total ?? 0,
-    request_count: props.user.request_count,
-    group: props.user.group,
-    status: props.user.status,
-    role: props.user.role,
-    created_at: props.user.created_at,
-    last_login_at: props.user.last_login_at,
-    DeletedAt: props.user.DeletedAt,
-    department_name: props.user.department_name,
-    custom_field_values: props.user.custom_field_values,
-    join_date: props.user.join_date,
-    job_number: props.user.job_number,
-    job_title: props.user.job_title,
-    description: props.user.description,
-    background_image: props.user.background_image,
-    mobile: props.user.mobile,
-    open_id: props.user.open_id,
-    gender: props.user.gender,
-  }
-
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className='flex h-[85vh] max-h-[85vh] w-[min(1360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col overflow-hidden sm:max-w-[calc(100vw-2rem)]'>
@@ -153,40 +113,21 @@ export function UserStatsDialog(props: UserStatsDialogProps) {
           <DialogTitle>{t('User Statistics')}</DialogTitle>
         </DialogHeader>
 
-        <div className='shrink-0 border-b pb-3'>
-          <div className='flex items-start gap-3'>
-            <UserProfileHoverCard user={userColumnRow}>
-              <Avatar className='size-9 shrink-0'>
-                {props.user.avatar_url && (
-                  <AvatarImage src={props.user.avatar_url} alt={displayName} />
-                )}
-                <AvatarFallback
-                  className='text-sm font-semibold text-white'
-                  style={avatarFallbackStyle}
-                >
-                  {avatarFallback}
-                </AvatarFallback>
-              </Avatar>
-            </UserProfileHoverCard>
-            <div className='flex min-w-0 flex-1 flex-col'>
-              <span className='truncate text-sm font-medium'>
-                {displayName}
-              </span>
-              {shouldShowUsername && (
-                <span className='text-muted-foreground truncate text-xs'>
-                  {props.user.username}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <div className='flex shrink-0 flex-wrap items-center gap-3 py-1.5'>
+          <LogUserIdentity
+            userId={props.user.id}
+            username={props.user.username}
+            displayName={props.user.display_name}
+            avatarUrl={props.user.avatar_url}
+            openId={props.user.open_id}
+            gender={props.user.gender}
+          />
 
-        <div className='shrink-0 pt-2 pr-1'>
           <CompactDateTimeRangePicker
             start={dateRange.start}
             end={dateRange.end}
             onChange={setDateRange}
-            className='max-w-none'
+            className='w-full shrink-0 sm:w-auto'
           />
         </div>
 
