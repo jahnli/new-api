@@ -109,27 +109,25 @@ export function ImagePreviewDialog(props: ImagePreviewDialogProps) {
       >
         <DialogTitle className='sr-only'>{t('Image preview')}</DialogTitle>
         <div
-          className='relative flex h-screen w-screen min-w-0 flex-col items-center justify-center px-[4vw] py-[4vh]'
+          className='relative flex h-screen w-screen min-w-0 flex-col items-center px-[4vw] py-[4vh]'
           onClick={() => props.onOpenChange(false)}
         >
           <div
-            className='relative flex w-full items-center justify-center overflow-hidden'
+            className='flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden'
             onWheel={handleWheel}
           >
-            <div className='flex max-h-[calc(96vh-9rem)] w-[min(92vw,960px)] items-center justify-center overflow-hidden'>
-              <img
-                src={currentImage.src}
-                alt={currentImage.alt}
-                className='max-h-[calc(96vh-9rem)] max-w-full rounded-lg object-contain transition-transform duration-150'
-                style={{
-                  transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                }}
-                onClick={(event) => event.stopPropagation()}
-              />
-            </div>
+            <img
+              src={currentImage.src}
+              alt={currentImage.alt}
+              className='max-h-full max-w-full rounded-lg object-contain transition-transform duration-150'
+              style={{
+                transform: `scale(${zoom}) rotate(${rotation}deg)`,
+              }}
+              onClick={(event) => event.stopPropagation()}
+            />
           </div>
           <div
-            className='pointer-events-none absolute inset-x-0 bottom-[4vh] flex flex-col items-center gap-5'
+            className='pointer-events-none flex w-full shrink-0 flex-col items-center gap-5 pt-5'
             onClick={(event) => event.stopPropagation()}
           >
             {currentImage.description && (
@@ -137,7 +135,7 @@ export function ImagePreviewDialog(props: ImagePreviewDialogProps) {
                 {currentImage.description}
               </p>
             )}
-            <div className='bg-background/95 pointer-events-auto flex flex-wrap items-center justify-center gap-1.5 rounded-full border p-1.5 shadow-sm backdrop-blur-sm sm:self-center'>
+            <div className='bg-background/95 pointer-events-auto flex flex-wrap items-center justify-center gap-1.5 rounded-full border p-1.5 shadow-sm backdrop-blur-sm'>
               {props.images.length > 1 && (
                 <>
                   <Button
