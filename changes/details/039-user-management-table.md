@@ -133,3 +133,8 @@
 - `web/src/features/users/components/shared-user-columns.tsx` — 共享的合并列由「消耗」改名为「使用量」（复用已有 `Usage` 文案）；列说明提示改为两行，首行为 Token 用量与费用，次行为请求次数与每亿 Token 单价。
 - `web/src/components/data-table/core/column-header.tsx` — 通用列说明提示保留译文中的换行，未包含换行的说明显示保持不变。
 - `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 使用量列说明改为两行七语言文案；`Usage` 中文文案由「用量」改为「使用量」；移除不再使用的「消耗」文案。
+
+## 2026-09-13 「使用量」列头下拉菜单报错修复与加宽
+
+- `web/src/components/data-table/core/column-header.tsx` — 修复点击「使用量」列头后整页显示 500 的问题：Base UI 的 `Menu.GroupLabel` 必须位于 `Menu.Group` 或 `Menu.RadioGroup` 内，此前菜单里的「排序字段」标签与排序字段单选组是兄弟节点，菜单一展开即抛出 `MenuGroupContext is missing`，被根路由错误边界（`GeneralError`，标题为超大 `{status ?? 500}`）接管，表现为整页跳 500 而后端无任何 500 响应；现将标签与单选组一并包入 `DropdownMenuGroup`，与仓库内其他下拉菜单调用处写法一致，用户管理与数据总览部门人员列表共用该列头，两处同步修复。
+- `web/src/components/data-table/core/column-header.tsx` — 排序字段下拉菜单宽度此前跟随触发按钮宽度（`w-(--anchor-width)`），列头较窄时「单价 / 亿 Token」被迫折成两行；现为该菜单增加 `min-w-60`（240px），按七语言中最长译文（英文 `Unit Price / 100M Tokens`、俄语 `Цена / 100 млн токенов`）取值，保证单行显示；未声明 `meta.sortFields` 的列头菜单宽度保持原样。

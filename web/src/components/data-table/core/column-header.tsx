@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -167,20 +168,26 @@ export function DataTableColumnHeader<TData, TValue>({
             )}
           />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align='start'>
+        <DropdownMenuContent
+          align='start'
+          className={activeSortField ? 'min-w-60' : undefined}
+        >
           {activeSortField ? (
             <>
-              <DropdownMenuLabel>{t('Sort by')}</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={activeSortField.id}
-                onValueChange={selectSortField}
-              >
-                {sortFields.map((field) => (
-                  <DropdownMenuRadioItem key={field.id} value={field.id}>
-                    {field.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
+              {/* Base UI 的 GroupLabel 必须位于 Group/RadioGroup 内，否则渲染时抛错 */}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{t('Sort by')}</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={activeSortField.id}
+                  onValueChange={selectSortField}
+                >
+                  {sortFields.map((field) => (
+                    <DropdownMenuRadioItem key={field.id} value={field.id}>
+                      {field.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
             </>
           ) : null}
