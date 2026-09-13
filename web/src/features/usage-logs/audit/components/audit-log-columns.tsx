@@ -73,7 +73,7 @@ export function useAuditLogColumns(
         {
           id: 'event',
           header: t('Event'),
-          size: 360,
+          size: 300,
           accessorFn: (entry) => {
             const detail = buildAuditDetails(entry, t)
             return [detail.summary, detail.operation?.description]
@@ -122,22 +122,15 @@ export function useAuditLogColumns(
     }
     columns.push(
       {
-        accessorKey: 'ip',
-        header: 'IP',
-        size: 130,
-        cell: ({ row }) => <LogIpAddress ipAddress={row.original.ip} />,
-        meta: { label: 'IP' },
-      },
-      {
-        accessorKey: 'user_agent',
-        header: t('Client'),
-        size: 180,
+        accessorKey: 'route',
+        header: t('Route'),
+        size: 220,
         cell: ({ row }) => (
-          <TruncatedCell className='max-w-48'>
-            {row.original.user_agent || '—'}
+          <TruncatedCell className='max-w-60 font-mono'>
+            {row.original.route || '—'}
           </TruncatedCell>
         ),
-        meta: { label: t('Client'), mobileHidden: true },
+        meta: { label: t('Route') },
       },
       {
         accessorKey: 'method',
@@ -149,17 +142,6 @@ export function useAuditLogColumns(
           </span>
         ),
         meta: { label: t('Method') },
-      },
-      {
-        accessorKey: 'route',
-        header: t('Route'),
-        size: 220,
-        cell: ({ row }) => (
-          <TruncatedCell className='max-w-60 font-mono'>
-            {row.original.route || '—'}
-          </TruncatedCell>
-        ),
-        meta: { label: t('Route') },
       },
       {
         accessorKey: 'status',
@@ -184,6 +166,24 @@ export function useAuditLogColumns(
           />
         ),
         meta: { label: t('Result'), mobileBadge: true },
+      },
+      {
+        accessorKey: 'user_agent',
+        header: t('Client'),
+        size: 180,
+        cell: ({ row }) => (
+          <TruncatedCell className='max-w-48'>
+            {row.original.user_agent || '—'}
+          </TruncatedCell>
+        ),
+        meta: { label: t('Client'), mobileHidden: true },
+      },
+      {
+        accessorKey: 'ip',
+        header: 'IP',
+        size: 130,
+        cell: ({ row }) => <LogIpAddress ipAddress={row.original.ip} />,
+        meta: { label: 'IP' },
       },
       {
         id: 'details',
