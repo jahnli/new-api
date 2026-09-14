@@ -57,14 +57,14 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       },
     ]
     return (
-      <div className='text-background max-w-[16rem] space-y-1.5'>
+      <div className='text-background w-[17rem] space-y-2.5'>
         <div className='flex items-baseline justify-between gap-4'>
           <span className='text-xs'>{t('Total Tokens')}</span>
           <span className='font-mono text-xs font-semibold'>
             {formatTokens(stat.total_tokens)}
           </span>
         </div>
-        <div className='border-border/40 space-y-1.5 border-t pt-1.5'>
+        <div className='border-border/40 space-y-2.5 border-t pt-2.5'>
           {breakdownRows.map((row) => (
             <div key={row.label}>
               <div className='flex items-baseline justify-between gap-4'>
@@ -73,7 +73,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
                   {formatTokens(row.value)}
                 </span>
               </div>
-              <div className='font-sans text-[11px] leading-snug'>
+              <div className='font-sans text-[11px] leading-relaxed'>
                 {row.desc}
               </div>
             </div>

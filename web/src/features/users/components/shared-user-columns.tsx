@@ -103,6 +103,14 @@ export function formatUserRequestsDetail(requests: number | undefined): string {
   return Intl.NumberFormat().format(value)
 }
 
+/**
+ * Grid shared by the metric tooltips, which render label/value pairs side by
+ * side. Labels sit at reduced opacity on the inverted tooltip surface and values
+ * align to the right edge so numbers line up across rows.
+ */
+const metricTooltipGridClassName =
+  'grid grid-cols-[auto_auto] items-baseline gap-x-6 gap-y-1.5 text-xs tabular-nums'
+
 // ============================================================================
 // Column Factories
 // ============================================================================
@@ -266,19 +274,15 @@ export function userQuotaColumn<T extends UserColumnRow>(
             />
           </TooltipTrigger>
           <TooltipContent>
-            <div className='space-y-1 text-xs'>
-              <div>
-                {t('Used:')} {formattedUsedQuota}
-              </div>
-              <div>
-                {t('Remaining:')} {formatQuota(remaining)}
-              </div>
-              <div>
-                {t('Total:')} {formatQuota(total)}
-              </div>
-              <div>
-                {t('Percentage:')} {usedPercentage.toFixed(1)}%
-              </div>
+            <div className={metricTooltipGridClassName}>
+              <span className='opacity-70'>{t('Used')}</span>
+              <span className='text-right'>{formattedUsedQuota}</span>
+              <span className='opacity-70'>{t('Remaining')}</span>
+              <span className='text-right'>{formatQuota(remaining)}</span>
+              <span className='opacity-70'>{t('Total')}</span>
+              <span className='text-right'>{formatQuota(total)}</span>
+              <span className='opacity-70'>{t('Percentage')}</span>
+              <span className='text-right'>{usedPercentage.toFixed(1)}%</span>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -356,7 +360,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <div className='grid grid-cols-[auto_auto] items-baseline gap-x-6 gap-y-1.5 text-xs tabular-nums'>
+            <div className={metricTooltipGridClassName}>
               <span className='opacity-70'>{t('Tokens')}</span>
               <span className='text-right'>{formatUserTokens(tokens)}</span>
               <span className='opacity-70'>{t('Cost')}</span>
