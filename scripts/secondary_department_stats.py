@@ -726,8 +726,8 @@ def print_report(
         if displayed_total_tokens > 0
         else Decimal(0)
     )
-    total_input_tokens = input_tokens + cache_input_tokens
-    total_output_tokens = output_tokens + cache_output_tokens
+    total_input_tokens = input_tokens + cache_input_tokens + cache_output_tokens
+    total_output_tokens = output_tokens
     input_output_ratio = total_input_tokens / total_output_tokens if total_output_tokens else 0.0
     cache_hit_rate = cache_input_tokens / total_input_tokens * 100 if total_input_tokens else 0.0
     department_line = f"\n{department_label}：{department_name}" if department_name else ""
@@ -753,7 +753,7 @@ AI 中转站{label}统计{department_line}
 缓存输出，Token 量 {format_token_amount(cache_output_tokens)}，费用 {format_cost(cache_output_cost)} 元，单价 {unit_price(cache_output_cost, cache_output_tokens):.2f} 元
 
 Token 总量 {format_displayed_token_amount(displayed_total_tokens)}{per_capita_text}，人均费用 {per_capita_cost:,.2f} 元，总费用 {displayed_total_cost:,.0f} 元，均价 {displayed_average_price:.2f} 元
-输入输出倍数：{input_output_ratio:.1f} 倍，综合缓存命中率：{cache_hit_rate:.0f}%
+输入输出倍数：{input_output_ratio:.1f} 倍，综合缓存命中率：{cache_hit_rate:.1f}%
 
 Top 5 费用的模型：""")
     for index, item in enumerate(sorted(stats, key=lambda value: value.quota_cost_cny, reverse=True)[:5], start=1):

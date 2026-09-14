@@ -159,8 +159,8 @@ def main() -> int:
         input_tokens + output_tokens + cache_input_tokens + cache_output_tokens
     )
     total_cost = input_cost + output_cost + cache_input_cost + cache_output_cost
-    total_input_tokens = input_tokens + cache_input_tokens
-    total_output_tokens = output_tokens + cache_output_tokens
+    total_input_tokens = input_tokens + cache_input_tokens + cache_output_tokens
+    total_output_tokens = output_tokens
     input_output_ratio = (
         total_input_tokens / total_output_tokens if total_output_tokens else 0.0
     )
@@ -182,7 +182,7 @@ AI 中转站 {args.year} 年 {args.month} 月个人统计
 缓存输出，Token 量 {format_token_amount(cache_output_tokens)}，费用 {stats.format_cost(cache_output_cost)} 元，单价 {stats.unit_price(cache_output_cost, cache_output_tokens):.2f} 元
 
 Token 总量 {format_token_amount(total_tokens)}，总费用 {stats.format_cost(total_cost)} 元，均价 {stats.unit_price(total_cost, total_tokens):.2f} 元
-输入输出倍数：{input_output_ratio:.1f} 倍，综合缓存命中率：{cache_hit_rate:.0f}%
+输入输出倍数：{input_output_ratio:.1f} 倍，综合缓存命中率：{cache_hit_rate:.1f}%
 
 Top 5 最常用模型：""")
     top_models = sorted(
