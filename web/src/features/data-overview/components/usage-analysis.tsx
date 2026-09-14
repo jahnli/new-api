@@ -429,7 +429,7 @@ function TokenTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
         value: (d: { value?: number }) => formatTokenValue(d.value ?? 0),
       },
       {
-        key: () => t('Total Cost'),
+        key: () => t('Cost'),
         value: (d: { cost?: number }) => formatCost(d.cost ?? 0),
       },
       {
@@ -682,18 +682,27 @@ function ModelCallDistributionChart(
         mark: {
           content: [
             {
-              key: () => t('Requests'),
-              value: (datum: { value?: number }) =>
-                `${formatLargeNumber(datum.value ?? 0)} ${t('times')}`,
-            },
-            {
               key: () => 'Token',
               value: (datum: { tokens?: number }) =>
                 formatTokenValue(datum.tokens ?? 0),
             },
             {
-              key: () => t('Total Cost'),
+              key: () => t('Cost'),
               value: (datum: { cost?: number }) => formatCost(datum.cost ?? 0),
+            },
+            {
+              key: () => t('Unit Price'),
+              value: (datum: { cost?: number; tokens?: number }) =>
+                formatUnitPrice(
+                  datum.cost ?? 0,
+                  datum.tokens ?? 0,
+                  t('100M Tokens')
+                ),
+            },
+            {
+              key: () => t('Requests'),
+              value: (datum: { value?: number }) =>
+                `${formatLargeNumber(datum.value ?? 0)} ${t('times')}`,
             },
           ],
         },
@@ -790,46 +799,46 @@ function ModelCostRankChart(
         dimension: {
           content: [
             {
-              key: () => t('Total Cost'),
-              value: (d: { value?: number }) => formatCost(d.value ?? 0),
-            },
-            {
               key: () => 'Token',
               value: (d: { tokens?: number }) =>
                 formatTokenValue(d.tokens ?? 0),
             },
             {
-              key: () => t('Requests'),
-              value: (d: { requests?: number }) =>
-                `${formatLargeNumber(d.requests ?? 0)} ${t('times')}`,
+              key: () => t('Cost'),
+              value: (d: { value?: number }) => formatCost(d.value ?? 0),
             },
             {
               key: () => t('Unit Price'),
               value: (d: { value?: number; tokens?: number }) =>
                 formatUnitPrice(d.value ?? 0, d.tokens ?? 0, t('100M Tokens')),
+            },
+            {
+              key: () => t('Requests'),
+              value: (d: { requests?: number }) =>
+                `${formatLargeNumber(d.requests ?? 0)} ${t('times')}`,
             },
           ],
         },
         mark: {
           content: [
             {
-              key: () => t('Total Cost'),
-              value: (d: { value?: number }) => formatCost(d.value ?? 0),
-            },
-            {
               key: () => 'Token',
               value: (d: { tokens?: number }) =>
                 formatTokenValue(d.tokens ?? 0),
             },
             {
-              key: () => t('Requests'),
-              value: (d: { requests?: number }) =>
-                `${formatLargeNumber(d.requests ?? 0)} ${t('times')}`,
+              key: () => t('Cost'),
+              value: (d: { value?: number }) => formatCost(d.value ?? 0),
             },
             {
               key: () => t('Unit Price'),
               value: (d: { value?: number; tokens?: number }) =>
                 formatUnitPrice(d.value ?? 0, d.tokens ?? 0, t('100M Tokens')),
+            },
+            {
+              key: () => t('Requests'),
+              value: (d: { requests?: number }) =>
+                `${formatLargeNumber(d.requests ?? 0)} ${t('times')}`,
             },
           ],
         },
@@ -901,19 +910,14 @@ function CostTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
         dimension: {
           content: [
             {
-              key: () => t('Total Cost'),
-              value: (datum: { value?: number }) =>
-                formatCost(datum.value ?? 0),
-            },
-            {
               key: () => 'Token',
               value: (datum: { tokens?: number }) =>
                 formatTokenValue(datum.tokens ?? 0),
             },
             {
-              key: () => t('Requests'),
-              value: (datum: { requests?: number }) =>
-                `${formatLargeNumber(datum.requests ?? 0)} ${t('times')}`,
+              key: () => t('Cost'),
+              value: (datum: { value?: number }) =>
+                formatCost(datum.value ?? 0),
             },
             {
               key: () => t('Unit Price'),
@@ -923,6 +927,11 @@ function CostTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
                   datum.tokens ?? 0,
                   t('100M Tokens')
                 ),
+            },
+            {
+              key: () => t('Requests'),
+              value: (datum: { requests?: number }) =>
+                `${formatLargeNumber(datum.requests ?? 0)} ${t('times')}`,
             },
           ],
         },
@@ -933,19 +942,14 @@ function CostTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
           },
           content: [
             {
-              key: () => t('Total Cost'),
-              value: (datum: { value?: number }) =>
-                formatCost(datum.value ?? 0),
-            },
-            {
               key: () => 'Token',
               value: (datum: { tokens?: number }) =>
                 formatTokenValue(datum.tokens ?? 0),
             },
             {
-              key: () => t('Requests'),
-              value: (datum: { requests?: number }) =>
-                `${formatLargeNumber(datum.requests ?? 0)} ${t('times')}`,
+              key: () => t('Cost'),
+              value: (datum: { value?: number }) =>
+                formatCost(datum.value ?? 0),
             },
             {
               key: () => t('Unit Price'),
@@ -955,6 +959,11 @@ function CostTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
                   datum.tokens ?? 0,
                   t('100M Tokens')
                 ),
+            },
+            {
+              key: () => t('Requests'),
+              value: (datum: { requests?: number }) =>
+                `${formatLargeNumber(datum.requests ?? 0)} ${t('times')}`,
             },
           ],
         },

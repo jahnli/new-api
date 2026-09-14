@@ -60,7 +60,7 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
       },
       content: [
         {
-          key: () => t('Total Cost'),
+          key: () => t('Cost'),
           value: (d: { cost?: number }) => formatCost(d.cost ?? 0),
         },
         {
@@ -167,7 +167,7 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
           },
           content: [
             {
-              key: () => t('Total Cost'),
+              key: () => t('Cost'),
               value: (d: { value?: number }) => formatCost(d.value ?? 0),
             },
             {

@@ -174,7 +174,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       showTooltipIcon: true,
     },
     {
-      title: t('Total Cost'),
+      title: t('Cost'),
       value: formatCNY(stat.total_amount_cny),
       desc: t('Statistical quota'),
       icon: Coins,

@@ -135,7 +135,7 @@ function useSubDepartmentColumns(
       },
       {
         accessorKey: 'total_amount_cny',
-        header: t('Total Cost'),
+        header: t('Cost'),
         cell: ({ row }) => (
           <span className='font-mono font-medium'>
             {formatCNY(row.original.total_amount_cny)}

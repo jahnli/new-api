@@ -204,7 +204,7 @@ function addStatsTable(ws: ExcelJS.Worksheet, stat: DepartmentStat): void {
     [t('Uncached Output'), fmtTokens(stat.uncached_output_tokens ?? 0)],
     [t('Cache Read'), fmtTokens(stat.cache_read_tokens ?? 0)],
     [t('Cache Write'), fmtTokens(stat.cache_write_tokens ?? 0)],
-    [t('Total Cost'), fmtCny(stat.total_amount_cny)],
+    [t('Cost'), fmtCny(stat.total_amount_cny)],
     [
       `${t('Unit Price')}/${t('100M Tokens')}`,
       !stat.unit_price_per_100m_tokens
@@ -269,7 +269,7 @@ function buildMainSheet(wb: ExcelJS.Workbook, p: ExportParams): void {
       t('Registered Count'),
       t('Total Users'),
       t('Total Tokens'),
-      t('Total Cost'),
+      t('Cost'),
       `${t('Unit Price')}/${t('100M Tokens')}`,
       t('Request Count'),
       t('Active Users / Active Rate'),
@@ -331,7 +331,7 @@ function buildSubDeptSheet(
       t('Registered Count'),
       t('Total Users'),
       t('Total Tokens'),
-      t('Total Cost'),
+      t('Cost'),
       `${t('Unit Price')}/${t('100M Tokens')}`,
       t('Request Count'),
       t('Active Users / Active Rate'),
@@ -382,7 +382,7 @@ function buildUserListSheet(wb: ExcelJS.Workbook, p: ExportParams): void {
   addSectionTitle(ws, t('User List'), 9)
   const hdr = ws.addRow([
     t('Display Name'),
-    t('Total Cost'),
+    t('Cost'),
     `${t('Unit Price')}/${t('100M Tokens')}`,
     t('Total Tokens'),
     t('Requests'),
