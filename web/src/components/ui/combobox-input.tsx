@@ -39,6 +39,7 @@ interface ComboboxInputProps {
   placeholder?: string
   emptyText?: string
   className?: string
+  itemClassName?: string
   id?: string
   allowCustomValue?: boolean
   showCustomValueHint?: boolean
@@ -58,6 +59,7 @@ export function ComboboxInput({
   placeholder = 'Select or type...',
   emptyText = 'No option found.',
   className,
+  itemClassName,
   id,
   allowCustomValue = false,
   showCustomValueHint = true,
@@ -285,7 +287,8 @@ export function ComboboxInput({
                     'relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none',
                     index === highlightedIndex &&
                       'bg-accent text-accent-foreground',
-                    value === option.value && 'font-medium'
+                    value === option.value && 'font-medium',
+                    itemClassName
                   )}
                   onMouseEnter={() => setHighlightedIndex(index)}
                   onMouseDown={(e) => {

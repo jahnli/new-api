@@ -41,7 +41,7 @@
 | 034 | 2026-06-23 | 用户头像下拉菜单增强：头像旁显示用户名、角色标签前加图标（👑🏅🧑‍💼）、下拉菜单改为悬停触发、移除分组显示 | [详情](details/034-profile-dropdown-enhance.md) |
 | 035 | 2026-06-24 | 常见问答面板重构：移除问答列表，改为插画图标+外链按钮跳转飞书文档；经典前端注释掉 FAQ 面板 | [详情](details/035-faq-panel-redesign.md) |
 | 036 | 2026-06-24 | 系统公告弹窗宽度由 26rem 加大到 36rem | `web/default/src/components/notification-popover.tsx` |
-| 037 | 2026-09-01 | 订阅管理增强：全员订阅按公司覆盖，管理员可按人民币金额增减用户总额度，额度重置仅当期生效，套餐按公司限制可见范围 | [详情](details/037-subscribe-all-users.md) |
+| 037 | 2026-09-14 | 订阅管理增强：全员订阅按公司覆盖、管理员可按人民币金额增减用户总额度、额度重置仅当期生效、套餐按公司限制可见范围；用户订阅与套餐新建/编辑均由侧边抽屉改为居中弹框，套餐选择改为套餐名配人民币额度标签 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
 | 039 | 2026-09-13 | 用户管理增强：用户表格补齐月度统计、成本中心、公司筛选与服务端排序，合并「任职概况」「使用量」等列；用户编辑弹窗新增成本中心配置；数据总览支持按成本中心归属本地用户 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |

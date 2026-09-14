@@ -52,9 +52,11 @@ type LegacyComboboxProps = {
   filterByValue?: boolean
   showSelectedIcon?: boolean
   className?: string
+  itemClassName?: string
   id?: string
   openOnFocus?: boolean
   showSelectedOptionContent?: boolean
+  showSelectedContent?: boolean
   disabled?: boolean
   name?: string
   onBlur?: React.FocusEventHandler<HTMLInputElement>
@@ -92,6 +94,7 @@ function Combobox(
         placeholder={props.searchPlaceholder ?? props.placeholder}
         emptyText={props.emptyText}
         className={props.className}
+        itemClassName={props.itemClassName}
         allowCustomValue={props.allowCustomValue}
         showCustomValueHint={props.showCustomValueHint}
         filterByValue={props.filterByValue}
@@ -156,12 +159,28 @@ function OptionCombobox(props: LegacyComboboxProps) {
             props.searchPlaceholder ?? props.placeholder ?? t('Search...')
           }
           triggerAriaLabel={props['aria-label'] ?? t('Open')}
-          className='h-full min-h-8 w-full'
+          className={cn(
+            'h-full min-h-8 w-full',
+            props.showSelectedContent &&
+              selected &&
+              !open &&
+              '[&>input]:text-transparent [&>input]:caret-transparent'
+          )}
         >
           {props.showSelectedIcon && !open && selected?.icon && (
             <InputGroupAddon align='inline-start' aria-hidden='true'>
               {selected.icon}
             </InputGroupAddon>
+          )}
+          {props.showSelectedContent && selected && !open && (
+            <span className='pointer-events-none absolute inset-y-0 right-9 left-2.5 flex min-w-0 items-center gap-2 text-sm'>
+              <span className='truncate' aria-hidden='true'>
+                {selected.label}
+              </span>
+              {selected.suffix && (
+                <span className='shrink-0'>{selected.suffix}</span>
+              )}
+            </span>
           )}
         </ComboboxInput>
       </div>
@@ -175,6 +194,7 @@ function OptionCombobox(props: LegacyComboboxProps) {
               key={option.value}
               value={option}
               disabled={option.disabled}
+              className={props.itemClassName}
             >
               {option.icon && <span aria-hidden>{option.icon}</span>}
               <span className='min-w-0 break-words'>
@@ -185,6 +205,9 @@ function OptionCombobox(props: LegacyComboboxProps) {
                   </span>
                 )}
               </span>
+              {option.suffix && (
+                <span className='shrink-0'>{option.suffix}</span>
+              )}
             </ComboboxItem>
           )}
         </ComboboxList>
