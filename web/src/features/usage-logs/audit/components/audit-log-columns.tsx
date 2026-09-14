@@ -29,6 +29,7 @@ import { LogUserCell } from '../../components/log-user-cell'
 import type { AuditLog } from '../api'
 import { buildAuditDetails } from '../lib/audit-details'
 import { AuditLogDetailsDialog } from './audit-log-details-dialog'
+import { QuotaOutcomeBadge } from './quota-outcome-badge'
 
 export function useAuditLogColumns(
   accessOnly?: boolean,
@@ -81,12 +82,34 @@ export function useAuditLogColumns(
               .join(' · ')
           },
           cell: ({ row, getValue }) => {
-            const operation = buildAuditDetails(row.original, t).operation
+            const detail = buildAuditDetails(row.original, t)
+            const operation = detail.operation
             if (!operation) {
               return (
                 <TruncatedCell className='max-w-64'>
                   {getValue<string>()}
                 </TruncatedCell>
+              )
+            }
+            // Quota adjustments lead with a tone badge and keep the numbers as
+            // their only line: the adjusted user is already shown in the user
+            // column, so the operation verb is not repeated as text.
+            if (detail.quotaOperation) {
+              const quota = detail.quotaOperation
+              return (
+                <div className='flex min-w-0 items-start gap-1.5'>
+                  <QuotaOutcomeBadge
+                    label={quota.outcome.label}
+                    variant={quota.outcome.variant}
+                  />
+                  <TruncatedCell
+                    className='text-muted-foreground'
+                    contentClassName='line-clamp-2 whitespace-normal break-words'
+                    tooltipContent={quota.description}
+                  >
+                    {quota.detail}
+                  </TruncatedCell>
+                </div>
               )
             }
             return (

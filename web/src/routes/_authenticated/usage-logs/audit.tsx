@@ -41,7 +41,14 @@ const auditSearchSchema = z.object({
   auditEndTime: z.number().optional(),
   auditSuccess: z.enum(['true', 'false']).optional(),
   auditCategory: z
-    .enum(['login', 'security', 'operation', 'access_token'])
+    .enum([
+      'login',
+      'security',
+      'operation',
+      'access_token',
+      'balance',
+      'subscription',
+    ])
     .optional(),
   auditTokenRef: z.string().optional().catch(''),
   auditUsername: z.string().optional().catch(''),

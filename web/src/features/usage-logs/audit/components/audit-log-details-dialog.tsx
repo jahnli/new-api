@@ -36,6 +36,7 @@ import type { AuditLog } from '../api'
 import { auditFieldLabel, buildAuditDetails } from '../lib/audit-details'
 import { AuditDetailFields } from './audit-detail-fields'
 import { AuditDetailValue } from './audit-detail-value'
+import { QuotaOutcomeBadge } from './quota-outcome-badge'
 
 export function AuditLogDetailsDialog(props: { entry: AuditLog }) {
   const { t } = useTranslation()
@@ -86,10 +87,22 @@ export function AuditLogDetailsDialog(props: { entry: AuditLog }) {
         canFetchDetails={!demoMode}
       >
         <div className='min-w-0 space-y-1.5'>
-          <p className='text-sm leading-relaxed font-medium break-words'>
-            {detail.summary}
-          </p>
-          {detail.operation?.description && (
+          {detail.quotaOperation ? (
+            <div className='flex min-w-0 items-start gap-1.5'>
+              <QuotaOutcomeBadge
+                label={detail.quotaOperation.outcome.label}
+                variant={detail.quotaOperation.outcome.variant}
+              />
+              <span className='min-w-0 text-sm leading-relaxed font-medium break-words'>
+                {detail.quotaOperation.detail}
+              </span>
+            </div>
+          ) : (
+            <p className='text-sm leading-relaxed font-medium break-words'>
+              {detail.summary}
+            </p>
+          )}
+          {!detail.quotaOperation && detail.operation?.description && (
             <p className='text-muted-foreground text-sm leading-relaxed break-words'>
               {detail.operation.description}
             </p>

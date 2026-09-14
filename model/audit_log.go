@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -16,10 +17,12 @@ import (
 )
 
 const (
-	AuditCategoryLogin       = "login"
-	AuditCategorySecurity    = "security"
-	AuditCategoryOperation   = "operation"
-	AuditCategoryAccessToken = "access_token"
+	AuditCategoryLogin        = "login"
+	AuditCategorySecurity     = "security"
+	AuditCategoryOperation    = "operation"
+	AuditCategoryAccessToken  = "access_token"
+	AuditCategoryBalance      = "balance"
+	AuditCategorySubscription = "subscription"
 )
 
 // AuditLog is retained independently of usage logs and their cleanup/TTL policy.
@@ -275,7 +278,17 @@ func MigrateAuditLogs() error {
 }
 
 func ValidAuditCategory(category string) bool {
-	return category == "" || category == AuditCategoryLogin || category == AuditCategorySecurity || category == AuditCategoryOperation || category == AuditCategoryAccessToken
+	if category == "" {
+		return true
+	}
+	return slices.Contains([]string{
+		AuditCategoryLogin,
+		AuditCategorySecurity,
+		AuditCategoryOperation,
+		AuditCategoryAccessToken,
+		AuditCategoryBalance,
+		AuditCategorySubscription,
+	}, category)
 }
 
 func ValidTokenFingerprint(value string) bool {

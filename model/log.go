@@ -409,7 +409,18 @@ func RecordLoginLog(userId, actorRole int, username string, content string, ip s
 // action+params 写入 Other.op，供前端本地化渲染（普通用户可见，不含敏感信息）。
 // adminInfo 存放操作者身份（写入 Other.admin_info，普通用户查询时剥离）；
 // auditInfo 存放路由/方法/结果等中间件兜底信息（写入 Other.audit_info，普通用户查询时剥离）。
+// 分类按操作者身份推导；需要独立分类的操作使用 RecordCategoryAuditLog。
 func RecordOperationAuditLog(logUserId, actorRole int, content string, ip string, action string, params map[string]any, adminInfo *AuditAdminInfo, auditInfo *AuditRequestInfo, request ...*gin.Context) {
+	category := AuditCategoryOperation
+	if adminInfo == nil {
+		category = AuditCategorySecurity
+	}
+	RecordCategoryAuditLog(category, logUserId, actorRole, content, ip, action, params, adminInfo, auditInfo, request...)
+}
+
+// RecordCategoryAuditLog 与 RecordOperationAuditLog 参数一致，但由调用方显式指定
+// category，用于拥有独立分类的操作（例如额度调整与订阅额度变更）。
+func RecordCategoryAuditLog(category string, logUserId, actorRole int, content string, ip string, action string, params map[string]any, adminInfo *AuditAdminInfo, auditInfo *AuditRequestInfo, request ...*gin.Context) {
 	username, _ := GetUsernameById(logUserId, false)
 	other := AuditOther{
 		Op:        &AuditOperation{Action: action, Params: params},
@@ -419,10 +430,6 @@ func RecordOperationAuditLog(logUserId, actorRole int, content string, ip string
 	var c *gin.Context
 	if len(request) > 0 {
 		c = request[0]
-	}
-	category := AuditCategoryOperation
-	if adminInfo == nil {
-		category = AuditCategorySecurity
 	}
 	status, success := 200, true
 	if auditInfo != nil {

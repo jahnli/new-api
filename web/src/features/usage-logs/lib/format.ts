@@ -548,6 +548,8 @@ const AUDIT_TEMPLATES: Record<string, string> = {
   'subscription.plan_create': 'Created a subscription plan',
   'subscription.plan_update': 'Updated a subscription plan',
   'subscription.bind': 'Bound a subscription',
+  'subscription.quota_increase': 'Increased subscription quota by {{quota}}',
+  'subscription.quota_decrease': 'Decreased subscription quota by {{quota}}',
   // Logs
   'log.clear': 'Cleared historical logs',
   'log.cleanup_start': 'Log cleanup task started.',
@@ -593,7 +595,7 @@ export function renderAuditContent(
     t
   )
   if (quotaOperation) {
-    return `${quotaOperation.summary} · ${quotaOperation.description}`
+    return quotaOperation.description
   }
   const params = { ...op.params }
   return t(template, params)

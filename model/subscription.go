@@ -1123,6 +1123,19 @@ func convertSubscriptionCNYAmountToQuota(amountCNY float64) (int64, error) {
 	return int64(quotaDelta), nil
 }
 
+// GetUserSubscriptionById returns the subscription row for admin-side context,
+// such as resolving the owner and plan of a quota adjustment.
+func GetUserSubscriptionById(userSubscriptionId int) (*UserSubscription, error) {
+	if userSubscriptionId <= 0 {
+		return nil, errors.New("invalid userSubscriptionId")
+	}
+	var subscription UserSubscription
+	if err := DB.Where("id = ?", userSubscriptionId).First(&subscription).Error; err != nil {
+		return nil, err
+	}
+	return &subscription, nil
+}
+
 func AdminIncreaseUserSubscriptionQuota(userSubscriptionId int, amountCNY float64) (int64, error) {
 	if userSubscriptionId <= 0 {
 		return 0, errors.New("invalid userSubscriptionId")

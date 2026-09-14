@@ -30,14 +30,21 @@ func manageUserQuota(c *gin.Context, req ManageRequest) {
 		params["method"] = c.Request.Method
 		params["route"] = c.FullPath()
 	}
+	// The entry belongs to the user whose balance changed, not to the operator;
+	// an unresolvable target falls back to the operator so the event still has
+	// an owner. The actor's role is recorded separately in actor_role.
+	logUserId := req.Id
 	success := false
 	defer func() {
 		content := auditContentEN(action, params)
+		// Only committed balance changes belong to the balance category; failed
+		// requests keep their failure reason under the operation category.
+		category := model.AuditCategoryBalance
 		if !success {
-			// Failed requests have no committed balance changes to render.
 			content = "Failed user quota adjustment"
+			category = model.AuditCategoryOperation
 		}
-		model.RecordOperationAuditLog(c.GetInt("id"), c.GetInt("role"), content, c.ClientIP(), action, params,
+		model.RecordCategoryAuditLog(category, logUserId, c.GetInt("role"), content, c.ClientIP(), action, params,
 			auditOperatorInfo(c), &model.AuditRequestInfo{
 				Method: c.Request.Method, Route: c.FullPath(), Status: c.Writer.Status(), Success: success,
 			}, c)
@@ -59,6 +66,7 @@ func manageUserQuota(c *gin.Context, req ManageRequest) {
 			common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		case errors.Is(err, gorm.ErrRecordNotFound):
 			params["failure_reason"] = "target_not_found"
+			logUserId = c.GetInt("id")
 			common.ApiErrorI18n(c, i18n.MsgUserNotExists)
 		case errors.Is(err, model.ErrWalletQuotaLimitExceeded):
 			params["failure_reason"] = "quota_limit_exceeded"

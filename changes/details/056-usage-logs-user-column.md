@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-13（最后更新 09-13）
+**日期**: 2026-09-09 ~ 09-14（最后更新 09-14）
 
 ## 涉及文件
 
@@ -203,6 +203,22 @@
 - `web/src/features/security-audit/components/image-audit-request-content-dialog.tsx` — 图片审计请求内容弹框改用共用组件，User-Agent 等信息经 `children` 传入。
 - `web/src/features/data-overview/components/user-stats-dialog.tsx` — 用户统计弹框改用共用组件，删除为悬停卡片手工构造的完整 `UserColumnRow` 映射；身份信息与时间筛选合并为同一行（时间筛选按内容宽度靠右、小屏自动换行），去掉原分隔线并微调上下留白。
 - `web/src/features/users/components/data-table-row-actions.tsx` — 行操作传给用户统计弹框的临时用户对象补齐 `avatar_url`、`open_id`、`gender`，修复该弹框头像需悬停后才显示的问题。
+
+## 2026-09-14 审计日志新增余额与订阅分类
+
+- `model/audit_log.go` — 新增 `AuditCategoryBalance`（`balance`）与 `AuditCategorySubscription`（`subscription`）常量并加入 `ValidAuditCategory` 白名单，审计列表接口可按新分类筛选；分类字段仍为 `varchar(24)` / ClickHouse `String`，无 schema 变更，`ValidAuditCategory` 改为 `slices.Contains` 判断。
+- `model/log.go` — 拆出 `RecordCategoryAuditLog`，由调用方显式指定分类，用户名查询、`AuditOther` 组装与状态/成功标记推导逻辑不变；`RecordOperationAuditLog` 签名与行为保持不变，内部推导分类后委托，既有十余处调用不动。
+- `controller/user_quota.go` — 调整额度成功后审计条目归属改为被操作用户（`actor_role` 仍记录操作者角色），分类记为 `balance`；失败仍记 `operation` 并保留 `failure_reason`；目标用户不存在时归属回退为操作者，避免用户列为空。
+- `controller/subscription.go` — 新增 `recordSubscriptionQuotaAudit`：订阅额度增减成功后在 `subscription` 分类下记录订阅 ID、套餐 ID、金额（元）、额度增量与调整前后总额度，归属订阅所属用户并抑制中间件兜底条目；订阅行查询失败时不标记已记录，事件仍由兜底产生。
+- `controller/audit.go` — 补充订阅额度增减的英文兜底文案。
+- `model/subscription.go` — 新增 `GetUserSubscriptionById`，供审计读取订阅所属用户、套餐与总额度。
+- `web/src/features/usage-logs/audit/components/audit-log-filter-bar.tsx`、`web/src/routes/_authenticated/usage-logs/audit.tsx` — 分类筛选新增余额与订阅两项，顺序调整为 全部分类 → 登录 → 订阅 → 余额 → 账户安全 → 操作审计 → Access Token；路由搜索参数的分类枚举同步扩展。
+- `web/src/features/usage-logs/lib/quota-audit-operation.ts` — 补上订阅额度增减两条动作，额度调整文案改为动词开头的单行（如 `增加额度：500000 · 500000 → 1000000`），并输出 `outcome`（动词 + 增/减/覆盖色调）与不含动词的数值 `detail`。
+- `web/src/features/usage-logs/audit/components/quota-outcome-badge.tsx` — 新增额度调整标记徽标：增加绿、减少红、覆盖灰。
+- `web/src/features/usage-logs/audit/components/audit-log-columns.tsx`、`audit-log-details-dialog.tsx` — 事件列与详情弹窗的额度调整改为「彩色徽标 + 数额 · 前 → 后」，不再重复操作动词与目标用户。
+- `web/src/features/usage-logs/lib/format.ts` — 使用日志侧的额度审计内容改为动词开头的单行（去掉 `(ID: n)` 那行），并补上订阅额度增减模板。
+- `web/src/features/usage-logs/audit/lib/audit-details.ts` — 额度与订阅条目在被操作用户本人查看时不再显示自己为「操作者」，补充订阅 ID 字段标签与 `balance`/`subscription` 的分类兜底文案。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json`、`web/src/i18n/static-keys.ts` — 补充「覆盖额度」「订阅 ID」「{{action}}：{{quota}}」等七语言文案并登记动态键，移除已废弃的「请求数额：{{quota}}」。
 
 ## 自 CHANGELOG 说明列迁入
 

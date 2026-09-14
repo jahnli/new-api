@@ -128,6 +128,8 @@ export function AuditLogFilterBar(props: {
           options={[
             { value: 'all', label: t('All categories') },
             { value: 'login', label: t('Login') },
+            { value: 'subscription', label: t('Subscription') },
+            { value: 'balance', label: t('Balance') },
             { value: 'security', label: t('Account security') },
             { value: 'operation', label: t('Operation audit') },
             { value: 'access_token', label: t('Access Token') },

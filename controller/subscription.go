@@ -512,6 +512,37 @@ func AdminCreateUserSubscription(c *gin.Context) {
 	common.ApiSuccess(c, nil)
 }
 
+// recordSubscriptionQuotaAudit records a subscription total-quota change under the
+// subscription category, owned by the user the subscription belongs to. It is only
+// called after a successful change; delta is the signed quota change (positive when
+// increased) used to derive the previous total. Without the subscription row there
+// is no owner to attribute the entry to, so the event is left to the generic admin
+// audit fallback in the middleware.
+func recordSubscriptionQuotaAudit(c *gin.Context, action string, subscriptionId int, amountCNY float64, delta int64) {
+	subscription, err := model.GetUserSubscriptionById(subscriptionId)
+	if err != nil {
+		return
+	}
+	quotaDelta := delta
+	if quotaDelta < 0 {
+		quotaDelta = -quotaDelta
+	}
+	params := model.AuditFields{
+		"subscription_id": subscriptionId,
+		"amount":          amountCNY,
+		"quota":           quotaDelta,
+		"target_user_id":  subscription.UserId,
+		"plan_id":         subscription.PlanId,
+		"to":              subscription.AmountTotal,
+		"from":            subscription.AmountTotal - delta,
+	}
+	params["target_username"], _ = model.GetUsernameById(subscription.UserId, false)
+	model.RecordCategoryAuditLog(model.AuditCategorySubscription, subscription.UserId, c.GetInt("role"),
+		auditContentEN(action, params), c.ClientIP(), action, params, auditOperatorInfo(c),
+		&model.AuditRequestInfo{Method: c.Request.Method, Route: c.FullPath(), Status: c.Writer.Status(), Success: true}, c)
+	markAuditLogged(c)
+}
+
 // AdminIncreaseUserSubscriptionQuota increases an active subscription's quota by a CNY amount.
 func AdminIncreaseUserSubscriptionQuota(c *gin.Context) {
 	if !requirePaymentCompliance(c) {
@@ -533,6 +564,7 @@ func AdminIncreaseUserSubscriptionQuota(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	recordSubscriptionQuotaAudit(c, "subscription.quota_increase", subId, req.Amount, quotaDelta)
 	common.ApiSuccess(c, gin.H{"quota_delta": quotaDelta})
 }
 
@@ -557,6 +589,7 @@ func AdminDecreaseUserSubscriptionQuota(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	recordSubscriptionQuotaAudit(c, "subscription.quota_decrease", subscriptionId, request.Amount, -quotaDelta)
 	common.ApiSuccess(c, gin.H{"quota_delta": quotaDelta})
 }
 

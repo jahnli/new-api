@@ -123,6 +123,8 @@ export function auditFieldLabel(key: string, t: TFunction): string {
       return t('User ID')
     case 'plan_id':
       return t('Plan ID')
+    case 'subscription_id':
+      return t('Subscription ID')
     case 'plan_title':
       return t('Plan Title')
     case 'reset_count':
@@ -370,6 +372,8 @@ export function buildAuditDetails(entry: AuditLog, t: TFunction) {
   if (entry.category === 'login') fallback = t('Login')
   if (entry.category === 'security') fallback = t('Account security')
   if (entry.category === 'access_token') fallback = t('Access Token')
+  if (entry.category === 'balance') fallback = t('Balance')
+  if (entry.category === 'subscription') fallback = t('Subscription')
   const summary =
     renderAuditContent(
       {
@@ -387,14 +391,22 @@ export function buildAuditDetails(entry: AuditLog, t: TFunction) {
   const admin = isAuditDetailObject(metadata.admin_info)
     ? metadata.admin_info
     : {}
-  const actorName =
-    typeof admin.admin_username === 'string'
-      ? admin.admin_username
-      : entry.username
-  const actorId =
-    typeof admin.admin_id === 'number' || typeof admin.admin_id === 'string'
-      ? admin.admin_id
-      : entry.user_id
+  // The log owner is the operator for most categories, but user-centric
+  // operations (quota and subscription adjustments) are owned by the user they
+  // were performed on. Without admin metadata there is no operator to name, so
+  // the owner must not be presented as one.
+  const ownerIsTarget =
+    params.target_user_id !== undefined &&
+    String(params.target_user_id) === String(entry.user_id)
+  let actorName = ownerIsTarget ? '' : entry.username
+  let actorId: number | string = ownerIsTarget ? '' : entry.user_id
+  if (typeof admin.admin_username === 'string') actorName = admin.admin_username
+  if (
+    typeof admin.admin_id === 'number' ||
+    typeof admin.admin_id === 'string'
+  ) {
+    actorId = admin.admin_id
+  }
   let actor = actorName
   if (actorId) {
     actor = actorName ? `${actorName} (ID: ${actorId})` : `ID: ${actorId}`
