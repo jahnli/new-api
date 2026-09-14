@@ -8,6 +8,7 @@ interface DepartmentUsersQueryState {
   sortBy: string
   sortOrder: string
   registrationStatus?: string
+  role?: string
 }
 
 export function isInitialDepartmentUsersQuery(
@@ -18,6 +19,7 @@ export function isInitialDepartmentUsersQuery(
     query.pageSize === DEPARTMENT_USERS_INITIAL_PAGE_SIZE &&
     query.sortBy === DEPARTMENT_USERS_INITIAL_SORT_BY &&
     query.sortOrder === DEPARTMENT_USERS_INITIAL_SORT_ORDER &&
-    !query.registrationStatus
+    !query.registrationStatus &&
+    !query.role
   )
 }

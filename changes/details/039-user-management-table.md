@@ -1,6 +1,6 @@
 # 用户管理表格统计增强
 
-**日期**: 2026-06-30 ~ 09-13（最后更新 09-13）
+**日期**: 2026-06-30 ~ 09-15（最后更新 09-15）
 
 ## 涉及文件
 
@@ -138,6 +138,13 @@
 
 - `web/src/components/data-table/core/column-header.tsx` — 修复点击「使用量」列头后整页显示 500：Base UI 的 `Menu.GroupLabel` 必须位于 `Menu.Group` 或 `Menu.RadioGroup` 内，此前「排序字段」标签与排序字段单选组是兄弟节点，菜单一展开即抛出 `MenuGroupContext is missing`，被根路由错误边界（`GeneralError`，标题为超大 `{status ?? 500}`）接管，表现为整页跳 500 而后端无任何 500 响应；现将两者一并包入 `DropdownMenuGroup`，与仓库内其他下拉菜单写法一致，用户管理与数据总览部门人员列表共用该列头，两处同步修复。
 - `web/src/components/data-table/core/column-header.tsx` — 排序字段下拉菜单宽度原跟随触发按钮（`w-(--anchor-width)`），列头较窄时「单价 / 亿 Token」折成两行；现增加 `min-w-60`（240px），按七语言最长译文（英文 `Unit Price / 100M Tokens`、俄语 `Цена / 100 млн токенов`）取值，保证单行显示；未声明 `meta.sortFields` 的列头菜单宽度不变。
+
+## 2026-09-15 状态与角色列头筛选
+
+- `web/src/components/data-table/core/column-filter-header.tsx` — 新增共享列头筛选器 `DataTableColumnHeaderFilter`：列名后内嵌漏斗图标下拉，单选枚举值，`All` 项清除该列筛选；筛选值沿用工具栏 `DataTableFacetedFilter` 的 `string[]` 约定，但形态为紧凑列头版（无加号图标、虚线边框、已选徽章与搜索框），供没有工具栏或需要就近筛选的表格使用。
+- `web/src/components/data-table/index.ts` — 导出 `DataTableColumnHeaderFilter` 及其选项类型 `DataTableColumnHeaderFilterOption`，选项支持传入图标组件或图标节点。
+- `web/src/features/users/components/shared-user-columns.tsx` — 状态列与角色列表头改用共享列头筛选器，选项复用用户常量中的 `getUserStatusOptions` 与 `getUserRoleOptions`（含图标），选中筛选后表头漏斗转为主题色；状态列默认列宽由 92px 加宽到 102px，容纳新增的筛选按钮。
+- `web/src/features/users/components/shared-user-columns.tsx` — 共享列顺序由「时间、状态、常用模型、角色、分组」调整为「时间、常用模型、角色、状态、分组」，取代此前「状态列移至常用模型之前」的排列；部门人员列表自动跟随该顺序，其注册状态列仍在时间列之后。
 
 ## 自 CHANGELOG 说明列迁入
 

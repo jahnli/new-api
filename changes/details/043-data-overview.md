@@ -1,6 +1,15 @@
 # 数据总览页增强与公司配置管理
 
-**日期**: 2026-06-25 ~ 09-14（最后更新 09-14）
+**日期**: 2026-06-25 ~ 09-15（最后更新 09-15）
+
+### 2026-09-15 部门人员列表角色筛选
+
+- `web/src/features/data-overview/components/department-users-table.tsx` — 注册状态列头改用共享列头筛选器 `DataTableColumnHeaderFilter`（选项图标沿用 `CheckCircle2`、`UserRoundX`），删除自绘下拉与本地筛选状态，筛选取自表格 `columnFilters`（新增 `getSingleColumnFilter` 读取单值筛选，选 `All` 时请求不带该参数，翻页重置由表格筛选变更回调负责）；新增角色列筛选，因该表走服务端筛选与分页，角色条件经请求参数下发并计入查询键。
+- `web/src/features/data-overview/lib/department-users-query.ts` — 用户列表查询状态新增 `role`，初始查询判定加入 `role` 为空，避免带角色筛选时被误判为初始状态。
+- `web/src/features/data-overview/api.ts` — 部门用户列表请求新增 `role` 参数。
+- `service/feishu_department.go` — 部门用户列表请求 `DepartmentUsersRequest` 新增 `Role` 字段。
+- `service/data_overview_company.go` — `DepartmentOverviewRequest` 新增 `Role` 并在 `GetDepartmentOverview` 透传；`buildCompanyDepartmentUsers` 在受众物化后按角色过滤（两个分支构建候选集的方式不同，故统一在合并后过滤），未注册成员角色为 0，任何具体角色筛选都不会包含它们。
+- `web/src/components/data-table/core/column-filter-header.tsx`、`web/src/components/data-table/index.ts` — 本次新增的共享列头筛选器及其导出，详见 039 条目。
 
 ### 2026-09-14 部门统计卡片新增缓存命中率
 

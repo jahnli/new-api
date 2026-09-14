@@ -1509,6 +1509,7 @@ type DepartmentUsersRequest struct {
 	SortBy              string `json:"sort_by"`
 	SortOrder           string `json:"sort_order"`
 	RegistrationStatus  string `json:"registration_status"`
+	Role                int    `json:"role"`
 	IncludeUnregistered bool   `json:"include_unregistered"`
 	RequestUserID       int    `json:"-"`
 	RequestUserRole     int    `json:"-"`

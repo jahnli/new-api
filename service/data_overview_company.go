@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -850,6 +851,7 @@ type DepartmentOverviewRequest struct {
 	SortBy              string `json:"sort_by"`
 	SortOrder           string `json:"sort_order"`
 	RegistrationStatus  string `json:"registration_status"`
+	Role                int    `json:"role"`
 	IncludeUnregistered bool   `json:"include_unregistered"`
 	RequestUserID       int    `json:"-"`
 	RequestUserRole     int    `json:"-"`
@@ -893,6 +895,7 @@ func GetDepartmentOverview(req *DepartmentOverviewRequest) (*DepartmentOverviewR
 		SortBy:              req.SortBy,
 		SortOrder:           req.SortOrder,
 		RegistrationStatus:  req.RegistrationStatus,
+		Role:                req.Role,
 		IncludeUnregistered: req.IncludeUnregistered,
 		RequestUserID:       req.RequestUserID,
 		RequestUserRole:     req.RequestUserRole,
@@ -1336,6 +1339,15 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 			memberDetails[member.OpenID] = feishuDeptMember{OpenID: member.OpenID, Name: member.Name}
 		}
 		items = mergeDepartmentUsersWithMembers(audience.users, memberOpenIDs, memberDetails, req.EndTimestamp, includeUnregistered, req.RegistrationStatus)
+	}
+
+	// Role is filtered after the audience is materialized because the two
+	// branches above build the candidate set differently. Unregistered members
+	// carry the zero role, so any concrete role filter drops them too.
+	if req.Role > 0 {
+		items = slices.DeleteFunc(items, func(item DepartmentUserItem) bool {
+			return item.User == nil || item.User.Role != req.Role
+		})
 	}
 
 	// Computed sorts (quota/tokens/...) need registered usage on every row before

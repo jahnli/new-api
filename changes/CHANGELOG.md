@@ -43,11 +43,11 @@
 | 036 | 2026-06-24 | 系统公告弹窗宽度由 26rem 加大到 36rem | `web/default/src/components/notification-popover.tsx` |
 | 037 | 2026-09-14 | 订阅管理增强：全员订阅按公司覆盖、管理员可按人民币金额增减用户总额度、额度重置仅当期生效、套餐按公司限制可见范围；用户订阅与套餐新建/编辑均由侧边抽屉改为居中弹框，套餐选择改为套餐名配人民币额度标签 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
-| 039 | 2026-09-13 | 用户管理增强：用户表格补齐月度统计、成本中心、公司筛选与服务端排序，合并「任职概况」「使用量」等列；用户编辑弹窗新增成本中心配置；数据总览支持按成本中心归属本地用户 | [详情](details/039-user-management-table.md) |
+| 039 | 2026-09-15 | 用户管理增强：用户表格补齐月度统计、成本中心、公司筛选与服务端排序，合并「任职概况」「使用量」等列，状态与角色列支持列头筛选并调整列顺序；用户编辑弹窗新增成本中心配置；数据总览支持按成本中心归属本地用户 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |
 | 041 | 2026-06-25 | 飞书同步改用 directory/v1/employees/mget 单接口，并重构 User 表飞书字段（employee_number→job_number，新增部门、职务、入职日期等字段） | [详情](details/041-feishu-field-refactor.md) |
 | 042 | 2026-08-05 | 用户管理表格头像悬停资料卡片：飞书风格展示职级、部门、入职日期等资料字段，敏感字段仅超级管理员可见，并支持公司名称、性别图标与自定义字段解析 | [详情](details/042-user-profile-hover-card.md) |
-| 043 | 2026-09-14 | 数据总览增强：完善部门统计（新增缓存命中率）、使用分析、排行、日志、导出与权限裁剪；新增飞书、钉钉、无平台多公司配置与数据隔离，支持 BP 按显式部门配置跨公司查看；部门树按权限加载，部门人员列表展示统一 | [详情](details/043-data-overview.md) |
+| 043 | 2026-09-15 | 数据总览增强：完善部门统计（新增缓存命中率）、使用分析、排行、日志、导出与权限裁剪；新增飞书、钉钉、无平台多公司配置与数据隔离，支持 BP 按显式部门配置跨公司查看；部门树按权限加载，部门人员列表展示统一并支持按角色筛选 | [详情](details/043-data-overview.md) |
 | 044 | 2026-07-08 | 新增「事业部 AI BP」（role=2）和「中心 AI BP」（role=3）两个用户角色，用户编辑界面支持角色修改，6 语言翻译 | [详情](details/044-add-bp-roles.md) |
 | 045 | 2026-07-07 | 数据总览权限开放：BP 角色与部门负责人可访问数据总览，部门树按角色层级自动裁剪，部门负责人改为动态判定 | [详情](details/045-data-overview-access.md) |
 | 046 | 2026-06-30 | 概览页汇总卡片右侧面板改为订阅详情：展示当前订阅用量与总额、用量进度条（按百分比变色）、下次重置时间，无订阅时显示空状态；移除余额健康状态与续航天数；订阅计划名称以标签形式展示在标题右侧 | `web/default/src/features/dashboard/components/overview/summary-cards.tsx` |

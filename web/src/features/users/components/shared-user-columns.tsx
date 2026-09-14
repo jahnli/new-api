@@ -27,7 +27,11 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ActivityTimeCell } from "@/components/activity-time-cell";
-import { BadgeCell, DataTableColumnHeader } from "@/components/data-table";
+import {
+  BadgeCell,
+  DataTableColumnHeader,
+  DataTableColumnHeaderFilter,
+} from "@/components/data-table";
 import { GroupBadge } from "@/components/group-badge";
 import { LongText } from "@/components/long-text";
 import { StatusBadge } from "@/components/status-badge";
@@ -50,7 +54,12 @@ import { formatQuota, formatTimestamp } from "@/lib/format";
 import { calculateUnitPricePer100MTokens } from "@/lib/unit-price";
 import { buildFeishuUserChatUrl, cn } from "@/lib/utils";
 
-import { USER_STATUSES, USER_ROLES } from "../constants";
+import {
+  USER_STATUSES,
+  USER_ROLES,
+  getUserRoleOptions,
+  getUserStatusOptions,
+} from "../constants";
 import {
   type UserColumnRow,
   parseCustomFields,
@@ -124,7 +133,7 @@ export function userIdColumn<T extends UserColumnRow>(
     cell: ({ row }) => (
       <TableId value={row.getValue("id") as number} className="w-[48px]" />
     ),
-    size: 64,
+    size: 50,
     meta: { mobileHidden: true },
   };
 }
@@ -671,7 +680,13 @@ export function userRoleColumn<T extends UserColumnRow>(
 ): ColumnDef<T> {
   return {
     accessorKey: "role",
-    header: t("Role"),
+    header: ({ column }) => (
+      <DataTableColumnHeaderFilter
+        column={column}
+        label={t("Role")}
+        options={getUserRoleOptions(t)}
+      />
+    ),
     cell: ({ row }) => {
       const roleValue = row.original.role;
       const roleConfig = USER_ROLES[roleValue as keyof typeof USER_ROLES];
@@ -696,7 +711,13 @@ export function userStatusColumn<T extends UserColumnRow>(
 ): ColumnDef<T> {
   return {
     accessorKey: "status",
-    header: t("Status"),
+    header: ({ column }) => (
+      <DataTableColumnHeaderFilter
+        column={column}
+        label={t("Status")}
+        options={getUserStatusOptions(t)}
+      />
+    ),
     cell: ({ row }) => {
       const user = row.original;
       const deleted = user.DeletedAt != null;
@@ -739,7 +760,9 @@ export function userStatusColumn<T extends UserColumnRow>(
       );
     },
     enableSorting: false,
-    size: 92,
+    // The header pairs the label with a filter funnel, which needs more room
+    // than the label alone did.
+    size: 102,
     meta: { mobileBadge: true },
   };
 }
@@ -821,11 +844,11 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     } else {
       columns.push(userLastLoginColumn<T>(t));
     }
+    columns.push(
+      userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: "badge" }),
+    );
     columns.push({
-      ...userStatusColumn<T>(t, {
-        showRequestCount: true,
-        requestCountAccessor: opts.requestCountAccessor as keyof T,
-      }),
+      ...userRoleColumn<T>(t),
       filterFn: (
         row: { getValue: (id: string) => unknown },
         id: string,
@@ -834,9 +857,6 @@ export function useSharedUserColumns<T extends UserColumnRow>(
         return value.includes(String(row.getValue(id)));
       },
     });
-    columns.push(
-      userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: "badge" }),
-    );
 
     if (!externalMode && !opts.combineEmploymentOverview) {
       columns.push(userJoinDateColumn<T>(t));
@@ -846,7 +866,10 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       columns.push(userCreatedAtColumn<T>(t));
     }
     columns.push({
-      ...userRoleColumn<T>(t),
+      ...userStatusColumn<T>(t, {
+        showRequestCount: true,
+        requestCountAccessor: opts.requestCountAccessor as keyof T,
+      }),
       filterFn: (
         row: { getValue: (id: string) => unknown },
         id: string,

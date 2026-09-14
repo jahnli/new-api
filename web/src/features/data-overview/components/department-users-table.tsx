@@ -9,7 +9,6 @@ import type {
 import {
   BarChart3,
   CheckCircle2,
-  Funnel,
   Loader2,
   ScrollText,
   UserRoundX,
@@ -19,6 +18,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
+  DataTableColumnHeaderFilter,
   DataTablePage,
   useDataTable,
   type DataTablePinnedColumn,
@@ -26,13 +26,6 @@ import {
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useSharedUserColumns } from '@/features/users/components/shared-user-columns'
 
 import { getDepartmentUsers } from '../api'
@@ -83,16 +76,17 @@ const DEPARTMENT_USERS_PINNED_COLUMNS = [
   { columnId: 'actions', side: 'right' },
 ] satisfies DataTablePinnedColumn[]
 
-const REGISTRATION_STATUS = {
-  ALL: 'all',
-  ...DEPARTMENT_REGISTRATION_STATUS,
-} as const
-
-function getRegistrationStatusFilter(
-  columnFilters: ColumnFiltersState
+/**
+ * Reads the value of a single-select header filter. Those filters store a
+ * one-element array, and "All" clears them, so an absent filter means the
+ * request omits the parameter entirely.
+ */
+function getSingleColumnFilter(
+  columnFilters: ColumnFiltersState,
+  columnId: string
 ): string | undefined {
   const filterValue = columnFilters.find(
-    (filter) => filter.id === 'is_registered'
+    (filter) => filter.id === columnId
   )?.value
 
   if (!Array.isArray(filterValue) || filterValue.length === 0) {
@@ -128,78 +122,48 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
   ])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
-  const registrationStatusFilter = getRegistrationStatusFilter(columnFilters)
-
-  const setRegistrationStatusFilterValue = useCallback(
-    (value: string) => {
-      setColumnFilters((prev) => {
-        const next = prev.filter((filter) => filter.id !== 'is_registered')
-        if (value === REGISTRATION_STATUS.ALL) {
-          return next
-        }
-        return [...next, { id: 'is_registered', value: [value] }]
-      })
-      setPagination((prev) => ({ ...prev, pageIndex: 0 }))
-    },
-    [setPagination]
+  const registrationStatusFilter = getSingleColumnFilter(
+    columnFilters,
+    'is_registered'
   )
+  const roleFilter = getSingleColumnFilter(columnFilters, 'role')
+  const role = roleFilter ? Number(roleFilter) : undefined
 
   const registrationStatusColumn = useMemo<ColumnDef<DepartmentUser>>(
     () => ({
       id: 'is_registered',
       accessorFn: getDepartmentUserRegistrationStatus,
-      header: () => (
-        <div className='flex items-center gap-1.5'>
-          <span>{t('Status')}</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon-xs'
-                  className={
-                    registrationStatusFilter
-                      ? 'text-primary hover:text-primary'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }
-                  aria-label={t('Status')}
-                />
-              }
-            >
-              <Funnel className='size-3.5' />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='start' className='w-36'>
-              <DropdownMenuRadioGroup
-                value={registrationStatusFilter ?? REGISTRATION_STATUS.ALL}
-                onValueChange={setRegistrationStatusFilterValue}
-              >
-                <DropdownMenuRadioItem value={REGISTRATION_STATUS.ALL}>
-                  {t('All')}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={REGISTRATION_STATUS.REGISTERED}>
-                  <CheckCircle2 className='text-success size-3.5' />
-                  {t('Enabled')}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={REGISTRATION_STATUS.DEPARTED}>
-                  <UserRoundX className='text-warning size-3.5' />
-                  {t('Disabled')}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={REGISTRATION_STATUS.UNREGISTERED}>
-                  <UserRoundX className='text-muted-foreground size-3.5' />
-                  {t('Unregistered')}
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      header: ({ column }) => (
+        <DataTableColumnHeaderFilter
+          column={column}
+          label={t('Status')}
+          options={[
+            {
+              label: t('Enabled'),
+              value: DEPARTMENT_REGISTRATION_STATUS.REGISTERED,
+              iconNode: <CheckCircle2 className='text-success size-3.5' />,
+            },
+            {
+              label: t('Disabled'),
+              value: DEPARTMENT_REGISTRATION_STATUS.DEPARTED,
+              iconNode: <UserRoundX className='text-warning size-3.5' />,
+            },
+            {
+              label: t('Unregistered'),
+              value: DEPARTMENT_REGISTRATION_STATUS.UNREGISTERED,
+              iconNode: (
+                <UserRoundX className='text-muted-foreground size-3.5' />
+              ),
+            },
+          ]}
+        />
       ),
       cell: ({ row }) => {
         const status = getDepartmentUserRegistrationStatus(row.original)
         let variant: 'success' | 'neutral' | 'warning' = 'success'
-        if (status === REGISTRATION_STATUS.UNREGISTERED) {
+        if (status === DEPARTMENT_REGISTRATION_STATUS.UNREGISTERED) {
           variant = 'neutral'
-        } else if (status === REGISTRATION_STATUS.DEPARTED) {
+        } else if (status === DEPARTMENT_REGISTRATION_STATUS.DEPARTED) {
           variant = 'warning'
         }
         return (
@@ -218,7 +182,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
       size: 150,
       meta: { mobileBadge: true },
     }),
-    [registrationStatusFilter, setRegistrationStatusFilterValue, t]
+    [t]
   )
 
   const columns = useMemo<ColumnDef<DepartmentUser>[]>(() => {
@@ -289,6 +253,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
     sortBy,
     sortOrder,
     registrationStatus: registrationStatusFilter,
+    role: roleFilter,
   })
 
   const { data, isLoading, isFetching } = useQuery({
@@ -304,6 +269,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
       sortBy,
       sortOrder,
       registrationStatusFilter,
+      role,
     ],
     queryFn: () =>
       getDepartmentUsers({
@@ -316,8 +282,10 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
         sort_by: sortBy || undefined,
         sort_order: sortOrder || undefined,
         registration_status: registrationStatusFilter,
+        role,
         include_unregistered:
-          registrationStatusFilter !== REGISTRATION_STATUS.REGISTERED,
+          registrationStatusFilter !==
+          DEPARTMENT_REGISTRATION_STATUS.REGISTERED,
       }),
     enabled: !!departmentId && !isInitialQuery,
     staleTime: 60 * 1000,
