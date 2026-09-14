@@ -85,12 +85,6 @@ export function formatUserTokens(tokens: number | undefined): string {
   return `${(value / 1_0000_0000).toFixed(2)} 亿`
 }
 
-export function formatUserTokensDetail(tokens: number | undefined): string {
-  const value = tokens ?? 0
-  if (value <= 0) return '-'
-  return value.toLocaleString()
-}
-
 export function formatUserRequests(requests: number | undefined): string {
   const value = requests ?? 0
   if (value <= 0) return '-'
@@ -364,7 +358,7 @@ export function userConsumptionColumn<T extends UserColumnRow>(
           <TooltipContent>
             <div className='space-y-1 text-xs'>
               <div>
-                {t('Tokens')}: {formatUserTokensDetail(tokens)}
+                {t('Tokens')}: {formatUserTokens(tokens)}
               </div>
               <div>
                 {t('Cost')}: {formattedCost}
