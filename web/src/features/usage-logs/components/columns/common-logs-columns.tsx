@@ -717,7 +717,7 @@ export function useCommonLogsColumns(
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger
-                render={<div className='flex max-w-[105px] flex-col gap-0.5' />}
+                render={<div className='flex max-w-[135px] flex-col gap-0.5' />}
               >
                 <div className='relative inline-flex w-fit items-center gap-1'>
                   <StatusBadge
@@ -833,8 +833,8 @@ export function useCommonLogsColumns(
           </TooltipProvider>
         )
       },
-      size: 115,
-      maxSize: 115,
+      size: 145,
+      maxSize: 165,
     })
   }
 
@@ -930,7 +930,7 @@ export function useCommonLogsColumns(
       return (
         <TooltipProvider delay={100}>
           <Tooltip>
-            <TooltipTrigger render={<div className='max-w-[180px]' />}>
+            <TooltipTrigger render={<div className='max-w-[150px]' />}>
               <span className='text-muted-foreground block truncate font-mono text-xs !font-normal'>
                 {client}
               </span>
@@ -945,8 +945,8 @@ export function useCommonLogsColumns(
         </TooltipProvider>
       )
     },
-    size: 180,
-    maxSize: 220,
+    size: 150,
+    maxSize: 180,
   })
 
   columns.push(
