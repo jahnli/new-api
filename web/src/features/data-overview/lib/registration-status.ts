@@ -32,14 +32,16 @@ export function isDepartmentUserRegistered(user: DepartmentUser): boolean {
   )
 }
 
+// The `departed` constant mirrors the backend's registration_status value; the UI
+// labels it "Disabled" because a disabled account is all the system can prove.
 export function getDepartmentRegistrationStatusLabel(
   status: DepartmentRegistrationStatus
-): 'Registered' | 'Unregistered' | 'Departed' {
+): 'Enabled' | 'Disabled' | 'Unregistered' {
   if (status === DEPARTMENT_REGISTRATION_STATUS.UNREGISTERED) {
     return 'Unregistered'
   }
   if (status === DEPARTMENT_REGISTRATION_STATUS.DEPARTED) {
-    return 'Departed'
+    return 'Disabled'
   }
-  return 'Registered'
+  return 'Enabled'
 }

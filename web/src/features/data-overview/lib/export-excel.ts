@@ -389,7 +389,7 @@ function buildUserListSheet(wb: ExcelJS.Workbook, p: ExportParams): void {
     t('Common Model'),
     t('Last Login'),
     t('Created At'),
-    t('Registration Status'),
+    t('Status'),
   ])
   styleHeaderRow(hdr)
 

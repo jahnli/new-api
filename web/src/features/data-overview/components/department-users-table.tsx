@@ -77,7 +77,6 @@ const DEPT_COLUMN_SORT_MAP: Record<string, string> = {
   used_quota: 'used_quota',
   created_at: 'created_at',
   role: 'role',
-  status: 'status',
 }
 
 const DEPARTMENT_USERS_PINNED_COLUMNS = [
@@ -151,7 +150,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
       accessorFn: getDepartmentUserRegistrationStatus,
       header: () => (
         <div className='flex items-center gap-1.5'>
-          <span>{t('Registration Status')}</span>
+          <span>{t('Status')}</span>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -164,7 +163,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
                       ? 'text-primary hover:text-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   }
-                  aria-label={t('Registration Status')}
+                  aria-label={t('Status')}
                 />
               }
             >
@@ -180,15 +179,15 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value={REGISTRATION_STATUS.REGISTERED}>
                   <CheckCircle2 className='text-success size-3.5' />
-                  {t('Registered')}
+                  {t('Enabled')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value={REGISTRATION_STATUS.DEPARTED}>
+                  <UserRoundX className='text-warning size-3.5' />
+                  {t('Disabled')}
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value={REGISTRATION_STATUS.UNREGISTERED}>
                   <UserRoundX className='text-muted-foreground size-3.5' />
                   {t('Unregistered')}
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value={REGISTRATION_STATUS.DEPARTED}>
-                  <UserRoundX className='text-warning size-3.5' />
-                  {t('Departed')}
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
@@ -197,11 +196,10 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
       ),
       cell: ({ row }) => {
         const status = getDepartmentUserRegistrationStatus(row.original)
-        const isDeparted = status === REGISTRATION_STATUS.DEPARTED
         let variant: 'success' | 'neutral' | 'warning' = 'success'
         if (status === REGISTRATION_STATUS.UNREGISTERED) {
           variant = 'neutral'
-        } else if (isDeparted) {
+        } else if (status === REGISTRATION_STATUS.DEPARTED) {
           variant = 'warning'
         }
         return (
@@ -224,7 +222,18 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
   )
 
   const columns = useMemo<ColumnDef<DepartmentUser>[]>(() => {
-    const createdAtIndex = baseColumns.findIndex((column) => {
+    // 共享列里的「状态」列与上方合并后的状态列表达同一件事（被禁用即显示为已禁用），
+    // 这里丢弃共享列，只保留带服务端筛选的合并列。共享列没有显式 id，需要按
+    // accessorKey 一并匹配。
+    const nextColumns = baseColumns.filter((column) => {
+      if (column.id === 'status') return false
+      return !(
+        'accessorKey' in column &&
+        typeof column.accessorKey === 'string' &&
+        column.accessorKey === 'status'
+      )
+    })
+    const createdAtIndex = nextColumns.findIndex((column) => {
       if (column.id === 'created_at') return true
       return (
         'accessorKey' in column &&
@@ -232,7 +241,6 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
         column.accessorKey === 'created_at'
       )
     })
-    const nextColumns = [...baseColumns]
     nextColumns.splice(
       createdAtIndex >= 0 ? createdAtIndex + 1 : nextColumns.length,
       0,
