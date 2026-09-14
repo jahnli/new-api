@@ -1,6 +1,11 @@
 # 数据总览页增强与公司配置管理
 
-**日期**: 2026-06-25 ~ 09-10（最后更新 09-10）
+**日期**: 2026-06-25 ~ 09-14（最后更新 09-14）
+
+### 2026-09-14 部门统计卡片新增缓存命中率
+
+- `web/src/features/data-overview/components/department-stats-cards.tsx` — 原“错误率”卡片改为“错误率 / 缓存命中率”合并卡片，两个数值各保留一位小数，卡片总数维持 10 个；命中率按 `cache_read / (uncached_input + cache_read + cache_write)` 计算，缓存写入属未命中同样计入分母（与周报脚本口径一致），无输入时显示 0.0%；数值沿用“未注册 / 已注册”卡片的分色写法：错误率 `text-destructive`、命中率 `text-success`、斜杠分隔符 `text-muted-foreground`
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json` — 补齐“Error Rate / Cache Hit Rate”与“Request error rate and cache hit rate”七语言文案
 
 ### 2026-09-10 部门人员列表展示统一
 
