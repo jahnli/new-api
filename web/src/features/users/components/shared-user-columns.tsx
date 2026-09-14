@@ -356,19 +356,19 @@ export function userConsumptionColumn<T extends UserColumnRow>(
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            <div className='space-y-1 text-xs'>
-              <div>
-                {t('Tokens')}: {formatUserTokens(tokens)}
-              </div>
-              <div>
-                {t('Cost')}: {formattedCost}
-              </div>
-              <div>
-                {t('Request Count')}: {formatUserRequestsDetail(requests)}
-              </div>
-              <div>
-                {t('Unit Price / 100M Tokens')}: {formattedUnitPrice}
-              </div>
+            <div className='grid grid-cols-[auto_auto] items-baseline gap-x-6 gap-y-1.5 text-xs tabular-nums'>
+              <span className='opacity-70'>{t('Tokens')}</span>
+              <span className='text-right'>{formatUserTokens(tokens)}</span>
+              <span className='opacity-70'>{t('Cost')}</span>
+              <span className='text-right'>{formattedCost}</span>
+              <span className='opacity-70'>{t('Request Count')}</span>
+              <span className='text-right'>
+                {formatUserRequestsDetail(requests)}
+              </span>
+              <span className='opacity-70'>
+                {t('Unit Price / 100M Tokens')}
+              </span>
+              <span className='text-right'>{formattedUnitPrice}</span>
             </div>
           </TooltipContent>
         </Tooltip>
