@@ -143,6 +143,16 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
   const highCostUserRate = stat.high_cost_user_rate ?? 0
   const highCostUserRateClassName = getActiveUserRateClassName(highCostUserRate)
 
+  const errorRate = stat.error_rate ?? 0
+  const cacheReadTokens = stat.cache_read_tokens ?? 0
+  const totalInputTokens =
+    (stat.uncached_input_tokens ?? 0) +
+    cacheReadTokens +
+    (stat.cache_write_tokens ?? 0)
+  // 与 API 周报口径一致：缓存写入属于未命中，同样计入分母。
+  const cacheHitRate =
+    totalInputTokens > 0 ? (cacheReadTokens / totalInputTokens) * 100 : 0
+
   const items: {
     title: string
     titleSuffix?: ReactNode
@@ -260,9 +270,15 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       tooltip: formatTokens(tokensPerActiveUser),
     },
     {
-      title: t('Error Rate'),
-      value: `${(stat.error_rate ?? 0).toFixed(1)}%`,
-      desc: t('Request error rate'),
+      title: t('Error Rate / Cache Hit Rate'),
+      value: (
+        <>
+          <span className='text-destructive'>{errorRate.toFixed(1)}%</span>
+          <span className='text-muted-foreground'> / </span>
+          <span className='text-success'>{cacheHitRate.toFixed(1)}%</span>
+        </>
+      ),
+      desc: t('Request error rate and cache hit rate'),
       icon: AlertTriangle,
       iconTone: 'destructive',
     },
