@@ -340,6 +340,7 @@ export function UserSubscriptionsDialog(props: Props) {
                 }
                 className='flex-1'
                 placeholder={t('Select subscription plan')}
+                openOnFocus={false}
               />
               <Button
                 onClick={handleCreate}
