@@ -175,7 +175,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
         if (!Array.isArray(value) || value.length === 0) return true
         return value.includes(String(row.getValue(id)))
       },
-      size: 150,
+      size: 80,
       meta: { mobileBadge: true },
     }),
     [t]
