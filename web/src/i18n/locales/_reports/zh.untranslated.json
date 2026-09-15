@@ -18,6 +18,7 @@
   "New API": "New API",
   "New API &lt;noreply@example.com&gt;": "New API &lt;noreply@example.com&gt;",
   "Save configuration before testing the LDAP connection": "测试 LDAP 连接前请先保存配置",
+  "SGLang": "SGLang",
   "Sign in with your LDAP account": "使用 LDAP 账号登录",
   "Skip TLS certificate verification (not recommended)": "跳过 TLS 证书校验（不推荐）",
   "Skip TLS Verify": "跳过 TLS 校验",
