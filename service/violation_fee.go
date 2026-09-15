@@ -122,8 +122,14 @@ func ChargeViolationFeeIfNeeded(ctx *gin.Context, relayInfo *relaycommon.RelayIn
 		return false
 	}
 
-	if err := PostConsumeQuota(relayInfo, feeQuota, 0, true); err != nil {
-		logger.LogError(ctx, fmt.Sprintf("failed to charge violation fee: %s", err.Error()))
+	var chargeErr error
+	if relayInfo.BillingSource == BillingSourceSubscription && relayInfo.Billing != nil {
+		chargeErr = SettleBilling(ctx, relayInfo, feeQuota)
+	} else {
+		chargeErr = PostConsumeQuota(relayInfo, feeQuota, 0, true)
+	}
+	if chargeErr != nil {
+		logger.LogError(ctx, fmt.Sprintf("failed to charge violation fee: %s", chargeErr.Error()))
 		return false
 	}
 

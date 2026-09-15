@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import type { PremiumQuota } from './premium-api'
+
 // ============================================================================
 // Subscription Plan Schema & Types
 // ============================================================================
@@ -54,6 +56,7 @@ export const userSubscriptionSchema = z.object({
 export type UserSubscription = z.infer<typeof userSubscriptionSchema>
 
 export interface UserSubscriptionRecord {
+  premium_quota?: PremiumQuota
   subscription: UserSubscription
 }
 

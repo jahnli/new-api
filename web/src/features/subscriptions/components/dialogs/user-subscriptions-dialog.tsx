@@ -55,6 +55,25 @@ import {
 } from '../../api'
 import { formatTimestamp } from '../../lib'
 import type { PlanRecord, UserSubscriptionRecord } from '../../types'
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { UserPremiumPolicy } from '../user-premium-policy'
 
 interface Props {
   open: boolean
@@ -314,6 +333,16 @@ export function UserSubscriptionsDialog(props: Props) {
         contentClassName='sm:max-w-4xl'
         bodyClassName='space-y-4'
       >
+        {props.open && props.user ? (
+          <UserPremiumPolicy
+            userId={props.user.id}
+            subscriptions={subs}
+            onSaved={() => {
+              void loadData()
+              props.onSuccess?.()
+            }}
+          />
+        ) : null}
         <div className='flex gap-2'>
           <Combobox
             options={plans.map((planRecord) => ({

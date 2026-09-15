@@ -319,7 +319,10 @@ func HasPriceOrRatioEntry(name string) bool {
 	return billing_setting.GetBillingMode(formatted) == billing_setting.BillingModeTieredExpr
 }
 
-func resolveBillingModelName(origin string) string {
+func resolveBillingModelName(origin string) string { return ResolveBillingModelName(origin) }
+
+// ResolveBillingModelName shares pricing identity with subscription model selection.
+func ResolveBillingModelName(origin string) string {
 	var candidates []string
 	if !reasoning.ParseModelModifiers(origin).HasModifiers() {
 		candidates = append(candidates, origin)

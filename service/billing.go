@@ -88,7 +88,12 @@ func SettleBilling(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, actualQuo
 
 	// 回退：无 BillingSession 时使用旧路径
 	quotaDelta := actualQuota - relayInfo.FinalPreConsumedQuota
-	if quotaDelta != 0 {
+	if relayInfo.BillingSource == BillingSourceSubscription && relayInfo.SubscriptionChargeRevision > 0 {
+		// Repeated final settlement targets the same net amount, whereas
+		// PostConsumeQuota also supports independent additive charges.
+		quotaDelta = actualQuota - int(relayInfo.SubscriptionAccountedQuota)
+	}
+	if quotaDelta != 0 || relayInfo.SubscriptionChargeRevision > 0 {
 		return PostConsumeQuota(relayInfo, quotaDelta, relayInfo.FinalPreConsumedQuota, true)
 	}
 	return nil

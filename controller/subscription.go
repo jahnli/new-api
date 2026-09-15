@@ -76,6 +76,14 @@ func GetSubscriptionSelf(c *gin.Context) {
 		activeSubscriptions = []model.SubscriptionSummary{}
 	}
 
+	if err := model.AttachSubscriptionPremiumQuota(userId, allSubscriptions); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.AttachSubscriptionPremiumQuota(userId, activeSubscriptions); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	common.ApiSuccess(c, gin.H{
 		"billing_preference": pref,
 		"subscriptions":      activeSubscriptions, // all active subscriptions
@@ -448,6 +456,10 @@ func AdminListUserSubscriptions(c *gin.Context) {
 	}
 	subs, err := model.GetAllUserSubscriptions(userId)
 	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.AttachSubscriptionPremiumQuota(userId, subs); err != nil {
 		common.ApiError(c, err)
 		return
 	}

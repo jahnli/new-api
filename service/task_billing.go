@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"maps"
 	"math"
@@ -46,6 +47,7 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo, task *model
 		}
 	}
 	other := model.NewLogOther()
+
 	other.SetPublic("is_task", true)
 	other.SetPublic("request_path", c.Request.URL.Path)
 	other.SetPublic("model_price", info.PriceData.ModelPrice)
@@ -105,9 +107,44 @@ func taskIsSubscription(task *model.Task) bool {
 }
 
 // taskAdjustFunding 调整任务的资金来源（钱包或订阅），delta > 0 表示扣费，delta < 0 表示退还。
+var errTaskFundingAlreadyApplied = errors.New("task funding already applied")
+
 func taskAdjustFunding(task *model.Task, delta int) error {
 	if taskIsSubscription(task) {
-		return model.PostConsumeUserSubscriptionDelta(task.PrivateData.SubscriptionId, int64(delta))
+		if task.PrivateData.SubscriptionRequestID == "" {
+			return model.PostConsumeUserSubscriptionDelta(task.PrivateData.SubscriptionId, int64(delta))
+		}
+		var record model.SubscriptionPreConsumeRecord
+		if err := model.DB.Where("request_id = ? AND user_id = ?", task.PrivateData.SubscriptionRequestID, task.UserId).First(&record).Error; err != nil {
+			return err
+		}
+		charge, err := record.ChargeContext()
+		if err != nil {
+			return err
+		}
+		target := int64(task.Quota) + int64(delta)
+		phase := "settled"
+		if target == 0 {
+			phase = "refunded"
+		}
+		if charge.AccountedQuota == target && charge.Phase == phase {
+			if charge.Revision < task.PrivateData.SubscriptionChargeRevision || charge.Revision > task.PrivateData.SubscriptionChargeRevision+1 {
+				return model.ErrSubscriptionChargeConflict
+			}
+			task.PrivateData.SubscriptionChargeRevision = charge.Revision
+			return errTaskFundingAlreadyApplied
+		}
+		if charge.AccountedQuota != int64(task.Quota) || charge.Revision != task.PrivateData.SubscriptionChargeRevision {
+			return model.ErrSubscriptionChargeConflict
+		}
+		updated, err := model.UpdateSubscriptionCharge(record.RequestId, task.UserId, target, task.PrivateData.SubscriptionChargeRevision+1, phase)
+		if err == nil {
+			task.PrivateData.SubscriptionChargeRevision = updated.Revision
+			if !updated.Applied {
+				return errTaskFundingAlreadyApplied
+			}
+		}
+		return err
 	}
 	if delta > 0 {
 		return model.DecreaseUserQuota(task.UserId, delta, false)
@@ -174,6 +211,22 @@ func appendTaskLogInfo(task *model.Task, other *model.LogOther) {
 	if task == nil || other == nil {
 		return
 	}
+	if task.PrivateData.SubscriptionRequestID != "" {
+		var record model.SubscriptionPreConsumeRecord
+		if err := model.DB.Where("request_id = ? AND user_id = ?", task.PrivateData.SubscriptionRequestID, task.UserId).First(&record).Error; err == nil {
+			if charge, err := record.ChargeContext(); err == nil {
+				other.SetPublic("subscription_id", record.UserSubscriptionId)
+				other.SetPublic("subscription_is_premium", charge.IsPremium)
+				other.SetPublic("subscription_premium_percent", charge.EffectivePercent)
+				other.SetPublic("subscription_reset_version", charge.ResetVersion)
+				other.SetPublic("subscription_billing_model", charge.BillingModelName)
+				if charge.IsPremium {
+					other.SetPublic("subscription_premium_net_quota", charge.AccountedQuota)
+					other.SetPublic("subscription_premium_over_limit_quota", charge.PremiumOverLimit)
+				}
+			}
+		}
+	}
 	if task.TaskID != "" {
 		other.SetPublic("task_id", task.TaskID)
 	}
@@ -225,6 +278,10 @@ func RefundTaskQuota(ctx context.Context, task *model.Task, reason string) bool 
 
 	// 1. 退还资金来源（钱包或订阅）
 	if err := taskAdjustFunding(task, -quota); err != nil {
+		if errors.Is(err, errTaskFundingAlreadyApplied) {
+			task.Quota = 0
+			return task.UpdateQuota() == nil
+		}
 		logger.LogWarn(ctx, fmt.Sprintf("退还资金来源失败 task %s: %s", task.TaskID, err.Error()))
 		return false
 	}
@@ -273,6 +330,16 @@ func RecalculateTaskQuota(ctx context.Context, task *model.Task, actualQuota int
 	quotaDelta := actualQuota - preConsumedQuota
 
 	if quotaDelta == 0 {
+		if taskIsSubscription(task) && task.PrivateData.SubscriptionRequestID != "" {
+			if err := taskAdjustFunding(task, 0); err != nil && !errors.Is(err, errTaskFundingAlreadyApplied) {
+				logger.LogError(ctx, err.Error())
+				return
+			}
+			if err := task.UpdateQuota(); err != nil {
+				logger.LogError(ctx, err.Error())
+				return
+			}
+		}
 		logger.LogInfo(ctx, fmt.Sprintf("任务 %s 预扣费准确（%s，%s）",
 			task.TaskID, logger.LogQuota(actualQuota), reason))
 		return
@@ -288,6 +355,13 @@ func RecalculateTaskQuota(ctx context.Context, task *model.Task, actualQuota int
 
 	// 调整资金来源
 	if err := taskAdjustFunding(task, quotaDelta); err != nil {
+		if errors.Is(err, errTaskFundingAlreadyApplied) {
+			task.Quota = actualQuota
+			if persistErr := task.UpdateQuota(); persistErr != nil {
+				logger.LogError(ctx, persistErr.Error())
+			}
+			return
+		}
 		logger.LogError(ctx, fmt.Sprintf("差额结算资金调整失败 task %s: %s", task.TaskID, err.Error()))
 		return
 	}

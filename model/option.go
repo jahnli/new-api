@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"maps"
 	"strconv"
 	"strings"
@@ -298,6 +299,9 @@ func SyncOptions(frequency int) {
 }
 
 func validateOptionValue(key string, value string) error {
+	if key == setting.SubscriptionPremiumPolicyKey {
+		return fmt.Errorf("use the subscription premium policy endpoint")
+	}
 	if key == setting.ModelSquareConfigKey {
 		_, err := setting.ParseModelSquareConfig(value)
 		return err

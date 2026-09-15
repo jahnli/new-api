@@ -1,5 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { Crown, Clock, CalendarDays, RefreshCw } from 'lucide-react'
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -19,61 +20,43 @@ import {
   getPublicPlans,
   getSelfSubscriptionFull,
 } from '@/features/subscriptions/api'
-import type {
-  PlanRecord,
-  UserSubscriptionRecord,
-} from '@/features/subscriptions/types'
+import { PremiumQuotaSummary } from '@/features/subscriptions/components/premium-quota-summary'
+import type { UserSubscriptionRecord } from '@/features/subscriptions/types'
 import { formatQuota } from '@/lib/format'
+import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 const SUBSCRIPTION_SKELETON_IDS = ['subscription-1', 'subscription-2'] as const
 
 export function SubscriptionCard() {
   const { t } = useTranslation()
-  const [plans, setPlans] = useState<PlanRecord[]>([])
-  const [activeSubscriptions, setActiveSubscriptions] = useState<
-    UserSubscriptionRecord[]
-  >([])
-  const [allSubscriptions, setAllSubscriptions] = useState<
-    UserSubscriptionRecord[]
-  >([])
-  const [referenceTime, setReferenceTime] = useState(0)
-  const [visible, setVisible] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-
-    Promise.all([getPublicPlans(), getSelfSubscriptionFull()])
-      .then(([plansRes, selfRes]) => {
-        if (cancelled) return
-
-        const fetchedPlans = plansRes.success ? plansRes.data || [] : []
-        const active = selfRes.success ? selfRes.data?.subscriptions || [] : []
-        const all = selfRes.success ? selfRes.data?.all_subscriptions || [] : []
-
-        setPlans(fetchedPlans)
-        setActiveSubscriptions(active)
-        setAllSubscriptions(all)
-        setReferenceTime(Date.now() / 1000)
-        setVisible(fetchedPlans.length > 0 || all.length > 0)
-        setLoading(false)
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setVisible(false)
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const query = useQuery({
+    queryKey: ['subscription-premium', 'self'],
+    queryFn: async () => {
+      const [plansResponse, selfResponse] = await Promise.all([
+        getPublicPlans(),
+        getSelfSubscriptionFull(),
+      ])
+      const plans = requireServerSuccess(plansResponse).data || []
+      const subscriptions = requireServerSuccess(selfResponse).data
+      return {
+        plans,
+        active: subscriptions?.subscriptions || [],
+        all: subscriptions?.all_subscriptions || [],
+        referenceTime: Date.now() / 1000,
+      }
+    },
+  })
+  const plans = query.data?.plans
+  const activeSubscriptions = query.data?.active || []
+  const allSubscriptions = query.data?.all || []
+  const referenceTime = query.data?.referenceTime || 0
+  const visible = (plans?.length || 0) > 0 || allSubscriptions.length > 0
+  const loading = query.isPending
 
   const planTitleMap = useMemo(() => {
     const map = new Map<number, string>()
-    for (const p of plans) {
+    for (const p of plans || []) {
       if (p?.plan?.id) {
         map.set(p.plan.id, p.plan.title || '')
       }
@@ -248,6 +231,7 @@ function SubscriptionItem({
         </div>
       </div>
 
+      <PremiumQuotaSummary quota={sub.premium_quota} />
       {totalAmount > 0 && (
         <div className='mt-3 border-t pt-3'>
           <div className='flex items-center justify-between text-xs'>

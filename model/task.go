@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	commonRelay "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
+	"gorm.io/gorm"
 )
 
 type TaskStatus string
@@ -110,9 +111,11 @@ func (m Properties) Value() (driver.Value, error) {
 }
 
 type TaskPrivateData struct {
-	Key            string `json:"key,omitempty"`
-	UpstreamTaskID string `json:"upstream_task_id,omitempty"` // 上游真实 task ID
-	ResultURL      string `json:"result_url,omitempty"`       // 任务成功后的结果 URL（视频地址等）
+	SubscriptionRequestID      string `json:"subscription_request_id,omitempty"`
+	SubscriptionChargeRevision int64  `json:"subscription_charge_revision,omitempty"`
+	Key                        string `json:"key,omitempty"`
+	UpstreamTaskID             string `json:"upstream_task_id,omitempty"` // 上游真实 task ID
+	ResultURL                  string `json:"result_url,omitempty"`       // 任务成功后的结果 URL（视频地址等）
 	// Execution records safe, immutable request provenance. It lives next to
 	// other private task state so public task DTOs cannot expose it by accident.
 	Execution *TaskExecutionSnapshot `json:"execution,omitempty"`
@@ -201,7 +204,7 @@ func (p *TaskPrivateData) Scan(val any) error {
 
 func (p TaskPrivateData) Value() (driver.Value, error) {
 	if p.Key == "" && p.UpstreamTaskID == "" && p.ResultURL == "" &&
-		p.Execution == nil && p.BillingSource == "" && p.SubscriptionId == 0 &&
+		p.SubscriptionRequestID == "" && p.SubscriptionChargeRevision == 0 && p.Execution == nil && p.BillingSource == "" && p.SubscriptionId == 0 &&
 		p.TokenId == 0 && p.NodeName == "" && p.BillingContext == nil &&
 		!p.ResponsesBackground && len(p.PluginState) == 0 && p.PollFailures == 0 {
 		return nil, nil
@@ -519,6 +522,35 @@ func (Task *Task) Update() error {
 }
 
 func (t *Task) UpdateQuota() error {
+	if t.PrivateData.SubscriptionRequestID != "" {
+		return subscriptionTransaction(func(tx *gorm.DB) error {
+			var user User
+			if err := lockForUpdate(tx).Select("id").First(&user, t.UserId).Error; err != nil {
+				return err
+			}
+			var record SubscriptionPreConsumeRecord
+			if err := lockForUpdate(tx).Where("request_id = ? AND user_id = ?", t.PrivateData.SubscriptionRequestID, t.UserId).First(&record).Error; err != nil {
+				return err
+			}
+			charge, err := record.ChargeContext()
+			if err != nil {
+				return err
+			}
+			if charge.Revision != t.PrivateData.SubscriptionChargeRevision || charge.AccountedQuota != int64(t.Quota) {
+				return ErrSubscriptionChargeConflict
+			}
+			var current Task
+			if err := lockForUpdate(tx).First(&current, t.ID).Error; err != nil {
+				return err
+			}
+			if current.PrivateData.SubscriptionChargeRevision > charge.Revision {
+				return ErrSubscriptionChargeConflict
+			}
+			// Merge only billing state; polling may have refreshed other private data.
+			current.PrivateData.SubscriptionChargeRevision = charge.Revision
+			return tx.Model(&current).Updates(map[string]any{"quota": t.Quota, "private_data": current.PrivateData}).Error
+		})
+	}
 	return DB.Model(t).Update("quota", t.Quota).Error
 }
 

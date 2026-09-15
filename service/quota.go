@@ -89,6 +89,18 @@ func PreWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usag
 	if relayInfo.UsePrice {
 		return nil
 	}
+	if relayInfo.BillingSource == BillingSourceSubscription && relayInfo.Billing != nil {
+		quota, clamp := calculateAudioQuota(QuotaInfo{
+			InputDetails:  TokenDetails{TextTokens: usage.InputTokenDetails.TextTokens, AudioTokens: usage.InputTokenDetails.AudioTokens},
+			OutputDetails: TokenDetails{TextTokens: usage.OutputTokenDetails.TextTokens, AudioTokens: usage.OutputTokenDetails.AudioTokens},
+			ModelName:     relayInfo.GetBillingModelName(), ModelRatio: relayInfo.PriceData.ModelRatio,
+			GroupRatio: relayInfo.PriceData.GroupRatioInfo.GroupRatio,
+		})
+		noteQuotaClamp(relayInfo, clamp)
+		target, targetClamp := common.QuotaFromFloatChecked(float64(relayInfo.Billing.GetPreConsumedQuota()) + float64(quota))
+		noteQuotaClamp(relayInfo, targetClamp)
+		return relayInfo.Billing.Reserve(target)
+	}
 	userQuota, err := model.GetUserQuota(relayInfo.UserId, false)
 	if err != nil {
 		return err
@@ -451,13 +463,22 @@ func postConsumeQuotaWithResult(relayInfo *relaycommon.RelayInfo, quota int, pre
 		if relayInfo.SubscriptionId == 0 {
 			return result, errors.New("subscription id is missing")
 		}
-		delta := int64(quota)
-		if delta != 0 {
-			if err := model.PostConsumeUserSubscriptionDelta(relayInfo.SubscriptionId, delta); err != nil {
+		if relayInfo.SubscriptionChargeRevision > 0 {
+			// This API accepts a delta, including additional charges with a zero
+			// preConsumedQuota. Keep the request's last acknowledged target.
+			updated, updateErr := model.UpdateSubscriptionCharge(relayInfo.RequestId, relayInfo.UserId, relayInfo.SubscriptionAccountedQuota+int64(quota), relayInfo.SubscriptionChargeRevision+1, "settled")
+			if updateErr != nil {
+				return result, updateErr
+			}
+			relayInfo.SubscriptionChargeRevision = updated.Revision
+			relayInfo.SubscriptionAccountedQuota = updated.AccountedQuota
+			relayInfo.SubscriptionPremiumOverLimit = updated.PremiumOverLimit
+		} else if quota != 0 {
+			if err := model.PostConsumeUserSubscriptionDelta(relayInfo.SubscriptionId, int64(quota)); err != nil {
 				return result, err
 			}
-			relayInfo.SubscriptionPostDelta += delta
 		}
+		relayInfo.SubscriptionPostDelta += int64(quota)
 	} else {
 		// Wallet
 		if quota > 0 {

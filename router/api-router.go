@@ -194,6 +194,11 @@ func SetApiRouter(router *gin.Engine) {
 		subscriptionAdminRoute := apiRouter.Group("/subscription/admin")
 		subscriptionAdminRoute.Use(middleware.AdminAuth())
 		{
+			subscriptionAdminRoute.GET("/premium-policy", controller.GetSubscriptionPremiumPolicy)
+			subscriptionAdminRoute.PUT("/premium-policy", controller.UpdateSubscriptionPremiumPolicy)
+			subscriptionAdminRoute.GET("/premium-model-options", controller.GetSubscriptionPremiumModelOptions)
+			subscriptionAdminRoute.GET("/users/:id/premium-policy", controller.GetUserSubscriptionPremiumPolicy)
+			subscriptionAdminRoute.PUT("/users/:id/premium-policy", controller.UpdateUserSubscriptionPremiumPolicy)
 			subscriptionAdminRoute.GET("/company-options", controller.AdminListSubscriptionCompanyOptions)
 			subscriptionAdminRoute.GET("/plans", controller.AdminListSubscriptionPlans)
 			subscriptionAdminRoute.POST("/plans", controller.AdminCreateSubscriptionPlan)

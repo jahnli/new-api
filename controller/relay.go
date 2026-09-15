@@ -178,10 +178,16 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		// Only return quota if downstream failed and quota was actually pre-consumed
 		if AIGatewayError != nil {
 			AIGatewayError = service.NormalizeViolationFeeError(AIGatewayError)
+			if relayInfo.BillingSource == service.BillingSourceSubscription {
+				// Settle an upstream violation fee before releasing its reservation.
+				service.ChargeViolationFeeIfNeeded(c, relayInfo, AIGatewayError)
+			}
 			if relayInfo.Billing != nil {
 				relayInfo.Billing.Refund(c)
 			}
-			service.ChargeViolationFeeIfNeeded(c, relayInfo, AIGatewayError)
+			if relayInfo.BillingSource != service.BillingSourceSubscription {
+				service.ChargeViolationFeeIfNeeded(c, relayInfo, AIGatewayError)
+			}
 		}
 	}()
 
@@ -713,10 +719,9 @@ func executeTaskSubmissionWith(
 		return nil, service.TaskErrorWrapperLocal(requestErr, "request_cancelled", http.StatusRequestTimeout)
 	}
 
-	// Reserve any submit-time upward billing adjustment before persistence.
-	// This keeps insertion failures fully refundable while ensuring settlement
-	// after the barrier normally has a zero positive delta.
-	if relayInfo.Billing != nil {
+	// Wallet submission adjustments are reserved before persistence. Subscription
+	// actual costs settle after persistence and may exceed the premium sublimit.
+	if relayInfo.Billing != nil && relayInfo.BillingSource != service.BillingSourceSubscription {
 		stage = "reserve"
 		diagnostics.reserve("reserve_start", result.Quota)
 		if reserveErr := relayInfo.Billing.Reserve(result.Quota); reserveErr != nil {
@@ -738,6 +743,12 @@ func executeTaskSubmissionWith(
 	task.PrivateData.UpstreamTaskID = result.UpstreamTaskID
 	task.PrivateData.BillingSource = relayInfo.BillingSource
 	task.PrivateData.SubscriptionId = relayInfo.SubscriptionId
+	if relayInfo.BillingSource == service.BillingSourceSubscription {
+		task.PrivateData.SubscriptionRequestID = relayInfo.RequestId
+		// The durable task expects the submission settlement's next revision.
+		// Polling cannot alter a reservation that submission has not settled yet.
+		task.PrivateData.SubscriptionChargeRevision = relayInfo.SubscriptionChargeRevision + 1
+	}
 	task.PrivateData.TokenId = relayInfo.TokenId
 	task.PrivateData.NodeName = common.NodeName
 	task.PrivateData.BillingContext = &model.TaskBillingContext{

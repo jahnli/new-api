@@ -144,7 +144,13 @@ type RelayInfo struct {
 	// "" or "wallet" => wallet; "subscription" => subscription
 	BillingSource string
 	// SubscriptionId is the user_subscriptions.id used when BillingSource == "subscription"
-	SubscriptionId int
+	SubscriptionChargeRevision   int64
+	SubscriptionAccountedQuota   int64
+	SubscriptionPremiumOverLimit int64
+	SubscriptionIsPremium        bool
+	SubscriptionPremiumPercent   int
+	SubscriptionResetVersion     int64
+	SubscriptionId               int
 	// SubscriptionPreConsumed is the amount pre-consumed on subscription item (quota units or 1)
 	SubscriptionPreConsumed int64
 	// SubscriptionPostDelta is the post-consume delta applied to amount_used (quota units; can be negative).

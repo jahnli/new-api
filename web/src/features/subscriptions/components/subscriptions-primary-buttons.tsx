@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 
+import { PremiumPolicyDialog } from './premium-policy-dialog'
 import { useSubscriptions } from './subscriptions-provider'
 
 export function SubscriptionsPrimaryButtons() {
@@ -10,6 +11,7 @@ export function SubscriptionsPrimaryButtons() {
   const { setOpen, complianceConfirmed } = useSubscriptions()
   return (
     <div className='flex gap-2'>
+      <PremiumPolicyDialog />
       <Button
         size='sm'
         onClick={() => setOpen('create')}

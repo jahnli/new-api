@@ -78,6 +78,7 @@ func (w *WalletFunding) Refund() error {
 // ---------------------------------------------------------------------------
 
 type SubscriptionFunding struct {
+	charge         model.SubscriptionChargeContext
 	requestId      string
 	userId         int
 	modelName      string
@@ -99,6 +100,7 @@ func (s *SubscriptionFunding) PreConsume(_ int) error {
 	if err != nil {
 		return err
 	}
+	s.charge = res.ChargeContext
 	s.subscriptionId = res.UserSubscriptionId
 	s.preConsumed = res.PreConsumed
 	s.AmountTotal = res.AmountTotal
@@ -112,19 +114,25 @@ func (s *SubscriptionFunding) PreConsume(_ int) error {
 }
 
 func (s *SubscriptionFunding) Settle(delta int) error {
-	if delta == 0 {
-		return nil
+	return s.updateCharge(s.charge.AccountedQuota+int64(delta), "settled")
+}
+
+func (s *SubscriptionFunding) updateCharge(target int64, phase string) error {
+	ctx, err := model.UpdateSubscriptionCharge(s.requestId, s.userId, target, s.charge.Revision+1, phase)
+	if err == nil || ctx.Phase == "settlement_pending" {
+		s.charge = ctx
 	}
-	return model.PostConsumeUserSubscriptionDelta(s.subscriptionId, int64(delta))
+	return err
 }
 
 func (s *SubscriptionFunding) Refund() error {
-	if s.preConsumed <= 0 {
+	if s.charge.Phase == "refunded" {
 		return nil
 	}
-	return refundWithRetry(func() error {
-		return model.RefundSubscriptionPreConsume(s.requestId)
-	})
+	if s.charge.Phase != "reserved" {
+		return model.ErrSubscriptionChargeConflict
+	}
+	return refundWithRetry(func() error { return s.updateCharge(0, "refunded") })
 }
 
 // refundWithRetry 尝试多次执行退款操作以提高成功率，只能用于基于事务的退款函数！！！！！！

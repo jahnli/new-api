@@ -181,6 +181,14 @@ func appendBillingInfo(relayInfo *relaycommon.RelayInfo, other *model.LogOther) 
 		other.SetPublic("billing_preference", relayInfo.UserSetting.BillingPreference)
 	}
 	if relayInfo.BillingSource == "subscription" {
+		other.SetPublic("subscription_is_premium", relayInfo.SubscriptionIsPremium)
+		other.SetPublic("subscription_premium_percent", relayInfo.SubscriptionPremiumPercent)
+		other.SetPublic("subscription_reset_version", relayInfo.SubscriptionResetVersion)
+		other.SetPublic("subscription_billing_model", relayInfo.GetBillingModelName())
+		if relayInfo.SubscriptionIsPremium {
+			other.SetPublic("subscription_premium_net_quota", relayInfo.SubscriptionAccountedQuota)
+			other.SetPublic("subscription_premium_over_limit_quota", relayInfo.SubscriptionPremiumOverLimit)
+		}
 		if relayInfo.SubscriptionId != 0 {
 			other.SetPublic("subscription_id", relayInfo.SubscriptionId)
 		}
