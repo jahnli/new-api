@@ -107,7 +107,6 @@ describe('user activity time column', () => {
           requestsAccessor: 'monthly_total_requests',
           modelAccessor: 'monthly_common_model',
           requestCountAccessor: 'monthly_total_requests',
-          combineActivityTimes: true,
         }),
       { wrapper: I18nWrapper }
     )

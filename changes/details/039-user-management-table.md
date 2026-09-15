@@ -146,6 +146,16 @@
 - `web/src/features/users/components/shared-user-columns.tsx` — 状态列与角色列表头改用共享列头筛选器，选项复用用户常量中的 `getUserStatusOptions` 与 `getUserRoleOptions`（含图标），选中筛选后表头漏斗转为主题色；状态列默认列宽由 92px 加宽到 102px，容纳新增的筛选按钮。
 - `web/src/features/users/components/shared-user-columns.tsx` — 共享列顺序由「时间、状态、常用模型、角色、分组」调整为「时间、常用模型、角色、状态、分组」，取代此前「状态列移至常用模型之前」的排列；部门人员列表自动跟随该顺序，其注册状态列仍在时间列之后。
 
+## 2026-09-15 共享列精简与列宽调整
+
+- `web/src/features/users/components/shared-user-columns.tsx` — 删除已被「任职概况」列取代的独立列工厂 `userDepartmentColumn`、`userJobLevelColumn`、`userJoinDateColumn`，以及只剩合并列一种取值的时间列分支 `userLastLoginColumn`、`userCreatedAtColumn`；两个调用方传入的开关均为固定值，这些分支在运行期不可达。
+- `web/src/features/users/components/shared-user-columns.tsx` — 移除恒为单一取值的共享列选项 `combineEmploymentOverview`、`combineActivityTimes`、`withGroupBadgeCell`、`quotaHeaderDescription`，以及 `userQuotaColumn` 的 `width`、`userModelColumn` 的 `header`/`variant`、`userStatusColumn` 的 `showRequestCount`、`userGroupColumn` 的 `withBadgeCell` 参数；任职概况列与时间列改为无条件挂载（对外模式仍整体排除），常用模型列固定为徽章渲染，状态列固定显示请求次数提示，分组列固定使用 `BadgeCell`。
+- `web/src/features/users/components/shared-user-columns.tsx` — 抽出 `matchesSelectedFilterValues` 统一角色列与状态列此前逐字重复的多选 `filterFn`；`getQuotaProgressColor`、`formatAmountCny`、`formatUserTokens`、`formatUserRequests`、`formatUserRequestsDetail`、`userIdColumn`、`userQuotaColumn`、`userConsumptionColumn`、`userRoleColumn`、`userStatusColumn`、`userGroupColumn` 共 11 个仅文件内使用的符号去掉 `export`，模块对外仅保留 `userNameColumn`、`userModelColumn`、`userEmploymentOverviewColumn`、`userActivityTimeColumn`、`SharedUserColumnsOptions` 与 `useSharedUserColumns`；移除随独立列一同失效的 `formatTimestamp` 导入。
+- `web/src/features/users/components/shared-user-columns.tsx` — 列宽调整：ID 单元格固定宽由 48px 调到 50px，用户名列 140→170，已用/总额列 205→190（同时移除按 `width` 覆盖列宽的入参），常用模型列 130→160，任职概况列 200→220，角色列 120→80；任职概况列单元格由固定 `w-[280px]` 加 `px-2` 改为仅 `max-w-[280px]`，并移除 `minSize: 180` 与镜像单元格内边距的表头 `px-2` 补丁；分组列在统一使用 `BadgeCell` 后固定为 140。
+- `web/src/features/users/components/users-columns.tsx`、`web/src/features/data-overview/components/department-users-table.tsx` — 调用方去掉已移除的 `withGroupBadgeCell`、`combineActivityTimes`、`combineEmploymentOverview`、`quotaHeaderDescription` 入参。
+- `web/src/features/users/components/users-table.tsx`、`web/src/features/data-overview/components/department-users-table.tsx` — 移除服务端排序映射中不存在的 `used_quota` 键（额度列的列名为 `quota`，该键永不匹配）。
+- `web/src/features/users/components/__tests__/activity-time-display.test.tsx`、`web/src/features/users/components/__tests__/employment-overview.test.tsx` — 同步去掉已移除的 `combineActivityTimes`、`combineEmploymentOverview` 与 `userModelColumn` 的 `variant` 入参，断言保持不变。
+
 ## 自 CHANGELOG 说明列迁入
 
 用户管理增强：完善用户表格头像、资料、月度统计、服务端排序、公司筛选、状态人数与共享列；用户编辑弹窗新增可选单成本中心配置，复用完整部门树选择，以单元素部门 JSON 数组持久化，支持创建、编辑、回填、清除、后端校验与七语言文案；成本中心名称保存为不含公司名的完整部门路径，用户 department_name 为空时自动回填；数据总览支持按成本中心归属本地用户（含无 open_id 用户），不依赖平台成员匹配；用户编辑弹窗设置分组时显示各分组基础倍率；用户表格将部门、岗位职级、入职日期合并为两行摘要式「任职概况」列，职级与入职日期改用徽章，两者均空时隐藏次行，职级预留固定宽度以对齐日期；单价列统一按每亿 Token 展示，标题改为「单价 / 亿 Token」、内容改为「金额 / 亿」并加宽；Token、费用、请求次数、单价四列合并为「消耗」列，首行显示 Token 消耗量与金额，次行以弱化色 13px 显示请求次数与每亿 Token 单价（费用标签改用「费用」），并通过共享列头新增的排序字段切换保留四种服务端排序；用户显示名、部门路径与常用模型统一常规字重，时间列以图标区分最后登录与创建时间并按该顺序展示，补齐七语言文案；「消耗」列改名「使用量」，列说明提示改为两行展示 Token 用量/费用与请求次数/每亿 Token 单价，`Usage` 中文文案由「用量」改为「使用量」；修复点击「使用量」列头时排序字段下拉菜单因缺少 Base UI 分组上下文而整页跳转 500，并按最长译文加宽该菜单，避免「单价 / 亿 Token」等文案换行

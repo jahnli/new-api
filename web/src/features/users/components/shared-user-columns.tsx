@@ -50,7 +50,7 @@ import { useExternalMode } from "@/hooks/use-external-mode";
 import { getUserAvatarFallback, getUserAvatarStyle } from "@/lib/avatar";
 import { formatQuotaWithCurrency } from "@/lib/currency";
 import { getDemoModeUsername } from "@/lib/demo-mode";
-import { formatQuota, formatTimestamp } from "@/lib/format";
+import { formatQuota } from "@/lib/format";
 import { calculateUnitPricePer100MTokens } from "@/lib/unit-price";
 import { buildFeishuUserChatUrl, cn } from "@/lib/utils";
 
@@ -71,7 +71,7 @@ import { UserProfileHoverCard } from "./user-profile-hover-card";
 // Shared Formatters
 // ============================================================================
 
-export function getQuotaProgressColor(usedPercentage: number): string {
+function getQuotaProgressColor(usedPercentage: number): string {
   if (usedPercentage >= 80) {
     return "[&_[data-slot=progress-indicator]]:bg-red-500";
   }
@@ -80,7 +80,7 @@ export function getQuotaProgressColor(usedPercentage: number): string {
   }
   return "[&_[data-slot=progress-indicator]]:bg-emerald-500";
 }
-export function formatAmountCny(value: number | undefined): string {
+function formatAmountCny(value: number | undefined): string {
   const amount = value ?? 0;
   return `¥${Intl.NumberFormat(undefined, {
     minimumFractionDigits: 2,
@@ -88,13 +88,13 @@ export function formatAmountCny(value: number | undefined): string {
   }).format(amount)}`;
 }
 
-export function formatUserTokens(tokens: number | undefined): string {
+function formatUserTokens(tokens: number | undefined): string {
   const value = tokens ?? 0;
   if (value <= 0) return "-";
   return `${(value / 1_0000_0000).toFixed(2)} 亿`;
 }
 
-export function formatUserRequests(requests: number | undefined): string {
+function formatUserRequests(requests: number | undefined): string {
   const value = requests ?? 0;
   if (value <= 0) return "-";
   if (value >= 10_000) {
@@ -106,7 +106,7 @@ export function formatUserRequests(requests: number | undefined): string {
 }
 
 /** Exact request count, used for tooltip detail where the 万 suffix loses precision. */
-export function formatUserRequestsDetail(requests: number | undefined): string {
+function formatUserRequestsDetail(requests: number | undefined): string {
   const value = requests ?? 0;
   if (value <= 0) return "-";
   return Intl.NumberFormat().format(value);
@@ -124,14 +124,14 @@ const metricTooltipGridClassName =
 // Column Factories
 // ============================================================================
 
-export function userIdColumn<T extends UserColumnRow>(
+function userIdColumn<T extends UserColumnRow>(
   t: (key: string) => string,
 ): ColumnDef<T> {
   return {
     accessorKey: "id",
     header: t("ID"),
     cell: ({ row }) => (
-      <TableId value={row.getValue("id") as number} className="w-[48px]" />
+      <TableId value={row.getValue("id") as number} className="w-[50px]" />
     ),
     size: 50,
     meta: { mobileHidden: true },
@@ -227,21 +227,18 @@ export function userNameColumn<T extends UserColumnRow>(
       );
     },
     enableHiding: false,
-    size: 140,
+    size: 170,
     meta: { mobileTitle: true },
   };
 }
 
-export function userQuotaColumn<T extends UserColumnRow>(
+function userQuotaColumn<T extends UserColumnRow>(
   t: (key: string) => string,
-  opts?: { width?: number; headerDescription?: string },
 ): ColumnDef<T> {
   const headerText = t("Used / Total");
-  const headerDescription =
-    opts?.headerDescription ??
-    t(
-      "Used quota and total quota data are fixed to the current calendar month and are not affected by the selected time range.",
-    );
+  const headerDescription = t(
+    "Used quota and total quota data are fixed to the current calendar month and are not affected by the selected time range.",
+  );
   return {
     id: "quota",
     accessorKey: "quota",
@@ -301,7 +298,7 @@ export function userQuotaColumn<T extends UserColumnRow>(
         </Tooltip>
       );
     },
-    size: opts?.width ? opts.width + 20 : 205,
+    size: 190,
     meta: { description: headerDescription },
   };
 }
@@ -312,7 +309,7 @@ export function userQuotaColumn<T extends UserColumnRow>(
  * horizontal space, and the header still exposes every original sort field via
  * `meta.sortFields`.
  */
-export function userConsumptionColumn<T extends UserColumnRow>(
+function userConsumptionColumn<T extends UserColumnRow>(
   t: (key: string) => string,
   opts: {
     costAccessor: string;
@@ -413,11 +410,11 @@ export function userConsumptionColumn<T extends UserColumnRow>(
 
 export function userModelColumn<T extends UserColumnRow>(
   t: (key: string) => string,
-  opts: { accessor: string; header?: string; variant?: "badge" | "text" },
+  opts: { accessor: string },
 ): ColumnDef<T> {
   return {
     accessorKey: opts.accessor,
-    header: opts.header ?? t("Common Model"),
+    header: t("Common Model"),
     cell: ({ row }) => {
       const modelName = (row.original as Record<string, unknown>)[
         opts.accessor
@@ -425,106 +422,12 @@ export function userModelColumn<T extends UserColumnRow>(
       if (!modelName) {
         return <span className="text-muted-foreground text-sm">-</span>;
       }
-      if (opts.variant === "badge") {
-        return <ModelBadge modelName={modelName} className="font-normal" />;
-      }
-      return (
-        <Tooltip>
-          <TooltipTrigger
-            render={<div className="max-w-[180px] cursor-help" />}
-          >
-            <LongText className="text-sm">{modelName}</LongText>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">{modelName}</p>
-          </TooltipContent>
-        </Tooltip>
-      );
+      return <ModelBadge modelName={modelName} className="font-normal" />;
     },
     // Model badges are short (~90px); the previous width left a wide empty
     // strip to the right of this column. The released share is redistributed
     // to the columns on its left, moving their boundaries rightwards.
-    size: 130,
-    meta: { mobileHidden: true },
-  };
-}
-
-export function userDepartmentColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-): ColumnDef<T> {
-  return {
-    accessorKey: "department_name",
-    header: t("Department"),
-    cell: ({ row }) => {
-      const dept = row.original.department_name;
-      if (!dept) {
-        return <span className="text-muted-foreground text-sm">-</span>;
-      }
-      const parts = dept.split("/");
-      const firstLevel = parts[0];
-      const rest = parts.slice(1).join("/");
-      return (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="w-[200px] max-w-[200px] min-w-[200px] cursor-help" />
-            }
-          >
-            <div className="text-sm leading-snug">
-              <LongText>{firstLevel}</LongText>
-              {rest && (
-                <LongText className="text-muted-foreground !text-xs">
-                  {rest}
-                </LongText>
-              )}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="max-w-[320px] text-xs">{dept}</p>
-          </TooltipContent>
-        </Tooltip>
-      );
-    },
-    size: 200,
-    meta: { mobileHidden: true },
-  };
-}
-
-export function userJobLevelColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-): ColumnDef<T> {
-  return {
-    id: "job_level",
-    header: t("Job Level"),
-    cell: ({ row }) => {
-      const customFields = parseCustomFields(row.original.custom_field_values);
-      const level = customFields?.[CUSTOM_FIELD_KEYS.JOB_LEVEL];
-      return (
-        <span className="text-muted-foreground !text-[13px]">
-          {level || "-"}
-        </span>
-      );
-    },
-    size: 120,
-    meta: { mobileHidden: true },
-  };
-}
-
-export function userJoinDateColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-): ColumnDef<T> {
-  return {
-    accessorKey: "join_date",
-    header: t("Join Date"),
-    cell: ({ row }) => {
-      const date = row.original.join_date;
-      return (
-        <span className="text-muted-foreground !text-[13px]">
-          {date || "-"}
-        </span>
-      );
-    },
-    size: 120,
+    size: 160,
     meta: { mobileHidden: true },
   };
 }
@@ -544,7 +447,7 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
       return (
         <div
           data-table-text="secondary"
-          className="w-[280px] max-w-[280px] space-y-1.5 overflow-hidden px-2 font-normal"
+          className="max-w-[280px] space-y-1.5 overflow-hidden font-normal"
         >
           <div className="w-full min-w-0 overflow-hidden">
             <span className="sr-only">{t("Department")}:</span>
@@ -588,52 +491,10 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
         </div>
       );
     },
-    size: 200,
-    minSize: 180,
+    size: 220,
     meta: {
       mobileHidden: true,
-      // Match the `px-2` inset on the cell so the title aligns with the
-      // department row below it.
-      headerClassName: "px-2",
     },
-  };
-}
-
-export function userLastLoginColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-): ColumnDef<T> {
-  return {
-    accessorKey: "last_login_at",
-    header: t("Last Login"),
-    cell: ({ row }) => {
-      const ts = row.original.last_login_at;
-      return (
-        <span className="text-muted-foreground text-sm">
-          {ts ? formatTimestamp(ts) : "-"}
-        </span>
-      );
-    },
-    size: 150,
-    meta: { mobileHidden: true },
-  };
-}
-
-export function userCreatedAtColumn<T extends UserColumnRow>(
-  t: (key: string) => string,
-): ColumnDef<T> {
-  return {
-    accessorKey: "created_at",
-    header: t("Created At"),
-    cell: ({ row }) => {
-      const ts = row.original.created_at;
-      return (
-        <span className="text-muted-foreground text-sm">
-          {ts ? formatTimestamp(ts) : "-"}
-        </span>
-      );
-    },
-    size: 180,
-    meta: { mobileHidden: true },
   };
 }
 
@@ -675,7 +536,7 @@ export function userActivityTimeColumn<T extends UserColumnRow>(
   };
 }
 
-export function userRoleColumn<T extends UserColumnRow>(
+function userRoleColumn<T extends UserColumnRow>(
   t: (key: string) => string,
 ): ColumnDef<T> {
   return {
@@ -701,13 +562,13 @@ export function userRoleColumn<T extends UserColumnRow>(
       );
     },
     enableSorting: false,
-    size: 120,
+    size: 80,
   };
 }
 
-export function userStatusColumn<T extends UserColumnRow>(
+function userStatusColumn<T extends UserColumnRow>(
   t: (key: string) => string,
-  opts?: { showRequestCount?: boolean; requestCountAccessor?: keyof T },
+  opts: { requestCountAccessor: keyof T },
 ): ColumnDef<T> {
   return {
     accessorKey: "status",
@@ -726,37 +587,25 @@ export function userStatusColumn<T extends UserColumnRow>(
         : USER_STATUSES[user.status as keyof typeof USER_STATUSES];
       if (!statusConfig) return null;
 
-      if (opts?.showRequestCount) {
-        const count =
-          ((opts.requestCountAccessor
-            ? (user as Record<string, unknown>)[
-                opts.requestCountAccessor as string
-              ]
-            : user.request_count) as number) ?? 0;
-        return (
-          <Tooltip>
-            <TooltipTrigger render={<div className="-ml-1.5 cursor-help" />}>
-              <StatusBadge
-                label={t(statusConfig.labelKey)}
-                variant={statusConfig.variant}
-                copyable={false}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">
-                {t("Requests:")} {count.toLocaleString()}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        );
-      }
-
+      const requestCount =
+        ((user as Record<string, unknown>)[
+          opts.requestCountAccessor as string
+        ] as number) ?? 0;
       return (
-        <StatusBadge
-          label={t(statusConfig.labelKey)}
-          variant={statusConfig.variant}
-          copyable={false}
-        />
+        <Tooltip>
+          <TooltipTrigger render={<div className="-ml-1.5 cursor-help" />}>
+            <StatusBadge
+              label={t(statusConfig.labelKey)}
+              variant={statusConfig.variant}
+              copyable={false}
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">
+              {t("Requests:")} {requestCount.toLocaleString()}
+            </p>
+          </TooltipContent>
+        </Tooltip>
       );
     },
     enableSorting: false,
@@ -767,25 +616,18 @@ export function userStatusColumn<T extends UserColumnRow>(
   };
 }
 
-export function userGroupColumn<T extends UserColumnRow>(
+function userGroupColumn<T extends UserColumnRow>(
   t: (key: string) => string,
-  opts?: { withBadgeCell?: boolean },
 ): ColumnDef<T> {
   return {
     accessorKey: "group",
     header: t("Group"),
-    cell: ({ row }) => {
-      const group = row.original.group;
-      if (opts?.withBadgeCell) {
-        return (
-          <BadgeCell>
-            <GroupBadge group={group} />
-          </BadgeCell>
-        );
-      }
-      return <GroupBadge group={group} />;
-    },
-    size: opts?.withBadgeCell ? 140 : 100,
+    cell: ({ row }) => (
+      <BadgeCell>
+        <GroupBadge group={row.original.group} />
+      </BadgeCell>
+    ),
+    size: 140,
     meta: { mobileHidden: true },
   };
 }
@@ -800,11 +642,19 @@ export interface SharedUserColumnsOptions {
   requestsAccessor: string;
   modelAccessor: string;
   requestCountAccessor: string;
-  quotaHeaderDescription?: string;
   usernameClassName?: string;
-  withGroupBadgeCell?: boolean;
-  combineActivityTimes?: boolean;
-  combineEmploymentOverview?: boolean;
+}
+
+/**
+ * The Role and Status headers use multi-select filters, which store the chosen
+ * option values. A row passes when its own value is one of them.
+ */
+function matchesSelectedFilterValues(
+  row: { getValue: (id: string) => unknown },
+  id: string,
+  value: string[],
+): boolean {
+  return value.includes(String(row.getValue(id)));
 }
 
 export function useSharedUserColumns<T extends UserColumnRow>(
@@ -820,9 +670,7 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       userNameColumn<T>(t, demoMode, {
         usernameClassName: opts.usernameClassName,
       }),
-      userQuotaColumn<T>(t, {
-        headerDescription: opts.quotaHeaderDescription,
-      }),
+      userQuotaColumn<T>(t),
       userConsumptionColumn<T>(t, {
         costAccessor: opts.costAccessor,
         tokensAccessor: opts.tokensAccessor,
@@ -831,57 +679,24 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     ];
 
     if (!externalMode) {
-      if (opts.combineEmploymentOverview) {
-        columns.push(userEmploymentOverviewColumn<T>(t));
-      } else {
-        columns.push(userDepartmentColumn<T>(t));
-        columns.push(userJobLevelColumn<T>(t));
-      }
+      columns.push(userEmploymentOverviewColumn<T>(t));
     }
 
-    if (opts.combineActivityTimes) {
-      columns.push(userActivityTimeColumn<T>(t));
-    } else {
-      columns.push(userLastLoginColumn<T>(t));
-    }
-    columns.push(
-      userModelColumn<T>(t, { accessor: opts.modelAccessor, variant: "badge" }),
-    );
+    columns.push(userActivityTimeColumn<T>(t));
+    columns.push(userModelColumn<T>(t, { accessor: opts.modelAccessor }));
     columns.push({
       ...userRoleColumn<T>(t),
-      filterFn: (
-        row: { getValue: (id: string) => unknown },
-        id: string,
-        value: string[],
-      ) => {
-        return value.includes(String(row.getValue(id)));
-      },
+      filterFn: matchesSelectedFilterValues,
     });
 
-    if (!externalMode && !opts.combineEmploymentOverview) {
-      columns.push(userJoinDateColumn<T>(t));
-    }
-
-    if (!opts.combineActivityTimes) {
-      columns.push(userCreatedAtColumn<T>(t));
-    }
     columns.push({
       ...userStatusColumn<T>(t, {
-        showRequestCount: true,
         requestCountAccessor: opts.requestCountAccessor as keyof T,
       }),
-      filterFn: (
-        row: { getValue: (id: string) => unknown },
-        id: string,
-        value: string[],
-      ) => {
-        return value.includes(String(row.getValue(id)));
-      },
+      filterFn: matchesSelectedFilterValues,
     });
     columns.push({
-      ...userGroupColumn<T>(t, {
-        withBadgeCell: opts.withGroupBadgeCell ?? true,
-      }),
+      ...userGroupColumn<T>(t),
       filterFn: (
         row: { getValue: (id: string) => unknown },
         id: string,
@@ -903,10 +718,6 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     opts.requestsAccessor,
     opts.modelAccessor,
     opts.requestCountAccessor,
-    opts.quotaHeaderDescription,
     opts.usernameClassName,
-    opts.withGroupBadgeCell,
-    opts.combineActivityTimes,
-    opts.combineEmploymentOverview,
   ]);
 }

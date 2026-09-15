@@ -67,7 +67,6 @@ const DEPT_COLUMN_SORT_MAP: Record<string, string> = {
   total_requests: 'total_requests',
   id: 'id',
   username: 'username',
-  used_quota: 'used_quota',
   created_at: 'created_at',
   role: 'role',
 }
@@ -108,10 +107,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
     requestsAccessor: 'total_requests',
     modelAccessor: 'common_model',
     requestCountAccessor: 'total_requests',
-    quotaHeaderDescription: undefined,
     usernameClassName: 'text-muted-foreground/70',
-    combineActivityTimes: true,
-    combineEmploymentOverview: true,
   })
 
   const [statsUser, setStatsUser] = useState<DepartmentUser | null>(null)

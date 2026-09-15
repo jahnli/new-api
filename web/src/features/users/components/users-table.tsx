@@ -60,7 +60,6 @@ const USER_COLUMN_SORT_MAP: Partial<Record<string, UserSortBy>> = {
   monthly_total_requests: 'monthly_total_requests',
   id: 'id',
   username: 'username',
-  used_quota: 'used_quota',
   created_at: 'created_at',
   role: 'role',
   status: 'status',

@@ -71,7 +71,6 @@ describe('user employment overview column', () => {
   test('shows the common model badge with normal font weight', () => {
     const column = userModelColumn<UserColumnRow>((key) => key, {
       accessor: 'monthly_common_model',
-      variant: 'badge',
     })
     const cell = column.cell
     assert.equal(typeof cell, 'function')
@@ -159,8 +158,6 @@ describe('user employment overview column', () => {
           requestsAccessor: 'monthly_total_requests',
           modelAccessor: 'monthly_common_model',
           requestCountAccessor: 'monthly_total_requests',
-          combineActivityTimes: true,
-          combineEmploymentOverview: true,
         }),
       { wrapper: TestWrapper }
     )
