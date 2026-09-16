@@ -81,3 +81,4 @@
 | 076 | 2026-09-10 | 前端开发规范移除测试章节及测试强制要求：新增功能、缺陷修复或 UI 行为变更不再强制同步新增或更新测试，提交前不再要求运行受影响测试 | `web/AGENTS.md` |
 | 077 | 2026-09-13 | 移除顶栏的系统更新版本入口：登录后顶栏与公开页头不再显示版本号及其更新检查按钮，版本号与更新检查保留在系统设置的「更新检查」区块 | `web/src/components/layout/components/app-header.tsx`、`web/src/components/layout/components/public-header.tsx` |
 | 078 | 2026-09-13 | 渠道创建与编辑由侧边抽屉改为居中弹框，头部、供应商选择区、表单与页脚纵向分区，状态徽章与供应商切换按钮移入头部操作区 | [详情](details/078-channel-mutate-dialog.md) |
+| 079 | 2026-09-16 | 企业通知并发发送与飞书卡片格式优化：发送逻辑从串行改为 10 并发（可配置），飞书卡片正文不再强制首行加粗 | `service/company_notification.go` |
