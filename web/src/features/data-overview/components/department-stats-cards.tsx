@@ -1,8 +1,8 @@
 import {
-  AlertTriangle,
   CircleAlert,
   Coins,
   DollarSign,
+  Gauge,
   Hash,
   Layers,
   Timer,
@@ -279,8 +279,8 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
         </>
       ),
       desc: t('Request error rate and cache hit rate'),
-      icon: AlertTriangle,
-      iconTone: 'destructive',
+      icon: Gauge,
+      iconTone: 'chart-1',
     },
   ]
 

@@ -1,6 +1,10 @@
 # 数据总览页增强与公司配置管理
 
-**日期**: 2026-06-25 ~ 09-15（最后更新 09-15）
+**日期**: 2026-06-25 ~ 09-16（最后更新 09-16）
+
+### 2026-09-16 错误率 / 缓存命中率卡片图标改为中性色
+
+- `web/src/features/data-overview/components/department-stats-cards.tsx` — 「错误率 / 缓存命中率」卡片图标由 `AlertTriangle` 改为 `Gauge`，色调由 `destructive` 改为 `chart-1`：该卡片只展示两个比率，警告图标配恒定红底容易被误读为告警状态；红/绿语义仍由值本身承担（错误率 `text-destructive`、命中率 `text-success`），中性图表色也与相邻卡片的 `chart-2`、`chart-3`、`chart-4` 一致
 
 ### 2026-09-15 部门人员列表角色筛选
 

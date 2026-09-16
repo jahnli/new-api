@@ -336,6 +336,7 @@ export function useOffHoursColumns(
                   userId: audit.user.user_id,
                   username: audit.user.username,
                   displayName: audit.user.display_name || audit.user.username,
+                  avatarUrl: audit.user.avatar_url || undefined,
                   date: displayedDay.date,
                   windowStart: displayedDay.window_start,
                   windowEnd: displayedDay.window_end,

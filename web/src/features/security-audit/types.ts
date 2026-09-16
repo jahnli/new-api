@@ -87,6 +87,7 @@ export interface OffHoursDetailTarget {
   userId: number
   username: string
   displayName: string
+  avatarUrl?: string
   date: string
   windowStart: number
   windowEnd: number

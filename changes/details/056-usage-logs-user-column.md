@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-14（最后更新 09-14）
+**日期**: 2026-09-09 ~ 09-16（最后更新 09-16）
 
 ## 涉及文件
 
@@ -219,6 +219,12 @@
 - `web/src/features/usage-logs/lib/format.ts` — 使用日志侧的额度审计内容改为动词开头的单行（去掉 `(ID: n)` 那行），并补上订阅额度增减模板。
 - `web/src/features/usage-logs/audit/lib/audit-details.ts` — 额度与订阅条目在被操作用户本人查看时不再显示自己为「操作者」，补充订阅 ID 字段标签与 `balance`/`subscription` 的分类兜底文案。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json`、`web/src/i18n/static-keys.ts` — 补充「覆盖额度」「订阅 ID」「{{action}}：{{quota}}」等七语言文案并登记动态键，移除已废弃的「请求数额：{{quota}}」。
+
+## 2026-09-16 非工作时间弹框用户身份组件
+
+- `web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 原标题为 `使用日志 - 用户名 · 日期 · 时段` 的单行拼接文本，改为标题只留「使用日志」、下方复用共用身份组件 `LogUserIdentity` 展示头像与显示名/用户名，日期、时段、请求数经 `children` 传入名字右侧；违规通知按钮仍留在标题行右侧（关闭按钮左侧）。参照图片审计请求内容弹框的用法取 `sm` 档（头像 24px、名字 `text-xs`、用户名 `text-[11px]`），附加信息行同步降为 `text-xs`、间距收到 `gap-1`，头部整体间距 `gap-2.5`。演示模式沿用既有约定：用户名传空、头像置空、关闭 `canFetchDetails`，仅显示脱敏显示名。请求数复用已有 i18n 键 `{{value}} requests`，未新增文案。
+- `web/src/features/security-audit/types.ts` — `OffHoursDetailTarget` 新增可选 `avatarUrl`，让弹框首屏即有头像，不必等悬停拉取资料。
+- `web/src/features/security-audit/components/off-hours-columns.tsx` — 打开弹框时传入列表行已有的 `avatar_url`。
 
 ## 自 CHANGELOG 说明列迁入
 

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { getAllLogs } from '@/features/usage-logs/api'
 import { useCommonLogsColumns } from '@/features/usage-logs/components/columns/common-logs-columns'
+import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 import { RequestMessagesProvider } from '@/features/usage-logs/components/request-messages-provider'
 import { UsageLogsProvider } from '@/features/usage-logs/components/usage-logs-provider'
 import { useDemoMode } from '@/hooks/use-demo-mode'
@@ -35,16 +36,38 @@ export function OffHoursDetailDialogHeader(props: {
   windowLabel: string
 }) {
   const { t } = useTranslation()
+  const demoMode = useDemoMode()
 
   return (
-    <DialogHeader className='shrink-0 flex-row items-center justify-between gap-3 pr-10'>
-      <DialogTitle className='min-w-0 truncate'>
-        {t('Usage Logs')} - {props.displayedUsername} · {props.target.date} ·{' '}
-        {props.windowLabel}
-      </DialogTitle>
-      <div className='shrink-0'>
-        <OffHoursViolationNoticeButton target={props.target} />
+    <DialogHeader className='shrink-0 gap-2.5'>
+      <div className='flex items-center justify-between gap-3 pr-10'>
+        <DialogTitle className='min-w-0 truncate'>
+          {t('Usage Logs')}
+        </DialogTitle>
+        <div className='shrink-0'>
+          <OffHoursViolationNoticeButton target={props.target} />
+        </div>
       </div>
+      <LogUserIdentity
+        size='sm'
+        userId={props.target.userId}
+        username={demoMode ? '' : props.target.username}
+        displayName={props.displayedUsername}
+        avatarUrl={demoMode ? undefined : props.target.avatarUrl}
+        canFetchDetails={!demoMode}
+      >
+        <div className='text-muted-foreground flex min-w-0 flex-wrap items-center gap-1 text-xs'>
+          <span className='tabular-nums'>{props.target.date}</span>
+          <span className='text-muted-foreground/60'>·</span>
+          <span className='tabular-nums'>{props.windowLabel}</span>
+          <span className='text-muted-foreground/60'>·</span>
+          <span className='tabular-nums'>
+            {t('{{value}} requests', {
+              value: props.target.requestCount.toLocaleString(),
+            })}
+          </span>
+        </div>
+      </LogUserIdentity>
     </DialogHeader>
   )
 }
