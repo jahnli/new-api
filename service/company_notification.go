@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
@@ -55,11 +56,14 @@ var (
 	prepareDingTalkNotification  = prepareDingTalkCompanyNotification
 )
 
+const maxConcurrentNotifications = 10
+
 func SendCompanyNotification(request CompanyNotificationRequest) (*CompanyNotificationResult, error) {
 	if request.SendPlatform && request.Company == nil {
 		return nil, fmt.Errorf("company is required for platform notifications")
 	}
 	result := &CompanyNotificationResult{Failures: make([]CompanyNotificationFailure, 0)}
+	var resultMutex sync.Mutex
 	platformIDs := request.TestPlatformIDs
 	emails := request.TestEmails
 	if !request.TestMode {
@@ -89,6 +93,9 @@ func SendCompanyNotification(request CompanyNotificationRequest) (*CompanyNotifi
 		}
 	}
 
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, maxConcurrentNotifications)
+
 	if request.SendPlatform {
 		platformRecipients := uniqueNonEmptyStrings(platformIDs)
 		var sender func(string) error
@@ -104,30 +111,57 @@ func SendCompanyNotification(request CompanyNotificationRequest) (*CompanyNotifi
 			}
 		}
 		for _, recipient := range platformRecipients {
+			resultMutex.Lock()
 			result.Total++
+			resultMutex.Unlock()
 			if prepareErr != nil {
+				resultMutex.Lock()
 				result.recordFailure("platform", prepareErr)
+				resultMutex.Unlock()
 				continue
 			}
-			if err := sender(recipient); err != nil {
-				result.recordFailure("platform", err)
-				continue
-			}
-			result.Success++
+			wg.Add(1)
+			go func(rcpt string) {
+				defer wg.Done()
+				semaphore <- struct{}{}
+				defer func() { <-semaphore }()
+				if err := sender(rcpt); err != nil {
+					resultMutex.Lock()
+					result.recordFailure("platform", err)
+					resultMutex.Unlock()
+					return
+				}
+				resultMutex.Lock()
+				result.Success++
+				resultMutex.Unlock()
+			}(recipient)
 		}
 	}
 
 	if request.SendEmail {
 		for _, recipient := range uniqueNonEmptyStrings(emails) {
+			resultMutex.Lock()
 			result.Total++
-			if err := sendCompanyNotificationEmail(recipient, request.Title, request.Content, request.Images); err != nil {
-				result.recordFailure("email", err)
-				continue
-			}
-			result.Success++
+			resultMutex.Unlock()
+			wg.Add(1)
+			go func(rcpt string) {
+				defer wg.Done()
+				semaphore <- struct{}{}
+				defer func() { <-semaphore }()
+				if err := sendCompanyNotificationEmail(rcpt, request.Title, request.Content, request.Images); err != nil {
+					resultMutex.Lock()
+					result.recordFailure("email", err)
+					resultMutex.Unlock()
+					return
+				}
+				resultMutex.Lock()
+				result.Success++
+				resultMutex.Unlock()
+			}(recipient)
 		}
 	}
 
+	wg.Wait()
 	return result, nil
 }
 
@@ -221,14 +255,7 @@ func prepareFeishuCompanyNotification(company *model.Company, title, content str
 func buildFeishuCompanyNotificationCard(title, content string, imageKeys []string) map[string]any {
 	normalizedContent := strings.ReplaceAll(content, "\r\n", "\n")
 	normalizedContent = strings.ReplaceAll(normalizedContent, "\r", "\n")
-	firstLine, remainingContent, hasMoreLines := strings.Cut(normalizedContent, "\n")
-	formattedContent := "**" + escapeFeishuMarkdown(firstLine) + "**"
-	if hasMoreLines {
-		remainingContent = strings.TrimLeft(remainingContent, "\n")
-		if remainingContent != "" {
-			formattedContent += "\n" + escapeFeishuMarkdown(remainingContent)
-		}
-	}
+	formattedContent := escapeFeishuMarkdown(normalizedContent)
 	card := map[string]any{
 		"config": map[string]any{
 			"wide_screen_mode": true,
