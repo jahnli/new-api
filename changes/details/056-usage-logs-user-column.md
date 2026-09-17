@@ -228,9 +228,8 @@
 
 ## 2026-09-17 请求内容弹框新增请求信息区块
 
-- `web/src/features/usage-logs/components/dialogs/request-log-summary.tsx` — 新增 `RequestLogSummary`，把当前请求日志行已有的运行信息以明细行展示：响应时间（流式请求附带 FRT）、输入/输出 Token、缓存读取/写入、费用、渠道（编号 + 名称）、重试链、令牌、分组、模型映射、上游请求 ID、IP 地址；取值为 0 或字段为空时不渲染该行；缓存写入优先取 5 分钟与 1 小时分项之和，无分项时回退 `cache_creation_tokens`。
-- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 右栏在请求参数之外新增「请求信息」折叠区块，两个区块各占 50% 高度并各自内部滚动，折叠其中一个时另一个占满剩余高度；请求信息排在请求参数上方，内容左内缩 24px 与区块标题文字对齐；`log` 属性为可选，未传入时不渲染该区块。
-- `web/src/features/usage-logs/components/dialogs/log-detail-layout.tsx` — `DetailRow` 新增可选 `size` 属性（`sm` 为 12px 默认值、`md` 为 13px），仅请求信息区块取 `md`，日志详情与审计日志详情弹框沿用默认字号不受影响。
+- `web/src/features/usage-logs/components/dialogs/request-log-summary.tsx` — 新增 `RequestLogSummary`，把当前请求日志行已有的运行信息以明细行展示：响应时间（流式请求附带 FRT）、输入/输出 Token、缓存读取/写入、费用、渠道（编号 + 名称）、重试链、令牌、分组、模型映射、上游请求 ID、IP 地址；取值为 0 或字段为空时不渲染该行；缓存写入优先取 5 分钟与 1 小时分项之和，无分项时回退 `cache_creation_tokens`；明细行容器用 `flex flex-col gap-2.5` 排布，行间距 10px，只在实际渲染出的行之间生效（字段为空的行不参与）。
+- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 右栏在请求参数之外新增「请求信息」折叠区块，两个区块各占 50% 高度并各自内部滚动，折叠其中一个时另一个占满剩余高度；请求信息排在请求参数上方，内容左内缩 24px 与区块标题文字对齐，字号沿用日志详情弹框的明细行样式（12px）；`log` 属性为可选，未传入时不渲染该区块；弹框尺寸由 `h-[85vh] sm:max-w-[78rem]` 改为 `h-[92vh] sm:w-[95vw] sm:max-w-[95vw]`，桌面端宽度占视口 95%、高度 92vh，移动端仍为 `w-full`，`h-[92vh]` 未触及 Dialog 默认的 `max-h-[calc(100vh-2rem)]` 上限。
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 打开请求内容弹框时传入当前行日志，供区块展示运行信息。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json` — 新增 "Request Info" / 「请求信息」区块标题的七语言翻译。
 

@@ -35,7 +35,7 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
   const upstreamModel = other?.is_model_mapped ? other.upstream_model_name : ''
 
   return (
-    <div className='space-y-2'>
+    <div className='flex flex-col gap-2.5'>
       {props.log.use_time > 0 && (
         <DetailRow
           label={t('Response Time')}
@@ -49,7 +49,6 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
               )}
             </>
           }
-          size='md'
           mono
         />
       )}
@@ -58,7 +57,6 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
         <DetailRow
           label={t('Input Tokens')}
           value={formatTokens(props.log.prompt_tokens)}
-          size='md'
           mono
         />
       )}
@@ -67,7 +65,6 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
         <DetailRow
           label={t('Output Tokens')}
           value={formatTokens(props.log.completion_tokens)}
-          size='md'
           mono
         />
       )}
@@ -76,7 +73,6 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
         <DetailRow
           label={t('Cache Read')}
           value={formatTokens(cacheReadTokens)}
-          size='md'
           mono
         />
       )}
@@ -85,7 +81,6 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
         <DetailRow
           label={t('Cache Write')}
           value={formatTokens(cacheWriteTokens)}
-          size='md'
           mono
         />
       )}
@@ -94,7 +89,6 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
         <DetailRow
           label={t('Cost')}
           value={formatLogQuota(props.log.quota)}
-          size='md'
           mono
         />
       )}
@@ -107,33 +101,26 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
               ? `${props.log.channel} (${props.log.channel_name})`
               : props.log.channel
           }
-          size='md'
           mono
         />
       )}
 
       {retryChain && (
-        <DetailRow label={t('Retry Chain')} value={retryChain} size='md' mono />
+        <DetailRow label={t('Retry Chain')} value={retryChain} mono />
       )}
 
       {props.log.token_name && (
-        <DetailRow
-          label={t('Token')}
-          value={props.log.token_name}
-          size='md'
-          mono
-        />
+        <DetailRow label={t('Token')} value={props.log.token_name} mono />
       )}
 
       {props.log.group && (
-        <DetailRow label={t('Group')} value={props.log.group} size='md' mono />
+        <DetailRow label={t('Group')} value={props.log.group} mono />
       )}
 
       {upstreamModel && (
         <DetailRow
           label={t('Model Mapping')}
           value={`${props.log.model_name} → ${upstreamModel}`}
-          size='md'
           mono
         />
       )}
@@ -142,18 +129,12 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
         <DetailRow
           label={t('Upstream Request ID')}
           value={props.log.upstream_request_id}
-          size='md'
           mono
         />
       )}
 
       {props.log.ip && (
-        <DetailRow
-          label={t('IP Address')}
-          value={props.log.ip}
-          size='md'
-          mono
-        />
+        <DetailRow label={t('IP Address')} value={props.log.ip} mono />
       )}
     </div>
   )
