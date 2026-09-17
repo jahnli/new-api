@@ -121,7 +121,7 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
         open={props.open}
         onOpenChange={handleOpenChange}
         title={t('Request Content')}
-        contentClassName='h-[92vh] sm:w-[95vw] sm:max-w-[95vw]'
+        contentClassName='h-[92vh] w-[85vw] max-w-[85vw] sm:max-w-[85vw]'
         contentHeight='100%'
         bodyContainerClassName='flex-1 max-h-none overflow-hidden'
         bodyClassName='h-full min-h-0'
