@@ -134,9 +134,11 @@ export function buildQuotaAuditOperation(
     fields.push({ label: t('Amount (CNY)'), value: String(params.amount) })
   }
   let suffix = ''
+  let balances: { before: string; after: string } | null = null
   if (success) {
     const before = quotaText(params.from, t)
     const after = quotaText(params.to, t)
+    balances = { before, after }
     const unchanged =
       params.from !== undefined &&
       params.from !== null &&
@@ -168,15 +170,27 @@ export function buildQuotaAuditOperation(
       value: reason || t('Not recorded'),
     })
   }
-  // The cell and the audit dialog show the operation as a colored badge, so the
-  // text only carries the numbers. `description` keeps the verb for surfaces
-  // that render a single string without a badge.
+  // Only add a direction to valid successful adjustments. Overrides are target
+  // balances, and failed requests must not appear to be committed changes.
+  let signedAmount = amount
+  if (
+    success &&
+    typeof requested === 'number' &&
+    requested > 0 &&
+    Number.isFinite(requested)
+  ) {
+    if (operation.tone === 'success') signedAmount = `+${amount}`
+    if (operation.tone === 'danger') signedAmount = `−${amount}`
+  }
   const detail = suffix ? `${amount} · ${suffix}` : amount
   return {
     headline,
     summary,
     identifier,
     outcome: { label: t(operation.verb), variant: operation.tone },
+    signedAmount,
+    balances,
+    suffix,
     detail,
     description: t('{{action}}: {{quota}}', {
       action: t(operation.verb),

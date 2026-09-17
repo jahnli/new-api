@@ -16,20 +16,30 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import {
+  ArrowDownRight01Icon,
+  ArrowRight01Icon,
+  ArrowUpRight01Icon,
+  Cancel01Icon,
+  EqualSignIcon,
+  Wallet01Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { TruncatedCell } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
+import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import dayjs from '@/lib/dayjs'
+import { cn } from '@/lib/utils'
 
 import { LogIpAddress } from '../../components/log-ip-address'
 import { LogUserCell } from '../../components/log-user-cell'
 import type { AuditLog } from '../api'
 import { buildAuditDetails } from '../lib/audit-details'
 import { AuditLogDetailsDialog } from './audit-log-details-dialog'
-import { QuotaOutcomeBadge } from './quota-outcome-badge'
 
 export function useAuditLogColumns(
   accessOnly?: boolean,
@@ -91,25 +101,74 @@ export function useAuditLogColumns(
                 </TruncatedCell>
               )
             }
-            // Quota adjustments lead with a tone badge and keep the numbers as
-            // their only line: the adjusted user is already shown in the user
-            // column, so the operation verb is not repeated as text.
             if (detail.quotaOperation) {
               const quota = detail.quotaOperation
+              const description = row.original.success
+                ? quota.description
+                : `${t('Failed')} · ${quota.description}`
+              let amountClassName = 'text-muted-foreground'
+              let icon = EqualSignIcon
+              let iconTone: IconBadgeTone = 'neutral'
+              if (!row.original.success) {
+                icon = Cancel01Icon
+                iconTone = 'destructive'
+              } else if (quota.outcome.variant === 'success') {
+                icon = ArrowUpRight01Icon
+                iconTone = 'info'
+                amountClassName = 'text-info'
+              } else if (quota.outcome.variant === 'danger') {
+                icon = ArrowDownRight01Icon
+                iconTone = 'destructive'
+                amountClassName = 'text-destructive'
+              }
               return (
-                <div className='flex min-w-0 items-start gap-1.5'>
-                  <QuotaOutcomeBadge
-                    label={quota.outcome.label}
-                    variant={quota.outcome.variant}
-                  />
-                  <TruncatedCell
-                    className='text-muted-foreground'
-                    contentClassName='line-clamp-2 whitespace-normal break-words'
-                    tooltipContent={quota.description}
+                <TruncatedCell
+                  className='focus-visible:ring-ring/50 w-full max-w-72 rounded-sm px-1 py-1 outline-none focus-visible:ring-2'
+                  contentClassName='flex flex-col gap-1'
+                  tooltipContent={description}
+                  tabIndex={0}
+                >
+                  <span className='sr-only'>{description}</span>
+                  <span
+                    aria-hidden='true'
+                    className='flex min-w-0 items-center gap-1.5'
                   >
-                    {quota.detail}
-                  </TruncatedCell>
-                </div>
+                    <IconBadge tone={iconTone} size='xs'>
+                      <HugeiconsIcon icon={icon} strokeWidth={2} />
+                    </IconBadge>
+                    <span
+                      className={cn(
+                        'min-w-0 truncate font-mono text-sm font-semibold tabular-nums',
+                        amountClassName
+                      )}
+                    >
+                      {quota.signedAmount}
+                    </span>
+                  </span>
+                  {quota.balances && (
+                    <span
+                      aria-hidden='true'
+                      className='flex min-w-0 items-center gap-1.5 font-mono text-xs tabular-nums'
+                    >
+                      <HugeiconsIcon
+                        icon={Wallet01Icon}
+                        className='text-muted-foreground/60 size-5 shrink-0 p-0.5'
+                        strokeWidth={1.5}
+                      />
+                      <span className='text-muted-foreground min-w-0 truncate'>
+                        {quota.balances.before}
+                      </span>
+                      <HugeiconsIcon
+                        icon={ArrowRight01Icon}
+                        className='text-muted-foreground/60 size-3.5 shrink-0'
+                        strokeWidth={1.5}
+                      />
+                      <span className='text-foreground min-w-0 truncate font-medium'>
+                        {quota.balances.after}
+                      </span>
+                    </span>
+                  )}
+                </TruncatedCell>
               )
             }
             return (
