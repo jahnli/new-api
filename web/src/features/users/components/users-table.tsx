@@ -30,6 +30,7 @@ import {
   useDataTable,
 } from '@/components/data-table'
 import { useMediaQuery } from '@/hooks'
+import { useExternalMode } from '@/hooks/use-external-mode'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { createServerError } from '@/lib/server-error-message'
 
@@ -70,6 +71,7 @@ const USER_COLUMN_VISIBILITY = { company: false }
 export function UsersTable() {
   const { t } = useTranslation()
   const columns = useUsersColumns()
+  const externalMode = useExternalMode()
   const { refreshTrigger } = useUsers()
   const isMobile = useMediaQuery('(max-width: 640px)')
 
@@ -144,6 +146,7 @@ export function UsersTable() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       'users',
+      externalMode,
       pagination.pageIndex + 1,
       pagination.pageSize,
       globalFilter,
@@ -195,7 +198,8 @@ export function UsersTable() {
         disabledCount: result.data?.disabled_count || 0,
       }
     },
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[1] === externalMode ? previousData : undefined,
   })
 
   const users = data?.items || []

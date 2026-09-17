@@ -234,6 +234,7 @@ export function userNameColumn<T extends UserColumnRow>(
 
 function userQuotaColumn<T extends UserColumnRow>(
   t: (key: string) => string,
+  externalMode: boolean,
 ): ColumnDef<T> {
   const headerText = t("Used / Total");
   const headerDescription = t(
@@ -299,7 +300,7 @@ function userQuotaColumn<T extends UserColumnRow>(
       );
     },
     size: 190,
-    meta: { description: headerDescription },
+    meta: { description: externalMode ? undefined : headerDescription },
   };
 }
 
@@ -670,7 +671,7 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       userNameColumn<T>(t, demoMode, {
         usernameClassName: opts.usernameClassName,
       }),
-      userQuotaColumn<T>(t),
+      userQuotaColumn<T>(t, externalMode),
       userConsumptionColumn<T>(t, {
         costAccessor: opts.costAccessor,
         tokensAccessor: opts.tokensAccessor,

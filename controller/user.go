@@ -577,12 +577,16 @@ func attachSubscriptionQuota(users []*model.User) []userWithSubQuota {
 	}
 
 	now := time.Now()
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Unix()
-	monthEnd := now.Unix()
+	startTimestamp := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Unix()
+	endTimestamp := now.Unix()
+	if operation_setting.ExternalModeEnabled {
+		startTimestamp = 0
+		endTimestamp = 0
+	}
 	userStats := make(map[int]model.UserStatRow)
-	statRows, err := model.GetUserStatsBatch(ids, monthStart, monthEnd)
+	statRows, err := model.GetUserStatsBatch(ids, startTimestamp, endTimestamp)
 	if err != nil {
-		common.SysLog("failed to fetch monthly user stats: " + err.Error())
+		common.SysLog("failed to fetch user stats: " + err.Error())
 	} else {
 		for _, row := range statRows {
 			userStats[row.UserID] = row
@@ -590,9 +594,9 @@ func attachSubscriptionQuota(users []*model.User) []userWithSubQuota {
 	}
 
 	commonModels := make(map[int]string)
-	modelRows, err := model.GetUserModelStatsBatch(ids, monthStart, monthEnd)
+	modelRows, err := model.GetUserModelStatsBatch(ids, startTimestamp, endTimestamp)
 	if err != nil {
-		common.SysLog("failed to fetch monthly user model stats: " + err.Error())
+		common.SysLog("failed to fetch user model stats: " + err.Error())
 	} else {
 		for _, row := range modelRows {
 			if _, ok := commonModels[row.UserID]; !ok {
