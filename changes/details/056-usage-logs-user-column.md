@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-16（最后更新 09-16）
+**日期**: 2026-09-09 ~ 09-17（最后更新 09-17）
 
 ## 涉及文件
 
@@ -225,6 +225,14 @@
 - `web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 原标题为 `使用日志 - 用户名 · 日期 · 时段` 的单行拼接文本，改为标题只留「使用日志」、下方复用共用身份组件 `LogUserIdentity` 展示头像与显示名/用户名，日期、时段、请求数经 `children` 传入名字右侧；违规通知按钮仍留在标题行右侧（关闭按钮左侧）。参照图片审计请求内容弹框的用法取 `sm` 档（头像 24px、名字 `text-xs`、用户名 `text-[11px]`），附加信息行同步降为 `text-xs`、间距收到 `gap-1`，头部整体间距 `gap-2.5`。演示模式沿用既有约定：用户名传空、头像置空、关闭 `canFetchDetails`，仅显示脱敏显示名。请求数复用已有 i18n 键 `{{value}} requests`，未新增文案。
 - `web/src/features/security-audit/types.ts` — `OffHoursDetailTarget` 新增可选 `avatarUrl`，让弹框首屏即有头像，不必等悬停拉取资料。
 - `web/src/features/security-audit/components/off-hours-columns.tsx` — 打开弹框时传入列表行已有的 `avatar_url`。
+
+## 2026-09-17 请求内容弹框新增请求信息区块
+
+- `web/src/features/usage-logs/components/dialogs/request-log-summary.tsx` — 新增 `RequestLogSummary`，把当前请求日志行已有的运行信息以明细行展示：响应时间（流式请求附带 FRT）、输入/输出 Token、缓存读取/写入、费用、渠道（编号 + 名称）、重试链、令牌、分组、模型映射、上游请求 ID、IP 地址；取值为 0 或字段为空时不渲染该行；缓存写入优先取 5 分钟与 1 小时分项之和，无分项时回退 `cache_creation_tokens`。
+- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 右栏在请求参数之外新增「请求信息」折叠区块，两个区块各占 50% 高度并各自内部滚动，折叠其中一个时另一个占满剩余高度；请求信息排在请求参数上方，内容左内缩 24px 与区块标题文字对齐；`log` 属性为可选，未传入时不渲染该区块。
+- `web/src/features/usage-logs/components/dialogs/log-detail-layout.tsx` — `DetailRow` 新增可选 `size` 属性（`sm` 为 12px 默认值、`md` 为 13px），仅请求信息区块取 `md`，日志详情与审计日志详情弹框沿用默认字号不受影响。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 打开请求内容弹框时传入当前行日志，供区块展示运行信息。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json` — 新增 "Request Info" / 「请求信息」区块标题的七语言翻译。
 
 ## 自 CHANGELOG 说明列迁入
 

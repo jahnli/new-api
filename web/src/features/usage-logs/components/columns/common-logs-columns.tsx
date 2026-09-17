@@ -885,6 +885,7 @@ export function useCommonLogsColumns(
             </button>
             <RequestContentDialog
               requestMessage={requestMessage}
+              log={log}
               user={{
                 id: log.user_id,
                 username: log.username,

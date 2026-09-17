@@ -32,15 +32,19 @@ export function DetailRow(props: {
   value: ReactNode
   mono?: boolean
   muted?: boolean
+  /** 行内文字尺寸；默认 12px 的紧凑样式，md 为 13px */
+  size?: 'sm' | 'md'
 }) {
+  const textSize = props.size === 'md' ? 'text-[13px]' : 'text-xs'
   return (
     <div className='grid min-w-0 grid-cols-[5.25rem_minmax(0,1fr)] gap-2 text-sm sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-3'>
-      <span className='text-muted-foreground min-w-0 text-xs'>
+      <span className={cn('text-muted-foreground min-w-0', textSize)}>
         {props.label}
       </span>
       <span
         className={cn(
-          'max-w-full min-w-0 text-xs break-all sm:wrap-break-word',
+          'max-w-full min-w-0 break-all sm:wrap-break-word',
+          textSize,
           props.mono && 'font-mono',
           props.muted && 'text-muted-foreground'
         )}

@@ -5208,6 +5208,7 @@
     "Request Header Overrides": "リクエストヘッダーの上書き",
     "Request headers must be a JSON object with string values.": "リクエストヘッダーは値が文字列の JSON オブジェクトである必要があります。",
     "Request ID": "リクエストID",
+    "Request Info": "リクエスト情報",
     "Request Limits": "リクエスト制限",
     "Request Model": "リクエストモデル",
     "Request Model Name": "リクエストのモデル名",

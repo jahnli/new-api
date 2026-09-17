@@ -24,13 +24,17 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { notifyRequestMessageViolation } from '../../api'
+import type { UsageLog } from '../../data/schema'
 import type { RequestMessage } from '../../types'
 import { LogUserIdentity } from '../log-user-identity'
 import { parseUserMessages } from '../request-messages-provider'
+import { RequestLogSummary } from './request-log-summary'
 
 interface RequestContentDialogProps {
   requestMessage: RequestMessage
   user: UserColumnRow
+  /** 同一次请求的日志行，用于展示用量、费用、耗时等运行信息 */
+  log?: UsageLog
   client?: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -268,20 +272,38 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
               </div>
             </div>
 
-            <div className='h-full min-h-0 min-w-0 [scrollbar-gutter:stable] overflow-y-scroll overscroll-contain'>
+            <div className='flex h-full min-h-0 min-w-0 flex-col gap-3'>
+              {props.log && (
+                <Collapsible
+                  defaultOpen
+                  className='group/log-summary flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border px-3 py-2 data-[closed]:flex-none'
+                >
+                  <CollapsibleTrigger className='flex w-full shrink-0 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
+                    <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/log-summary:-rotate-90' />
+                    <span>{t('Request Info')}</span>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className='CollapsibleContent mt-2 flex min-h-0 flex-1 flex-col'>
+                    <div className='min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto pl-6'>
+                      <RequestLogSummary log={props.log} />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
               {props.requestMessage.parameters && (
                 <Collapsible
                   defaultOpen
-                  className='group/parameters rounded-lg border px-3 py-2'
+                  className='group/parameters flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border px-3 py-2 data-[closed]:flex-none'
                 >
                   <CollapsibleTrigger className='flex w-full shrink-0 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
                     <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/parameters:-rotate-90' />
                     <span>{t('Request Parameters')}</span>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className='CollapsibleContent mt-2'>
-                    <pre className='bg-muted overflow-x-auto rounded-md p-3 text-xs whitespace-pre'>
-                      {formatParameters(props.requestMessage.parameters)}
-                    </pre>
+                  <CollapsibleContent className='CollapsibleContent mt-2 flex min-h-0 flex-1 flex-col'>
+                    <div className='min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto'>
+                      <pre className='bg-muted overflow-x-auto rounded-md p-3 text-xs whitespace-pre'>
+                        {formatParameters(props.requestMessage.parameters)}
+                      </pre>
+                    </div>
                   </CollapsibleContent>
                 </Collapsible>
               )}
