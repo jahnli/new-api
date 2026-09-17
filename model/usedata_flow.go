@@ -13,7 +13,7 @@ type FlowQuotaData struct {
 	NodeName    string `json:"node_name,omitempty" gorm:"column:node_name"`
 	TokenID     int    `json:"token_id,omitempty" gorm:"column:token_id"`
 	TokenName   string `json:"token_name,omitempty" gorm:"-"`
-	UseGroup    string `json:"use_group" gorm:"column:use_group"`
+	UseGroup    string `json:"use_group,omitempty" gorm:"column:use_group"`
 	ChannelID   int    `json:"channel_id,omitempty" gorm:"column:channel_id"`
 	ChannelName string `json:"channel_name,omitempty" gorm:"-"`
 	ModelName   string `json:"model_name" gorm:"column:model_name"`

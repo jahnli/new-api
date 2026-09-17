@@ -6,6 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 )
@@ -88,6 +89,11 @@ func GetAllFlowQuotaDates(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	if operation_setting.ExternalModeEnabled && c.GetInt("role") < common.RoleRootUser {
+		for _, row := range dates {
+			row.UseGroup = ""
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -106,6 +112,11 @@ func GetUserFlowQuotaDates(c *gin.Context) {
 	if err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	if operation_setting.ExternalModeEnabled && c.GetInt("role") < common.RoleRootUser {
+		for _, row := range dates {
+			row.UseGroup = ""
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

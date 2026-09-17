@@ -66,6 +66,7 @@ import type {
   FlowOverflowMode,
   FlowRole,
 } from '@/features/dashboard/types'
+import { useExternalMode } from '@/hooks/use-external-mode'
 import { formatQuota } from '@/lib/format'
 import { ROLE } from '@/lib/roles'
 import { requireServerSuccess } from '@/lib/server-error-message'
@@ -242,6 +243,8 @@ export function FlowCharts(props: FlowChartsProps) {
   const user = useAuthStore((state) => state.auth.user)
   const isRoot = Boolean(user?.role && user.role >= ROLE.SUPER_ADMIN)
   const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
+  const externalMode = useExternalMode()
+  const canViewGroups = !externalMode || isRoot
   let flowRole: FlowRole = 'user'
   if (isRoot) {
     flowRole = 'root'
@@ -262,10 +265,22 @@ export function FlowCharts(props: FlowChartsProps) {
   >()
   const [hiddenStages, setHiddenStages] = useState<FlowNodeKind[]>([])
 
-  const stages = useMemo(() => getFlowStages(flowRole), [flowRole])
-  const visibleStages = useMemo(
-    () => stages.filter((stage) => !hiddenStages.includes(stage)),
-    [stages, hiddenStages]
+  const stages = useMemo(
+    () =>
+      getFlowStages(flowRole).filter(
+        (stage) => canViewGroups || stage !== 'group'
+      ),
+    [flowRole, canViewGroups]
+  )
+  const visibleStages = useMemo(() => {
+    const visible = stages.filter((stage) => !hiddenStages.includes(stage))
+    // A permission change can remove a previously visible column. Keep two
+    // allowed columns so the graph cannot fall back to all role columns.
+    return visible.length >= MIN_VISIBLE_STAGES ? visible : stages
+  }, [stages, hiddenStages])
+  const visibleSelectedNodes = useMemo(
+    () => selectedNodes.filter((filter) => visibleStages.includes(filter.kind)),
+    [selectedNodes, visibleStages]
   )
   useEffect(() => {
     const visible = new Set(visibleStages)
@@ -281,17 +296,16 @@ export function FlowCharts(props: FlowChartsProps) {
     setActiveFlowLink(undefined)
   }, [visibleStages])
   const toggleStage = (stage: FlowNodeKind) => {
-    setHiddenStages((prev) => {
-      const hidden = new Set(prev)
-      if (hidden.has(stage)) {
-        hidden.delete(stage)
-      } else {
-        const remaining = stages.filter((item) => !hidden.has(item)).length
-        if (remaining <= MIN_VISIBLE_STAGES) return prev
-        hidden.add(stage)
-      }
-      return stages.filter((item) => hidden.has(item))
-    })
+    const hidden = new Set(
+      stages.filter((item) => !visibleStages.includes(item))
+    )
+    if (hidden.has(stage)) {
+      hidden.delete(stage)
+    } else {
+      if (visibleStages.length <= MIN_VISIBLE_STAGES) return
+      hidden.add(stage)
+    }
+    setHiddenStages(stages.filter((item) => hidden.has(item)))
   }
 
   const timeRange = useMemo(
@@ -318,7 +332,7 @@ export function FlowCharts(props: FlowChartsProps) {
     isError,
     isLoading,
   } = useQuery({
-    queryKey: ['dashboard', 'flow', flowQueryParams, flowRole],
+    queryKey: ['dashboard', 'flow', flowQueryParams, flowRole, canViewGroups],
     queryFn: async () =>
       requireServerSuccess(await getFlowQuotaDates(flowQueryParams, isAdmin)),
     select: (res) =>
@@ -332,7 +346,7 @@ export function FlowCharts(props: FlowChartsProps) {
       buildDashboardFlowData(isLoading ? [] : (flowRows ?? []), metric, {
         role: flowRole,
         selectedUsers,
-        selectedNodes,
+        selectedNodes: visibleSelectedNodes,
         activeNode: activeFlowNode,
         activeLink: activeFlowLink,
         visibleStages,
@@ -350,7 +364,7 @@ export function FlowCharts(props: FlowChartsProps) {
       overflowMode,
       activeFlowNode,
       activeFlowLink,
-      selectedNodes,
+      visibleSelectedNodes,
       selectedUsers,
       topNodeLimit,
       visibleStages,
@@ -619,7 +633,7 @@ export function FlowCharts(props: FlowChartsProps) {
             metricLabel={metricLabel}
             formatMetricValue={formatNodeMetricValue}
             options={nodeFilterOptions}
-            selectedNodes={selectedNodes}
+            selectedNodes={visibleSelectedNodes}
             onToggleNode={toggleFlowNodeFilter}
             onRemoveNode={removeFlowNodeFilter}
             onClearNodes={clearFlowNodeFilters}
@@ -676,7 +690,7 @@ export function FlowCharts(props: FlowChartsProps) {
               </Tooltip>
               {stages.map((stage, index) => {
                 const meta = FLOW_STAGE_META[stage]
-                const visible = !hiddenStages.includes(stage)
+                const visible = visibleStages.includes(stage)
                 return (
                   <Fragment key={stage}>
                     {index > 0 && (
