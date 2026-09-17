@@ -240,7 +240,11 @@ func (s *BillingSession) preConsume(c *gin.Context, quota int) *types.AIGatewayE
 				types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
 		}
 		errMsg := err.Error()
-		if errors.Is(err, model.ErrNoActiveSubscription) || errors.Is(err, model.ErrSubscriptionQuota) || errors.Is(err, model.ErrSubscriptionPremiumQuota) {
+		if errors.Is(err, model.ErrSubscriptionPremiumQuota) {
+			notifySubscriptionPremiumQuotaInsufficient(s.relayInfo)
+			return subscriptionPremiumQuotaError(false)
+		}
+		if errors.Is(err, model.ErrNoActiveSubscription) || errors.Is(err, model.ErrSubscriptionQuota) {
 			return types.NewErrorWithStatusCode(fmt.Errorf("订阅额度不足或未配置订阅: %s", errMsg), types.ErrorCodeInsufficientUserQuota, http.StatusForbidden, types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
 		}
 		return types.NewError(err, types.ErrorCodeUpdateDataError, types.ErrOptionWithSkipRetry())
@@ -279,7 +283,11 @@ func (s *BillingSession) reserveFunding(delta int, requireAvailableQuota bool) e
 		return nil
 	case *SubscriptionFunding:
 		if err := funding.updateCharge(funding.charge.AccountedQuota+int64(delta), "reserved"); err != nil {
-			if !errors.Is(err, model.ErrSubscriptionQuota) && !errors.Is(err, model.ErrSubscriptionPremiumQuota) && !errors.Is(err, model.ErrNoActiveSubscription) {
+			if errors.Is(err, model.ErrSubscriptionPremiumQuota) {
+				notifySubscriptionPremiumQuotaInsufficient(s.relayInfo)
+				return subscriptionPremiumQuotaError(false)
+			}
+			if !errors.Is(err, model.ErrSubscriptionQuota) && !errors.Is(err, model.ErrNoActiveSubscription) {
 				return types.NewError(err, types.ErrorCodeUpdateDataError, types.ErrOptionWithSkipRetry())
 			}
 			return types.NewErrorWithStatusCode(
@@ -455,7 +463,11 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 		session, err := tryWallet()
 		if err != nil {
 			if err.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
-				return trySubscription()
+				subscription, subscriptionErr := trySubscription()
+				if subscriptionErr != nil && subscriptionErr.GetErrorCode() == errorCodeSubscriptionPremiumQuotaInsufficient {
+					return nil, subscriptionPremiumQuotaError(true)
+				}
+				return subscription, subscriptionErr
 			}
 			return nil, err
 		}
@@ -472,14 +484,18 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 		}
 		session, apiErr := trySubscription()
 		if apiErr != nil {
-			if apiErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota {
+			if apiErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota || apiErr.GetErrorCode() == errorCodeSubscriptionPremiumQuotaInsufficient {
 				// 仅当用户的活跃订阅允许钱包回退时才回退到钱包，否则返回订阅额度不足错误
 				allowOverflow, overflowErr := model.UserActiveSubscriptionsAllowWalletOverflow(relayInfo.UserId)
 				if overflowErr != nil {
 					return nil, types.NewError(overflowErr, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
 				}
 				if allowOverflow {
-					return tryWallet()
+					wallet, walletErr := tryWallet()
+					if walletErr != nil && walletErr.GetErrorCode() == types.ErrorCodeInsufficientUserQuota && apiErr.GetErrorCode() == errorCodeSubscriptionPremiumQuotaInsufficient {
+						return nil, subscriptionPremiumQuotaError(true)
+					}
+					return wallet, walletErr
 				}
 				return nil, apiErr
 			}
