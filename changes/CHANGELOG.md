@@ -39,7 +39,7 @@
 | 032 | 2026-09-05 | 飞书支持联系人入口：后端通过 FEISHU_SUPPORT_OPEN_ID 暴露 openId，首页与错误页复用联系卡片并动态构造 applink；未配置时隐藏 | [详情](details/032-feishu-support-contact.md) |
 | 033 | 2026-06-23 | 登录页切换按钮与登录按钮大小统一，去掉多余的 h-11 rounded-lg | `web/default/src/features/auth/sign-in/components/user-auth-form.tsx` |
 | 034 | 2026-06-23 | 用户头像下拉菜单增强：头像旁显示用户名、角色标签前加图标（👑🏅🧑‍💼）、下拉菜单改为悬停触发、移除分组显示 | [详情](details/034-profile-dropdown-enhance.md) |
-| 035 | 2026-06-24 | 常见问答面板重构：移除问答列表，改为插画图标+外链按钮跳转飞书文档；经典前端注释掉 FAQ 面板 | [详情](details/035-faq-panel-redesign.md) |
+| 035 | 2026-09-18 | 移除概览页常见问答面板，不再展示飞书文档跳转入口 | [详情](details/035-faq-panel-redesign.md) |
 | 036 | 2026-06-24 | 系统公告弹窗宽度由 26rem 加大到 36rem | `web/default/src/components/notification-popover.tsx` |
 | 037 | 2026-09-17 | 订阅管理增强：全员订阅按公司覆盖、管理员可按人民币金额增减用户总额度、额度重置仅当期生效、套餐按公司限制可见范围；订阅与套餐编辑采用居中弹框及人民币额度标签；新增高阶模型额度限制，支持全局模型与默认比例、用户比例覆盖、额度展示及预扣/结算/退款的周期隔离与幂等记账；高阶额度不足使用专用报错与独立通知，钱包也不足时同时说明两种原因 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
