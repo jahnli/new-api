@@ -35,7 +35,7 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
   const upstreamModel = other?.is_model_mapped ? other.upstream_model_name : ''
 
   return (
-    <div className='flex flex-col gap-2.5'>
+    <div className='flex flex-col gap-2.5 [&_span]:text-[13px]'>
       {props.log.use_time > 0 && (
         <DetailRow
           label={t('Response Time')}
