@@ -101,11 +101,11 @@ export function ImageAuditUserCell(props: {
 
   return (
     <div
-      className='flex w-[120px] min-w-0 items-center gap-2'
+      className='flex w-full min-w-0 items-center gap-2'
       onMouseEnter={props.demoMode ? undefined : handleFetchUser}
     >
       {props.demoMode ? (
-        <LongText className='w-[120px] font-medium'>{primaryName}</LongText>
+        <LongText className='max-w-full font-medium'>{primaryName}</LongText>
       ) : (
         <>
           <UserProfileHoverCard user={userData ?? fallbackUser}>
@@ -155,12 +155,12 @@ function ImageAuditThumbnails(props: {
   const visible = images.slice(0, 3)
   const rest = images.length - visible.length
   return (
-    <div className='flex items-center gap-1.5'>
+    <div className='grid w-full max-w-[156px] grid-cols-3 gap-1.5'>
       {visible.map((image, index) => (
         <button
           key={image.id}
           type='button'
-          className='bg-muted/30 hover:ring-primary/50 size-12 shrink-0 overflow-hidden rounded-md border transition hover:ring-2'
+          className='bg-muted/30 hover:ring-primary/50 relative aspect-square w-full min-w-0 overflow-hidden rounded-md border transition hover:ring-2'
           onClick={() => props.onPreview(props.item, index)}
           aria-label={t('Image preview')}
         >
@@ -170,18 +170,13 @@ function ImageAuditThumbnails(props: {
             loading='lazy'
             className='size-full object-cover'
           />
+          {index === visible.length - 1 && rest > 0 && (
+            <Badge className='pointer-events-none absolute right-0 bottom-0 h-4 rounded-none rounded-tl-sm bg-black/75 px-1 text-[10px] text-white tabular-nums'>
+              +{rest}
+            </Badge>
+          )}
         </button>
       ))}
-      {rest > 0 && (
-        <button
-          type='button'
-          className='bg-muted text-muted-foreground hover:ring-primary/50 flex size-12 shrink-0 items-center justify-center rounded-md border text-xs font-medium transition hover:ring-2'
-          onClick={() => props.onPreview(props.item, visible.length)}
-          aria-label={t('Image preview')}
-        >
-          +{rest}
-        </button>
-      )}
     </div>
   )
 }
@@ -216,7 +211,7 @@ export function useImageAuditColumns(
       {
         id: 'duration_ms',
         header: t('Duration'),
-        size: 90,
+        size: 65,
         cell: ({ row }) => (
           <span className='text-muted-foreground !font-normal tabular-nums'>
             {row.original.duration_ms > 0
@@ -249,7 +244,7 @@ export function useImageAuditColumns(
               )}
               <button
                 type='button'
-                className='text-muted-foreground line-clamp-2 max-w-[240px] cursor-pointer text-left !text-[13px] leading-snug !font-normal break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
+                className='text-muted-foreground line-clamp-2 max-w-full min-w-0 cursor-pointer text-left !text-[13px] leading-snug !font-normal break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
                 onClick={() => onViewRequestContent(row.original)}
                 disabled={!row.original.prompt}
                 title={row.original.prompt ? t('Request Content') : undefined}
@@ -290,7 +285,7 @@ export function useImageAuditColumns(
                     copyText={String(channelId)}
                     size='sm'
                     showDot={false}
-                    className='text-muted-foreground/70 font-mono'
+                    className='text-muted-foreground/70 max-w-full font-mono'
                   />
                   {channelDisplay.name ? (
                     <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
@@ -309,7 +304,11 @@ export function useImageAuditColumns(
         header: t('Model'),
         size: 170,
         cell: ({ row }) => (
-          <ModelBadge modelName={row.original.model} className='font-normal' />
+          <ModelBadge
+            modelName={row.original.model}
+            wrapText
+            className='font-normal'
+          />
         ),
       },
       {
@@ -317,7 +316,10 @@ export function useImageAuditColumns(
         header: t('Mode'),
         size: 100,
         cell: ({ row }) => (
-          <Badge variant='secondary' className='font-normal'>
+          <Badge
+            variant='secondary'
+            className='h-auto min-h-5 max-w-full font-normal whitespace-normal'
+          >
             {t(imageAuditModeLabelKey(row.original.mode))}
           </Badge>
         ),
@@ -336,7 +338,10 @@ export function useImageAuditColumns(
             return <span className='text-muted-foreground text-xs'>-</span>
           }
           return (
-            <span className='text-muted-foreground block max-w-[120px] truncate text-xs'>
+            <span
+              className='text-muted-foreground block max-w-full truncate text-xs'
+              title={parts.join(' · ')}
+            >
               {parts.join(' · ')}
             </span>
           )
@@ -345,9 +350,9 @@ export function useImageAuditColumns(
       {
         id: 'quota',
         header: t('Cost'),
-        size: 110,
+        size: 60,
         cell: ({ row }) => (
-          <span className='border-border/80 bg-muted/60 inline-flex h-6 w-fit items-center rounded-md border px-2 text-sm leading-none font-normal tabular-nums'>
+          <span className='border-border/80 bg-muted/60 inline-flex min-h-6 w-fit max-w-full items-center rounded-md border px-1.5 py-1 text-sm leading-none font-normal [overflow-wrap:anywhere] tabular-nums'>
             {formatQuotaWithCurrency(row.original.quota ?? 0, {
               digitsLarge: 2,
               digitsSmall: 2,

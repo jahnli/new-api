@@ -119,6 +119,12 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
           'No image generation records were found in this time range.'
         )}
         skeletonKeyPrefix='security-audit-image-studio'
+        fitContainer
+        getColumnClassName={(columnId) =>
+          columnId === 'quota'
+            ? 'px-1 whitespace-normal [overflow-wrap:anywhere]'
+            : 'px-2 whitespace-normal [overflow-wrap:anywhere]'
+        }
         toolbarProps={null}
         tableClassName='[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
       />
