@@ -38,7 +38,7 @@ export function HowItWorks() {
               {t('API Base URL')}:
             </span>
             <code className='text-primary/80 bg-primary/5 rounded px-1.5 py-0.5 text-xs font-medium'>
-              https://ai.semi-tech.com
+              {window.location.origin}
             </code>
           </span>
         </>
