@@ -30,6 +30,12 @@
     "cache_read": 3.5,
     "cache_write": null
   },
+  "gpt-6-astra": {
+    "input": 70,
+    "output": 350,
+    "cache_read": 7,
+    "cache_write": null
+  },
   "claude-opus-4-6": {
     "input": 35,
     "output": 175,

@@ -17,7 +17,9 @@ import (
 )
 
 const (
-	imageStudioMinIOPrefix = "image"
+	imageStudioObjectPrefix = "image"
+
+	imageStudioStorageDSNEnv = "IMAGE_STUDIO_S3_DSN"
 )
 
 type imageStudioReadSeekCloser interface {
@@ -32,19 +34,19 @@ type imageStudioStoredObject struct {
 	ModTime     time.Time
 }
 
-type imageStudioMinIOStorage struct {
+type imageStudioS3Storage struct {
 	client *minio.Client
 	bucket string
 }
 
-func (storage imageStudioMinIOStorage) Put(ctx context.Context, objectName string, data []byte, contentType string) error {
+func (storage imageStudioS3Storage) Put(ctx context.Context, objectName string, data []byte, contentType string) error {
 	_, err := storage.client.PutObject(ctx, storage.bucket, storage.objectName(objectName), bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	return err
 }
 
-func (storage imageStudioMinIOStorage) Open(ctx context.Context, objectName string) (*imageStudioStoredObject, error) {
+func (storage imageStudioS3Storage) Open(ctx context.Context, objectName string) (*imageStudioStoredObject, error) {
 	object, err := storage.client.GetObject(ctx, storage.bucket, storage.objectName(objectName), minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
@@ -61,48 +63,48 @@ func (storage imageStudioMinIOStorage) Open(ctx context.Context, objectName stri
 	}, nil
 }
 
-func (storage imageStudioMinIOStorage) Delete(ctx context.Context, objectName string) error {
+func (storage imageStudioS3Storage) Delete(ctx context.Context, objectName string) error {
 	return storage.client.RemoveObject(ctx, storage.bucket, storage.objectName(objectName), minio.RemoveObjectOptions{})
 }
 
-func (storage imageStudioMinIOStorage) objectName(objectName string) string {
-	return path.Join(imageStudioMinIOPrefix, objectName)
+func (storage imageStudioS3Storage) objectName(objectName string) string {
+	return path.Join(imageStudioObjectPrefix, objectName)
 }
 
 var (
 	imageStudioStorageOnce    sync.Once
-	imageStudioStorage        *imageStudioMinIOStorage
+	imageStudioStorage        *imageStudioS3Storage
 	imageStudioStorageInitErr error
 )
 
-func getImageStudioStorage() (*imageStudioMinIOStorage, error) {
+func getImageStudioStorage() (*imageStudioS3Storage, error) {
 	imageStudioStorageOnce.Do(func() {
-		imageStudioStorage, imageStudioStorageInitErr = newImageStudioMinIOStorage()
+		imageStudioStorage, imageStudioStorageInitErr = newImageStudioS3Storage()
 	})
 	return imageStudioStorage, imageStudioStorageInitErr
 }
 
-func newImageStudioMinIOStorage() (*imageStudioMinIOStorage, error) {
-	dsn := strings.TrimSpace(os.Getenv("IMAGE_STUDIO_MINIO_DSN"))
+func newImageStudioS3Storage() (*imageStudioS3Storage, error) {
+	dsn := strings.TrimSpace(os.Getenv(imageStudioStorageDSNEnv))
 	if dsn == "" {
-		return nil, errors.New("missing MinIO image studio DSN")
+		return nil, errors.New("missing image studio S3-compatible storage DSN")
 	}
 
 	parsed, err := url.Parse(dsn)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return nil, errors.New("invalid MinIO image studio DSN")
+		return nil, errors.New("invalid image studio S3-compatible storage DSN")
 	}
 	if parsed.User == nil {
-		return nil, errors.New("MinIO image studio DSN must include access key, secret key, and bucket")
+		return nil, errors.New("image studio S3-compatible storage DSN must include access key, secret key, and bucket")
 	}
 	accessKey := parsed.User.Username()
 	secretKey, hasSecretKey := parsed.User.Password()
 	bucket := strings.TrimPrefix(parsed.Path, "/")
 	if accessKey == "" || !hasSecretKey || secretKey == "" || bucket == "" || strings.Contains(bucket, "/") {
-		return nil, errors.New("MinIO image studio DSN must include access key, secret key, and bucket")
+		return nil, errors.New("image studio S3-compatible storage DSN must include access key, secret key, and bucket")
 	}
 	if parsed.RawQuery != "" || parsed.Fragment != "" {
-		return nil, errors.New("MinIO image studio DSN must not contain a query or fragment")
+		return nil, errors.New("image studio S3-compatible storage DSN must not contain a query or fragment")
 	}
 
 	client, err := minio.New(parsed.Host, &minio.Options{
@@ -112,7 +114,7 @@ func newImageStudioMinIOStorage() (*imageStudioMinIOStorage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &imageStudioMinIOStorage{
+	return &imageStudioS3Storage{
 		client: client,
 		bucket: bucket,
 	}, nil

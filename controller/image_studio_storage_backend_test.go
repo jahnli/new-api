@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestImageStudioMinIOObjectNamePreservesAssetPath(t *testing.T) {
-	storage := imageStudioMinIOStorage{}
+func TestImageStudioS3ObjectNamePreservesAssetPath(t *testing.T) {
+	storage := imageStudioS3Storage{}
 
 	assert.Equal(t,
 		"image/alice_admin/0123456789abcdef.png",
@@ -16,18 +16,18 @@ func TestImageStudioMinIOObjectNamePreservesAssetPath(t *testing.T) {
 	)
 }
 
-func TestNewImageStudioMinIOStorageUsesConfiguredBucket(t *testing.T) {
-	t.Setenv("IMAGE_STUDIO_MINIO_DSN", "http://access-key:secret-key@127.0.0.1:9000/generated-images")
+func TestNewImageStudioS3StorageUsesConfiguredBucket(t *testing.T) {
+	t.Setenv(imageStudioStorageDSNEnv, "http://access-key:secret-key@127.0.0.1:9000/generated-images")
 
-	storage, err := newImageStudioMinIOStorage()
+	storage, err := newImageStudioS3Storage()
 	require.NoError(t, err)
 	assert.Equal(t, "generated-images", storage.bucket)
 }
 
-func TestNewImageStudioMinIOStorageRejectsIncompleteDSN(t *testing.T) {
-	t.Setenv("IMAGE_STUDIO_MINIO_DSN", "http://127.0.0.1:9000/generated-images")
+func TestNewImageStudioS3StorageRejectsIncompleteDSN(t *testing.T) {
+	t.Setenv(imageStudioStorageDSNEnv, "http://127.0.0.1:9000/generated-images")
 
-	storage, err := newImageStudioMinIOStorage()
+	storage, err := newImageStudioS3Storage()
 
 	require.Error(t, err)
 	assert.Nil(t, storage)
