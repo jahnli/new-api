@@ -105,7 +105,7 @@ function UnifiedTableView<TData>({
         {tableSizing.colgroup}
         <DataTableHeader
           table={props.table}
-          applyHeaderSize={props.applyHeaderSize}
+          applyHeaderSize={!props.fitContainer && props.applyHeaderSize}
           className={props.tableHeaderClassName}
           rowClassName={props.tableHeaderRowClassName}
           getColumnClassName={getColumnClassName}
@@ -153,7 +153,7 @@ function SplitHeaderTableView<TData>({
           {tableSizing.colgroup}
           <DataTableHeader
             table={props.table}
-            applyHeaderSize={props.applyHeaderSize}
+            applyHeaderSize={!props.fitContainer && props.applyHeaderSize}
             className={cn('sticky top-0 z-10', props.tableHeaderClassName)}
             rowClassName={props.tableHeaderRowClassName}
             getColumnClassName={getColumnClassName}
@@ -228,6 +228,28 @@ function getTableSizing<TData>(props: DataTableViewProps<TData>): {
   colgroup?: React.ReactNode
   style?: React.CSSProperties
 } {
+  if (props.fitContainer) {
+    const columns = props.table.getVisibleLeafColumns()
+    const totalSize = columns.reduce((sum, column) => sum + column.getSize(), 0)
+    return {
+      style: { width: '100%', tableLayout: 'fixed' },
+      colgroup: (
+        <colgroup>
+          {columns.map((column) => (
+            <col
+              key={column.id}
+              style={{
+                width:
+                  totalSize > 0
+                    ? `${(column.getSize() / totalSize) * 100}%`
+                    : undefined,
+              }}
+            />
+          ))}
+        </colgroup>
+      ),
+    }
+  }
   if (props.colgroup) {
     return { colgroup: props.colgroup }
   }

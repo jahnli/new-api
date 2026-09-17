@@ -126,6 +126,10 @@ export function OffHoursTable(props: OffHoursTableProps) {
           'No requests were recorded during the audit window in this time range.'
         )}
         skeletonKeyPrefix='security-audit-off-hours'
+        fitContainer
+        getColumnClassName={() =>
+          'px-2 whitespace-normal [overflow-wrap:anywhere]'
+        }
         toolbarProps={null}
       />
       <OffHoursDetailDialog

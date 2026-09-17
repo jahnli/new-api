@@ -273,7 +273,7 @@ func GetOffHoursUsage(startTs, endTs int64, startHour, endHour int, username str
 				WindowEnd:   w.End,
 				StartTime:   day.firstTs,
 				EndTime:     day.lastTs,
-				Models:      topModelsByRequestCount(day.models, 3),
+				Models:      topModelsByRequestCount(day.models, 2),
 				Ips:         sortedSetItems(day.ips),
 				Count:       day.count,
 				Quota:       day.quota,
@@ -288,7 +288,7 @@ func GetOffHoursUsage(startTs, endTs int64, startHour, endHour int, username str
 			row.Quota += day.quota
 		}
 		row.Days = len(row.DayRows)
-		row.Models = topModelsByRequestCount(userModels, 3)
+		row.Models = topModelsByRequestCount(userModels, 2)
 		row.Ips = sortedSetItems(userIps)
 		users = append(users, row)
 	}

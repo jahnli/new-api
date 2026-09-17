@@ -69,6 +69,7 @@ export type DataTableViewProps<TData> = {
   getColumnClassName?: DataTableColumnClassName
   pinnedColumns?: DataTablePinnedColumn[]
   applyHeaderSize?: boolean
+  fitContainer?: boolean
   tableClassName?: string
   tableHeaderClassName?: string
   tableHeaderRowClassName?: string

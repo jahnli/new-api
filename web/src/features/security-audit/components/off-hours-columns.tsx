@@ -34,9 +34,14 @@ function formatClock(timestamp: number): string {
 function renderModelBadges(models: string[]) {
   return (
     <BadgeListCell
-      max={3}
-      items={models.map((model) => (
-        <ModelBadge key={model} modelName={model} className='font-normal' />
+      max={2}
+      items={models.slice(0, 2).map((model) => (
+        <ModelBadge
+          key={model}
+          modelName={model}
+          wrapText
+          className='font-normal'
+        />
       ))}
     />
   )
@@ -161,7 +166,7 @@ export function OffHoursIdentityCell(props: {
 
   return (
     <div
-      className='flex min-w-0 items-center gap-2'
+      className='flex w-full min-w-0 items-center gap-1.5'
       onMouseEnter={props.demoMode ? undefined : handleFetchUser}
     >
       <div className='flex size-6 shrink-0 items-center justify-center'>
@@ -183,13 +188,15 @@ export function OffHoursIdentityCell(props: {
         ) : null}
       </div>
       {props.demoMode ? (
-        <LongText className='w-[182px] font-medium'>{primaryName}</LongText>
+        <div className='min-w-0 flex-1'>
+          <LongText className='max-w-full font-medium'>{primaryName}</LongText>
+        </div>
       ) : (
         <>
           <UserProfileHoverCard user={userData ?? fallbackUser}>
             {avatar}
           </UserProfileHoverCard>
-          <div className='flex w-[150px] min-w-0 flex-col gap-1'>
+          <div className='flex min-w-0 flex-1 flex-col gap-1'>
             <LongText className='max-w-full font-medium'>
               {primaryName}
             </LongText>
@@ -206,7 +213,7 @@ export function OffHoursIdentityCell(props: {
         variant='red'
         size='sm'
         copyable={false}
-        className='border-destructive/30 bg-destructive/10 h-5 shrink-0 rounded-md border px-1.5 !text-[11px] [&_span]:!text-[11px]'
+        className='border-destructive/30 bg-destructive/10 ml-auto h-5 shrink-0 rounded-md border px-1.5 !text-[11px] [&_span]:!text-[11px]'
       />
     </div>
   )
@@ -224,7 +231,7 @@ export function useOffHoursColumns(
         id: 'identity',
         header: t('User'),
         meta: { mobileTitle: true },
-        size: 220,
+        size: 180,
         cell: ({ row }) => (
           <OffHoursIdentityCell row={row} demoMode={demoMode} />
         ),
@@ -261,7 +268,7 @@ export function useOffHoursColumns(
       {
         id: 'count',
         header: t('Requests'),
-        size: 80,
+        size: 90,
         cell: ({ row }) => {
           const audit = row.original
           const count =
@@ -276,13 +283,13 @@ export function useOffHoursColumns(
       {
         id: 'quota',
         header: t('Cost'),
-        size: 115,
+        size: 110,
         cell: ({ row }) => {
           const audit = row.original
           const quota =
             audit.kind === 'day' ? (audit.day?.quota ?? 0) : audit.user.quota
           return (
-            <span className='border-border/80 bg-muted/60 inline-flex h-6 w-fit items-center rounded-md border px-2 text-sm leading-none font-normal tabular-nums'>
+            <span className='border-border/80 bg-muted/60 inline-flex min-h-6 w-fit max-w-full items-center rounded-md border px-1.5 py-1 text-sm leading-none font-normal [overflow-wrap:anywhere] tabular-nums'>
               {formatQuotaWithCurrency(quota, {
                 digitsLarge: 2,
                 digitsSmall: 2,
@@ -295,7 +302,7 @@ export function useOffHoursColumns(
       {
         id: 'models',
         header: t('Models'),
-        size: 300,
+        size: 250,
         cell: ({ row }) => {
           const audit = row.original
           const models =
@@ -306,7 +313,7 @@ export function useOffHoursColumns(
       {
         id: 'ips',
         header: t('IP Addresses'),
-        size: 200,
+        size: 160,
         cell: ({ row }) => {
           const audit = row.original
           const ips =
@@ -317,7 +324,7 @@ export function useOffHoursColumns(
       {
         id: 'actions',
         header: '',
-        size: 120,
+        size: 80,
         cell: ({ row }) => {
           const audit = row.original
           const singleDay =
@@ -330,7 +337,7 @@ export function useOffHoursColumns(
             <Button
               variant='ghost'
               size='sm'
-              className='h-7 gap-1.5 px-2 text-xs'
+              className='h-auto min-h-7 max-w-full flex-wrap gap-1 px-1 py-1 text-xs whitespace-normal'
               onClick={() =>
                 onViewDetail({
                   userId: audit.user.user_id,

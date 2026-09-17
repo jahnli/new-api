@@ -196,6 +196,9 @@ export type DataTablePageProps<TData> = {
    */
   applyHeaderSize?: boolean
 
+  /** Fit all columns within the container, using their sizes as relative weights. */
+  fitContainer?: boolean
+
   /**
    * Optional skeleton key prefix for stable React keys across re-renders.
    */
@@ -447,6 +450,7 @@ function renderMobile<TData>(
           skeletonKeyPrefix={props.skeletonKeyPrefix}
           renderRow={props.renderRow}
           applyHeaderSize={props.applyHeaderSize}
+          fitContainer={props.fitContainer}
           tableHeaderClassName={cn(
             '[background-color:var(--table-header)]',
             props.tableHeaderClassName
@@ -546,6 +550,7 @@ function renderDesktop<TData>(
       skeletonKeyPrefix={props.skeletonKeyPrefix}
       renderRow={props.renderRow}
       applyHeaderSize={props.applyHeaderSize}
+      fitContainer={props.fitContainer}
       splitHeader={fixedHeight}
       tableContainerClassName={fixedHeight ? 'h-full min-h-0' : undefined}
       tableHeaderClassName={cn(
