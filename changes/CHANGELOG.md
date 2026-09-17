@@ -23,7 +23,7 @@
 | 017 | 2026-06-20 | Lake View 侧边栏选中文字颜色改为 #18a058 | `web/default/src/components/ui/sidebar.tsx`、`web/default/src/styles/theme-presets.css` |
 | 018 | 2026-06-20 | 修复侧边栏选中项悬停时文字颜色被覆盖的问题，保持主题色 | `web/default/src/components/ui/sidebar.tsx` |
 | 019 | 2026-06-20 | 移除邀请人/邀请码功能（后端模型/控制器/路由、前端组件/类型/i18n、数据库迁移、计费设置默认值残留字段修复） | [详情](details/020-remove-invitation.md) |
-| 020 | 2026-06-20 | 移除概览页「开始使用」和「推荐操作」区域 | `web/default/src/features/dashboard/components/overview/overview-dashboard.tsx` |
+| 020 | 2026-09-17 | 移除概览页引导区域：不再展示「开始使用」步骤、推荐操作与请求示例，折叠态与展开记忆一并去除 | [详情](details/020-remove-overview-setup-guide.md) |
 | 021 | 2026-07-01 | 个人资料页订阅列表重构：由 ProfileHeader 内嵌改为独立卡片组件，横向网格（sm 2 列 / lg 3 列），每个订阅独立圆角卡片展示状态、剩余天数与配额进度；进度条按用量分阶段变色（绿→橙→红） | `web/default/src/features/profile/components/subscription-card.tsx`、`web/default/src/features/profile/components/profile-header.tsx`、`web/default/src/features/profile/index.tsx` |
 | 022 | 2026-08-24 | 渠道界面优化：默认视图改为列表，视图切换按钮顺序调整为列表→卡片，桌面端默认分页调整为每页 50 条；模型映射添加按钮移至列表顶部，新映射插入首行 | [详情](details/022-channel-interface.md) |
 | 023 | 2026-07-20 | 新增 LDAP 登录与飞书/钉钉同步：支持认证、绑定/解绑、按公司 OU 选择同步平台及凭据/邮箱后缀/自动订阅套餐配置，并支持公司显示名称映射 | [详情](details/024-ldap-login.md) |
