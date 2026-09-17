@@ -119,11 +119,11 @@ export function UserProfileHoverCard(props: UserProfileHoverCardProps) {
     : []
 
   const visibleProfileFields: ProfileFieldEntry[] = [
+    { label: t('Department'), value: user.department_name },
     {
       label: t('Job Level'),
       value: customFields?.[CUSTOM_FIELD_KEYS.JOB_LEVEL],
     },
-    { label: t('Department'), value: user.department_name },
     { label: t('Join Date'), value: user.join_date },
     { label: t('Email'), value: user.email },
     { label: t('Job Number'), value: user.job_number },

@@ -94,7 +94,7 @@ export function OffHoursDetailDialog(props: OffHoursDetailDialogProps) {
           windowLabel={windowLabel}
         />
 
-        <div className='min-h-0 flex-1 overflow-y-auto pt-2 pr-1'>
+        <div className='min-h-0 flex-1 overflow-y-auto pt-2 sm:flex sm:flex-col sm:overflow-hidden'>
           <OffHoursLogsSection target={props.target} />
         </div>
       </DialogContent>
@@ -175,9 +175,9 @@ function OffHoursLogsSection(props: { target: OffHoursDetailTarget }) {
           skeletonKeyPrefix='security-audit-detail-logs'
           applyHeaderSize
           toolbarProps={null}
-          className='h-full min-h-[360px]'
+          className='h-auto min-h-0 sm:flex-1'
           paginationInFooter={false}
-          tableClassName='rounded-none border-0 [scrollbar-gutter:stable] [&_[data-slot=table]]:min-w-[1120px] [&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
+          tableClassName='rounded-none border-0 [&_[data-slot=table]]:min-w-[1120px] [&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
         />
       </RequestMessagesProvider>
     </UsageLogsProvider>
