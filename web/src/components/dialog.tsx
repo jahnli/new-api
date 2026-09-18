@@ -35,6 +35,8 @@ type DialogProps = React.ComponentProps<typeof DialogRoot> & {
   children: React.ReactNode
   trigger?: React.ReactElement
   footer?: React.ReactNode
+  /** Content inside the modal, outside its scrolling body and footer. */
+  contentTrailing?: React.ReactNode
   /** Rendered before the title inside the header, e.g. an avatar or icon. */
   headerLeading?: React.ReactNode
   /** Rendered after the title inside the header, e.g. a badge trailing it. */
@@ -60,6 +62,7 @@ export function Dialog({
   children,
   trigger,
   footer,
+  contentTrailing,
   headerLeading,
   headerTrailing,
   contentHeight = 'auto',
@@ -133,6 +136,7 @@ export function Dialog({
             {footer}
           </DialogFooter>
         ) : null}
+        {contentTrailing}
       </DialogContent>
     </DialogRoot>
   )

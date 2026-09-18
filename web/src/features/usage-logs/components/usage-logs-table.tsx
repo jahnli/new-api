@@ -26,6 +26,10 @@ import {
   DataTableRow,
   useDataTable,
 } from '@/components/data-table'
+import {
+  getAdminPlans,
+  getSelfSubscriptionFull,
+} from '@/features/subscriptions/api'
 import { useMediaQuery } from '@/hooks'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
@@ -99,6 +103,22 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const pageKey = `${logCategory}Page`
   const pageSizeKey = `${logCategory}PageSize`
   const searchParams = route.useSearch()
+  const userId = useAuthStore((state) => state.auth.user?.id)
+  const { data: showWalletSource = false } = useQuery({
+    queryKey: ['usage-log-wallet-source', isAdmin, userId],
+    enabled: logCategory === 'common' && userId != null,
+    queryFn: async () => {
+      if (isAdmin) {
+        const result = await getAdminPlans()
+        return result.success && (result.data?.length ?? 0) > 0
+      }
+
+      const result = await getSelfSubscriptionFull()
+      const subscriptions =
+        result.data?.all_subscriptions ?? result.data?.subscriptions
+      return result.success && (subscriptions?.length ?? 0) > 0
+    },
+  })
 
   const {
     columnFilters,
@@ -189,6 +209,7 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
     showUserColumn: canManageScope,
     showChannelColumn: canViewChannelColumn,
     isRoot,
+    showWalletSource,
   })
   const isLoadingData = isLoading || (isFetching && !data)
 

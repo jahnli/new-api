@@ -3,16 +3,16 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { I18nextProvider } from 'react-i18next'
 import { describe, expect, test, vi } from 'vitest'
 
-vi.mock('../../hooks/use-update-option', () => ({
-  useUpdateOption: () => ({
+vi.mock('../../request-policies/use-save-policy', () => ({
+  useSavePolicy: () => ({
     isPending: false,
     mutateAsync: async () => undefined,
   }),
 }))
 
 const { isValidFeishuRobotWebhookUrl } = await import('../feishu-webhook-url')
-const { RoutingReliabilitySection } =
-  await import('../routing-reliability-section')
+const { ChannelHealthSection } =
+  await import('../../request-policies/channel-health-section')
 
 const i18n = createInstance()
 await i18n.init({
@@ -28,15 +28,13 @@ describe('routing reliability Feishu notifications', () => {
   test('renders the configured webhook URL and disable guidance', () => {
     const html = renderToStaticMarkup(
       <I18nextProvider i18n={i18n}>
-        <RoutingReliabilitySection
+        <ChannelHealthSection
           defaultValues={{
-            RetryTimes: 0,
             ChannelDisableThreshold: '5',
             AutomaticDisableChannelEnabled: true,
             AutomaticEnableChannelEnabled: true,
             AutomaticDisableKeywords: '',
             AutomaticDisableStatusCodes: '401',
-            AutomaticRetryStatusCodes: '429,500-599',
             'monitor_setting.auto_test_channel_enabled': true,
             'monitor_setting.auto_test_channel_minutes': 10,
             'monitor_setting.channel_test_concurrency': 1,

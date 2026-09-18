@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
 import { Activity, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -32,6 +50,7 @@ type SparklineSize = 'sm' | 'md'
 
 type UptimeSparklineProps = {
   series: UptimeDayPoint[]
+  overallSuccessRate?: number
   size?: SparklineSize
   showOverall?: boolean
   emptyLabel?: string
@@ -59,6 +78,7 @@ export function UptimeSparkline(props: UptimeSparklineProps) {
   }
 
   const overall =
+    props.overallSuccessRate ??
     props.series.reduce((s, p) => s + p.uptime_pct, 0) / props.series.length
 
   const containerHeight = size === 'sm' ? 'h-3.5' : 'h-5'
@@ -97,7 +117,7 @@ export function UptimeSparkline(props: UptimeSparklineProps) {
             </TooltipTrigger>
             <TooltipContent side='top' className='font-mono text-xs'>
               <div className='font-medium'>{day.date}</div>
-              <div>{day.uptime_pct.toFixed(2)}%</div>
+              <div>{formatUptimePct(day.uptime_pct)}</div>
               {day.outage_minutes > 0 && (
                 <div className='text-muted-foreground'>
                   {day.outage_minutes} min outage
@@ -114,7 +134,7 @@ export function UptimeSparkline(props: UptimeSparklineProps) {
             getSuccessRateTextClass(overall)
           )}
         >
-          {overall.toFixed(1)}%
+          {formatUptimePct(overall)}
         </span>
       )}
     </div>
@@ -141,7 +161,6 @@ export function UptimeStatusRow(props: {
   let StatusIcon = AlertCircle
   let statusColour = 'text-rose-600 dark:text-rose-400'
   let statusLabel = t('Significant outages detected')
-
   if (status === 'operational') {
     StatusIcon = CheckCircle2
     statusColour = 'text-emerald-600 dark:text-emerald-400'

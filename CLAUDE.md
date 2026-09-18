@@ -16,3 +16,4 @@
 - 不得使用 grep、glob 或局部浏览代替 Read 工具的完整读取。
 - 读取完成后，在后续工作中遵循 `AGENTS.md` 的全部规则。
 - 如果任务涉及 `web/`，在编辑前端文件前还必须使用 Read 工具读取 `web/AGENTS.md`。
+- 如果任务符合 `AGENTS.md` 中“计费规则（强制读取）”的定义，在规划或编辑前还必须使用 Read 工具完整读取 `.agents/rules/billing.md`；不符合该定义的任务可跳过。

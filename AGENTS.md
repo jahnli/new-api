@@ -146,20 +146,15 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - 单位写入 `unit`。协议限制、用量来源、默认值、估算与结算细节放在代码注释或技术文档中。描述必须简短、各语言间等价、不含具体价格数字、结尾不带标点。动作、布尔与其他枚举条件的措辞遵循 API 文档的单独规则。
 - 完成插件工作前显式复核元数据措辞。上述属于撰写要求：编译通过、schema 校验通过或测试通过都不能证明描述符合要求。
 
-**计费表达式系统：** 处理分级/动态计费（基于表达式的定价）时，必须先阅读 `pkg/billingexpr/expr.md`。该文档描述了设计理念、表达式语言、完整架构、token 归一化规则、配额转换和表达式版本控制。所有计费表达式的代码变更必须遵循该文档。
+**计费规则（强制读取）：** `.agents/rules/billing.md` 定义计费表达式、内置定价、安全不变量及从上游响应提取计费用量的规范。任务符合以下任一条件时，必须在规划、编码或审查前使用文件读取工具完整读取该文件，并遵循其中的规则；不得用搜索、局部浏览、记忆或摘要替代。测试操作仍遵循本文件“通用代码质量”中的限制。
 
-**内置模型定价：** 新增内置模型价格必须在 `setting/billing_setting/builtin_billing.go` 中定义为自包含的计费表达式，使用真实的美元/百万 Token 价格。不得向旧模型、补全或缓存倍率表新增内置价格。保留管理员显式设置的价格覆盖。仅在明确要求时迁移已有旧价格。核实公开价格，并覆盖适用的上下文长度阈值和缓存类别。
+- 修改 `pkg/billingexpr/`、`setting/billing_setting/`、`common/quota_math.go`、`types/price_data.go`、`relay/request_billing.go`、`relay/image_handler.go`、`relay/relay_task.go`、`relay/helper/price.go`、`relay/helper/billing_expr_request.go`、`relay/helper/valid_request.go`、`service/quota.go`、`service/text_quota.go`、`service/image_billing.go`、`service/tiered_settle.go`、`service/task_billing.go`、`service/responses_usage.go`、`service/log_info_generate.go` 的计费部分、`model/pricing*.go` / `model/model_pricing*.go`，或 `relay/common/relay_info.go` 的计费字段与方法（`PriceData`、`TieredBillingSnapshot`、`BillingImageCount`、`UpdateImageCount`）。
+- 在其他位置读写 `PriceData` / `OtherRatios`，或处理配额预扣、结算、退款、消费日志计费字段。
+- 在渠道适配器、响应处理器或任务插件中，从上游响应或流提取计费数量或 `Usage`，包括图片数、秒数、Token 数及任务扣费。
+- 校验、限制或转发会成为计费乘数的请求字段，包括 `n`、`max_tokens` 系列、时长、分辨率、质量、批次数量，以及透传和 multipart 路径。
+- 新增或修改模型价格，或任务插件 `usageSchema` / `usageProfiles[].schema` 中的数值字段。
 
-**计费安全不变量：** 配额/计费代码绝不能因为算术溢出或未校验输入产生负扣费（即返还额度）。必须进行纵深防御：
-
-- 所有会成为计费乘数的用户可控数量（图片 `n`、视频 `seconds`/`duration`、分辨率/质量倍率、批次数量）在进入配额计算前都必须有边界限制。越界输入应在请求校验阶段以 400 拒绝。现有边界包括：图片生成数量使用 `dto.MaxImageN`，任务视频时长使用 `relaycommon.MaxTaskDurationSeconds`，所有中继格式（OpenAI、Claude、Gemini、Responses）的 `max_tokens` 系列字段使用 `relay/helper/valid_request.go` 中的 `maxTokensLimit`。复用这些常量，不要为同一概念引入临时限制。新增中继格式或请求 DTO 时，必须从一开始就在校验器中限制 max-tokens 和 count 字段。
-- 注意校验绕过路径：透传字段（例如 `Extra["parameters"]`）、任务 `metadata` map、multipart 表单字段都可能绕过标准 DTO 校验携带相同数量。任何从这些路径读取乘数的适配器都必须在本地执行相同边界限制（或钳制）。
-- 从媒体元数据解析出的时长同样是用户/上游可控的：音频文件头（转写 token 计数、TTS 响应时长）和上游扣费数字（例如 Kling `FinalUnitDeduction`）都可能声明荒谬数值。它们成为 token 数前必须使用饱和转换。
-- 不要用裸类型转换把计算出的配额或 token 数转换为 `int`，例如 `int(float64(quota) * ratio)`、对无界输入执行 `int(math.Round(...))` 或 `int(decimal.IntPart())`。所有配额舍入/转换都集中在 `common/quota_math.go`：浮点乘积截断使用 `common.QuotaFromFloat`，需要四舍五入时使用 `common.QuotaRound`（半远离零），decimal 乘积使用 `common.QuotaFromDecimal`。`billingexpr.QuotaRound` 会委托给 `common.QuotaRound`。不要重新引入局部转换 helper 或裸转换。单请求饱和边界为 int32，以避免批量累加接近 64 位溢出；钱包/充值金额转换使用 `common.WalletQuotaFromDecimalStrict` 和 JavaScript 安全的 `common.MaxWalletQuota` 边界；每次钳制或 NaN 兜底都会通过 `common.SysError` 记录，因为单个请求不应接近这些边界。
-- 饱和事件也会审计：每个 helper 都有 `*Checked` 变体（`common.QuotaFromFloatChecked` / `QuotaRoundChecked` / `QuotaFromDecimalChecked`），发生钳制时会额外返回 `*common.QuotaClamp`。计算费用的计费路径需要把该 clamp 保存到 `relayInfo.QuotaClamp`（或传入任务结算），并在写入 consume/task 日志前调用 `service/log_info_generate.go` 中的 `attachQuotaSaturation`，将标记嵌入日志 `other.admin_info.quota_saturation`，同时输出带请求关联信息的 `logger.LogWarn`。嵌入 `admin_info` 会自然限制为仅管理员可见（非管理员日志视图会剥离 `admin_info`）。新增计费路径时，使用 `*Checked` 变体并以相同方式暴露 clamp，确保异常在管理端日志 UI 和后端日志中都可审计。
-- 乘数 map 必须通过 `types.PriceData.AddOtherRatio` 写入，该方法会拒绝非正数、NaN 和 +Inf 倍率。不要直接写 `PriceData.OtherRatios`，也不要削弱这些保护。
-- 预扣费和结算/差额都必须安全：饱和后的超大配额必须在预扣费阶段以余额不足失败，绝不能静默环绕。新增计费路径（新中继格式、新任务平台、新调整钩子）时，必须追踪完整链路：校验 → EstimateBilling/OtherRatios → 配额转换 → 预扣费 → 结算/退款，并确认每一步都保持这些不变量。
-- 解析为无符号类型（`*uint`）的字段可以接受极大的正 JSON 数字（例如 `18446744073686646784`，可能来自负数环绕）；`>= 0` 检查不够，必须设置上界。
+不符合以上条件的任务无需读取该文件，例如不涉及用量变化的前端、认证、数据库迁移或协议转换。
 
 
 **文档文件：** 除非用户明确要求，否则不得在 `docs/` 及其子目录中新增文件。
@@ -178,6 +173,7 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
   - `bun run i18n:*` 国际化工具
 - 前端 UI 文本必须使用 `i18next`/`react-i18next` 支持国际化。使用 `web/src/i18n/locales/{lang}.json` 中的扁平 JSON 区域文件，以英文原文为键。
 - 在 React 组件中使用 `useTranslation()` 并调用 `t('English key')` 处理用户可见文本。
+- **数字格式化与 Intl 语言参数（强制）：** 普通数字和紧凑数字展示复用 `@/lib/format`，金额使用 `@/lib/currency`，保留各格式化器的精度与单位语义。`zhCN` / `zhTW` 等界面语言代码不是有效的 Intl locale；传入 `Intl.*`、`toLocaleString` / `toLocaleDateString` / `toLocaleTimeString` 或语言相关格式化函数前，必须使用 `@/i18n/languages` 的 `toIntlLocale` 转换。不得重复定义语言映射或通过别名传递原始代码。具体 lint 要求遵循 `web/AGENTS.md`。
 - 详细前端约定（TypeScript、组件结构、样式、可访问性与构建检查）以 `web/AGENTS.md` 为准。
 
 ### 拉取请求
@@ -186,3 +182,5 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - 如果当前 Git 用户不是历史核心开发者之一，必须在 PR 正文中明确说明代码由 AI 生成或由 AI 辅助。
 - 为项目所有者创建拉取请求时，中文请求使用普通模板 `.github/PULL_REQUEST_TEMPLATE.md`，英文请求使用 `.github/PULL_REQUEST_TEMPLATE/en.md`。除非项目所有者明确要求，否则不得使用 `.agents/github/PR.md`。
 - 对于其他由 Agent 创建的拉取请求，必须以 `.agents/github/PR.md` 作为完整正文；除非项目所有者明确要求，否则不得使用普通 PR 模板。
+- 填写 Agent 模板的 `User request` 时，尽量忠实引用用户原始请求，不改写或概括。Issue、PR 正文及后续评论应简短、客观，不直接粘贴未经人工整理的大段 AI 文本。
+- 验证说明必须记录实际执行的命令和观察到的结果；不得仅笼统宣称构建或测试通过。缺少模板必需信息时，应说明缺项，不得编造或创建不完整的 Issue/PR。

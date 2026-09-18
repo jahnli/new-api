@@ -397,6 +397,7 @@ interface UseCommonLogsColumnsOptions {
   canViewChannelDetails?: boolean
   canViewGroupRatio?: boolean
   isRoot?: boolean
+  showWalletSource?: boolean
 }
 
 export function useCommonLogsColumns(
@@ -416,6 +417,7 @@ export function useCommonLogsColumns(
   const canViewChannelDetails = resolvedOptions.canViewChannelDetails ?? isAdmin
   const canViewGroupRatio = resolvedOptions.canViewGroupRatio ?? isAdmin
   const isRoot = resolvedOptions.isRoot ?? false
+  const showWalletSource = resolvedOptions.showWalletSource ?? false
   const columns: ColumnDef<UsageLog>[] = [
     {
       accessorKey: 'created_at',
@@ -489,6 +491,7 @@ export function useCommonLogsColumns(
             <ModelBadge
               modelName={modelInfo.name}
               actualModel={modelInfo.actualModel}
+              responseModel={modelInfo.responseModel}
             />
           </div>
         )
@@ -668,7 +671,13 @@ export function useCommonLogsColumns(
 
         const quota = row.getValue('quota') as number
         const other = parseLogOther(log.other)
-        return <LogCostDisplay quota={quota} other={other} />
+        return (
+          <LogCostDisplay
+            quota={quota}
+            other={other}
+            showWalletSource={showWalletSource}
+          />
+        )
       },
       size: 130,
     }

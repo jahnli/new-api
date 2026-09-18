@@ -16,13 +16,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import i18next from 'i18next'
 import type React from 'react'
-import { afterEach, beforeAll, describe, expect, test } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from 'vitest'
 
 import { formatLogQuota } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { LogCostDisplay } from '../log-cost-display'
 
@@ -32,21 +40,101 @@ function renderCost(
   return render(<LogCostDisplay {...props} />)
 }
 
-function normalizedText(value: string | null): string {
-  return (value ?? '').replaceAll(/\s/g, '')
-}
-
 describe('log cost display', () => {
   beforeAll(() => {
     i18next.addResourceBundle('en', 'translation', {
       Subscription: 'Subscription',
-      'Deducted by subscription': 'Deducted by subscription',
+      Wallet: 'Wallet',
       'Includes tool-call surcharge': 'Includes tool-call surcharge',
     })
   })
 
+  beforeEach(() => {
+    useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
+  })
+
   afterEach(() => {
     useAuthStore.getState().auth.reset()
+    useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
+    localStorage.clear()
+  })
+
+  test.each([
+    { consumed: 12500, expected: '$0.025' },
+    { consumed: 0, expected: '$0' },
+    { consumed: 1, expected: '$0.000002' },
+    { consumed: undefined, expected: '$0.01' },
+  ])(
+    'shows subscription deduction $consumed without hover, falling back only when absent',
+    ({ consumed, expected }) => {
+      const rendered = renderCost({
+        quota: 5000,
+        other: {
+          billing_source: 'subscription',
+          subscription_consumed: consumed,
+        },
+      })
+
+      expect(
+        rendered.container.querySelector('.tabular-nums')
+      ).toHaveTextContent(expected)
+      expect(screen.getByText('Subscription')).toBeVisible()
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    }
+  )
+
+  test('shows wallet cost and source without using subscription metadata', () => {
+    const rendered = renderCost({
+      quota: 5000,
+      other: { billing_source: 'wallet', subscription_consumed: 12500 },
+      showWalletSource: true,
+    })
+
+    expect(rendered.container.querySelector('.tabular-nums')).toHaveTextContent(
+      '$0.01'
+    )
+    expect(screen.getByText('Wallet')).toBeVisible()
+    expect(screen.queryByText('Subscription')).not.toBeInTheDocument()
+  })
+
+  test('hides the wallet label when subscriptions are unavailable', () => {
+    const rendered = renderCost({
+      quota: 5000,
+      other: { billing_source: 'wallet' },
+      showWalletSource: false,
+    })
+
+    expect(rendered.container.querySelector('.tabular-nums')).toHaveTextContent(
+      '$0.01'
+    )
+    expect(screen.queryByText('Wallet')).not.toBeInTheDocument()
+  })
+
+  test('keeps legacy cost visible without inventing a funding source', () => {
+    const rendered = renderCost({ quota: 5000, other: null })
+
+    expect(rendered.container.querySelector('.tabular-nums')).toHaveTextContent(
+      '$0.01'
+    )
+    expect(screen.queryByText('Wallet')).not.toBeInTheDocument()
+    expect(screen.queryByText('Subscription')).not.toBeInTheDocument()
+  })
+
+  test('keeps a large amount unabridged above the funding source', () => {
+    const rendered = renderCost({
+      quota: 2147483647,
+      other: { billing_source: 'subscription' },
+    })
+
+    const amount = rendered.container.querySelector('.tabular-nums')
+    expect(amount).toBeVisible()
+    expect(amount).toHaveTextContent('$4,294.9673')
+    expect(rendered.container.firstElementChild).toHaveClass('flex-col')
+    if (!amount) throw new Error('Expected a visible cost amount')
+    expect(
+      amount.compareDocumentPosition(screen.getByText('Subscription')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).not.toBe(0)
   })
 
   test('keeps the regular cost visible and adds an accessible surcharge marker', () => {
@@ -57,14 +145,9 @@ describe('log cost display', () => {
       },
     })
 
-    expect(
-      normalizedText(rendered.container.textContent).includes(
-        normalizedText(formatLogQuota(12500))
-      )
-    ).toBe(true)
-    const cost = rendered.container.querySelector('.tabular-nums')
-    expect(cost).toHaveClass('font-normal')
-    expect(cost).not.toHaveClass('font-semibold')
+    expect(rendered.container.querySelector('.tabular-nums')).toHaveTextContent(
+      '$0.025'
+    )
     const marker = screen.getByRole('img', {
       name: 'Includes tool-call surcharge',
     })
@@ -72,7 +155,7 @@ describe('log cost display', () => {
     expect(marker).toHaveAttribute('tabindex', '0')
   })
 
-  test('preserves the subscription tooltip and adds the same legacy surcharge marker', async () => {
+  test('shows subscription cost and source alongside the legacy surcharge marker', () => {
     const rendered = renderCost({
       quota: 5000,
       other: {
@@ -83,11 +166,10 @@ describe('log cost display', () => {
       },
     })
 
-    const subscriptionTrigger =
-      rendered.container.querySelector<HTMLElement>('span[tabindex="0"]')
-    expect(subscriptionTrigger).not.toBeNull()
-    fireEvent.focus(subscriptionTrigger as HTMLElement)
-    expect(await screen.findByText('Subscription')).toBeInTheDocument()
+    expect(rendered.container.querySelector('.tabular-nums')).toHaveTextContent(
+      '$0.01'
+    )
+    expect(screen.getByText('Subscription')).toBeVisible()
     expect(
       screen.getByRole('img', { name: 'Includes tool-call surcharge' })
     ).toHaveAttribute('data-tool-surcharge-indicator', 'true')

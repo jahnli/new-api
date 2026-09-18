@@ -22,7 +22,11 @@ export function useModelPerfBadges() {
   return useMemo(() => {
     const map = new Map<string, ModelPerfBadgeData>()
     for (const model of perfQuery.data?.data?.models ?? []) {
-      map.set(model.model_name, model)
+      map.set(model.model_name, {
+        ...model,
+        window_start: perfQuery.data?.data.window_start,
+        window_end: perfQuery.data?.data.window_end,
+      })
     }
     return map
   }, [perfQuery.data])

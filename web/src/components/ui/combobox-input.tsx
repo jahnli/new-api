@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Check, ChevronsUpDown } from 'lucide-react'
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
@@ -46,6 +47,7 @@ interface ComboboxInputProps {
   filterByValue?: boolean
   openOnFocus?: boolean
   showSelectedOptionContent?: boolean
+  disabled?: boolean
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>
   'aria-label'?: string
   'aria-labelledby'?: string
@@ -66,6 +68,7 @@ export function ComboboxInput({
   filterByValue = true,
   openOnFocus = true,
   showSelectedOptionContent = false,
+  disabled = false,
   onKeyDown,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
@@ -80,6 +83,16 @@ export function ComboboxInput({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const listRef = React.useRef<HTMLUListElement>(null)
+  const dropdownRef = React.useRef<HTMLDivElement>(null)
+  // The dropdown is portaled so scrolling ancestors cannot clip it. It goes
+  // into the enclosing dialog when there is one, which keeps a modal parent
+  // from treating option clicks as outside presses.
+  const [dropdown, setDropdown] = React.useState<{
+    container: HTMLElement
+    top: number
+    left: number
+    width: number
+  } | null>(null)
   const pointerFocusRef = React.useRef(false)
   const selectedOption = React.useMemo(
     () => options.find((option) => option.value === value),
@@ -109,9 +122,11 @@ export function ComboboxInput({
     if (!open) return
 
     const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node
       if (
         containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current.contains(target) &&
+        !dropdownRef.current?.contains(target)
       ) {
         setOpen(false)
         setSearchValue('')
@@ -120,6 +135,34 @@ export function ComboboxInput({
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  // Position the portaled dropdown under the input and follow scroll/resize.
+  React.useEffect(() => {
+    if (!open) {
+      setDropdown(null)
+      return
+    }
+    const input = inputRef.current
+    if (!input) return
+    const container =
+      input.closest<HTMLElement>('[role="dialog"]') ?? document.body
+    const measure = () => {
+      const rect = input.getBoundingClientRect()
+      setDropdown({
+        container,
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+    measure()
+    window.addEventListener('scroll', measure, true)
+    window.addEventListener('resize', measure)
+    return () => {
+      window.removeEventListener('scroll', measure, true)
+      window.removeEventListener('resize', measure)
+    }
   }, [open])
 
   const handleSelect = (selectedValue: string) => {
@@ -185,6 +228,7 @@ export function ComboboxInput({
 
   const showDropdown =
     open &&
+    !disabled &&
     (filteredOptions.length > 0 ||
       (showCustomValueHint && allowCustomValue && searchValue.trim()))
 
@@ -195,6 +239,7 @@ export function ComboboxInput({
         id={id}
         type='text'
         role='combobox'
+        disabled={disabled}
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
         aria-invalid={ariaInvalid}
@@ -267,67 +312,79 @@ export function ComboboxInput({
       )}
       <ChevronsUpDown className='pointer-events-none absolute top-1/2 right-3 size-4 shrink-0 -translate-y-1/2 opacity-50' />
 
-      {showDropdown && (
-        <div className='bg-popover text-popover-foreground ring-foreground/10 absolute top-full z-100 mt-1 w-full overflow-hidden rounded-lg shadow-md ring-1'>
-          {filteredOptions.length > 0 ? (
-            <ul
-              ref={listRef}
-              id={listId}
-              role='listbox'
-              className='max-h-[200px] overflow-y-auto p-1'
-            >
-              {filteredOptions.map((option, index) => (
-                <li
-                  key={option.value}
-                  id={`${listId}-${index}`}
-                  role='option'
-                  aria-selected={value === option.value}
-                  data-highlighted={index === highlightedIndex}
-                  className={cn(
-                    'relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none',
-                    index === highlightedIndex &&
-                      'bg-accent text-accent-foreground',
-                    value === option.value && 'font-medium',
-                    itemClassName
-                  )}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                  onMouseDown={(e) => {
-                    e.preventDefault() // Prevent blur
-                    handleSelect(option.value)
-                  }}
-                >
-                  {option.icon && <span aria-hidden>{option.icon}</span>}
-                  <span className='min-w-0 flex-1 truncate'>
-                    {option.label}
-                  </span>
-                  {option.suffix && (
-                    <span className='ml-auto shrink-0'>{option.suffix}</span>
-                  )}
-                  <Check
+      {showDropdown &&
+        dropdown &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: 'fixed',
+              top: dropdown.top,
+              left: dropdown.left,
+              width: dropdown.width,
+            }}
+            className='bg-popover text-popover-foreground ring-foreground/10 z-100 overflow-hidden rounded-lg shadow-md ring-1'
+          >
+            {filteredOptions.length > 0 ? (
+              <ul
+                ref={listRef}
+                id={listId}
+                role='listbox'
+                className='max-h-[200px] overflow-y-auto p-1'
+              >
+                {filteredOptions.map((option, index) => (
+                  <li
+                    key={option.value}
+                    id={`${listId}-${index}`}
+                    role='option'
+                    aria-selected={value === option.value}
+                    data-highlighted={index === highlightedIndex}
                     className={cn(
-                      'pointer-events-none absolute right-2 size-4 shrink-0',
-                      value === option.value ? 'opacity-100' : 'opacity-0'
+                      'relative flex cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none',
+                      index === highlightedIndex &&
+                        'bg-accent text-accent-foreground',
+                      value === option.value && 'font-medium',
+                      itemClassName
                     )}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className='px-2 py-6 text-center text-sm'>
-              {t(emptyText)}
-              {showCustomValueHint &&
-                allowCustomValue &&
-                searchValue.trim() && (
-                  <div className='text-muted-foreground mt-1 text-xs'>
-                    {t('Press Enter to use "{{value}}"', {
-                      value: searchValue.trim(),
-                    })}
-                  </div>
-                )}
-            </div>
-          )}
-        </div>
-      )}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    onMouseDown={(e) => {
+                      e.preventDefault() // Prevent blur
+                      handleSelect(option.value)
+                    }}
+                  >
+                    {option.icon && <span aria-hidden>{option.icon}</span>}
+                    <span className='min-w-0 flex-1 truncate'>
+                      {option.label}
+                    </span>
+                    {option.suffix && (
+                      <span className='ml-auto shrink-0'>{option.suffix}</span>
+                    )}
+                    <Check
+                      className={cn(
+                        'pointer-events-none absolute right-2 size-4 shrink-0',
+                        value === option.value ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className='px-2 py-6 text-center text-sm'>
+                {t(emptyText)}
+                {showCustomValueHint &&
+                  allowCustomValue &&
+                  searchValue.trim() && (
+                    <div className='text-muted-foreground mt-1 text-xs'>
+                      {t('Press Enter to use "{{value}}"', {
+                        value: searchValue.trim(),
+                      })}
+                    </div>
+                  )}
+              </div>
+            )}
+          </div>,
+          dropdown.container
+        )}
     </div>
   )
 }

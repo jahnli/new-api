@@ -27,9 +27,13 @@ import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge, type StatusVariant } from '@/components/status-badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { useDemoMode } from '@/hooks/use-demo-mode'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import dayjs from '@/lib/dayjs'
+import { DEMO_MODE_MASK } from '@/lib/demo-mode'
 import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 import type { UsageLog } from '../data/schema'
 import { formatModelName, parseLogOther } from '../lib/format'
@@ -38,9 +42,9 @@ import {
   isDisplayableLogType,
   isTimingLogType,
 } from '../lib/utils'
-import { ModelBadge } from './model-badge'
+import { ModelBadge, ResponseModelDetails } from './model-badge'
 import { StreamTpsCell, TimingMetricsCell } from './timing-metrics-cell'
-import { useUsageLogsContext } from './usage-logs-provider'
+import { useLogsViewScope, useUsageLogsContext } from './usage-logs-provider'
 
 type FieldName =
   | 'model'
@@ -64,6 +68,11 @@ export function CommonLogMobileCard<TData>(props: {
 }) {
   const { t } = useTranslation()
   const context = useUsageLogsContext()
+  const demoMode = useDemoMode()
+  const sensitiveVisible = context.sensitiveVisible && !demoMode
+  const { isAdminView } = useLogsViewScope()
+  const role = useAuthStore((state) => state.auth.user?.role)
+  const canViewGroupRatio = isAdminView && (role ?? 0) >= ROLE.SUPER_ADMIN
   const [selectedField, setSelectedField] = useState<FieldName | null>(null)
   const log = props.log
   const other = parseLogOther(log.other)
@@ -84,7 +93,11 @@ export function CommonLogMobileCard<TData>(props: {
     },
     cost: {
       label: t('Cost'),
-      value: formatLogQuota(log.quota),
+      value: formatLogQuota(
+        other?.billing_source === 'subscription'
+          ? (other.subscription_consumed ?? log.quota)
+          : log.quota
+      ),
       visible: displayable && props.cells.has('quota'),
     },
     time: {
@@ -119,7 +132,9 @@ export function CommonLogMobileCard<TData>(props: {
   }
   const selected = selectedField ? fields[selectedField] : undefined
   const activeField =
-    selected?.visible && (!selected.sensitive || context.sensitiveVisible)
+    selected?.visible &&
+    (!selected.sensitive || sensitiveVisible) &&
+    !(demoMode && selectedField === 'cost')
       ? selected
       : undefined
   const metadata: FieldName[] = ['user', 'channel', 'token', 'group']
@@ -149,6 +164,7 @@ export function CommonLogMobileCard<TData>(props: {
             <ModelBadge
               modelName={model.name}
               actualModel={model.actualModel}
+              responseModel={model.responseModel}
               wrapText
               onInspect={() => setSelectedField('model')}
             />
@@ -246,12 +262,12 @@ export function CommonLogMobileCard<TData>(props: {
                       <AvatarFallback
                         className='text-[11px] font-semibold'
                         style={
-                          context.sensitiveVisible
+                          sensitiveVisible
                             ? getUserAvatarStyle(log.username)
                             : undefined
                         }
                       >
-                        {context.sensitiveVisible
+                        {sensitiveVisible
                           ? getUserAvatarFallback(log.username)
                           : '•'}
                       </AvatarFallback>
@@ -260,7 +276,7 @@ export function CommonLogMobileCard<TData>(props: {
                     field.label
                   )}
                 </span>
-                {context.sensitiveVisible ? (
+                {sensitiveVisible ? (
                   <Button
                     variant='ghost'
                     aria-label={`${field.label}: ${field.value}`}
@@ -271,12 +287,16 @@ export function CommonLogMobileCard<TData>(props: {
                     {fieldContent}
                   </Button>
                 ) : (
-                  <span className='min-w-0 py-1.5'>••••</span>
+                  <span className='min-w-0 py-1.5'>
+                    {demoMode ? DEMO_MODE_MASK : '••••'}
+                  </span>
                 )}
               </div>
             )
           })}
-          {groupRatio != null &&
+          {canViewGroupRatio &&
+            sensitiveVisible &&
+            groupRatio != null &&
             groupRatio !== 1 &&
             Number.isFinite(groupRatio) &&
             props.cells.has('token_name') && (
@@ -349,15 +369,20 @@ export function CommonLogMobileCard<TData>(props: {
             <p className='bg-muted rounded-lg p-4 text-base [overflow-wrap:anywhere] whitespace-pre-wrap'>
               {activeField.value}
             </p>
-            {selectedField === 'model' && model.actualModel && (
-              <div className='space-y-2'>
-                <p className='text-muted-foreground'>{t('Actual Model')}</p>
-                <p className='text-base [overflow-wrap:anywhere]'>
-                  {model.actualModel}
-                </p>
-                <CopyButton value={model.actualModel} />
-              </div>
+            {selectedField === 'model' && model.responseModel && (
+              <ResponseModelDetails observation={model.responseModel} />
             )}
+            {selectedField === 'model' &&
+              !model.responseModel &&
+              model.actualModel && (
+                <div className='space-y-2'>
+                  <p className='text-muted-foreground'>{t('Actual Model')}</p>
+                  <p className='text-base [overflow-wrap:anywhere]'>
+                    {model.actualModel}
+                  </p>
+                  <CopyButton value={model.actualModel} />
+                </div>
+              )}
             {selectedField === 'channel' && channelCell && (
               <div>
                 {flexRender(

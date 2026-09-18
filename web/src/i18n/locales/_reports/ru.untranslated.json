@@ -92,6 +92,7 @@
   "Replaces the group base ratio for this vendor": "Replaces the group base ratio for this vendor",
   "Request Count Trend": "Request Count Trend",
   "Request error rate": "Request error rate",
+  "Responses WebSocket": "Responses WebSocket",
   "Save configuration before testing the LDAP connection": "测试 LDAP 连接前请先保存配置",
   "Search prompt or model": "Search prompt or model",
   "Select a vendor": "Select a vendor",
