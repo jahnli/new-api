@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { CalendarClock, Package } from 'lucide-react'
+import { CalendarClock } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ErrorState } from '@/components/error-state'
+import { LoadingState } from '@/components/loading-state'
 import { StaggerContainer, StaggerItem } from '@/components/page-transition'
 import { getUserQuotaDates } from '@/features/dashboard/api'
 import { useSummaryCardsConfig } from '@/features/dashboard/hooks/use-dashboard-config'
@@ -26,6 +28,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { StatCard } from '../ui/stat-card'
+import { WalletSummary } from './wallet-summary'
 
 const SUMMARY_SPARKLINE_BUCKETS = 12
 
@@ -144,6 +147,7 @@ export function SummaryCards() {
       'dashboard',
       'overview',
       'summary-sparklines',
+      user?.id,
       summaryTimeRange.start_timestamp,
       summaryTimeRange.end_timestamp,
     ],
@@ -159,14 +163,14 @@ export function SummaryCards() {
   })
 
   const subscriptionQuery = useQuery({
-    queryKey: ['dashboard', 'overview', 'subscription-self'],
-    queryFn: getSelfSubscriptionFull,
+    queryKey: ['dashboard', 'overview', 'subscription-self', user?.id],
+    queryFn: async () => requireServerSuccess(await getSelfSubscriptionFull()),
     staleTime: 60 * 1000,
   })
 
   const plansQuery = useQuery({
-    queryKey: ['dashboard', 'overview', 'public-plans'],
-    queryFn: getPublicPlans,
+    queryKey: ['dashboard', 'overview', 'public-plans', user?.id],
+    queryFn: async () => requireServerSuccess(await getPublicPlans()),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -317,7 +321,14 @@ export function SummaryCards() {
         </div>
 
         <div className='flex flex-col justify-center gap-4 border-t bg-[linear-gradient(135deg,color-mix(in_oklch,var(--overview-accent-2)_12%,var(--background))_0%,color-mix(in_oklch,oklch(0.82_0.04_155)_8%,var(--background))_48%,color-mix(in_oklch,var(--overview-accent-1)_7%,var(--background))_100%)] p-4 sm:p-5 xl:border-t-0 xl:border-l'>
-          {activeSub ? (
+          {subscriptionQuery.isPending && <LoadingState className='min-h-32' />}
+          {subscriptionQuery.isError && !subscriptionQuery.data && (
+            <ErrorState
+              className='min-h-32 p-0'
+              onRetry={() => void subscriptionQuery.refetch()}
+            />
+          )}
+          {activeSub && (
             <div className='flex flex-col gap-3'>
               <div className='flex items-center justify-between gap-2'>
                 <span className='text-muted-foreground text-xs font-medium'>
@@ -366,16 +377,16 @@ export function SummaryCards() {
                 </div>
               )}
             </div>
-          ) : (
-            <div className='flex flex-1 flex-col items-center justify-center gap-2'>
-              <Package
-                className='text-muted-foreground/50 size-8'
-                aria-hidden='true'
-              />
-              <span className='text-muted-foreground text-sm'>
-                {t('No subscription records')}
-              </span>
-            </div>
+          )}
+          {subscriptionQuery.data && !activeSub && (
+            <WalletSummary
+              remainQuota={remainQuota}
+              recentUsage={recentUsage}
+              loading={loading || !user}
+              usagePending={usageTrendQuery.isPending}
+              usageError={usageTrendQuery.isError}
+              onRetry={() => void usageTrendQuery.refetch()}
+            />
           )}
         </div>
       </div>
