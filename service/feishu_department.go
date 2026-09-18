@@ -1333,6 +1333,9 @@ func mergeUsageAnalysisModelSeriesStats(rows []model.ModelStatRow, keywords []da
 		current.TotalTokens += row.TotalTokens
 		current.TotalQuota += row.TotalQuota
 		current.TotalReqs += row.TotalReqs
+		current.UncachedInputTokens += row.UncachedInputTokens
+		current.CacheReadTokens += row.CacheReadTokens
+		current.CacheWriteTokens += row.CacheWriteTokens
 	}
 
 	merged := make([]model.ModelStatRow, 0, len(aggregated))
@@ -1360,6 +1363,9 @@ func mergeUsageAnalysisModelStats(rows []model.ModelStatRow, mapping map[string]
 		current.TotalTokens += row.TotalTokens
 		current.TotalQuota += row.TotalQuota
 		current.TotalReqs += row.TotalReqs
+		current.UncachedInputTokens += row.UncachedInputTokens
+		current.CacheReadTokens += row.CacheReadTokens
+		current.CacheWriteTokens += row.CacheWriteTokens
 	}
 
 	merged := make([]model.ModelStatRow, 0, len(aggregated))

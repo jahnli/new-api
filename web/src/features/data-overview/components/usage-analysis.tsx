@@ -619,6 +619,18 @@ function ModelUsageTrendChart(
 
 // ── 4. 模型调用分布 ──
 
+function formatModelCacheHitRate(stat: ModelStat | undefined): string {
+  const cacheReadTokens = stat?.cache_read_tokens ?? 0
+  // Cache writes count as misses, matching the overview statistics.
+  const totalInputTokens =
+    (stat?.uncached_input_tokens ?? 0) +
+    cacheReadTokens +
+    (stat?.cache_write_tokens ?? 0)
+  const rate =
+    totalInputTokens > 0 ? (cacheReadTokens / totalInputTokens) * 100 : 0
+  return `${rate.toFixed(1)}%`
+}
+
 function ModelCallDistributionChart(
   props: ChartBaseProps & {
     data: ModelStat[]
@@ -634,6 +646,10 @@ function ModelCallDistributionChart(
       props.quotaToCnyRate
     )
     if (!chartData) return null
+
+    const modelStatsByName = new Map(
+      props.data.map((stat) => [stat.model_name, stat])
+    )
 
     return {
       type: 'pie' as const,
@@ -704,6 +720,11 @@ function ModelCallDistributionChart(
               value: (datum: { value?: number }) =>
                 `${formatLargeNumber(datum.value ?? 0)} ${t('times')}`,
             },
+            {
+              key: () => t('Cache Hit Rate'),
+              value: (datum: { name?: string }) =>
+                formatModelCacheHitRate(modelStatsByName.get(datum.name ?? '')),
+            },
           ],
         },
       },
@@ -757,6 +778,9 @@ function ModelCostRankChart(
       props.data,
       props.quotaToCnyRate,
       props.limit
+    )
+    const modelStatsByName = new Map(
+      props.data.map((stat) => [stat.model_name, stat])
     )
 
     return {
@@ -817,6 +841,11 @@ function ModelCostRankChart(
               value: (d: { requests?: number }) =>
                 `${formatLargeNumber(d.requests ?? 0)} ${t('times')}`,
             },
+            {
+              key: () => t('Cache Hit Rate'),
+              value: (d: { name?: string }) =>
+                formatModelCacheHitRate(modelStatsByName.get(d.name ?? '')),
+            },
           ],
         },
         mark: {
@@ -839,6 +868,11 @@ function ModelCostRankChart(
               key: () => t('Requests'),
               value: (d: { requests?: number }) =>
                 `${formatLargeNumber(d.requests ?? 0)} ${t('times')}`,
+            },
+            {
+              key: () => t('Cache Hit Rate'),
+              value: (d: { name?: string }) =>
+                formatModelCacheHitRate(modelStatsByName.get(d.name ?? '')),
             },
           ],
         },

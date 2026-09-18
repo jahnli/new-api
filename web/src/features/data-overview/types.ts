@@ -54,6 +54,9 @@ export interface ModelStat {
   total_tokens: number
   total_quota: number
   total_requests: number
+  uncached_input_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
 }
 
 export interface DailyStat {

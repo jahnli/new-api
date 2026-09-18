@@ -1091,10 +1091,13 @@ func GetUserStatsBatch(userIds []int, startTimestamp, endTimestamp int64) ([]Use
 
 // ModelStatRow holds per-model aggregated stats.
 type ModelStatRow struct {
-	ModelName   string `json:"model_name" gorm:"column:model_name"`
-	TotalTokens int64  `json:"total_tokens" gorm:"column:total_tokens"`
-	TotalQuota  int64  `json:"total_quota" gorm:"column:total_quota"`
-	TotalReqs   int64  `json:"total_requests" gorm:"column:total_reqs"`
+	ModelName           string `json:"model_name" gorm:"column:model_name"`
+	TotalTokens         int64  `json:"total_tokens" gorm:"column:total_tokens"`
+	TotalQuota          int64  `json:"total_quota" gorm:"column:total_quota"`
+	TotalReqs           int64  `json:"total_requests" gorm:"column:total_reqs"`
+	UncachedInputTokens int64  `json:"uncached_input_tokens" gorm:"column:uncached_input_tokens"`
+	CacheReadTokens     int64  `json:"cache_read_tokens" gorm:"column:cache_read_tokens"`
+	CacheWriteTokens    int64  `json:"cache_write_tokens" gorm:"column:cache_write_tokens"`
 }
 
 // UserModelStatRow holds per-user per-model aggregated stats.
@@ -1144,6 +1147,9 @@ func GetModelStats(userIds []int, startTimestamp, endTimestamp int64, limit int)
 	tx := DB.Table("quota_data").
 		Select(`model_name,
 			`+quotaDataTotalTokensExpr+` as total_tokens,
+			COALESCE(SUM(uncached_input_tokens), 0) as uncached_input_tokens,
+			COALESCE(SUM(cache_read_tokens), 0) as cache_read_tokens,
+			COALESCE(SUM(cache_write_tokens), 0) as cache_write_tokens,
 			COALESCE(SUM(quota), 0) as total_quota,
 			COALESCE(SUM(count), 0) as total_reqs`).
 		Where("user_id IN ?", userIds).

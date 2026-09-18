@@ -1,6 +1,16 @@
 # 数据总览页增强与公司配置管理
 
-**日期**: 2026-06-25 ~ 09-16（最后更新 09-16）
+**日期**: 2026-06-25 ~ 2026-09-18（最后更新 2026-09-18）
+
+### 2026-09-18 模型与模型系列图表悬浮提示新增缓存命中率
+
+- `model/log.go` — 模型统计响应补充非缓存输入、缓存读取、缓存写入 Token；按原有用户和时间范围从 `quota_data` 聚合既有字段，不涉及表结构迁移。
+- `service/feishu_department.go` — 模型别名合并与模型系列归类时同步累加三类输入 Token，确保命中率按汇总用量计算。
+- `web/src/features/data-overview/types.ts` — 模型统计类型补充三个可选缓存统计字段，兼容旧接口响应。
+- `web/src/features/data-overview/components/usage-analysis.tsx` — 复用现有调用分布与消耗排行图表组件，为模型系列调用分布、模型系列消耗排行、模型调用分布、模型消耗排行四张图增加“缓存命中率”悬浮指标；柱状图图元与维度悬浮提示保持一致。按缓存读取 Token ÷（非缓存输入 + 缓存读取 + 缓存写入 Token）计算，保留一位小数，无输入时显示 0.0%。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐“Cache Hit Rate”七语言文案。
+
+验证：根目录 `go build ./...`、前端 `bun run typecheck` 与 `bun run build` 通过；涉及文件的格式检查通过，lint 无错误，仅保留既有 `any` 警告。按项目规范未新增、修改或运行测试。当前环境缺少可用的 SQLite、MySQL、PostgreSQL 三库验证环境，数据库兼容验证仍有阻塞，未完成实库验证。
 
 ### 2026-09-16 错误率 / 缓存命中率卡片图标改为中性色
 
