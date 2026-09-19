@@ -612,7 +612,7 @@ export function useCommonLogsColumns(
           </div>
         )
       },
-      size: 120,
+      size: 130,
     },
 
     {
