@@ -276,14 +276,14 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
               {props.log && (
                 <Collapsible
                   defaultOpen
-                  className='group/log-summary flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border px-3 py-2 data-[closed]:flex-none'
+                  className='group/log-summary flex-none rounded-lg border px-3 py-2'
                 >
                   <CollapsibleTrigger className='flex w-full shrink-0 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
                     <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/log-summary:-rotate-90' />
                     <span>{t('Request Info')}</span>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className='CollapsibleContent mt-2 flex min-h-0 flex-1 flex-col'>
-                    <div className='min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto pl-6'>
+                  <CollapsibleContent className='CollapsibleContent mt-2'>
+                    <div className='pl-6'>
                       <RequestLogSummary log={props.log} />
                     </div>
                   </CollapsibleContent>
