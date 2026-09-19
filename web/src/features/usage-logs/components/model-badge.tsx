@@ -138,6 +138,7 @@ export function ModelBadge(props: ModelBadgeProps) {
           label={responseModelLabel}
           variant='warning'
           copyable={false}
+          className='text-[12px]! [&>span]:text-[12px]! [&>svg]:size-[13px]!'
         />
       )}
       {!mismatch && props.actualModel && (
