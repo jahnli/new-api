@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Ban, Minus, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -125,6 +125,8 @@ export function UserSubscriptionsDialog(props: Props) {
   const [subs, setSubs] = useState<UserSubscriptionRecord[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
   const [quotaAdjustmentAmount, setQuotaAdjustmentAmount] = useState('500')
+  const [confirming, setConfirming] = useState(false)
+  const confirmInFlightRef = useRef(false)
   const [resetting, setResetting] = useState(false)
   const [advanceResetTime, setAdvanceResetTime] = useState(true)
   const [resetAction, setResetAction] = useState<{
@@ -210,7 +212,7 @@ export function UserSubscriptionsDialog(props: Props) {
   }
 
   const handleConfirmAction = async () => {
-    if (!confirmAction) return
+    if (!confirmAction || confirmInFlightRef.current) return
     const isQuotaAdjustment =
       confirmAction.type === 'increase' || confirmAction.type === 'decrease'
     const adjustmentAmount = Number(quotaAdjustmentAmount)
@@ -222,6 +224,8 @@ export function UserSubscriptionsDialog(props: Props) {
       return
     }
 
+    confirmInFlightRef.current = true
+    setConfirming(true)
     try {
       if (isQuotaAdjustment) {
         let res
@@ -267,6 +271,8 @@ export function UserSubscriptionsDialog(props: Props) {
     } catch (error) {
       handleServerError(error, t('Operation failed'))
     } finally {
+      confirmInFlightRef.current = false
+      setConfirming(false)
       setConfirmAction(null)
     }
   }
@@ -538,7 +544,7 @@ export function UserSubscriptionsDialog(props: Props) {
         <ConfirmDialog
           open
           onOpenChange={(open) => {
-            if (!open) {
+            if (!open && !confirmInFlightRef.current) {
               setConfirmAction(null)
             }
           }}
@@ -547,6 +553,7 @@ export function UserSubscriptionsDialog(props: Props) {
           handleConfirm={handleConfirmAction}
           destructive={confirmAction.type === 'delete'}
           confirmText={confirmText}
+          isLoading={confirming}
         >
           {confirmAction.type === 'increase' ||
           confirmAction.type === 'decrease' ? (
