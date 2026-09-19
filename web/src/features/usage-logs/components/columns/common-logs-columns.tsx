@@ -726,7 +726,7 @@ export function useCommonLogsColumns(
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger
-                render={<div className='flex max-w-[135px] flex-col gap-0.5' />}
+                render={<div className='flex max-w-[120px] flex-col gap-0.5' />}
               >
                 <div className='relative inline-flex w-fit items-center gap-1'>
                   <StatusBadge
@@ -842,8 +842,8 @@ export function useCommonLogsColumns(
           </TooltipProvider>
         )
       },
-      size: 145,
-      maxSize: 165,
+      size: 110,
+      maxSize: 110,
     })
   }
 
