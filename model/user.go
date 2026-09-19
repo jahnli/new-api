@@ -974,12 +974,31 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 	if err = tx.First(&current, user.Id).Error; err != nil {
 		return err
 	}
+	groupChanged := current.Group != newUser.Group
 	authChanged := (updatePassword && current.Password != newUser.Password) ||
-		current.Group != newUser.Group ||
+		groupChanged ||
 		current.Role != newUser.Role
 	if authChanged {
 		newUser.AuthVersion, err = IncrementUserAuthVersionWithTx(tx, user.Id)
 		if err != nil {
+			return err
+		}
+	}
+	if groupChanged {
+		var fixedGroupTokens []Token
+		if err = tx.Select("id", commonKeyCol).
+			Where("user_id = ?", user.Id).
+			Where(commonGroupCol+" <> ? AND "+commonGroupCol+" <> ?", "", "auto").
+			Find(&fixedGroupTokens).Error; err != nil {
+			return err
+		}
+		if err = invalidateTokensCache(fixedGroupTokens); err != nil {
+			return err
+		}
+		if err = tx.Model(&Token{}).
+			Where("user_id = ?", user.Id).
+			Where(commonGroupCol+" <> ? AND "+commonGroupCol+" <> ?", "", "auto").
+			Update("group", newUser.Group).Error; err != nil {
 			return err
 		}
 	}
