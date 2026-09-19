@@ -4680,26 +4680,13 @@ export function ChannelMutateDrawer({
             </span>
           </>
         }
-        titleClassName='flex min-w-0 items-center gap-2 sm:gap-3'
+        titleClassName='col-start-1 row-start-1 flex min-w-0 items-center gap-2 sm:gap-3'
         description={
-          <span
-            className={cn(
-              'block',
-              showProviderPicker && providerTarget && 'truncate'
-            )}
-            title={
-              showProviderPicker && providerTarget ? description : undefined
-            }
-          >
-            {description}
-          </span>
-        }
-        headerTrailing={
-          (!showProviderPicker || Boolean(providerTarget)) && (
-            // Rendered last so the actions sit below the title and description.
-            <div className='order-last flex flex-wrap items-center gap-2'>
-              {isEditing && channelData?.data && (
-                <Badge variant='secondary'>
+          <span className='flex min-w-0 items-center gap-2'>
+            {isEditing &&
+              channelData?.data &&
+              (!showProviderPicker || Boolean(providerTarget)) && (
+                <Badge variant='secondary' className='shrink-0'>
                   {t(
                     CHANNEL_STATUS_LABELS[
                       currentStatus as keyof typeof CHANNEL_STATUS_LABELS
@@ -4707,6 +4694,26 @@ export function ChannelMutateDrawer({
                   )}
                 </Badge>
               )}
+            <span
+              className={cn(
+                'min-w-0',
+                showProviderPicker && providerTarget && 'truncate'
+              )}
+              title={
+                showProviderPicker && providerTarget ? description : undefined
+              }
+            >
+              {description}
+            </span>
+          </span>
+        }
+        descriptionClassName={cn(
+          'col-span-2 col-start-1 min-w-0 self-center sm:row-start-2',
+          !isEditing && !showProviderPicker ? 'row-start-3' : 'row-start-2'
+        )}
+        headerTrailing={
+          (!showProviderPicker || Boolean(providerTarget)) && (
+            <div className='contents'>
               {(!showProviderPicker || providerTarget) && (
                 <Button
                   ref={providerControlRef}
@@ -4719,7 +4726,7 @@ export function ChannelMutateDrawer({
                   }
                   aria-description={providerLabel}
                   title={providerLabel}
-                  className='min-w-0 shrink gap-2 sm:max-w-md'
+                  className='col-start-2 row-start-1 min-w-0 shrink gap-2 justify-self-start sm:max-w-md'
                   disabled={
                     isSubmitting ||
                     (!showProviderPicker &&
@@ -4758,7 +4765,7 @@ export function ChannelMutateDrawer({
                   type='button'
                   variant='outline'
                   size='sm'
-                  className='shrink-0'
+                  className='col-span-2 col-start-1 row-start-2 shrink-0 justify-self-start sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:justify-self-end'
                   onClick={pasteConnectionInfoFromClipboard}
                 >
                   <ClipboardPaste className='size-4' />
@@ -4775,7 +4782,12 @@ export function ChannelMutateDrawer({
                     channelType={currentType}
                     sensitiveLocked={sensitiveLocked}
                     disabled={isSubmitting}
-                    className='sm:justify-end'
+                    className={cn(
+                      'col-span-2 col-start-1 justify-self-end sm:col-span-1 sm:col-start-3 sm:row-start-2 sm:justify-end',
+                      !isEditing && !showProviderPicker
+                        ? 'row-start-4'
+                        : 'row-start-3'
+                    )}
                     confirmEnablePassthrough={confirmEnablePassthrough}
                   />
                 )}
@@ -4783,7 +4795,7 @@ export function ChannelMutateDrawer({
           )
         }
         contentClassName='inset-0 m-auto flex h-[95vh] flex-col gap-0 overflow-visible p-0 translate-none! transform-none! animate-none! sm:max-w-7xl sm:p-0'
-        headerClassName='border-b px-4 py-3 pr-12 sm:px-6 sm:py-4 sm:pr-14'
+        headerClassName='grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-3 border-b px-4 py-3 pr-12 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-3 sm:gap-y-2 sm:px-6 sm:py-4 sm:pr-14'
         contentHeight='100%'
         bodyContainerClassName='flex-1 max-h-none overflow-hidden'
         bodyClassName='h-full min-h-0'

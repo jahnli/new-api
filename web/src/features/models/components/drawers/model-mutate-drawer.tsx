@@ -18,12 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { Dialog } from '@/components/dialog'
 import {
   SideDrawerSection,
   sideDrawerContentClassName,
@@ -82,12 +83,75 @@ import {
 import type { Model } from '../../types'
 import { ModelConnections } from '../model-connections'
 
-export function ModelMutateDrawer(props: {
+type ModelMutatePresentation = 'dialog' | 'drawer'
+
+type ModelMutateDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow?: Model | null
   initialSection?: 'metadata' | 'pricing'
+  presentation?: ModelMutatePresentation
+}
+
+function ModelMutateLayout(props: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  presentation: ModelMutatePresentation
+  title: ReactNode
+  description: ReactNode
+  tabs?: ReactNode
+  footer?: ReactNode
+  children: ReactNode
 }) {
+  if (props.presentation === 'dialog') {
+    return (
+      <Dialog
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        title={props.title}
+        description={props.description}
+        contentClassName='w-[60vw] max-w-[60vw] sm:max-w-[60vw]'
+        footer={props.footer}
+        footerClassName='flex-wrap'
+      >
+        {props.children}
+      </Dialog>
+    )
+  }
+
+  return (
+    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+      <SheetContent className={sideDrawerContentClassName('sm:max-w-[1280px]')}>
+        <SheetHeader className={sideDrawerHeaderClassName()}>
+          <SheetTitle className='pr-6 break-all'>{props.title}</SheetTitle>
+          <SheetDescription>{props.description}</SheetDescription>
+        </SheetHeader>
+        {props.tabs}
+        {props.children}
+        {props.footer ? (
+          <SheetFooter className={sideDrawerFooterClassName('flex-wrap')}>
+            {props.footer}
+          </SheetFooter>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+export function ModelMutateDrawer(props: ModelMutateDrawerProps) {
+  if (!props.open) return null
+
+  const sessionKey = [
+    props.presentation ?? 'drawer',
+    props.initialSection ?? 'metadata',
+    props.currentRow?.id ?? 'new',
+    props.currentRow?.model_name ?? '',
+  ].join(':')
+
+  return <ModelMutateContent key={sessionKey} {...props} />
+}
+
+function ModelMutateContent(props: ModelMutateDrawerProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [createdModel, setCreatedModel] = useState<{
@@ -129,8 +193,16 @@ export function ModelMutateDrawer(props: {
     enabled: props.open,
   })
   const vendors = vendorsQuery.data?.data?.items ?? []
+  const selectedVendorId = useWatch({
+    control: form.control,
+    name: 'vendor_id',
+  })
+  const modelName = useWatch({
+    control: form.control,
+    name: 'model_name',
+  })
   const selectedVendor = vendors.find(
-    (vendor) => vendor.id === form.watch('vendor_id')
+    (vendor) => vendor.id === selectedVendorId
   )
   const modelQuery = useQuery({
     queryKey: modelsQueryKeys.detail(currentRow?.id ?? 0),
@@ -147,26 +219,6 @@ export function ModelMutateDrawer(props: {
   const savedModel = modelQuery.data ?? currentRow
 
   useEffect(() => {
-    if (!props.open) return
-    setSection(props.initialSection ?? 'metadata')
-    setPricingVisited(props.initialSection === 'pricing')
-    setPricingName('')
-    setPricingDirty(false)
-    setPendingPricingName(null)
-    setCloseConfirm(false)
-  }, [
-    props.open,
-    props.initialSection,
-    props.currentRow?.id,
-    props.currentRow?.model_name,
-  ])
-
-  useEffect(() => {
-    if (!props.open) {
-      setCreatedModel(null)
-      loadedKey.current = ''
-      return
-    }
     const key = currentRow?.id
       ? `metadata:${currentRow.id}`
       : `channel:${currentRow?.model_name ?? ''}`
@@ -247,443 +299,446 @@ export function ModelMutateDrawer(props: {
     }
     props.onOpenChange(open)
   }
+  const presentation = props.presentation ?? 'drawer'
+  const title = hasModelName ? currentRow?.model_name : t('Create Model')
+  const description =
+    presentation === 'dialog'
+      ? t('Model metadata')
+      : t(
+          'Manage metadata, pricing, and channel connections. Each section saves separately.'
+        )
+  const tabs = (
+    <Tabs
+      value={section}
+      onValueChange={(value) => {
+        setSection(value)
+        if (value === 'pricing') setPricingVisited(true)
+      }}
+      className='shrink-0 px-4'
+    >
+      <TabsList className='grid w-full grid-cols-3 group-data-horizontal/tabs:h-auto'>
+        <TabsTrigger
+          value='metadata'
+          className='h-auto min-w-0 whitespace-normal'
+        >
+          {t('Model metadata')}
+        </TabsTrigger>
+        <TabsTrigger
+          value='pricing'
+          disabled={!hasModelName}
+          className='h-auto min-w-0 whitespace-normal'
+        >
+          {t('Pricing')}
+        </TabsTrigger>
+        <TabsTrigger
+          value='connections'
+          disabled={!hasModelName}
+          className='h-auto min-w-0 whitespace-normal'
+        >
+          {t('Channels and groups')}
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  )
+  const metadataFooter = (
+    <>
+      {form.formState.errors.root?.server?.message && (
+        <Alert variant='destructive' className='basis-full'>
+          <AlertDescription className='break-words'>
+            {form.formState.errors.root.server.message}
+          </AlertDescription>
+        </Alert>
+      )}
+      <Button
+        variant='outline'
+        onClick={() => close(false)}
+        disabled={isSubmitting}
+      >
+        {t('Close')}
+      </Button>
+      <Button
+        form='model-form'
+        type='submit'
+        disabled={
+          isSubmitting ||
+          modelQuery.isError ||
+          (isEditing && modelQuery.isPending)
+        }
+      >
+        {isSubmitting ? t('Saving...') : t('Save metadata')}
+      </Button>
+    </>
+  )
 
   return (
     <>
-      <Sheet open={props.open} onOpenChange={close}>
-        <SheetContent
-          className={sideDrawerContentClassName('sm:max-w-[1280px]')}
-        >
-          <SheetHeader className={sideDrawerHeaderClassName()}>
-            <SheetTitle className='pr-6 break-all'>
-              {hasModelName ? currentRow?.model_name : t('Create Model')}
-            </SheetTitle>
-            <SheetDescription>
-              {t(
-                'Manage metadata, pricing, and channel connections. Each section saves separately.'
-              )}
-            </SheetDescription>
-          </SheetHeader>
-          <Tabs
-            value={section}
-            onValueChange={(value) => {
-              setSection(value)
-              if (value === 'pricing') setPricingVisited(true)
-            }}
-            className='shrink-0 px-4'
-          >
-            <TabsList className='grid w-full grid-cols-3 group-data-horizontal/tabs:h-auto'>
-              <TabsTrigger
-                value='metadata'
-                className='h-auto min-w-0 whitespace-normal'
-              >
-                {t('Model metadata')}
-              </TabsTrigger>
-              <TabsTrigger
-                value='pricing'
-                disabled={!hasModelName}
-                className='h-auto min-w-0 whitespace-normal'
-              >
-                {t('Pricing')}
-              </TabsTrigger>
-              <TabsTrigger
-                value='connections'
-                disabled={!hasModelName}
-                className='h-auto min-w-0 whitespace-normal'
-              >
-                {t('Channels and groups')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          {props.open && section === 'metadata' && (
-            <>
-              {modelQuery.isError ? (
-                <ErrorState
-                  description={modelQuery.error.message}
-                  onRetry={() => void modelQuery.refetch()}
-                />
-              ) : null}
-              {isEditing && modelQuery.isPending && <LoadingState />}
-              {!modelQuery.isError && !(isEditing && modelQuery.isPending) && (
-                <Form {...form}>
-                  <form
-                    id='model-form'
-                    onSubmit={form.handleSubmit((values) =>
-                      save.mutate(values)
-                    )}
-                    className={sideDrawerFormClassName()}
-                  >
-                    {/* Basic Information */}
-                    <SideDrawerSection>
-                      <h3 className='text-sm font-semibold'>
-                        {t('Basic Information')}
-                      </h3>
+      <ModelMutateLayout
+        open={props.open}
+        onOpenChange={close}
+        presentation={presentation}
+        title={title}
+        description={description}
+        tabs={presentation === 'drawer' ? tabs : undefined}
+        footer={section === 'metadata' ? metadataFooter : undefined}
+      >
+        {props.open && section === 'metadata' && (
+          <>
+            {modelQuery.isError ? (
+              <ErrorState
+                description={modelQuery.error.message}
+                onRetry={() => void modelQuery.refetch()}
+              />
+            ) : null}
+            {isEditing && modelQuery.isPending && <LoadingState />}
+            {!modelQuery.isError && !(isEditing && modelQuery.isPending) && (
+              <Form {...form}>
+                <form
+                  id='model-form'
+                  onSubmit={form.handleSubmit((values) => save.mutate(values))}
+                  className={sideDrawerFormClassName(
+                    presentation === 'dialog'
+                      ? 'gap-6 overflow-visible px-0 py-0'
+                      : undefined
+                  )}
+                >
+                  {/* Basic Information */}
+                  <SideDrawerSection>
+                    <h3 className='text-sm font-semibold'>
+                      {t('Basic Information')}
+                    </h3>
 
-                      <FormField
-                        control={form.control}
-                        name='model_name'
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel required>{t('Model Name')}</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={t('gpt-4, claude-3-opus, etc.')}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              {t('The unique identifier for this model')}
-                              {isEditing &&
-                                form.watch('model_name') !==
-                                  currentRow?.model_name && (
-                                  <span className='text-warning mt-1 block'>
-                                    {t(
-                                      'Renaming metadata does not rename channel models or move pricing. Existing prices stay with the original model name.'
-                                    )}
-                                  </span>
-                                )}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control}
+                      name='model_name'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel required>{t('Model Name')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={t('gpt-4, claude-3-opus, etc.')}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('The unique identifier for this model')}
+                            {isEditing &&
+                              modelName !== currentRow?.model_name && (
+                                <span className='text-warning mt-1 block'>
+                                  {t(
+                                    'Renaming metadata does not rename channel models or move pricing. Existing prices stay with the original model name.'
+                                  )}
+                                </span>
+                              )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name='description'
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('Description')}</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder={t('Describe this model...')}
-                                rows={3}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control}
+                      name='description'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Description')}</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder={t('Describe this model...')}
+                              rows={3}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name='icon'
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('Icon')}</FormLabel>
-                            <FormControl>
-                              <LobeIconField
-                                key={`${currentRow?.id ?? 'new'}-${props.open}`}
-                                value={field.value ?? ''}
-                                onChange={field.onChange}
-                                allowInheritance
-                                inheritedIcon={selectedVendor?.icon}
-                                inheritedName={selectedVendor?.name}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control}
+                      name='icon'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Icon')}</FormLabel>
+                          <FormControl>
+                            <LobeIconField
+                              key={`${currentRow?.id ?? 'new'}-${props.open}`}
+                              value={field.value ?? ''}
+                              onChange={field.onChange}
+                              allowInheritance
+                              inheritedIcon={selectedVendor?.icon}
+                              inheritedName={selectedVendor?.name}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name='vendor_id'
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('Vendor')}</FormLabel>
-                            <FormControl>
-                              <Combobox
-                                options={vendors.map((vendor) => ({
-                                  value: String(vendor.id),
-                                  label: vendor.name,
-                                }))}
-                                onValueChange={(value) =>
-                                  field.onChange(
-                                    value ? Number.parseInt(value) : undefined
-                                  )
-                                }
-                                value={field.value ? String(field.value) : null}
-                                className='w-full'
-                                placeholder={t('Select vendor')}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control}
+                      name='vendor_id'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Vendor')}</FormLabel>
+                          <FormControl>
+                            <Combobox
+                              options={vendors.map((vendor) => ({
+                                value: String(vendor.id),
+                                label: vendor.name,
+                              }))}
+                              onValueChange={(value) =>
+                                field.onChange(
+                                  value ? Number.parseInt(value) : undefined
+                                )
+                              }
+                              value={field.value ? String(field.value) : null}
+                              className='w-full'
+                              placeholder={t('Select vendor')}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name='tags'
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('Tags')}</FormLabel>
-                            <FormControl>
-                              <TagInput
-                                value={field.value || []}
-                                onChange={field.onChange}
-                                placeholder={t('Add tags...')}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              {t('Press Enter or comma to add tags')}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </SideDrawerSection>
+                    <FormField
+                      control={form.control}
+                      name='tags'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Tags')}</FormLabel>
+                          <FormControl>
+                            <TagInput
+                              value={field.value || []}
+                              onChange={field.onChange}
+                              placeholder={t('Add tags...')}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('Press Enter or comma to add tags')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </SideDrawerSection>
 
-                    {/* Matching Configuration */}
-                    <SideDrawerSection>
-                      <h3 className='text-sm font-semibold'>
-                        {t('Matching Rules')}
-                      </h3>
+                  {/* Matching Configuration */}
+                  <SideDrawerSection>
+                    <h3 className='text-sm font-semibold'>
+                      {t('Matching Rules')}
+                    </h3>
 
-                      <FormField
-                        control={form.control}
-                        name='name_rule'
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('Name Rule')}</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={(value) =>
-                                  field.onChange(Number.parseInt(value))
-                                }
-                                value={String(field.value)}
-                                className='grid grid-cols-2 gap-4'
-                              >
-                                {getNameRuleOptions(t).map((option) => (
-                                  <div
-                                    key={option.value}
-                                    className='flex items-center space-x-2'
+                    <FormField
+                      control={form.control}
+                      name='name_rule'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Name Rule')}</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={(value) =>
+                                field.onChange(Number.parseInt(value))
+                              }
+                              value={String(field.value)}
+                              className='grid grid-cols-2 gap-4'
+                            >
+                              {getNameRuleOptions(t).map((option) => (
+                                <div
+                                  key={option.value}
+                                  className='flex items-center space-x-2'
+                                >
+                                  <RadioGroupItem
+                                    value={String(option.value)}
+                                    id={`rule-${option.value}`}
+                                  />
+                                  <Label
+                                    htmlFor={`rule-${option.value}`}
+                                    className='cursor-pointer font-normal'
                                   >
-                                    <RadioGroupItem
-                                      value={String(option.value)}
-                                      id={`rule-${option.value}`}
-                                    />
-                                    <Label
-                                      htmlFor={`rule-${option.value}`}
-                                      className='cursor-pointer font-normal'
-                                    >
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </RadioGroup>
-                            </FormControl>
-                            <FormDescription>
-                              {t(
-                                'Matching rules apply to metadata. Pricing is configured for each concrete model.'
-                              )}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </SideDrawerSection>
+                                    {option.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              'Matching rules apply to metadata. Pricing is configured for each concrete model.'
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </SideDrawerSection>
 
-                    {/* Endpoints Configuration */}
-                    <SideDrawerSection>
-                      <div className='flex items-center justify-between'>
-                        <h3 className='text-sm font-semibold'>
-                          {t('Endpoints')}
-                        </h3>
-                        <Combobox
-                          options={Object.keys(ENDPOINT_TEMPLATES).map(
-                            (key) => ({ value: key, label: key })
-                          )}
-                          onValueChange={(value: string | null) => {
-                            if (value) handleFillEndpointTemplate(value)
-                          }}
-                          className='w-[200px]'
-                          placeholder={t('Load template...')}
-                          aria-label={t('Load template...')}
-                        />
-                      </div>
-
-                      <FormField
-                        control={form.control}
-                        name='endpoints'
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('Endpoint Configuration')}</FormLabel>
-                            <FormControl>
-                              <JsonEditor
-                                value={field.value || ''}
-                                onChange={field.onChange}
-                                keyPlaceholder='endpoint_type'
-                                valuePlaceholder='{"path": "/v1/...", "method": "POST"}'
-                                keyLabel='Endpoint Type'
-                                valueLabel='Configuration'
-                                valueType='any'
-                                emptyMessage={t(
-                                  'No endpoints configured. Switch to JSON mode or add rows to define endpoints.'
-                                )}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              {t(
-                                'Define API endpoints for this model (JSON format)'
-                              )}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </SideDrawerSection>
-
-                    {/* Status & Sync */}
-                    <SideDrawerSection>
+                  {/* Endpoints Configuration */}
+                  <SideDrawerSection>
+                    <div className='flex items-center justify-between'>
                       <h3 className='text-sm font-semibold'>
-                        {t('Status & Sync')}
+                        {t('Endpoints')}
                       </h3>
-
-                      <FormField
-                        control={form.control}
-                        name='status'
-                        render={({ field }) => (
-                          <FormItem className={sideDrawerSwitchItemClassName()}>
-                            <div className='flex flex-col gap-0.5'>
-                              <FormLabel className='text-base'>
-                                {t('Model square visibility')}
-                              </FormLabel>
-                              <FormDescription>
-                                {t(
-                                  'Allow listing when a channel is available and the user has group access. This does not change API access.'
-                                )}
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
+                      <Combobox
+                        options={Object.keys(ENDPOINT_TEMPLATES).map((key) => ({
+                          value: key,
+                          label: key,
+                        }))}
+                        onValueChange={(value: string | null) => {
+                          if (value) handleFillEndpointTemplate(value)
+                        }}
+                        className='w-[200px]'
+                        placeholder={t('Load template...')}
+                        aria-label={t('Load template...')}
                       />
+                    </div>
 
-                      <FormField
-                        control={form.control}
-                        name='sync_official'
-                        render={({ field }) => (
-                          <FormItem className={sideDrawerSwitchItemClassName()}>
-                            <div className='flex flex-col gap-0.5'>
-                              <FormLabel className='text-base'>
-                                {t('Allow metadata sync')}
-                              </FormLabel>
-                              <FormDescription>
-                                {t(
-                                  'Allows selected fields to be overwritten after a sync preview. No automatic synchronization.'
-                                )}
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </SideDrawerSection>
-                  </form>
-                </Form>
-              )}
-              <SheetFooter className={sideDrawerFooterClassName('flex-wrap')}>
-                {form.formState.errors.root?.server?.message && (
-                  <Alert
-                    variant='destructive'
-                    className='col-span-2 basis-full'
-                  >
-                    <AlertDescription className='break-words'>
-                      {form.formState.errors.root.server.message}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                <Button
-                  variant='outline'
-                  onClick={() => close(false)}
-                  disabled={isSubmitting}
-                >
-                  {t('Close')}
-                </Button>
-                <Button
-                  form='model-form'
-                  type='submit'
-                  disabled={
-                    isSubmitting ||
-                    modelQuery.isError ||
-                    (isEditing && modelQuery.isPending)
-                  }
-                >
-                  {isSubmitting ? t('Saving...') : t('Save metadata')}
-                </Button>
-              </SheetFooter>
-            </>
-          )}
-          {props.open && pricingVisited && savedModel && (
-            <div
-              className={
-                section === 'pricing'
-                  ? 'flex min-h-0 flex-1 flex-col'
-                  : 'hidden'
-              }
-            >
-              {savedModel.name_rule !== 0 && (
-                <div className='space-y-2 p-4'>
-                  <p className='text-muted-foreground text-sm'>
-                    {t(
-                      'Select a concrete model to configure pricing. Metadata matching does not propagate prices.'
-                    )}
-                  </p>
-                  <Combobox
-                    value={pricingName}
-                    onValueChange={(value) => {
-                      if (pricingDirty) {
-                        setPendingPricingName(value ?? '')
-                        setCloseConfirm(true)
-                      } else {
-                        setPricingName(value ?? '')
-                      }
-                    }}
-                    options={(savedModel.matched_models ?? []).map((name) => ({
-                      value: name,
-                      label: name,
-                    }))}
-                    aria-label={t('Select model')}
-                    className='w-full'
-                    placeholder={t('Select model')}
-                  />
-                </div>
-              )}
-              {(savedModel.name_rule === 0 || pricingName) && (
-                <ModelPricingPanel
-                  onDirtyChange={setPricingDirty}
-                  key={
-                    savedModel.name_rule === 0
-                      ? savedModel.model_name
-                      : pricingName
-                  }
-                  modelName={
-                    savedModel.name_rule === 0
-                      ? savedModel.model_name
-                      : pricingName
-                  }
+                    <FormField
+                      control={form.control}
+                      name='endpoints'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Endpoint Configuration')}</FormLabel>
+                          <FormControl>
+                            <JsonEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              keyPlaceholder='endpoint_type'
+                              valuePlaceholder='{"path": "/v1/...", "method": "POST"}'
+                              keyLabel='Endpoint Type'
+                              valueLabel='Configuration'
+                              valueType='any'
+                              emptyMessage={t(
+                                'No endpoints configured. Switch to JSON mode or add rows to define endpoints.'
+                              )}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              'Define API endpoints for this model (JSON format)'
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </SideDrawerSection>
+
+                  {/* Status & Sync */}
+                  <SideDrawerSection>
+                    <h3 className='text-sm font-semibold'>
+                      {t('Status & Sync')}
+                    </h3>
+
+                    <FormField
+                      control={form.control}
+                      name='status'
+                      render={({ field }) => (
+                        <FormItem className={sideDrawerSwitchItemClassName()}>
+                          <div className='flex flex-col gap-0.5'>
+                            <FormLabel className='text-base'>
+                              {t('Model square visibility')}
+                            </FormLabel>
+                            <FormDescription>
+                              {t(
+                                'Allow listing when a channel is available and the user has group access. This does not change API access.'
+                              )}
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name='sync_official'
+                      render={({ field }) => (
+                        <FormItem className={sideDrawerSwitchItemClassName()}>
+                          <div className='flex flex-col gap-0.5'>
+                            <FormLabel className='text-base'>
+                              {t('Allow metadata sync')}
+                            </FormLabel>
+                            <FormDescription>
+                              {t(
+                                'Allows selected fields to be overwritten after a sync preview. No automatic synchronization.'
+                              )}
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </SideDrawerSection>
+                </form>
+              </Form>
+            )}
+          </>
+        )}
+        {props.open && pricingVisited && savedModel && (
+          <div
+            className={
+              section === 'pricing' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'
+            }
+          >
+            {savedModel.name_rule !== 0 && (
+              <div className='space-y-2 p-4'>
+                <p className='text-muted-foreground text-sm'>
+                  {t(
+                    'Select a concrete model to configure pricing. Metadata matching does not propagate prices.'
+                  )}
+                </p>
+                <Combobox
+                  value={pricingName}
+                  onValueChange={(value) => {
+                    if (pricingDirty) {
+                      setPendingPricingName(value ?? '')
+                      setCloseConfirm(true)
+                    } else {
+                      setPricingName(value ?? '')
+                    }
+                  }}
+                  options={(savedModel.matched_models ?? []).map((name) => ({
+                    value: name,
+                    label: name,
+                  }))}
+                  aria-label={t('Select model')}
+                  className='w-full'
+                  placeholder={t('Select model')}
                 />
-              )}
-            </div>
-          )}
-          {props.open && section === 'connections' && savedModel && (
-            <ModelConnections model={savedModel} />
-          )}
-        </SheetContent>
-      </Sheet>
+              </div>
+            )}
+            {(savedModel.name_rule === 0 || pricingName) && (
+              <ModelPricingPanel
+                onDirtyChange={setPricingDirty}
+                key={
+                  savedModel.name_rule === 0
+                    ? savedModel.model_name
+                    : pricingName
+                }
+                modelName={
+                  savedModel.name_rule === 0
+                    ? savedModel.model_name
+                    : pricingName
+                }
+              />
+            )}
+          </div>
+        )}
+        {props.open && section === 'connections' && savedModel && (
+          <ModelConnections model={savedModel} />
+        )}
+      </ModelMutateLayout>
       <ConfirmDialog
         open={closeConfirm}
         onOpenChange={setCloseConfirm}

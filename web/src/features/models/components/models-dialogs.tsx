@@ -41,13 +41,14 @@ export function ModelsDialogs() {
         open={open === 'price-sync'}
         onOpenChange={(value) => !value && setOpen(null)}
       />
-      {/* Model Create/Update Drawer */}
+      {/* Model Create/Update/Pricing Dialog */}
       <ModelMutateDrawer
         open={
           open === 'create-model' ||
           open === 'update-model' ||
           open === 'price-model'
         }
+        presentation='dialog'
         initialSection={open === 'price-model' ? 'pricing' : 'metadata'}
         onOpenChange={(v) => !v && setOpen(null)}
         currentRow={currentRow}
