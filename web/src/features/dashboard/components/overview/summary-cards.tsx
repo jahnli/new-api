@@ -331,11 +331,11 @@ export function SummaryCards() {
           {activeSub && (
             <div className='flex flex-col gap-3'>
               <div className='flex items-center justify-between gap-2'>
-                <span className='text-muted-foreground text-xs font-medium'>
+                <span className='text-muted-foreground text-sm font-medium'>
                   {t('Current Subscription')}
                 </span>
                 {activePlanTitle && (
-                  <span className='bg-primary/10 text-primary truncate rounded-md px-2 py-0.5 text-xs font-medium'>
+                  <span className='bg-primary/10 text-primary truncate rounded-md px-2 py-0.5 text-sm font-medium'>
                     {activePlanTitle}
                   </span>
                 )}
@@ -365,9 +365,9 @@ export function SummaryCards() {
               </div>
 
               {nextResetTime > 0 && (
-                <div className='text-muted-foreground flex items-center gap-1.5 text-xs'>
+                <div className='text-muted-foreground flex items-center gap-1.5 text-sm'>
                   <CalendarClock
-                    className='size-3.5 shrink-0'
+                    className='size-4 shrink-0'
                     aria-hidden='true'
                   />
                   <span>
