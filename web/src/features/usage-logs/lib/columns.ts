@@ -31,7 +31,7 @@ interface UseColumnsByCategoryOptions {
   showUserColumn?: boolean
   showChannelColumn?: boolean
   isRoot?: boolean
-  showWalletSource?: boolean
+  showBillingSource?: boolean
 }
 
 /**

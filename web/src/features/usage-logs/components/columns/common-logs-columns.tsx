@@ -397,7 +397,7 @@ interface UseCommonLogsColumnsOptions {
   canViewChannelDetails?: boolean
   canViewGroupRatio?: boolean
   isRoot?: boolean
-  showWalletSource?: boolean
+  showBillingSource?: boolean
 }
 
 export function useCommonLogsColumns(
@@ -417,7 +417,7 @@ export function useCommonLogsColumns(
   const canViewChannelDetails = resolvedOptions.canViewChannelDetails ?? isAdmin
   const canViewGroupRatio = resolvedOptions.canViewGroupRatio ?? isAdmin
   const isRoot = resolvedOptions.isRoot ?? false
-  const showWalletSource = resolvedOptions.showWalletSource ?? false
+  const showBillingSource = resolvedOptions.showBillingSource ?? false
   const columns: ColumnDef<UsageLog>[] = [
     {
       accessorKey: 'created_at',
@@ -675,7 +675,7 @@ export function useCommonLogsColumns(
           <LogCostDisplay
             quota={quota}
             other={other}
-            showWalletSource={showWalletSource}
+            showBillingSource={showBillingSource}
           />
         )
       },
