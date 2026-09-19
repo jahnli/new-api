@@ -4437,6 +4437,7 @@
     "OpenRouter": "OpenRouter",
     "opens in an external client. Trigger it from the sidebar or API key actions to launch the configured application.": "外部クライアントで開きます。サイドバーまたはAPIキーアクションからトリガーして、設定されたアプリケーションを起動します。",
     "Operate channels": "チャネルを運用",
+    "Operate for external users with reduced visibility of internal information and administrative capabilities": "外部ユーザー向けに運用し、内部情報や管理機能の表示を減らします",
     "Operation": "操作",
     "operation and charging behavior": "運用および課金行為に起因する法的責任を負うことを確認します",
     "Operation audit": "操作監査",

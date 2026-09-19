@@ -4437,6 +4437,7 @@
     "OpenRouter": "OpenRouter",
     "opens in an external client. Trigger it from the sidebar or API key actions to launch the configured application.": "открывается во внешнем клиенте. Запустите его из боковой панели или действий с ключом API, чтобы запустить настроенное приложение.",
     "Operate channels": "Обслуживание каналов",
+    "Operate for external users with reduced visibility of internal information and administrative capabilities": "Для работы с внешними пользователями с ограниченным отображением внутренней информации и функций управления",
     "Operation": "Операция",
     "operation and charging behavior": "эксплуатацию и взимание платы",
     "Operation audit": "Аудит операций",

@@ -4437,6 +4437,7 @@
     "OpenRouter": "OpenRouter",
     "opens in an external client. Trigger it from the sidebar or API key actions to launch the configured application.": "mở trong một ứng dụng bên ngoài. Kích hoạt nó từ thanh bên hoặc các hành động khóa API để khởi chạy ứng dụng đã cấu hình.",
     "Operate channels": "Vận hành kênh",
+    "Operate for external users with reduced visibility of internal information and administrative capabilities": "Vận hành cho người dùng bên ngoài, giảm hiển thị thông tin nội bộ và chức năng quản trị",
     "Operation": "Thao tác",
     "operation and charging behavior": "vận hành và thu phí",
     "Operation audit": "Kiểm toán thao tác",

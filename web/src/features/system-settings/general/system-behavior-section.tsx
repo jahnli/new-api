@@ -135,9 +135,11 @@ export function SystemBehaviorSection({
             render={({ field }) => (
               <SettingsSwitchItem>
                 <SettingsSwitchContent>
-                  <FormLabel>{t('External Mode')}</FormLabel>
+                  <FormLabel>{t('External operations mode')}</FormLabel>
                   <FormDescription>
-                    {t('Hide internal user details from user lists')}
+                    {t(
+                      'Operate for external users with reduced visibility of internal information and administrative capabilities'
+                    )}
                   </FormDescription>
                 </SettingsSwitchContent>
                 <FormControl>

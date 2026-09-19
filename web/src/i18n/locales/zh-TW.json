@@ -4437,6 +4437,7 @@
     "OpenRouter": "OpenRouter",
     "opens in an external client. Trigger it from the sidebar or API key actions to launch the configured application.": "在外部用戶端中打開。從側邊欄或 API 金鑰操作中觸發，以啟動設定的套用。",
     "Operate channels": "運維渠道",
+    "Operate for external users with reduced visibility of internal information and administrative capabilities": "面向外部使用者營運，減少內部資訊和管理功能的顯示",
     "Operation": "操作",
     "operation and charging behavior": "運營和收費行為產生的法律責任",
     "Operation audit": "操作稽核",
