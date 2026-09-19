@@ -8,6 +8,7 @@ import {
   dotColorMap,
   textColorMap,
 } from '@/components/status-badge'
+import { CardStaggerItem } from '@/components/page-transition'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TitledCard } from '@/components/ui/titled-card'
@@ -51,7 +52,6 @@ export function SubscriptionCard() {
   const activeSubscriptions = query.data?.active || []
   const allSubscriptions = query.data?.all || []
   const referenceTime = query.data?.referenceTime || 0
-  const visible = (plans?.length || 0) > 0 || allSubscriptions.length > 0
   const loading = query.isPending
 
   const planTitleMap = useMemo(() => {
@@ -66,30 +66,31 @@ export function SubscriptionCard() {
 
   if (loading) {
     return (
-      <TitledCard
-        icon={<Crown className='size-4 text-amber-500' />}
-        title={t('My Subscriptions')}
-      >
-        <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
-          {SUBSCRIPTION_SKELETON_IDS.map((skeletonId) => (
-            <div key={skeletonId} className='rounded-xl border p-4'>
-              <Skeleton className='h-4 w-32' />
-              <Skeleton className='mt-3 h-3 w-24' />
-              <Skeleton className='mt-2 h-2 w-full' />
-            </div>
-          ))}
-        </div>
-      </TitledCard>
+      <CardStaggerItem>
+        <TitledCard
+          icon={<Crown className='size-4 text-amber-500' />}
+          title={t('My Subscriptions')}
+        >
+          <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+            {SUBSCRIPTION_SKELETON_IDS.map((skeletonId) => (
+              <div key={skeletonId} className='rounded-xl border p-4'>
+                <Skeleton className='h-4 w-32' />
+                <Skeleton className='mt-3 h-3 w-24' />
+                <Skeleton className='mt-2 h-2 w-full' />
+              </div>
+            ))}
+          </div>
+        </TitledCard>
+      </CardStaggerItem>
     )
   }
 
-  if (!visible) return null
+  if (allSubscriptions.length === 0) return null
 
   const hasActive = activeSubscriptions.length > 0
   const expiredCount = allSubscriptions.length - activeSubscriptions.length
-  const hasAny = allSubscriptions.length > 0
 
-  const headerDescription = hasAny ? (
+  const headerDescription = (
     <span className='flex items-center gap-2'>
       <span className='flex items-center gap-1.5'>
         <span
@@ -113,15 +114,15 @@ export function SubscriptionCard() {
         </span>
       )}
     </span>
-  ) : undefined
+  )
 
   return (
-    <TitledCard
-      icon={<Crown className='size-4 text-amber-500' />}
-      title={t('My Subscriptions')}
-      description={headerDescription}
-    >
-      {hasAny ? (
+    <CardStaggerItem>
+      <TitledCard
+        icon={<Crown className='size-4 text-amber-500' />}
+        title={t('My Subscriptions')}
+        description={headerDescription}
+      >
         <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
           {allSubscriptions.map((sub) => (
             <SubscriptionItem
@@ -132,12 +133,8 @@ export function SubscriptionCard() {
             />
           ))}
         </div>
-      ) : (
-        <p className='text-muted-foreground text-sm'>
-          {t('Subscribe to a plan for model access')}
-        </p>
-      )}
-    </TitledCard>
+      </TitledCard>
+    </CardStaggerItem>
   )
 }
 
@@ -168,15 +165,30 @@ function SubscriptionItem({
   const isCancelled = subscription?.status === 'cancelled'
   const isActive = subscription?.status === 'active' && !isExpired
   let statusBadge = (
-    <StatusBadge label={t('Expired')} variant='neutral' copyable={false} />
+    <StatusBadge
+      label={t('Expired')}
+      variant='neutral'
+      copyable={false}
+      className='text-base'
+    />
   )
   if (isActive) {
     statusBadge = (
-      <StatusBadge label={t('Active')} variant='success' copyable={false} />
+      <StatusBadge
+        label={t('Active')}
+        variant='success'
+        copyable={false}
+        className='text-base'
+      />
     )
   } else if (isCancelled) {
     statusBadge = (
-      <StatusBadge label={t('Cancelled')} variant='neutral' copyable={false} />
+      <StatusBadge
+        label={t('Cancelled')}
+        variant='neutral'
+        copyable={false}
+        className='text-base'
+      />
     )
   }
 
@@ -198,13 +210,13 @@ function SubscriptionItem({
     <div className='flex min-w-0 flex-col justify-between gap-3 rounded-xl border p-3 sm:p-4'>
       <div>
         <div className='flex items-center justify-between gap-2'>
-          <span className='truncate text-sm font-medium'>
+          <span className='truncate text-base font-medium'>
             {planTitle || `${t('Subscription')} #${subscription?.id}`}
           </span>
           {statusBadge}
         </div>
 
-        <div className='text-muted-foreground mt-2 space-y-1 text-xs'>
+        <div className='text-muted-foreground mt-2 space-y-1 text-sm'>
           {isActive && (
             <div className='flex items-center gap-1.5'>
               <Clock className='size-3 shrink-0' />
@@ -234,7 +246,7 @@ function SubscriptionItem({
       <PremiumQuotaSummary quota={sub.premium_quota} />
       {totalAmount > 0 && (
         <div className='border-t pt-3'>
-          <div className='flex items-center justify-between text-xs'>
+          <div className='flex items-center justify-between text-sm'>
             <Tooltip>
               <TooltipTrigger
                 render={<span className='text-muted-foreground cursor-help' />}

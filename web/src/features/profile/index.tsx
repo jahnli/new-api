@@ -34,9 +34,7 @@ export function Profile() {
             <ProfileHeader profile={profile} loading={loading} />
           </CardStaggerItem>
 
-          <CardStaggerItem>
-            <SubscriptionCard />
-          </CardStaggerItem>
+          <SubscriptionCard />
 
           <CardStaggerItem>
             <div className='grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.46fr)] xl:items-start'>

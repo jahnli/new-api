@@ -24,7 +24,7 @@
 | 018 | 2026-06-20 | 修复侧边栏选中项悬停时文字颜色被覆盖的问题，保持主题色 | `web/default/src/components/ui/sidebar.tsx` |
 | 019 | 2026-06-20 | 移除邀请人/邀请码功能（后端模型/控制器/路由、前端组件/类型/i18n、数据库迁移、计费设置默认值残留字段修复） | [详情](details/020-remove-invitation.md) |
 | 020 | 2026-09-17 | 移除概览页引导区域：不再展示「开始使用」步骤、推荐操作与请求示例，折叠态与展开记忆一并去除 | [详情](details/020-remove-overview-setup-guide.md) |
-| 021 | 2026-07-01 | 个人资料页订阅列表重构：由 ProfileHeader 内嵌改为独立卡片组件，横向网格（sm 2 列 / lg 3 列），每个订阅独立圆角卡片展示状态、剩余天数与配额进度；进度条按用量分阶段变色（绿→橙→红） | `web/default/src/features/profile/components/subscription-card.tsx`、`web/default/src/features/profile/components/profile-header.tsx`、`web/default/src/features/profile/index.tsx` |
+| 021 | 2026-09-20 | 个人资料页订阅卡片优化：独立展示订阅状态与额度进度，无订阅记录时完整隐藏，并提升关键信息可读性 | [详情](details/021-profile-subscription-card.md) |
 | 022 | 2026-08-24 | 渠道界面优化：默认视图改为列表，视图切换按钮顺序调整为列表→卡片，桌面端默认分页调整为每页 50 条；模型映射添加按钮移至列表顶部，新映射插入首行 | [详情](details/022-channel-interface.md) |
 | 023 | 2026-07-20 | 新增 LDAP 登录与飞书/钉钉同步：支持认证、绑定/解绑、按公司 OU 选择同步平台及凭据/邮箱后缀/自动订阅套餐配置，并支持公司显示名称映射 | [详情](details/024-ldap-login.md) |
 | 024 | 2026-08-25 | 登录页默认使用 LDAP 登录并优化账号切换界面：LDAP 表单内联展示，标题按登录方式显示企业账号/账号登录，切换入口统一文案与图标，用户名示例移至标签后并调整标签高度 | [详情](details/025-ldap-default-login.md) |
@@ -41,7 +41,7 @@
 | 034 | 2026-06-23 | 用户头像下拉菜单增强：头像旁显示用户名、角色标签前加图标（👑🏅🧑‍💼）、下拉菜单改为悬停触发、移除分组显示 | [详情](details/034-profile-dropdown-enhance.md) |
 | 035 | 2026-09-18 | 移除概览页常见问答面板，不再展示飞书文档跳转入口 | [详情](details/035-faq-panel-redesign.md) |
 | 036 | 2026-06-24 | 系统公告弹窗宽度由 26rem 加大到 36rem | `web/default/src/components/notification-popover.tsx` |
-| 037 | 2026-09-17 | 订阅管理增强：全员订阅按公司覆盖、管理员可按人民币金额增减用户总额度、额度重置仅当期生效、套餐按公司限制可见范围；订阅与套餐编辑采用居中弹框及人民币额度标签；新增高阶模型额度限制，支持全局模型与默认比例、用户比例覆盖、额度展示及预扣/结算/退款的周期隔离与幂等记账；高阶额度不足使用专用报错与独立通知，钱包也不足时同时说明两种原因 | [详情](details/037-subscribe-all-users.md) |
+| 037 | 2026-09-20 | 订阅管理增强：全员订阅按公司覆盖、管理员可按人民币金额增减用户总额度、额度重置仅当期生效、套餐按公司限制可见范围；订阅与套餐编辑采用居中弹框及人民币额度标签；新增高阶模型额度限制，支持全局模型与默认比例、用户比例覆盖、额度展示及预扣/结算/退款的周期隔离与幂等记账；高阶额度不足使用专用报错与独立通知，钱包也不足时同时说明两种原因 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
 | 039 | 2026-09-19 | 用户管理增强：完善用户列表统计、筛选与共享列，支持成本中心配置，并在用户分组变更时同步固定分组 API 密钥 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |

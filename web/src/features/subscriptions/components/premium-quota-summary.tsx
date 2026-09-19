@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress'
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useExternalMode } from '@/hooks/use-external-mode'
@@ -26,34 +27,36 @@ export function PremiumQuotaSummary(props: { quota?: PremiumQuota }) {
     percent = calculated > 100n ? 100 : Number(calculated)
   }
   return (
-    <div className='bg-muted/40 min-w-0 space-y-3 rounded-lg p-3 text-xs'>
+    <div className='bg-muted/40 min-w-0 space-y-3 rounded-lg p-3 text-sm'>
       <div className='flex items-center justify-between gap-2'>
         <span className='font-medium'>{t('Premium model quota')}</span>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                type='button'
-                variant='ghost'
-                size='icon-xs'
-                className='text-muted-foreground -my-1 -me-1'
-                aria-label={t('Premium model quota settings')}
-              />
-            }
-          >
-            <Info className='size-3.5' aria-hidden='true' />
-          </TooltipTrigger>
-          <TooltipContent className='flex-col items-start gap-1.5'>
-            <p>
-              {quota.percent_source === 'user'
-                ? t('User override')
-                : t('System default')}
-              {' · '}
-              {quota.effective_percent}%
-            </p>
-            <p>{t('Quota usage includes pending request reservations.')}</p>
-          </TooltipContent>
-        </Tooltip>
+        <TooltipProvider delay={100}>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon-xs'
+                  className='text-muted-foreground -my-1 -me-1'
+                  aria-label={t('Premium model quota settings')}
+                />
+              }
+            >
+              <Info className='size-3.5' aria-hidden='true' />
+            </TooltipTrigger>
+            <TooltipContent className='flex-col items-start gap-1.5'>
+              <p>
+                {quota.percent_source === 'user'
+                  ? t('User override')
+                  : t('System default')}
+                {' · '}
+                {quota.effective_percent}%
+              </p>
+              <p>{t('Quota usage includes pending request reservations.')}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       <div className='space-y-2'>
         <div className='flex flex-wrap items-baseline gap-x-1.5 gap-y-1 tabular-nums'>
