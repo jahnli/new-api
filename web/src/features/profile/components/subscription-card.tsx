@@ -195,7 +195,7 @@ function SubscriptionItem({
   }
 
   return (
-    <div className='flex flex-col justify-between rounded-xl border p-3 sm:p-4'>
+    <div className='flex min-w-0 flex-col justify-between gap-3 rounded-xl border p-3 sm:p-4'>
       <div>
         <div className='flex items-center justify-between gap-2'>
           <span className='truncate text-sm font-medium'>
@@ -233,7 +233,7 @@ function SubscriptionItem({
 
       <PremiumQuotaSummary quota={sub.premium_quota} />
       {totalAmount > 0 && (
-        <div className='mt-3 border-t pt-3'>
+        <div className='border-t pt-3'>
           <div className='flex items-center justify-between text-xs'>
             <Tooltip>
               <TooltipTrigger
