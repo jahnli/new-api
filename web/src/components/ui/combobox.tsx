@@ -53,6 +53,7 @@ type LegacyComboboxProps = {
   showSelectedIcon?: boolean
   className?: string
   itemClassName?: string
+  popupClassName?: string
   id?: string
   openOnFocus?: boolean
   showSelectedOptionContent?: boolean
@@ -95,6 +96,7 @@ function Combobox(
         emptyText={props.emptyText}
         className={props.className}
         itemClassName={props.itemClassName}
+        popupClassName={props.popupClassName}
         allowCustomValue={props.allowCustomValue}
         showCustomValueHint={props.showCustomValueHint}
         filterByValue={props.filterByValue}
@@ -185,7 +187,7 @@ function OptionCombobox(props: LegacyComboboxProps) {
           )}
         </ComboboxInput>
       </div>
-      <ComboboxContent anchor={anchor}>
+      <ComboboxContent anchor={anchor} className={props.popupClassName}>
         <ComboboxEmpty>
           {props.emptyText ?? t('No results found')}
         </ComboboxEmpty>

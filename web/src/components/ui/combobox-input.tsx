@@ -41,6 +41,7 @@ interface ComboboxInputProps {
   emptyText?: string
   className?: string
   itemClassName?: string
+  popupClassName?: string
   id?: string
   allowCustomValue?: boolean
   showCustomValueHint?: boolean
@@ -62,6 +63,7 @@ export function ComboboxInput({
   emptyText = 'No option found.',
   className,
   itemClassName,
+  popupClassName,
   id,
   allowCustomValue = false,
   showCustomValueHint = true,
@@ -323,7 +325,10 @@ export function ComboboxInput({
               left: dropdown.left,
               width: dropdown.width,
             }}
-            className='bg-popover text-popover-foreground ring-foreground/10 z-100 overflow-hidden rounded-lg shadow-md ring-1'
+            className={cn(
+              'bg-popover text-popover-foreground ring-foreground/10 z-100 overflow-hidden rounded-lg shadow-md ring-1',
+              popupClassName
+            )}
           >
             {filteredOptions.length > 0 ? (
               <ul
