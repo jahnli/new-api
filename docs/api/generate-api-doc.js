@@ -1888,7 +1888,8 @@ var api_doc_template_default = `<!doctype html>
         padding: 8px 12px;
       }
       .outline summary {
-        font-size: 12px;
+        font-size: 16px;
+        font-weight: 600;
         letter-spacing: 1px;
       }
       .outline a {
@@ -2284,7 +2285,7 @@ var api_doc_template_default = `<!doctype html>
       }
       /* Keep parameter documentation on the left and examples on the right. */
       .columns {
-        grid-template-columns: minmax(0, 1fr) minmax(290px, 360px);
+        grid-template-columns: minmax(0, 1fr) minmax(290px, 340px);
         column-gap: 24px;
       }
       .content {
@@ -2435,6 +2436,411 @@ var api_doc_template_default = `<!doctype html>
           min-width: 0;
         }
       }
+      /* Compact parameter inspector; shared with nested object/array editors. */
+      #body-form,
+      #body-form .body-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+      }
+      #body-form {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      #body-form .body-subheading {
+        padding: 12px 16px;
+        margin: 0;
+        background: var(--soft);
+        font-weight: 600;
+      }
+      #body-form div.body-field {
+        display: grid;
+        grid-template-columns: minmax(120px, 30%) minmax(0, 1fr);
+        align-items: start;
+        gap: 16px;
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      #body-form .body-field > label {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+        margin: 0;
+        padding-top: 7px;
+        overflow-wrap: anywhere;
+        font-family: Consolas, monospace;
+      }
+      #body-form label .caption {
+        font-size: 11px;
+        font-weight: 400;
+      }
+      #body-form .body-value {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 0 6px;
+        min-width: 0;
+      }
+      #body-form .body-value > input,
+      #body-form .body-value > select,
+      #body-form .body-value > textarea {
+        grid-column: 1;
+        grid-row: 1;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        box-shadow: 0 1px 2px #00000005;
+      }
+      #body-form .body-value > .body-error {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+      #body-form .body-value > .body-tools {
+        grid-column: 2;
+        grid-row: 1;
+        margin: 4px 0;
+      }
+      #body-form .body-tools button {
+        min-height: 32px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+      #body-form .body-union-controls {
+        display: grid;
+        grid-template-columns: minmax(88px, 115px) minmax(0, 1fr);
+        align-items: start;
+        gap: 8px;
+        min-width: 0;
+      }
+      #body-form .body-union-controls > select {
+        background: var(--soft);
+        font-size: 12px;
+      }
+      #body-form .body-union-controls > div.body-field {
+        display: block;
+        padding: 0;
+        border: 0;
+      }
+      #body-form .body-union-controls > .body-field > label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      #body-form .body-union-controls > details {
+        grid-column: 1 / -1;
+      }
+      #body-form .body-group {
+        margin: 0;
+        padding: 12px 16px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      #body-form .body-group .body-grid {
+        margin-top: 12px;
+        padding-left: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      #body-form .advanced-fields {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+      }
+      #body-form .advanced-fields > summary {
+        padding: 14px 16px;
+        background: var(--soft);
+        color: var(--ink);
+      }
+      #body-form .advanced-fields > .body-grid {
+        margin: 0;
+      }
+      #body-form .advanced-fields > summary .caption {
+        margin-left: 8px;
+        font-weight: 400;
+      }
+      .body-mode {
+        display: flex;
+        justify-content: flex-start;
+        gap: 20px;
+        padding: 0;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        background: transparent;
+        margin-bottom: 20px;
+      }
+      .body-mode button {
+        flex: 0 0 auto;
+        padding: 10px 2px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .body-mode button[aria-pressed="true"] {
+        border-bottom-color: var(--accent);
+        background: transparent;
+        box-shadow: none;
+        color: var(--accent);
+      }
+      @media (max-width: 620px) {
+        #body-form div.body-field {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 8px;
+          padding: 12px;
+        }
+        #body-form .body-field > label {
+          flex-direction: row;
+          justify-content: space-between;
+          padding: 0;
+        }
+        #body-form .body-union-controls {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      /* Input/Select visual tokens adapted from web/src/components/ui.
+         Native controls preserve standalone HTML and keyboard semantics. */
+      .request-card {
+        --control-border: #d8dce4;
+        --control-ring: color-mix(in srgb, var(--accent) 22%, transparent);
+        --control-shadow: 0 1px 2px #00000006;
+      }
+      [data-theme="dark"] .request-card {
+        --control-border: #465166;
+        --control-shadow: 0 1px 2px #00000020;
+      }
+      .request-card #base-url,
+      #body-form .body-field :is(input, select, textarea) {
+        box-sizing: border-box;
+        min-height: 36px;
+        border: 1px solid var(--control-border);
+        border-radius: 8px;
+        background-color: var(--bg);
+        color: var(--ink);
+        padding: 7px 11px;
+        font-size: 13px;
+        line-height: 20px;
+        box-shadow: var(--control-shadow);
+        outline: none;
+        transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+      }
+      .request-card #base-url::placeholder,
+      #body-form :is(input, textarea)::placeholder {
+        color: var(--muted);
+        opacity: 0.75;
+      }
+      #body-form .body-field select {
+        appearance: none;
+        padding-right: 34px;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23778192' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8 9 4-4 4 4M8 15l4 4 4-4'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        text-overflow: ellipsis;
+      }
+      #body-form .body-field select:hover,
+      .request-card #base-url:hover,
+      #body-form .body-field :is(input, textarea):hover {
+        border-color: color-mix(in srgb, var(--ink) 35%, var(--control-border));
+      }
+      .request-card #base-url:focus-visible,
+      #body-form .body-field :is(input, select, textarea):focus-visible {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--control-ring);
+      }
+      .request-card #base-url[aria-invalid="true"],
+      #body-form .body-field [aria-invalid="true"] {
+        border-color: #d24960;
+        box-shadow: 0 0 0 3px #d249601a;
+      }
+      #body-form .body-field :is(input, select, textarea):disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: var(--soft);
+      }
+      #body-form .body-field textarea {
+        min-height: 100px;
+        line-height: 1.65;
+      }
+      #body-form .body-value > .body-tools {
+        margin: 2px 0;
+      }
+      @supports (appearance: base-select) {
+        #body-form .body-field select,
+        #body-form .body-field select::picker(select) {
+          appearance: base-select;
+        }
+        #body-form .body-field select::picker-icon {
+          content: "";
+          display: block;
+          flex: 0 0 16px;
+          align-self: center;
+          margin-block: 0;
+          width: 16px;
+          height: 16px;
+          border: 0;
+          background-color: currentColor;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+          color: var(--muted);
+          transform: rotate(0deg);
+          transform-origin: center;
+          transition: transform 180ms ease, color 160ms ease;
+        }
+        #body-form .body-field select {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          height: 36px;
+          padding-block: 0;
+          background-image: none;
+          padding-right: 12px;
+        }
+        #body-form .body-field select:open::picker-icon {
+          transform: rotate(180deg);
+          color: var(--accent);
+        }
+        #body-form .body-field select::picker(select) {
+          margin-top: 5px;
+          padding: 4px;
+          border: 1px solid var(--control-border);
+          border-radius: 10px;
+          background: var(--bg);
+          color: var(--ink);
+          box-shadow: 0 8px 24px #00000018, 0 2px 6px #00000008;
+          max-height: 280px;
+          overflow-y: auto;
+          font-size: 13px;
+        }
+        #body-form .body-field option {
+          padding: 7px 10px;
+          min-height: 34px;
+          border-radius: 6px;
+          cursor: pointer;
+          gap: 10px;
+        }
+        #body-form .body-field option:hover,
+        #body-form .body-field option:focus-visible {
+          background: var(--soft);
+          outline: none;
+        }
+        #body-form .body-field option:checked {
+          background: var(--tint);
+          color: var(--accent);
+          font-weight: 500;
+        }
+        #body-form .body-field option::checkmark {
+          order: 1;
+          margin-left: auto;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .request-card #base-url,
+        #body-form .body-field :is(input, select, textarea) {
+          transition: none;
+        }
+      }
+      .request-card > .config {
+        padding-top: 14px;
+        padding-bottom: 8px;
+      }
+      #base-url-error {
+        margin: 6px 0 0;
+        padding: 0;
+      }
+      #base-url-error:empty {
+        display: none;
+      }
+      /* Shared disclosure indicator, including dynamically rendered fields. */
+      details > summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        list-style: none;
+        cursor: pointer;
+      }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+      details > summary::marker {
+        content: "";
+      }
+      details > summary::after,
+      .outline[open] > summary::after {
+        content: "";
+        display: block;
+        flex: 0 0 7px;
+        width: 7px;
+        height: 7px;
+        margin: 0 5px 0 auto;
+        border: solid currentColor;
+        border-width: 0 1.5px 1.5px 0;
+        color: var(--muted);
+        transform: rotate(-45deg);
+        transform-origin: center;
+        transition: transform 220ms cubic-bezier(.2,.7,.2,1), color 160ms ease;
+      }
+      details[open]:not([data-target-open="false"]) > summary::after,
+      details[data-target-open="true"] > summary::after {
+        transform: rotate(45deg);
+      }
+      details > summary:hover::after,
+      details > summary:focus-visible::after {
+        color: var(--accent);
+      }
+      button,
+      details > summary {
+        transition: background-color 160ms ease, color 160ms ease,
+          border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      }
+      :is(button, a) svg {
+        transform-origin: center;
+        transition: transform 160ms ease, opacity 160ms ease, color 160ms ease;
+      }
+      :is(button, a):hover svg,
+      :is(button, a):focus-visible svg {
+        transform: scale(1.08);
+      }
+      button:active svg {
+        transform: scale(.94);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        details > summary::after,
+        .outline[open] > summary::after,
+        #body-form .body-field select::picker-icon,
+        button,
+        details > summary,
+        :is(button, a) svg {
+          transition: none;
+        }
+        :is(button, a):is(:hover, :focus-visible, :active) svg {
+          transform: none;
+        }
+      }
+      /* Fill the viewport without outer horizontal gutters. */
+      .layout {
+        width: 100%;
+        max-width: none;
+        margin-inline: 0;
+        padding-inline: 0;
+      }
+      main {
+        padding-right: 0;
+        padding-left: 12px;
+      }
+      .outline {
+        margin-inline: 0;
+        padding-left: 0;
+      }
     </style>
   </head>
   <body>
@@ -2554,10 +2960,6 @@ var api_doc_template_default = `<!doctype html>
                 placeholder="\u641C\u7D22\u53C2\u6570\u540D\u79F0\u6216\u8BF4\u660E\u2026"
               />
               <div id="request-fields"></div>
-              <p class="note">
-                \u53C2\u6570\u652F\u6301\u60C5\u51B5\u53D6\u51B3\u4E8E\u6240\u9009\u6A21\u578B\u4E0E\u4E0A\u6E38\u63D0\u4F9B\u5546\u3002\u6B64\u6587\u6863\u4FDD\u7559\u6240\u63D0\u4F9B OpenAPI
-                \u7684\u5B57\u6BB5\u7C7B\u578B\u3001\u679A\u4E3E\u4E0E\u5FC5\u586B\u7EA6\u675F\uFF0C\u4E0D\u8868\u793A\u6240\u6709\u6A21\u578B\u5747\u652F\u6301\u5168\u90E8\u5B57\u6BB5\u3002
-              </p>
             </section>
             <section id="responses" class="section">
               <div class="section-title">
@@ -3159,8 +3561,9 @@ function updateRequest() {
           );
           if (branch < 0) branch = 0;
           return (
-            '<div class="body-field body-wide">' +
+            '<div class="body-field body-wide body-union">' +
             label +
+            '<div class="body-union-controls">' +
             '<select data-branch="' +
             id +
             '" id="' +
@@ -3178,8 +3581,9 @@ function updateRequest() {
                   "</option>",
               )
               .join("") +
+            "</select>" +
             renderBodyField(schema.oneOf[branch], value, path, required) +
-            "</div>"
+            "</div></div>"
           );
         }
         if (
@@ -3193,7 +3597,7 @@ function updateRequest() {
               inner = value
                 .map(
                   (item, index) =>
-                    '<div class="body-wide">' +
+                    '<div class="body-wide body-array-item">' +
                     renderBodyField(
                       schema.items,
                       item,
@@ -3317,10 +3721,11 @@ function updateRequest() {
           (schema.type === "object" ? " body-wide" : "") +
           '">' +
           label +
+          '<div class="body-value">' +
           input +
           error +
           (unset ? '<div class="body-tools">' + unset + "</div>" : "") +
-          "</div>"
+          "</div></div>"
         );
       }
       function renderBodyForm() {
@@ -3347,7 +3752,7 @@ function updateRequest() {
           (key) => !common.has(key),
         ).length;
         $("body-form").innerHTML =
-          '<div class="body-subheading"><span>\u5FC5\u586B\u53C2\u6570</span><span>\u4FEE\u6539\u540E\u5B9E\u65F6\u66F4\u65B0\u4EE3\u7801</span></div>' +
+          '<div class="body-subheading"><span>\u5FC5\u586B\u53C2\u6570</span></div>' +
           mainFields +
           '<details class="advanced-fields" data-path="advanced"' +
           (configuredAdvanced ? " open" : "") +
