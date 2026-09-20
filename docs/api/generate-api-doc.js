@@ -945,8 +945,12 @@ var api_doc_template_default = `<!doctype html>
       .token-keyword {
         color: #7946a2;
       }
+      .token-function {
+        color: #2f6690;
+      }
       .token-comment {
         color: var(--muted);
+        font-style: italic;
       }
       [data-theme="dark"] .token-key {
         color: #a9bfff;
@@ -960,6 +964,9 @@ var api_doc_template_default = `<!doctype html>
       [data-theme="dark"] .token-literal,
       [data-theme="dark"] .token-keyword {
         color: #c2a9f7;
+      }
+      [data-theme="dark"] .token-function {
+        color: #8fc7ff;
       }
       @media (max-width: 1150px) and (min-width: 901px) {
         .layout {
@@ -1675,6 +1682,7 @@ var api_doc_template_default = `<!doctype html>
       .token-string,
       .token-number,
       .token-keyword,
+      .token-function,
       .token-comment,
       .token-literal {
         transition:
@@ -2171,8 +2179,13 @@ var api_doc_template_default = `<!doctype html>
         font-size: 11px;
         background: var(--soft);
       }
+      .examples[data-wrap="true"] pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
       .examples[data-wrap="false"] pre {
         white-space: pre;
+        overflow-wrap: normal;
         overflow-x: auto;
       }
       .code-footer {
@@ -2446,6 +2459,17 @@ var api_doc_template_default = `<!doctype html>
                 <span class="method">%%METHOD%%</span><code>%%PATH%%</code
                 ><button id="copy-path">\u590D\u5236\u8DEF\u5F84</button>
               </div>
+              <div class="config">
+                <label for="base-url">Base URL</label>
+                <input
+                  id="base-url"
+                  type="url"
+                  inputmode="url"
+                  spellcheck="false"
+                  aria-describedby="base-url-error"
+                />
+                <p class="error" id="base-url-error" role="status"></p>
+              </div>
               <details>
                 <summary>Authorization</summary>
                 <div class="config">
@@ -2546,7 +2570,7 @@ var api_doc_template_default = `<!doctype html>
               <div id="response-fields"></div>
             </section>
           </div>
-          <aside class="examples" id="examples" aria-label="\u8BF7\u6C42\u548C\u54CD\u5E94\u793A\u4F8B">
+          <aside class="examples" id="examples" data-wrap="true" aria-label="\u8BF7\u6C42\u548C\u54CD\u5E94\u793A\u4F8B">
             <div class="section-title">
               <div class="workspace-heading">
                 <h2>\u4EE3\u7801\u4E0E\u54CD\u5E94</h2>
@@ -2556,7 +2580,7 @@ var api_doc_template_default = `<!doctype html>
               <div class="preview-toolbar">
                 <strong>\u8BF7\u6C42\u793A\u4F8B</strong
                 ><button id="code-wrap" type="button" aria-pressed="true">
-                  \u81EA\u52A8\u6362\u884C
+                  \u6A2A\u5411\u6EDA\u52A8
                 </button>
               </div>
               <div class="code-panel">
@@ -2605,8 +2629,9 @@ var api_doc_template_default = `<!doctype html>
     <script>
       "use strict";
       %%DATA%%
-      // Sample the schema subset used by this document, including optional properties.
-      function sampleResponseSchema(schema) {
+      // Match Fumadocs OpenAPI's request sampling: examples first, then only
+      // required properties. Response placeholders still include every property.
+      function sampleSchema(schema, requiredOnly) {
         if (Object.hasOwn(schema, "example"))
           return structuredClone(schema.example);
         if (schema.examples?.length) return structuredClone(schema.examples[0]);
@@ -2615,16 +2640,24 @@ var api_doc_template_default = `<!doctype html>
         if (Object.hasOwn(schema, "const"))
           return structuredClone(schema.const);
         if (schema.enum?.length) return structuredClone(schema.enum[0]);
-        if (schema.oneOf?.length) return sampleResponseSchema(schema.oneOf[0]);
+        if (schema.oneOf?.length) return sampleSchema(schema.oneOf[0], requiredOnly);
+        if (schema.anyOf?.length) return sampleSchema(schema.anyOf[0], requiredOnly);
         const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-        if (type === "object")
+        if (type === "object") {
+          const names = requiredOnly
+            ? schema.required || []
+            : Object.keys(schema.properties || {});
           return Object.fromEntries(
-            Object.entries(schema.properties || {}).map(([name, child]) => [
-              name,
-              sampleResponseSchema(child),
-            ]),
+            names
+              .filter((name) => Object.hasOwn(schema.properties || {}, name))
+              .map((name) => [
+                name,
+                sampleSchema(schema.properties[name], requiredOnly),
+              ]),
           );
-        if (type === "array") return [sampleResponseSchema(schema.items || {})];
+        }
+        if (type === "array")
+          return [sampleSchema(schema.items || {}, requiredOnly)];
         if (type === "integer" || type === "number")
           return Math.min(
             schema.maximum ?? Infinity,
@@ -2633,6 +2666,12 @@ var api_doc_template_default = `<!doctype html>
         if (type === "boolean") return false;
         if (type === "null") return null;
         return "string";
+      }
+      function sampleRequestSchema(schema) {
+        return sampleSchema(schema, true);
+      }
+      function sampleResponseSchema(schema) {
+        return sampleSchema(schema, false);
       }
       const $ = (id) => document.getElementById(id);
       const escapeHtml = (text) =>
@@ -2757,6 +2796,56 @@ var api_doc_template_default = `<!doctype html>
           },
         );
       }
+      const codeKeywords = {
+        curl: ["curl", "POST", "GET", "PUT", "PATCH", "DELETE"],
+        javascript: [
+          "async", "await", "const", "let", "var", "function", "return",
+          "if", "else", "for", "while", "new", "class", "import", "from",
+        ],
+        go: [
+          "package", "import", "func", "var", "const", "type", "struct",
+          "interface", "return", "if", "else", "for", "range", "defer", "go",
+        ],
+        python: [
+          "import", "from", "as", "def", "return", "if", "elif", "else",
+          "for", "while", "in", "try", "except", "finally", "with", "class",
+        ],
+        java: [
+          "import", "class", "interface", "public", "private", "protected",
+          "static", "final", "var", "new", "try", "catch", "throws", "return",
+        ],
+        csharp: [
+          "using", "namespace", "class", "interface", "public", "private",
+          "protected", "static", "readonly", "var", "new", "await", "async",
+          "try", "catch", "return",
+        ],
+      };
+      function highlightCode(text, codeLanguage) {
+        const keywords = new Set(codeKeywords[codeLanguage] || []);
+        const literals = new Set([
+          "true", "false", "null", "nil", "None", "True", "False",
+        ]);
+        const pattern = /"""[\\s\\S]*?"""|'''[\\s\\S]*?'''|\\x60(?:\\\\[\\s\\S]|[^\\x60])*\\x60|"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*'|\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*|#[^\\n]*|-?\\b\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b|\\b[A-Za-z_$][\\w$]*\\b/g;
+        let html = "";
+        let index = 0;
+        for (const match of text.matchAll(pattern)) {
+          html += escapeHtml(text.slice(index, match.index));
+          const token = match[0];
+          let kind = "";
+          if (/^["'\\x60]/.test(token)) kind = "string";
+          else if (/^(?:\\/\\/|\\/\\*|#)/.test(token)) kind = "comment";
+          else if (/^-?\\d/.test(token)) kind = "number";
+          else if (literals.has(token)) kind = "literal";
+          else if (keywords.has(token)) kind = "keyword";
+          else if (/^[A-Za-z_$]/.test(token) && /^\\s*\\(/.test(text.slice(match.index + token.length)))
+            kind = "function";
+          html += kind
+            ? '<span class="token-' + kind + '">' + escapeHtml(token) + "</span>"
+            : escapeHtml(token);
+          index = match.index + token.length;
+        }
+        return html + escapeHtml(text.slice(index));
+      }
       let body = structuredClone(defaultRequest);
       let language = "curl";
       let responseKind = Object.keys(operation.responses)[0];
@@ -2851,48 +2940,107 @@ var api_doc_template_default = `<!doctype html>
           notify("\u6D4F\u89C8\u5668\u672A\u5141\u8BB8\u590D\u5236\uFF0C\u8BF7\u9009\u4E2D\u4EE3\u7801\u540E\u624B\u52A8\u590D\u5236\u3002");
         }
       }
-// Embedded in api-doc-template.html by --init-template; uses its document state.
+// Mirrors fumadocs-openapi 10.1.0 request generators used by new-api-docs-v1.
+function indentCode(code, tab = 1) {
+  return code
+    .split("\\n")
+    .map((line) => "  ".repeat(tab) + line)
+    .join("\\n");
+}
+function delimitedString(value, delimiter) {
+  return delimiter + value.replaceAll(delimiter, "\\\\" + delimiter) + delimiter;
+}
 function updateRequest() {
   const json = JSON.stringify(body, null, 2);
   const quote = JSON.stringify;
-  const shellQuote = (value) => "'" + value.replaceAll("'", "'\\"'\\"'") + "'";
-  const headers = JSON.stringify(requestHeaders, null, 2);
+  const headers = { ...requestHeaders };
   if (language === "curl") {
-    requestCode = [
-      "curl -X " + httpMethod + " " + shellQuote(endpoint),
-      ...Object.entries(requestHeaders).map(([name, value]) => "  -H " + shellQuote(name + ": " + value)),
-      "  --data-raw " + shellQuote(json),
-    ].join(" \\\\\\n");
+    const lines = ["curl -X " + httpMethod + ' "' + endpoint + '"'];
+    for (const [name, value] of Object.entries(requestHeaders))
+      lines.push('-H "' + name + ": " + value + '"');
+    lines.push('-H "Content-Type: application/json"');
+    lines.push("-d " + delimitedString(json, "'"));
+    requestCode = lines
+      .map((line, index) => indentCode(line, index > 0 ? 1 : 0))
+      .join(" " + String.fromCharCode(92) + "\\n");
   }
   if (language === "javascript") {
-    requestCode = "const response = await fetch(" + quote(endpoint) + ", {\\n  method: " + quote(httpMethod) +
-      ",\\n  headers: " + headers + ",\\n  body: JSON.stringify(" + json + ")\\n});\\nconsole.log(await response.text());";
+    const javascriptHeaders = {
+      "Content-Type": "application/json",
+      ...headers,
+    };
+    const options = [
+      "method: " + quote(httpMethod),
+      "headers: " + JSON.stringify(javascriptHeaders, null, 2),
+      "body",
+    ];
+    requestCode =
+      "const body = JSON.stringify(" + json + ")\\n\\nfetch(" +
+      quote(endpoint) + ", {\\n" +
+      options.map((option) => indentCode(option)).join(",\\n") +
+      "\\n})";
   }
   if (language === "python") {
-    requestCode = "import json\\nimport requests\\n\\nresponse = requests.request(\\n    " + quote(httpMethod) + ",\\n    " + quote(endpoint) +
-      ",\\n    headers=json.loads(" + quote(headers) + "),\\n    json=json.loads(" + quote(json) + "),\\n)\\nprint(response.text)";
+    const pythonHeaderValues = {
+      "Content-Type": "application/json",
+      ...headers,
+    };
+    const pythonHeaders =
+      "{\\n" +
+      Object.entries(pythonHeaderValues)
+        .map(([name, value]) => "  " + quote(name) + ": " + quote(value))
+        .join(", \\n") +
+      "\\n}";
+    requestCode =
+      "import requests\\n\\nurl = " + quote(endpoint) +
+      "\\nbody = " + delimitedString(json, '\"\"\"') +
+      "\\nresponse = requests.request(" + quote(httpMethod) +
+      ", url, data = body, headers = " + pythonHeaders +
+      ")\\n\\nprint(response.text)";
   }
   if (language === "go") {
-    requestCode = 'package main\\n\\nimport (\\n  "fmt"\\n  "io"\\n  "net/http"\\n  "strings"\\n)\\n\\nfunc main() {\\n' +
-      "  payload := strings.NewReader(" + quote(json) + ")\\n  req, err := http.NewRequest(" + quote(httpMethod) + ", " + quote(endpoint) + ", payload)\\n" +
-      "  if err != nil { panic(err) }\\n" + Object.entries(requestHeaders).map(([name, value]) => "  req.Header.Set(" + quote(name) + ", " + quote(value) + ")").join("\\n") +
-      "\\n  res, err := http.DefaultClient.Do(req)\\n  if err != nil { panic(err) }\\n  defer res.Body.Close()\\n  data, err := io.ReadAll(res.Body)\\n  if err != nil { panic(err) }\\n  fmt.Println(string(data))\\n}";
+    const goHeaders = new Map(Object.entries(requestHeaders));
+    goHeaders.set("Content-Type", "application/json");
+    requestCode =
+      'package main\\n\\nimport (\\n  "fmt"\\n  "net/http"\\n  "io/ioutil"\\n  "strings"\\n)\\n\\nfunc main() {\\n' +
+      "  url := " + quote(endpoint) +
+      "\\n  body := strings.NewReader(" + delimitedString(json, String.fromCharCode(96)) +
+      ")\\n  req, _ := http.NewRequest(" + quote(httpMethod) + ", url, body)\\n" +
+      indentCode([...goHeaders].map(([name, value]) =>
+        'req.Header.Add("' + name + '", ' + quote(value) + ")").join("\\n")) +
+      "\\n  res, _ := http.DefaultClient.Do(req)\\n  defer res.Body.Close()\\n  body, _ := ioutil.ReadAll(res.Body)\\n\\n  fmt.Println(res)\\n  fmt.Println(string(body))\\n}";
   }
   if (language === "java") {
-    requestCode = "import java.net.URI;\\nimport java.net.http.*;\\n\\npublic class Main {\\n  public static void main(String[] args) throws Exception {\\n" +
-      "    var client = HttpClient.newHttpClient();\\n    var request = HttpRequest.newBuilder(URI.create(" + quote(endpoint) + "))\\n" +
-      Object.entries(requestHeaders).map(([name, value]) => "      .header(" + quote(name) + ", " + quote(value) + ")").join("\\n") +
-      "\\n      .method(" + quote(httpMethod) + ", HttpRequest.BodyPublishers.ofString(" + quote(json) + "))\\n      .build();\\n" +
-      "    var response = client.send(request, HttpResponse.BodyHandlers.ofString());\\n    System.out.println(response.body());\\n  }\\n}";
+    const javaHeaders = new Map(Object.entries(requestHeaders));
+    javaHeaders.set("Content-Type", "application/json");
+    requestCode =
+      "import java.net.URI;\\nimport java.net.http.HttpClient;\\nimport java.net.http.HttpRequest;\\nimport java.net.http.HttpResponse;\\nimport java.net.http.HttpResponse.BodyHandlers;\\nimport java.time.Duration;\\nimport java.net.http.HttpRequest.BodyPublishers;\\n\\n" +
+      "var body = BodyPublishers.ofString(" + delimitedString(json, '\"\"\"') +
+      ");\\nHttpClient client = HttpClient.newBuilder()\\n  .connectTimeout(Duration.ofSeconds(10))\\n  .build();\\n\\nHttpRequest.Builder requestBuilder = HttpRequest.newBuilder()\\n  .uri(URI.create(" +
+      quote(endpoint) + "))\\n" +
+      [...javaHeaders].map(([name, value]) =>
+        "  .header(" + quote(name) + ", " + quote(value) + ")").join("\\n") +
+      "\\n  ." + httpMethod.toUpperCase() +
+      "(body)\\n  .build();\\n\\ntry {\\n  HttpResponse<String> response = client.send(requestBuilder.build(), BodyHandlers.ofString());\\n  System.out.println(" +
+      quote("Status code: ") +
+      " + response.statusCode());\\n  System.out.println(" +
+      quote("Response body: ") +
+      " + response.body());\\n} catch (Exception e) {\\n  e.printStackTrace();\\n}";
   }
   if (language === "csharp") {
-    requestCode = "using System;\\nusing System.Net.Http;\\nusing System.Text;\\n\\nusing var client = new HttpClient();\\n" +
-      "using var request = new HttpRequestMessage(new HttpMethod(" + quote(httpMethod) + "), " + quote(endpoint) + ");\\n" +
-      Object.entries(requestHeaders).filter(([name]) => name !== "Content-Type").map(([name, value]) => "request.Headers.TryAddWithoutValidation(" + quote(name) + ", " + quote(value) + ");\\n").join("") +
-      "request.Content = new StringContent(" + quote(json) + ', Encoding.UTF8, "application/json");\\n' +
-      "using var response = await client.SendAsync(request);\\nConsole.WriteLine(await response.Content.ReadAsStringAsync());";
+    const csharpHeaders = Object.entries(requestHeaders).map(([name, value]) =>
+      'client.DefaultRequestHeaders.Add("' + name + '", ' + quote(value) + ");").join("\\n");
+    const method = httpMethod[0].toUpperCase() +
+      httpMethod.slice(1).toLowerCase() + "Async";
+    requestCode =
+      "using System;\\nusing System.Net.Http;\\nusing System.Text;\\n\\nvar body = new StringContent(" +
+      delimitedString("\\n" + json + "\\n", '\"\"\"') +
+      ', Encoding.UTF8, "application/json");\\n\\nvar client = new HttpClient();\\n' +
+      (csharpHeaders ? csharpHeaders + "\\n" : "") +
+      "var response = await client." + method + '("' + endpoint +
+      '", body);\\nvar responseBody = await response.Content.ReadAsStringAsync();';
   }
-  $("request-code").textContent = requestCode;
+  $("request-code").innerHTML = highlightCode(requestCode, language);
   animateContent($("request-code").parentElement);
 }
       function updateResponse() {
@@ -2903,7 +3051,7 @@ function updateRequest() {
         if (example === undefined && media?.examples) example = Object.values(media.examples)[0]?.value;
         if (example === undefined && media) example = sampleResponseSchema(schema);
         responseCode = example === undefined ? response.description || "\u65E0\u54CD\u5E94\u4F53" : JSON.stringify(example, null, 2);
-        $("response-code").textContent = responseCode;
+        $("response-code").innerHTML = highlightJson(responseCode);
         $("response-fields").innerHTML = renderFields(schema) || "<p>" + escapeHtml(response.description || "\u65E0\u5B57\u6BB5\u5B9A\u4E49") + "</p>";
         document.querySelector("#responses .badge").textContent = responseKind;
         animateContent($("response-code").parentElement);
@@ -3325,6 +3473,30 @@ function updateRequest() {
         renderBodyForm();
         updateRequest();
       }
+      $("base-url").value = baseUrl;
+      $("base-url").addEventListener("input", () => {
+        const value = $("base-url").value.trim();
+        try {
+          const parsed = new URL(value);
+          if (!['http:', 'https:'].includes(parsed.protocol))
+            throw new Error("unsupported protocol");
+          if (parsed.search || parsed.hash)
+            throw new Error("query and hash are not supported");
+          baseUrl = parsed.href.endsWith("/")
+            ? parsed.href.slice(0, -1)
+            : parsed.href;
+          endpoint = baseUrl + apiPath;
+          $("base-url").removeAttribute("aria-invalid");
+          $("base-url-error").textContent = "";
+        } catch {
+          baseUrl = value;
+          endpoint = placeholderBaseUrl + apiPath;
+          $("base-url").setAttribute("aria-invalid", "true");
+          $("base-url-error").textContent =
+            "请输入以 http:// 或 https:// 开头且不含查询参数的有效 URL。";
+        }
+        updateRequest();
+      });
       $("request-fields").innerHTML = renderFields(requestSchema);
       
       $("search").addEventListener("input", () => {
@@ -3401,7 +3573,7 @@ function updateRequest() {
       $("code-wrap").addEventListener("click", () => {
         const wrap = $("code-wrap").getAttribute("aria-pressed") !== "true";
         $("code-wrap").setAttribute("aria-pressed", String(wrap));
-        $("code-wrap").textContent = wrap ? "\u81EA\u52A8\u6362\u884C" : "\u6A2A\u5411\u6EDA\u52A8";
+        $("code-wrap").textContent = wrap ? "\u6A2A\u5411\u6EDA\u52A8" : "\u81EA\u52A8\u6362\u884C";
         $("examples").dataset.wrap = String(wrap);
         animateContent($("request-code").parentElement);
       });
@@ -3512,19 +3684,17 @@ async function generate(input, output) {
     if (response.content && !response.content["application/json"])
       throw new Error("\u5F53\u524D\u6A21\u677F\u4EC5\u652F\u6301 JSON \u54CD\u5E94\u6216\u65E0\u54CD\u5E94\u4F53");
   }
-  const server = operation.servers?.[0] ?? item.servers?.[0] ?? document.servers?.[0];
-  let baseUrl = server?.url || "https://api.example.com";
-  for (const [name, definition] of Object.entries(server?.variables || {}))
-    baseUrl = baseUrl.replaceAll(`{${name}}`, definition.default);
-  const endpoint = baseUrl.replace(/\/$/, "") + path;
   const title = operation.summary || document.info?.title || operation.operationId || path;
   const data = `const operation = ${scriptJson(operation)};
       const apiPath = ${scriptJson(path)};
-      const endpoint = ${scriptJson(endpoint)};
+      const defaultBaseUrl = "https://";
+      const placeholderBaseUrl = "https://URL";
+      let baseUrl = defaultBaseUrl;
+      let endpoint = placeholderBaseUrl + apiPath;
       const httpMethod = ${scriptJson(method.toUpperCase())};
-      const requestHeaders = ${scriptJson({ "Content-Type": "application/json", ...scheme ? { Authorization: "Bearer YOUR_API_KEY" } : {} })};
+      const requestHeaders = ${scriptJson(scheme ? { Authorization: "Bearer " } : {})};
       const requestSchema = operation.requestBody.content["application/json"].schema;
-      const defaultRequest = ${media.example !== undefined ? scriptJson(media.example) : "Object.fromEntries((requestSchema.required || []).map(name => [name, sampleResponseSchema(requestSchema.properties[name] || {})]))"};`;
+      const defaultRequest = ${media.example !== undefined ? scriptJson(media.example) : Object.values(media.examples || {})[0]?.value !== undefined ? scriptJson(Object.values(media.examples)[0].value) : "sampleRequestSchema(requestSchema)"};`;
   const slots = {
     TITLE: escapeHtml(title),
     INTRO: escapeHtml(operation.description || document.info?.description || ""),
@@ -3544,7 +3714,7 @@ async function generate(input, output) {
     return slots[key];
   });
   for (const [, script] of html.matchAll(/<script>([\s\S]*?)<\/script>/g))
-    new Script(script);
+    new Script(script, { filename: "api-doc-inline.js" });
   if ([fileURLToPath(new URL("./chat-completions.html", import.meta.url)), resolve(input)].includes(resolve(output)))
     throw new Error("\u8F93\u51FA\u4E0D\u80FD\u8986\u76D6\u53C2\u8003\u9875\u9762\u6216\u8F93\u5165 JSON");
   await writeFile(output, html);
@@ -3555,6 +3725,6 @@ try {
   const output = fileURLToPath(new URL("./api-doc.html", import.meta.url));
   await generate(input, output);
 } catch (error) {
-  console.error(error.message);
+  console.error(error.stack || error.message);
   process.exitCode = 1;
 }
