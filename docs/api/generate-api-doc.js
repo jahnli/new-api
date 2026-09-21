@@ -2638,7 +2638,7 @@ var api_doc_template_default = `<!doctype html>
         --control-border: #465166;
         --control-shadow: 0 1px 2px #00000020;
       }
-      .request-card #base-url,
+      .request-card :is(#base-url, #api-key),
       #body-form .body-field :is(input, select, textarea) {
         box-sizing: border-box;
         min-height: 36px;
@@ -2653,7 +2653,7 @@ var api_doc_template_default = `<!doctype html>
         outline: none;
         transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
       }
-      .request-card #base-url::placeholder,
+      .request-card :is(#base-url, #api-key)::placeholder,
       #body-form :is(input, textarea)::placeholder {
         color: var(--muted);
         opacity: 0.75;
@@ -2668,16 +2668,16 @@ var api_doc_template_default = `<!doctype html>
         text-overflow: ellipsis;
       }
       #body-form .body-field select:hover,
-      .request-card #base-url:hover,
+      .request-card :is(#base-url, #api-key):hover,
       #body-form .body-field :is(input, textarea):hover {
         border-color: color-mix(in srgb, var(--ink) 35%, var(--control-border));
       }
-      .request-card #base-url:focus-visible,
+      .request-card :is(#base-url, #api-key):focus-visible,
       #body-form .body-field :is(input, select, textarea):focus-visible {
         border-color: var(--accent);
         box-shadow: 0 0 0 3px var(--control-ring);
       }
-      .request-card #base-url[aria-invalid="true"],
+      .request-card :is(#base-url, #api-key)[aria-invalid="true"],
       #body-form .body-field [aria-invalid="true"] {
         border-color: #d24960;
         box-shadow: 0 0 0 3px #d249601a;
@@ -2896,11 +2896,10 @@ var api_doc_template_default = `<!doctype html>
                 />
                 <p class="error" id="base-url-error" role="status"></p>
               </div>
-              <details>
+              <details open>
                 <summary>Authorization</summary>
                 <div class="config">
-                  <code>%%AUTH%%</code>
-                  <p>\u5728\u5F00\u53D1\u73AF\u5883\u4E2D\u4F7F\u7528 API Key \u66FF\u6362\u5360\u4F4D\u7B26\u3002</p>
+                  %%AUTH_CONTROL%%
                 </div>
               </details>
               <details open>
@@ -3920,6 +3919,12 @@ function updateRequest() {
         }
         updateRequest();
       });
+      $("api-key")?.addEventListener("input", (event) => {
+        const apiKey = event.currentTarget.value.trim();
+        requestHeaders.Authorization =
+          "Bearer " + (apiKey || "YOUR_API_KEY");
+        updateRequest();
+      });
       $("request-fields").innerHTML = renderFields(requestSchema);
       
       $("search").addEventListener("input", () => {
@@ -4114,7 +4119,7 @@ async function generate(input, output) {
       let baseUrl = defaultBaseUrl;
       let endpoint = placeholderBaseUrl + apiPath;
       const httpMethod = ${scriptJson(method.toUpperCase())};
-      const requestHeaders = ${scriptJson(scheme ? { Authorization: "Bearer " } : {})};
+      const requestHeaders = ${scriptJson(scheme ? { Authorization: "Bearer YOUR_API_KEY" } : {})};
       const requestSchema = operation.requestBody.content["application/json"].schema;
       const defaultRequest = ${media.example !== undefined ? scriptJson(media.example) : Object.values(media.examples || {})[0]?.value !== undefined ? scriptJson(Object.values(media.examples)[0].value) : "sampleRequestSchema(requestSchema)"};`;
   const slots = {
@@ -4125,6 +4130,19 @@ async function generate(input, output) {
     STATUS: escapeHtml(Object.keys(operation.responses)[0]),
     SECURITY: escapeHtml(securityName || "\u65E0\u8BA4\u8BC1"),
     AUTH: scheme ? "Authorization: Bearer YOUR_API_KEY" : "\u6B64\u63A5\u53E3\u672A\u8981\u6C42\u8BA4\u8BC1",
+    AUTH_CONTROL: scheme
+      ? `<label for="api-key">API Key</label>
+                <input
+                  id="api-key"
+                  type="password"
+                  placeholder="YOUR_API_KEY"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  aria-describedby="api-key-help"
+                />
+                <p id="api-key-help">\u4EC5\u7528\u4E8E\u66F4\u65B0\u5F53\u524D\u9875\u9762\u7684\u8BF7\u6C42\u793A\u4F8B\uFF0C\u4E0D\u4F1A\u5B58\u50A8\u6216\u53D1\u9001\u3002</p>`
+      : "<p>\u6B64\u63A5\u53E3\u672A\u8981\u6C42\u8BA4\u8BC1\u3002</p>",
     AUTH_DESCRIPTION: escapeHtml(scheme?.description || (scheme ? "\u5728\u8BF7\u6C42\u5934\u4E2D\u643A\u5E26 Bearer Token\u3002" : "OpenAPI \u672A\u58F0\u660E\u8BA4\u8BC1\u8981\u6C42\u3002")),
     AUTH_LOCATION: scheme ? "\u4F4D\u7F6E\uFF1A<code>header</code>" : "",
     RESPONSE_TABS: Object.keys(operation.responses).map((status, index) => `<button data-response="${escapeHtml(status)}" aria-pressed="${index === 0}">${escapeHtml(status)}</button>`).join(""),
