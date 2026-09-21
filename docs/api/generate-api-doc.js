@@ -2356,6 +2356,12 @@ var api_doc_template_default = `<!doctype html>
         border: 1px solid var(--line);
         border-radius: 7px;
       }
+      .request-parameter-group + .request-parameter-group {
+        margin-top: 20px;
+      }
+      .request-parameter-group > h3 {
+        margin-bottom: 10px;
+      }
       .schema-table {
         width: 100%;
         min-width: 660px;
@@ -2902,7 +2908,10 @@ var api_doc_template_default = `<!doctype html>
                   %%AUTH_CONTROL%%
                 </div>
               </details>
-              <details open>
+              %%HEADER_CONTROLS%%
+              %%QUERY_CONTROLS%%
+              %%MULTIPART_CONTROLS%%
+              <details open %%JSON_BODY_HIDDEN%%>
                 <summary>
                   \u8BF7\u6C42\u914D\u7F6E <span class="caption">application/json</span>
                 </summary>
@@ -2968,7 +2977,7 @@ var api_doc_template_default = `<!doctype html>
             <section id="request" class="section">
               <div class="section-title">
                 <h2>\u8BF7\u6C42\u53C2\u6570</h2>
-                <span class="caption">Body \xB7 application/json</span>
+                <span class="caption">%%REQUEST_LOCATIONS%%</span>
               </div>
               <label for="search" class="caption"
                 >\u641C\u7D22\u53C2\u6570\u540D\u79F0\u6216\u8BF4\u660E\uFF08\u542B\u5D4C\u5957\u5B57\u6BB5\uFF09</label
@@ -2978,7 +2987,13 @@ var api_doc_template_default = `<!doctype html>
                 type="search"
                 placeholder="\u641C\u7D22\u53C2\u6570\u540D\u79F0\u6216\u8BF4\u660E\u2026"
               />
-              <div id="request-fields"></div>
+              %%HEADER_DOCUMENTATION%%
+              %%QUERY_DOCUMENTATION%%
+              <div class="request-parameter-group" id="request-body-group">
+                <h3>Body <span class="caption">%%BODY_MEDIA_TYPE%%</span></h3>
+                <div id="request-fields"></div>
+              </div>
+              <div class="empty" id="request-empty" hidden>\u6CA1\u6709\u5339\u914D\u7684\u53C2\u6570</div>
             </section>
             <section id="responses" class="section">
               <div class="section-title">
@@ -3112,6 +3127,7 @@ var api_doc_template_default = `<!doctype html>
         if (schema.type === "array")
           return "array<" + typeLabel(schema.items) + ">";
         if (Array.isArray(schema.type)) return schema.type.join(" | ");
+        if (schema.format === "binary") return "file";
         return schema.type || "any";
       }
       function renderFields(schema, query = "", path = "") {
@@ -3141,7 +3157,7 @@ var api_doc_template_default = `<!doctype html>
                 constraints.push("\u679A\u4E3E: " + branch.enum.join(" \xB7 "));
             if ("minimum" in field) constraints.push("\u6700\u5C0F: " + field.minimum);
             if ("maximum" in field) constraints.push("\u6700\u5927: " + field.maximum);
-            if (field.examples)
+            if (field.examples && field.format !== "binary")
               constraints.push("\u793A\u4F8B: " + field.examples.join(", "));
             if (field.additionalProperties)
               constraints.push(
@@ -3371,41 +3387,134 @@ function indentCode(code, tab = 1) {
 function delimitedString(value, delimiter) {
   return delimiter + value.replaceAll(delimiter, "\\\\" + delimiter) + delimiter;
 }
+function requestEndpoint() {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(queryValues))
+    if (value !== "") query.set(name, value);
+  const suffix = query.toString();
+  return suffix ? endpoint + "?" + suffix : endpoint;
+}
+function updateMultipartRequest() {
+  const quote = JSON.stringify;
+  const url = requestEndpoint();
+  const fields = Object.entries(multipartValues).filter(([, value]) => value !== "");
+  const files = fields.filter(([name]) => requestSchema.properties[name].format === "binary");
+  const text = fields.filter(([name]) => requestSchema.properties[name].format !== "binary");
+  if (language === "curl") {
+    const lines = ["curl -X " + httpMethod + " '" + url + "'"];
+    for (const [name, value] of Object.entries(requestHeaders))
+      lines.push("-H '" + name + ": " + value + "'");
+    for (const [name, value] of fields)
+      lines.push("-F '" + name + "=" + (requestSchema.properties[name].format === "binary" ? "@" : "") + value + "'");
+    requestCode = lines.join(" " + String.fromCharCode(92) + "\\n  ");
+  }
+  if (language === "javascript") {
+    requestCode =
+      'import { readFile } from "node:fs/promises";\\nimport { basename } from "node:path";\\n\\n' +
+      "const form = new FormData();\\n" +
+      text.map(([name, value]) => "form.append(" + quote(name) + ", " + quote(value) + ");").join("\\n") +
+      (text.length ? "\\n" : "") +
+      files.map(([name, path]) => "form.append(" + quote(name) + ", new Blob([await readFile(" + quote(path) + ")]), basename(" + quote(path) + "));").join("\\n") +
+      "\\nconst response = await fetch(" + quote(url) + ", {\\n  method: " + quote(httpMethod) +
+      ",\\n  headers: " + JSON.stringify(requestHeaders, null, 2) +
+      ",\\n  body: form,\\n});\\nconsole.log(await response.text());";
+  }
+  if (language === "python") {
+    requestCode =
+      "import requests\\nfrom contextlib import ExitStack\\n\\n" +
+      "with ExitStack() as stack:\\n" +
+      "    files = {\\n" + files.map(([name, path]) => "        " + quote(name) + ": stack.enter_context(open(" + quote(path) + ', "rb")),').join("\\n") + "\\n    }\\n" +
+      "    data = " + JSON.stringify(Object.fromEntries(text)) + "\\n" +
+      "    response = requests.request(" + quote(httpMethod) + ", " + quote(url) +
+      ", headers=" + JSON.stringify(requestHeaders) + ", data=data, files=files)\\n" +
+      "    print(response.text)";
+  }
+  if (language === "go") {
+    requestCode =
+      'package main\\n\\nimport (\\n  "bytes"\\n  "fmt"\\n  "io"\\n  "mime/multipart"\\n  "net/http"\\n  "os"\\n  "path/filepath"\\n)\\n\\nfunc main() {\\n' +
+      "  var body bytes.Buffer\\n  writer := multipart.NewWriter(&body)\\n" +
+      text.map(([name, value]) => "  if err := writer.WriteField(" + quote(name) + ", " + quote(value) + "); err != nil { panic(err) }").join("\\n") +
+      (text.length ? "\\n" : "") +
+      files.map(([name, path], index) =>
+        "  file" + index + ", err := os.Open(" + quote(path) + ")\\n  if err != nil { panic(err) }\\n" +
+        "  part" + index + ", err := writer.CreateFormFile(" + quote(name) + ", filepath.Base(" + quote(path) + "))\\n  if err != nil { panic(err) }\\n" +
+        "  if _, err := io.Copy(part" + index + ", file" + index + "); err != nil { panic(err) }\\n  file" + index + ".Close()").join("\\n") +
+      "\\n  if err := writer.Close(); err != nil { panic(err) }\\n" +
+      "  req, err := http.NewRequest(" + quote(httpMethod) + ", " + quote(url) + ", &body)\\n  if err != nil { panic(err) }\\n" +
+      "  req.Header.Set(\\\"Content-Type\\\", writer.FormDataContentType())\\n" +
+      Object.entries(requestHeaders).map(([name, value]) => "  req.Header.Set(" + quote(name) + ", " + quote(value) + ")").join("\\n") +
+      "\\n  res, err := http.DefaultClient.Do(req)\\n  if err != nil { panic(err) }\\n  defer res.Body.Close()\\n  data, err := io.ReadAll(res.Body)\\n  if err != nil { panic(err) }\\n  fmt.Println(string(data))\\n}";
+  }
+  if (language === "java") {
+    requestCode =
+      "import java.io.ByteArrayOutputStream;\\nimport java.net.URI;\\nimport java.net.http.*;\\nimport java.nio.charset.StandardCharsets;\\nimport java.nio.file.*;\\nimport java.util.UUID;\\n\\n" +
+      "var boundary = \\\"----api-doc-\\\" + UUID.randomUUID();\\nvar out = new ByteArrayOutputStream();\\n" +
+      text.map(([name, value]) => "out.write((\\\"--\\\" + boundary + " + quote("\\r\\nContent-Disposition: form-data; name=\\\"" + name + "\\\"\\r\\n\\r\\n" + value + "\\r\\n") + ").getBytes(StandardCharsets.UTF_8));").join("\\n") +
+      (text.length ? "\\n" : "") +
+      files.map(([name, path], index) =>
+        "var file" + index + " = Path.of(" + quote(path) + ");\\n" +
+        "out.write((\\\"--\\\" + boundary + " + quote("\\r\\nContent-Disposition: form-data; name=\\\"" + name + "\\\"; filename=\\\"") + " + file" + index + ".getFileName() + " + quote("\\\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\n") + ").getBytes(StandardCharsets.UTF_8));\\n" +
+        "out.write(Files.readAllBytes(file" + index + "));\\nout.write(" + quote("\\r\\n") + ".getBytes(StandardCharsets.UTF_8));").join("\\n") +
+      "\\nout.write((\\\"--\\\" + boundary + " + quote("--\\r\\n") + ").getBytes(StandardCharsets.UTF_8));\\n" +
+      "var request = HttpRequest.newBuilder(URI.create(" + quote(url) + "))\\n" +
+      Object.entries(requestHeaders).map(([name, value]) => "  .header(" + quote(name) + ", " + quote(value) + ")").join("\\n") +
+      "\\n  .header(\\\"Content-Type\\\", \\\"multipart/form-data; boundary=\\\" + boundary)\\n" +
+      "  .method(" + quote(httpMethod) + ", HttpRequest.BodyPublishers.ofByteArray(out.toByteArray()))\\n  .build();\\n" +
+      "var response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());\\nSystem.out.println(response.body());";
+  }
+  if (language === "csharp") {
+    requestCode =
+      "using System;\\nusing System.IO;\\nusing System.Net.Http;\\n\\n" +
+      "using var client = new HttpClient();\\nusing var form = new MultipartFormDataContent();\\n" +
+      text.map(([name, value]) => "form.Add(new StringContent(" + quote(value) + "), " + quote(name) + ");").join("\\n") +
+      (text.length ? "\\n" : "") +
+      files.map(([name, path]) => "form.Add(new StreamContent(File.OpenRead(" + quote(path) + ")), " + quote(name) + ", Path.GetFileName(" + quote(path) + "));").join("\\n") +
+      "\\nusing var request = new HttpRequestMessage(new HttpMethod(" + quote(httpMethod) + "), " + quote(url) + ");\\nrequest.Content = form;\\n" +
+      Object.entries(requestHeaders).map(([name, value]) => "request.Headers.TryAddWithoutValidation(" + quote(name) + ", " + quote(value) + ");").join("\\n") +
+      "\\nvar response = await client.SendAsync(request);\\nConsole.WriteLine(await response.Content.ReadAsStringAsync());";
+  }
+  $("request-code").innerHTML = highlightCode(requestCode, language);
+}
 function updateRequest() {
+  if (bodyMediaType === "multipart/form-data") {
+    updateMultipartRequest();
+    return;
+  }
   const json = JSON.stringify(body, null, 2);
   const quote = JSON.stringify;
   const headers = { ...requestHeaders };
+  const requestUrl = requestEndpoint();
   if (language === "curl") {
-    const lines = ["curl -X " + httpMethod + ' "' + endpoint + '"'];
+    const lines = ["curl -X " + httpMethod + ' "' + requestUrl + '"'];
     for (const [name, value] of Object.entries(requestHeaders))
       lines.push('-H "' + name + ": " + value + '"');
-    lines.push('-H "Content-Type: application/json"');
-    lines.push("-d " + delimitedString(json, "'"));
+    if (hasRequestBody) {
+      lines.push('-H "Content-Type: application/json"');
+      lines.push("-d " + delimitedString(json, "'"));
+    }
     requestCode = lines
       .map((line, index) => indentCode(line, index > 0 ? 1 : 0))
       .join(" " + String.fromCharCode(92) + "\\n");
   }
   if (language === "javascript") {
-    const javascriptHeaders = {
-      "Content-Type": "application/json",
-      ...headers,
-    };
+    const javascriptHeaders = hasRequestBody
+      ? { "Content-Type": "application/json", ...headers }
+      : headers;
     const options = [
       "method: " + quote(httpMethod),
       "headers: " + JSON.stringify(javascriptHeaders, null, 2),
-      "body",
     ];
+    if (hasRequestBody) options.push("body");
     requestCode =
-      "const body = JSON.stringify(" + json + ")\\n\\nfetch(" +
-      quote(endpoint) + ", {\\n" +
+      (hasRequestBody ? "const body = JSON.stringify(" + json + ")\\n\\n" : "") +
+      "fetch(" + quote(requestUrl) + ", {\\n" +
       options.map((option) => indentCode(option)).join(",\\n") +
       "\\n})";
   }
   if (language === "python") {
-    const pythonHeaderValues = {
-      "Content-Type": "application/json",
-      ...headers,
-    };
+    const pythonHeaderValues = hasRequestBody
+      ? { "Content-Type": "application/json", ...headers }
+      : headers;
     const pythonHeaders =
       "{\\n" +
       Object.entries(pythonHeaderValues)
@@ -3413,36 +3522,38 @@ function updateRequest() {
         .join(", \\n") +
       "\\n}";
     requestCode =
-      "import requests\\n\\nurl = " + quote(endpoint) +
-      "\\nbody = " + delimitedString(json, '\"\"\"') +
+      "import requests\\n\\nurl = " + quote(requestUrl) +
+      (hasRequestBody ? "\\nbody = " + delimitedString(json, '\"\"\"') : "") +
       "\\nresponse = requests.request(" + quote(httpMethod) +
-      ", url, data = body, headers = " + pythonHeaders +
+      ", url, " + (hasRequestBody ? "data = body, " : "") + "headers = " + pythonHeaders +
       ")\\n\\nprint(response.text)";
   }
   if (language === "go") {
     const goHeaders = new Map(Object.entries(requestHeaders));
-    goHeaders.set("Content-Type", "application/json");
+    if (hasRequestBody) goHeaders.set("Content-Type", "application/json");
+    const goImports = ['"fmt"', '"net/http"', '"io/ioutil"'];
+    if (hasRequestBody) goImports.push('"strings"');
     requestCode =
-      'package main\\n\\nimport (\\n  "fmt"\\n  "net/http"\\n  "io/ioutil"\\n  "strings"\\n)\\n\\nfunc main() {\\n' +
-      "  url := " + quote(endpoint) +
-      "\\n  body := strings.NewReader(" + delimitedString(json, String.fromCharCode(96)) +
-      ")\\n  req, _ := http.NewRequest(" + quote(httpMethod) + ", url, body)\\n" +
+      "package main\\n\\nimport (\\n  " + goImports.join("\\n  ") + "\\n)\\n\\nfunc main() {\\n" +
+      "  url := " + quote(requestUrl) +
+      (hasRequestBody ? "\\n  requestBody := strings.NewReader(" + delimitedString(json, String.fromCharCode(96)) + ")" : "") +
+      "\\n  req, _ := http.NewRequest(" + quote(httpMethod) + ", url, " + (hasRequestBody ? "requestBody" : "nil") + ")\\n" +
       indentCode([...goHeaders].map(([name, value]) =>
         'req.Header.Add("' + name + '", ' + quote(value) + ")").join("\\n")) +
       "\\n  res, _ := http.DefaultClient.Do(req)\\n  defer res.Body.Close()\\n  body, _ := ioutil.ReadAll(res.Body)\\n\\n  fmt.Println(res)\\n  fmt.Println(string(body))\\n}";
   }
   if (language === "java") {
     const javaHeaders = new Map(Object.entries(requestHeaders));
-    javaHeaders.set("Content-Type", "application/json");
+    if (hasRequestBody) javaHeaders.set("Content-Type", "application/json");
     requestCode =
       "import java.net.URI;\\nimport java.net.http.HttpClient;\\nimport java.net.http.HttpRequest;\\nimport java.net.http.HttpResponse;\\nimport java.net.http.HttpResponse.BodyHandlers;\\nimport java.time.Duration;\\nimport java.net.http.HttpRequest.BodyPublishers;\\n\\n" +
-      "var body = BodyPublishers.ofString(" + delimitedString(json, '\"\"\"') +
-      ");\\nHttpClient client = HttpClient.newBuilder()\\n  .connectTimeout(Duration.ofSeconds(10))\\n  .build();\\n\\nHttpRequest.Builder requestBuilder = HttpRequest.newBuilder()\\n  .uri(URI.create(" +
-      quote(endpoint) + "))\\n" +
+      (hasRequestBody ? "var body = BodyPublishers.ofString(" + delimitedString(json, '\"\"\"') + ");\\n" : "") +
+      "HttpClient client = HttpClient.newBuilder()\\n  .connectTimeout(Duration.ofSeconds(10))\\n  .build();\\n\\nHttpRequest.Builder requestBuilder = HttpRequest.newBuilder()\\n  .uri(URI.create(" +
+      quote(requestUrl) + "))\\n" +
       [...javaHeaders].map(([name, value]) =>
         "  .header(" + quote(name) + ", " + quote(value) + ")").join("\\n") +
-      "\\n  ." + httpMethod.toUpperCase() +
-      "(body)\\n  .build();\\n\\ntry {\\n  HttpResponse<String> response = client.send(requestBuilder.build(), BodyHandlers.ofString());\\n  System.out.println(" +
+      "\\n  .method(" + quote(httpMethod) + ", " + (hasRequestBody ? "body" : "BodyPublishers.noBody()") +
+      ")\\n  .build();\\n\\ntry {\\n  HttpResponse<String> response = client.send(requestBuilder.build(), BodyHandlers.ofString());\\n  System.out.println(" +
       quote("Status code: ") +
       " + response.statusCode());\\n  System.out.println(" +
       quote("Response body: ") +
@@ -3450,16 +3561,13 @@ function updateRequest() {
   }
   if (language === "csharp") {
     const csharpHeaders = Object.entries(requestHeaders).map(([name, value]) =>
-      'client.DefaultRequestHeaders.Add("' + name + '", ' + quote(value) + ");").join("\\n");
-    const method = httpMethod[0].toUpperCase() +
-      httpMethod.slice(1).toLowerCase() + "Async";
+      'request.Headers.TryAddWithoutValidation("' + name + '", ' + quote(value) + ");").join("\\n");
     requestCode =
-      "using System;\\nusing System.Net.Http;\\nusing System.Text;\\n\\nvar body = new StringContent(" +
-      delimitedString("\\n" + json + "\\n", '\"\"\"') +
-      ', Encoding.UTF8, "application/json");\\n\\nvar client = new HttpClient();\\n' +
+      "using System;\\nusing System.Net.Http;\\nusing System.Text;\\n\\nvar client = new HttpClient();\\n" +
+      "var request = new HttpRequestMessage(new HttpMethod(" + quote(httpMethod) + "), " + quote(requestUrl) + ");\\n" +
+      (hasRequestBody ? "request.Content = new StringContent(" + delimitedString("\\n" + json + "\\n", '\"\"\"') + ', Encoding.UTF8, "application/json");\\n' : "") +
       (csharpHeaders ? csharpHeaders + "\\n" : "") +
-      "var response = await client." + method + '("' + endpoint +
-      '", body);\\nvar responseBody = await response.Content.ReadAsStringAsync();';
+      "var response = await client.SendAsync(request);\\nvar responseBody = await response.Content.ReadAsStringAsync();";
   }
   $("request-code").innerHTML = highlightCode(requestCode, language);
 }
@@ -3925,13 +4033,79 @@ function updateRequest() {
           "Bearer " + (apiKey || "YOUR_API_KEY");
         updateRequest();
       });
-      $("request-fields").innerHTML = renderFields(requestSchema);
+      function renderRequestFields(query = "") {
+        const bodyFields = renderFields(requestSchema, query);
+        $("request-fields").innerHTML = bodyFields;
+        $("request-body-group").hidden = !bodyFields;
+        const headerFields = headerSchema
+          ? renderFields(headerSchema, query)
+          : "";
+        if ($("request-header-fields")) {
+          $("request-header-fields").innerHTML = headerFields;
+          $("request-header-group").hidden = !headerFields;
+        }
+        const queryFields = querySchema
+          ? renderFields(querySchema, query)
+          : "";
+        if ($("request-query-fields")) {
+          $("request-query-fields").innerHTML = queryFields;
+          $("request-query-group").hidden = !queryFields;
+        }
+        $("request-empty").hidden = Boolean(bodyFields || headerFields || queryFields);
+      }
+      renderRequestFields();
+      document.querySelectorAll("[data-header-name]").forEach((input) => {
+        input.addEventListener("input", (event) => {
+          const field = event.currentTarget;
+          const value = field.value.trim();
+          const error = $(field.id + "-error");
+          if (field.required && !value) {
+            field.setAttribute("aria-invalid", "true");
+            error.textContent = "\u6B64\u8BF7\u6C42\u5934\u4E3A\u5FC5\u586B\u9879\uFF0C\u4EE3\u7801\u793A\u4F8B\u4FDD\u7559\u4E0A\u6B21\u6709\u6548\u503C\u3002";
+            return;
+          }
+          field.removeAttribute("aria-invalid");
+          error.textContent = field.dataset.description || "";
+          if (value) requestHeaders[field.dataset.headerName] = value;
+          else delete requestHeaders[field.dataset.headerName];
+          updateRequest();
+        });
+      });
+      document.querySelectorAll("[data-query-name]").forEach((input) => {
+        input.addEventListener("input", (event) => {
+          const field = event.currentTarget;
+          const value = field.value.trim();
+          const error = $(field.id + "-error");
+          if (field.required && !value) {
+            field.setAttribute("aria-invalid", "true");
+            error.textContent = "\u6B64\u67E5\u8BE2\u53C2\u6570\u4E3A\u5FC5\u586B\u9879\uFF0C\u4EE3\u7801\u793A\u4F8B\u4FDD\u7559\u4E0A\u6B21\u6709\u6548\u503C\u3002";
+            return;
+          }
+          field.removeAttribute("aria-invalid");
+          error.textContent = field.dataset.description || "";
+          queryValues[field.dataset.queryName] = value;
+          updateRequest();
+        });
+      });
+      document.querySelectorAll("[data-part-name]").forEach((input) => {
+        input.addEventListener("input", (event) => {
+          const field = event.currentTarget;
+          const value = field.value.trim();
+          if (field.required && !value) {
+            field.setAttribute("aria-invalid", "true");
+            $(field.id + "-error").textContent = "\u6B64\u8868\u5355\u5B57\u6BB5\u4E3A\u5FC5\u586B\u9879\uFF0C\u4EE3\u7801\u793A\u4F8B\u4FDD\u7559\u4E0A\u6B21\u6709\u6548\u503C\u3002";
+            return;
+          }
+          field.removeAttribute("aria-invalid");
+          $(field.id + "-error").textContent = field.dataset.description || "";
+          multipartValues[field.dataset.partName] = value;
+          updateRequest();
+        });
+      });
       
       $("search").addEventListener("input", () => {
-        $("request-fields").innerHTML =
-          renderFields(requestSchema, $("search").value.trim().toLowerCase()) ||
-          '<div class="empty">\u6CA1\u6709\u5339\u914D\u7684\u53C2\u6570</div>';
-        animateContent($("request-fields"));
+        renderRequestFields($("search").value.trim().toLowerCase());
+        animateContent($("request"));
       });
       $("language-tabs").addEventListener("click", (event) => {
         const button = event.target.closest("[data-language]");
@@ -4089,11 +4263,38 @@ async function generate(input, output) {
   if (operations.length !== 1)
     throw new Error("请在 api-doc.json 中放入一个接口的 OpenAPI 数据。");
   const { path, method, item, operation } = operations[0];
-  const media = operation.requestBody?.content?.["application/json"];
-  if (!media?.schema || media.schema.type !== "object")
-    throw new Error("\u5F53\u524D\u6A21\u677F\u8981\u6C42 application/json \u5BF9\u8C61\u8BF7\u6C42\u4F53");
-  if (item.parameters?.length || operation.parameters?.length)
-    throw new Error("\u5F53\u524D\u6A21\u677F\u5C1A\u4E0D\u652F\u6301 path/query/header/cookie \u53C2\u6570\uFF0C\u8BF7\u52FF\u5FFD\u7565\u8FD9\u4E9B\u53C2\u6570\u751F\u6210\u6587\u6863");
+  const hasRequestBody = operation.requestBody !== undefined;
+  const bodyMediaType = hasRequestBody
+    ? operation.requestBody.content?.["application/json"] ? "application/json" : "multipart/form-data"
+    : "";
+  const media = operation.requestBody?.content?.[bodyMediaType];
+  if (hasRequestBody && (!media?.schema || media.schema.type !== "object"))
+    throw new Error("\u5F53\u524D\u6A21\u677F\u4EC5\u652F\u6301 application/json \u6216 multipart/form-data \u7684\u5BF9\u8C61\u8BF7\u6C42\u4F53");
+  if (bodyMediaType === "multipart/form-data") {
+    for (const [name, field] of Object.entries(media.schema.properties || {})) {
+      if (!["string", "number", "integer", "boolean"].includes(field.type) || (field.format && field.format !== "binary") || (field.format === "binary" && field.type !== "string"))
+        throw new Error(`multipart \u5B57\u6BB5 ${name} \u4EC5\u652F\u6301\u6807\u91CF\u6587\u672C\u6216 string/binary \u6587\u4EF6`);
+    }
+  }
+  const parametersByKey = new Map();
+  for (const parameter of [...item.parameters || [], ...operation.parameters || []]) {
+    if (!parameter?.name || !parameter.in)
+      throw new Error("\u8BF7\u6C42\u53C2\u6570\u7F3A\u5C11 name \u6216 in");
+    const name = parameter.in === "header"
+      ? parameter.name.toLowerCase()
+      : parameter.name;
+    parametersByKey.set(parameter.in + "\u0000" + name, parameter);
+  }
+  const parameters = [...parametersByKey.values()];
+  const unsupportedParameter = parameters.find((parameter) => !["header", "query"].includes(parameter.in));
+  if (unsupportedParameter)
+    throw new Error(`\u5F53\u524D\u6A21\u677F\u5C1A\u4E0D\u652F\u6301 ${unsupportedParameter.in} \u53C2\u6570\uFF1A${unsupportedParameter.name}`);
+  for (const parameter of parameters) {
+    if (!parameter.schema || !["string", "number", "integer", "boolean"].includes(parameter.schema.type))
+      throw new Error(`${parameter.in} \u53C2\u6570 ${parameter.name} \u5FC5\u987B\u4F7F\u7528 string/number/integer/boolean schema`);
+  }
+  const headerParameters = parameters.filter((parameter) => parameter.in === "header");
+  const queryParameters = parameters.filter((parameter) => parameter.in === "query");
   const security = operation.security ?? document.security ?? [];
   let scheme;
   let securityName = "";
@@ -4105,6 +4306,8 @@ async function generate(input, output) {
     if (scheme?.type !== "http" || scheme.scheme?.toLowerCase() !== "bearer")
       throw new Error("\u5F53\u524D\u6A21\u677F\u4EC5\u652F\u6301 HTTP Bearer \u8BA4\u8BC1");
   }
+  if (scheme && headerParameters.some((parameter) => parameter.name.toLowerCase() === "authorization"))
+    throw new Error("\u8BF7\u52FF\u540C\u65F6\u4F7F\u7528 Bearer security scheme \u548C Authorization header \u53C2\u6570");
   if (!Object.keys(operation.responses || {}).length)
     throw new Error("\u63A5\u53E3\u7F3A\u5C11 responses");
   for (const response of Object.values(operation.responses)) {
@@ -4112,6 +4315,50 @@ async function generate(input, output) {
       throw new Error("\u5F53\u524D\u6A21\u677F\u4EC5\u652F\u6301 JSON \u54CD\u5E94\u6216\u65E0\u54CD\u5E94\u4F53");
   }
   const title = operation.summary || document.info?.title || operation.operationId || path;
+  const parameterValues = Object.fromEntries(parameters.map((parameter) => {
+    const schema = parameter.schema;
+    const value = parameter.example ?? schema.example ?? schema.examples?.[0] ?? schema.default ?? (parameter.required ? `YOUR_${parameter.name.toUpperCase().replaceAll(/[^A-Z0-9]+/g, "_")}` : "");
+    return [parameter.in + "\u0000" + parameter.name, String(value)];
+  }));
+  const headerValues = Object.fromEntries(headerParameters.map((parameter) => [parameter.name, parameterValues[`header\u0000${parameter.name}`]]));
+  const queryValues = Object.fromEntries(queryParameters.map((parameter) => [parameter.name, parameterValues[`query\u0000${parameter.name}`]]));
+  const initialHeaders = {
+    ...scheme ? { Authorization: "Bearer YOUR_API_KEY" } : {},
+    ...Object.fromEntries(Object.entries(headerValues).filter(([, value]) => value)),
+  };
+  const headerSchema = headerParameters.length
+    ? {
+        type: "object",
+        required: headerParameters.filter((parameter) => parameter.required).map((parameter) => parameter.name),
+        properties: Object.fromEntries(headerParameters.map((parameter) => [
+          parameter.name,
+          {
+            ...parameter.schema,
+            description: parameter.description || parameter.schema.description,
+          },
+        ])),
+      }
+    : null;
+  const querySchema = queryParameters.length
+    ? {
+        type: "object",
+        required: queryParameters.filter((parameter) => parameter.required).map((parameter) => parameter.name),
+        properties: Object.fromEntries(queryParameters.map((parameter) => [
+          parameter.name,
+          {
+            ...parameter.schema,
+            description: parameter.description || parameter.schema.description,
+          },
+        ])),
+      }
+    : null;
+  const emptyRequestSchema = { type: "object", properties: {} };
+  const multipartValues = Object.fromEntries(Object.entries(bodyMediaType === "multipart/form-data" ? media.schema.properties || {} : {}).map(([name, field]) => [
+    name,
+    (media.schema.required || []).includes(name)
+      ? field.format === "binary" ? `path/to/${name}.png` : String(field.example ?? field.examples?.[0] ?? field.default ?? "")
+      : "",
+  ]));
   const data = `const operation = ${scriptJson(operation)};
       const apiPath = ${scriptJson(path)};
       const defaultBaseUrl = "https://";
@@ -4119,9 +4366,15 @@ async function generate(input, output) {
       let baseUrl = defaultBaseUrl;
       let endpoint = placeholderBaseUrl + apiPath;
       const httpMethod = ${scriptJson(method.toUpperCase())};
-      const requestHeaders = ${scriptJson(scheme ? { Authorization: "Bearer YOUR_API_KEY" } : {})};
-      const requestSchema = operation.requestBody.content["application/json"].schema;
-      const defaultRequest = ${media.example !== undefined ? scriptJson(media.example) : Object.values(media.examples || {})[0]?.value !== undefined ? scriptJson(Object.values(media.examples)[0].value) : "sampleRequestSchema(requestSchema)"};`;
+      const hasRequestBody = ${hasRequestBody};
+      const bodyMediaType = ${scriptJson(bodyMediaType)};
+      const multipartValues = ${scriptJson(multipartValues)};
+      const requestHeaders = ${scriptJson(initialHeaders)};
+      const queryValues = ${scriptJson(queryValues)};
+      const headerSchema = ${scriptJson(headerSchema)};
+      const querySchema = ${scriptJson(querySchema)};
+      const requestSchema = ${hasRequestBody ? `operation.requestBody.content[${scriptJson(bodyMediaType)}].schema` : scriptJson(emptyRequestSchema)};
+      const defaultRequest = ${bodyMediaType === "application/json" ? media.example !== undefined ? scriptJson(media.example) : Object.values(media.examples || {})[0]?.value !== undefined ? scriptJson(Object.values(media.examples)[0].value) : "sampleRequestSchema(requestSchema)" : "{}"};`;
   const slots = {
     TITLE: escapeHtml(title),
     INTRO: escapeHtml(operation.description || document.info?.description || ""),
@@ -4145,6 +4398,83 @@ async function generate(input, output) {
       : "<p>\u6B64\u63A5\u53E3\u672A\u8981\u6C42\u8BA4\u8BC1\u3002</p>",
     AUTH_DESCRIPTION: escapeHtml(scheme?.description || (scheme ? "\u5728\u8BF7\u6C42\u5934\u4E2D\u643A\u5E26 Bearer Token\u3002" : "OpenAPI \u672A\u58F0\u660E\u8BA4\u8BC1\u8981\u6C42\u3002")),
     AUTH_LOCATION: scheme ? "\u4F4D\u7F6E\uFF1A<code>header</code>" : "",
+    HEADER_CONTROLS: headerParameters.length
+      ? `<details open>
+                <summary>\u8BF7\u6C42\u5934 <span class="caption">Header</span></summary>
+                <div class="config">
+                  <div class="body-grid">
+                    ${headerParameters.map((parameter, index) => {
+                      const id = `header-parameter-${index}`;
+                      const description = parameter.description || parameter.schema.description || "";
+                      const sensitive = /authorization|api[-_]?key|token|secret/i.test(parameter.name);
+                      return `<div class="body-field">
+                      <label for="${id}">${escapeHtml(parameter.name)}${parameter.required ? ' <span class="required">*</span>' : ""}</label>
+                      <input id="${id}" type="${sensitive ? "password" : "text"}" value="${escapeHtml(headerValues[parameter.name])}" data-header-name="${escapeHtml(parameter.name)}" data-description="${escapeHtml(description)}"${parameter.required ? " required" : ""} autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="${id}-error" />
+                      <p class="body-error" id="${id}-error">${escapeHtml(description)}</p>
+                    </div>`;
+                    }).join("")}
+                  </div>
+                </div>
+              </details>`
+      : "",
+    QUERY_CONTROLS: queryParameters.length
+      ? `<details open>
+                <summary>\u67E5\u8BE2\u53C2\u6570 <span class="caption">Query</span></summary>
+                <div class="config">
+                  <div class="body-grid">
+                    ${queryParameters.map((parameter, index) => {
+                      const id = `query-parameter-${index}`;
+                      const description = parameter.description || parameter.schema.description || "";
+                      const sensitive = /api[-_]?key|token|secret/i.test(parameter.name);
+                      return `<div class="body-field">
+                      <label for="${id}">${escapeHtml(parameter.name)}${parameter.required ? ' <span class="required">*</span>' : ""}</label>
+                      <input id="${id}" type="${sensitive ? "password" : "text"}" value="${escapeHtml(queryValues[parameter.name])}" data-query-name="${escapeHtml(parameter.name)}" data-description="${escapeHtml(description)}"${parameter.required ? " required" : ""} autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="${id}-error" />
+                      <p class="body-error" id="${id}-error">${escapeHtml(description)}</p>
+                    </div>`;
+                    }).join("")}
+                  </div>
+                </div>
+              </details>`
+      : "",
+    MULTIPART_CONTROLS: bodyMediaType === "multipart/form-data"
+      ? `<details open>
+                <summary>\u8BF7\u6C42\u5185\u5BB9 <span class="caption">multipart/form-data</span></summary>
+                <div class="config">
+                  <p>\u6587\u4EF6\u5B57\u6BB5\u586B\u5199\u672C\u5730\u6587\u4EF6\u8DEF\u5F84\uFF0C\u590D\u5236\u4EE3\u7801\u540E\u8BF7\u6362\u6210\u53EF\u8BFB\u53D6\u7684\u771F\u5B9E\u6587\u4EF6\u3002\u672C\u9875\u4E0D\u4F1A\u4E0A\u4F20\u6587\u4EF6\u3002</p>
+                  <div class="body-grid">
+                    ${Object.entries(media.schema.properties || {}).map(([name, field], index) => {
+                      const id = `multipart-field-${index}`;
+                      const required = (media.schema.required || []).includes(name);
+                      const description = field.description || "";
+                      return `<div class="body-field">
+                      <label for="${id}">${escapeHtml(name)}${required ? ' <span class="required">*</span>' : ""} <span class="caption">${field.format === "binary" ? "\u672C\u5730\u6587\u4EF6\u8DEF\u5F84" : escapeHtml(field.type)}</span></label>
+                      <input id="${id}" type="text" value="${escapeHtml(multipartValues[name])}" data-part-name="${escapeHtml(name)}" data-description="${escapeHtml(description)}"${required ? " required" : ""} autocomplete="off" spellcheck="false" aria-describedby="${id}-error" />
+                      <p class="body-error" id="${id}-error">${escapeHtml(description)}</p>
+                    </div>`;
+                    }).join("")}
+                  </div>
+                </div>
+              </details>`
+      : "",
+    JSON_BODY_HIDDEN: bodyMediaType === "application/json" ? "" : "hidden",
+    BODY_MEDIA_TYPE: escapeHtml(bodyMediaType),
+    REQUEST_LOCATIONS: [
+      headerParameters.length ? "Header" : "",
+      queryParameters.length ? "Query" : "",
+      hasRequestBody ? `Body \xB7 ${bodyMediaType}` : "",
+    ].filter(Boolean).join(" \xB7 ") || "\u65E0\u8BF7\u6C42\u53C2\u6570",
+    HEADER_DOCUMENTATION: headerParameters.length
+      ? `<div class="request-parameter-group" id="request-header-group">
+                <h3>Header</h3>
+                <div id="request-header-fields"></div>
+              </div>`
+      : "",
+    QUERY_DOCUMENTATION: queryParameters.length
+      ? `<div class="request-parameter-group" id="request-query-group">
+                <h3>Query</h3>
+                <div id="request-query-fields"></div>
+              </div>`
+      : "",
     RESPONSE_TABS: Object.keys(operation.responses).map((status, index) => `<button data-response="${escapeHtml(status)}" aria-pressed="${index === 0}">${escapeHtml(status)}</button>`).join(""),
     DATA: data
   };
@@ -4155,6 +4485,10 @@ async function generate(input, output) {
   });
   for (const [, script] of html.matchAll(/<script>([\s\S]*?)<\/script>/g))
     new Script(script, { filename: "api-doc-inline.js" });
+  if (process.argv.includes("--check")) {
+    console.log(`\u5DF2\u6821\u9A8C\uFF1A${method.toUpperCase()} ${path}`);
+    return;
+  }
   if ([fileURLToPath(new URL("./chat-completions.html", import.meta.url)), resolve(input)].includes(resolve(output)))
     throw new Error("\u8F93\u51FA\u4E0D\u80FD\u8986\u76D6\u53C2\u8003\u9875\u9762\u6216\u8F93\u5165 JSON");
   await writeFile(output, html);
