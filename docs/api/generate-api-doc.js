@@ -506,17 +506,37 @@ var api_doc_template_default = `<!doctype html>
         flex-wrap: wrap;
       }
       .tabs button {
+        position: relative;
         border: 0;
         background: none;
         border-radius: 0;
         color: #9eabc0;
         font-size: 11px;
         padding: 9px 9px 11px;
-        border-bottom: 2px solid transparent;
       }
       .tabs button[aria-pressed="true"] {
-        border-color: #b5a4ff;
         color: #ddd4ff;
+      }
+      .tabs button[data-language]::after,
+      .tabs button[data-response]::after {
+        content: "";
+        position: absolute;
+        right: 8px;
+        bottom: 3px;
+        left: 8px;
+        height: 2px;
+        border-radius: 999px;
+        background: #b5a4ff;
+        opacity: 0;
+        transform: scaleX(0);
+        transform-origin: center;
+        transition:
+          opacity 120ms ease,
+          transform 220ms var(--ease);
+      }
+      .tabs button[aria-pressed="true"]::after {
+        opacity: 1;
+        transform: scaleX(1);
       }
       .tabs button:hover {
         color: #fff;
@@ -3443,7 +3463,6 @@ function updateRequest() {
       '", body);\\nvar responseBody = await response.Content.ReadAsStringAsync();';
   }
   $("request-code").innerHTML = highlightCode(requestCode, language);
-  animateContent($("request-code").parentElement);
 }
       function updateResponse() {
         const response = operation.responses[responseKind];
@@ -3456,7 +3475,6 @@ function updateRequest() {
         $("response-code").innerHTML = highlightJson(responseCode);
         $("response-fields").innerHTML = renderFields(schema) || "<p>" + escapeHtml(response.description || "\u65E0\u5B57\u6BB5\u5B9A\u4E49") + "</p>";
         document.querySelector("#responses .badge").textContent = responseKind;
-        animateContent($("response-code").parentElement);
       }
       const formNodes = new Map();
       function requestValueError(schema, value, path = "body") {
@@ -3980,7 +3998,6 @@ function updateRequest() {
         $("code-wrap").setAttribute("aria-pressed", String(wrap));
         $("code-wrap").textContent = wrap ? "\u6A2A\u5411\u6EDA\u52A8" : "\u81EA\u52A8\u6362\u884C";
         $("examples").dataset.wrap = String(wrap);
-        animateContent($("request-code").parentElement);
       });
       $("copy-path").addEventListener("click", () =>
         copy(apiPath),
