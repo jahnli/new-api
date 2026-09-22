@@ -57,13 +57,6 @@ type PricingNodeProps = {
   onChange: (node: VisualPricingNode) => void
 }
 
-function getTierDisplayLabel(
-  label: string,
-  t: (key: string) => string
-): string {
-  return label === 'base' || label === 'standard' ? t('standard') : label
-}
-
 function PricingTierFields(
   props: PricingNodeProps & {
     node: Extract<VisualPricingNode, { kind: 'tier' }>
@@ -71,7 +64,6 @@ function PricingTierFields(
 ) {
   const { t } = useTranslation()
   const node = props.node
-  const displayLabel = getTierDisplayLabel(node.label, t)
   const issues = props.issues.filter(
     (issue) => issue.id === node.id || issue.id.startsWith(`${node.id}:`)
   )
@@ -82,14 +74,10 @@ function PricingTierFields(
           <Badge variant='secondary'>{t('Tier')}</Badge>
           <Input
             aria-label={t('Tier name')}
-            value={displayLabel}
-            onChange={(event) => {
-              const label =
-                event.target.value === t('standard')
-                  ? 'standard'
-                  : event.target.value
-              props.onChange({ ...node, label })
-            }}
+            value={node.label}
+            onChange={(event) =>
+              props.onChange({ ...node, label: event.target.value })
+            }
             className='w-40 max-w-full'
           />
         </div>
@@ -187,7 +175,7 @@ function PricingRuleCard(
   const tier = node.kind === 'tier' ? node : node.yes
   const name =
     tier.kind === 'tier'
-      ? getTierDisplayLabel(tier.label, t)
+      ? tier.label
       : t('Pricing rule {{number}}', { number: props.number })
   const condition =
     node.kind === 'branch'

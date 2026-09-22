@@ -73,7 +73,7 @@ export function createDefaultVisualConfig(): VisualConfig {
         conditions: [],
         input_unit_cost: 0,
         output_unit_cost: 0,
-        label: 'standard',
+        label: '标准',
         cache_mode: CACHE_MODE_GENERIC,
       }),
     ],

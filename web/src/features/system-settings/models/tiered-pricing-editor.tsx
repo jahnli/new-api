@@ -86,7 +86,6 @@ import {
   parseVisualBillingDocument,
   serializeVisualBillingDocument,
   type VisualBillingDocument,
-  type VisualPricingNode,
 } from '@/features/pricing/lib/billing-expression/visual'
 import {
   type ExtraTokenValues,
@@ -125,17 +124,17 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'flat',
         label: 'Flat',
-        expr: 'tier("standard", p * 2 + c * 4)',
+        expr: 'tier("标准", p * 2 + c * 4)',
       },
       {
         key: 'claude-opus',
         label: 'Claude Opus 4.6',
-        expr: 'tier("standard", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
+        expr: 'tier("标准", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
       },
       {
         key: 'gpt-5.4',
         label: 'GPT-5.4',
-        expr: 'len <= 272000 ? tier("standard", p * 2.5 + c * 15 + cr * 0.25) : tier("long_context", p * 5 + c * 22.5 + cr * 0.5)',
+        expr: 'len <= 272000 ? tier("标准", p * 2.5 + c * 15 + cr * 0.25) : tier("长上下文", p * 5 + c * 22.5 + cr * 0.5)',
       },
     ],
   },
@@ -145,7 +144,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'claude-sonnet',
         label: 'Claude Sonnet 4.5',
-        expr: 'len <= 200000 ? tier("standard", p * 3 + c * 15 + cr * 0.3 + cc * 3.75 + cc1h * 6) : tier("long_context", p * 6 + c * 22.5 + cr * 0.6 + cc * 7.5 + cc1h * 12)',
+        expr: 'len <= 200000 ? tier("标准", p * 3 + c * 15 + cr * 0.3 + cc * 3.75 + cc1h * 6) : tier("长上下文", p * 6 + c * 22.5 + cr * 0.6 + cc * 7.5 + cc1h * 12)',
       },
       {
         key: 'qwen3-max',
@@ -170,22 +169,22 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'gpt-image-1-mini',
         label: 'GPT Image 1 Mini',
-        expr: 'tier("standard", p * 2 + c * 8 + img * 2.5)',
+        expr: 'tier("标准", p * 2 + c * 8 + img * 2.5)',
       },
       {
         key: 'gemini-2.5-flash',
         label: 'Gemini 2.5 Flash',
-        expr: 'tier("standard", p * 0.3 + c * 2.5 + cr * 0.03 + ai * 1.0)',
+        expr: 'tier("标准", p * 0.3 + c * 2.5 + cr * 0.03 + ai * 1.0)',
       },
       {
         key: 'gemini-3-pro-image',
         label: 'Gemini 3 Pro Image',
-        expr: 'tier("standard", p * 2 + c * 12 + img_o * 120)',
+        expr: 'tier("标准", p * 2 + c * 12 + img_o * 120)',
       },
       {
         key: 'qwen3-omni-flash',
         label: 'Qwen3 Omni Flash',
-        expr: 'tier("standard", p * 0.43 + c * 3.06 + img * 0.78 + ai * 3.81 + ao * 15.11)',
+        expr: 'tier("标准", p * 0.43 + c * 3.06 + img * 0.78 + ai * 3.81 + ao * 15.11)',
       },
     ],
   },
@@ -195,7 +194,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'claude-opus-fast',
         label: 'Claude Opus 4.6 Fast',
-        expr: 'tier("standard", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
+        expr: 'tier("标准", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
         requestRules: [
           {
             conditions: [
@@ -213,7 +212,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'gpt-5.4-tiers',
         label: 'GPT-5.4 Priority/Flex',
-        expr: 'len <= 272000 ? tier("standard", p * 2.5 + c * 15 + cr * 0.25) : tier("long_context", p * 5 + c * 22.5 + cr * 0.5)',
+        expr: 'len <= 272000 ? tier("标准", p * 2.5 + c * 15 + cr * 0.25) : tier("长上下文", p * 5 + c * 22.5 + cr * 0.5)',
         requestRules: [
           {
             conditions: [
@@ -247,7 +246,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'night-discount',
         label: 'Night discount (50%)',
-        expr: 'tier("standard", p * 3 + c * 15)',
+        expr: 'tier("标准", p * 3 + c * 15)',
         requestRules: [
           {
             conditions: [
@@ -268,7 +267,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'weekend-discount',
         label: 'Weekend discount (80%)',
-        expr: 'tier("standard", p * 3 + c * 15)',
+        expr: 'tier("标准", p * 3 + c * 15)',
         requestRules: [
           {
             conditions: [
@@ -1055,25 +1054,10 @@ export type TieredPricingEditorProps = {
 
 type EditorMode = 'visual' | 'raw'
 
-function normalizeDefaultTierLabels(
-  node: VisualPricingNode
-): VisualPricingNode {
-  if (node.kind === 'tier') {
-    return node.label === 'base' ? { ...node, label: 'standard' } : node
-  }
-  return {
-    ...node,
-    yes: normalizeDefaultTierLabels(node.yes),
-    no: normalizeDefaultTierLabels(node.no),
-  }
-}
-
 function parseTierEditorDocument(source: string): VisualBillingDocument | null {
-  const document = parseVisualBillingDocument(
+  return parseVisualBillingDocument(
     source || generateExprFromVisualConfig(createDefaultVisualConfig())
   )
-  if (!document) return null
-  return { ...document, root: normalizeDefaultTierLabels(document.root) }
 }
 
 export const TieredPricingEditor = memo(function TieredPricingEditor({
