@@ -62,6 +62,7 @@ type GroupBadgeProps = Omit<
   label?: string
   ratio?: number | null
   ratioLabel?: string
+  ratioClassName?: string
   containerClassName?: string
 }
 
@@ -85,6 +86,7 @@ export function GroupBadge(props: GroupBadgeProps) {
     label: labelOverride,
     ratio,
     ratioLabel,
+    ratioClassName,
     containerClassName,
     copyable = false,
     showDot,
@@ -127,7 +129,11 @@ export function GroupBadge(props: GroupBadgeProps) {
       )}
     >
       <span className='max-w-full min-w-0 overflow-hidden'>{badge}</span>
-      <GroupMultiplierBadge ratio={ratio} label={ratioLabel} />
+      <GroupMultiplierBadge
+        ratio={ratio}
+        label={ratioLabel}
+        className={ratioClassName}
+      />
     </span>
   )
 }

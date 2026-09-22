@@ -8,7 +8,9 @@ import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 import { useSharedUserColumns } from './shared-user-columns'
 
-export function useUsersColumns(): ColumnDef<User>[] {
+export function useUsersColumns(
+  groupRatios?: Readonly<Record<string, number>>
+): ColumnDef<User>[] {
   const { t } = useTranslation()
 
   const sharedColumns = useSharedUserColumns<User>({
@@ -17,6 +19,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     requestsAccessor: 'monthly_total_requests',
     modelAccessor: 'monthly_common_model',
     requestCountAccessor: 'monthly_total_requests',
+    groupRatios,
   })
 
   return useMemo(

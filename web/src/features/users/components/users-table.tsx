@@ -34,7 +34,12 @@ import { useExternalMode } from '@/hooks/use-external-mode'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { createServerError } from '@/lib/server-error-message'
 
-import { getUserCompanies, getUsers, searchUsers } from '../api'
+import {
+  getGroupsWithRatios,
+  getUserCompanies,
+  getUsers,
+  searchUsers,
+} from '../api'
 import {
   USER_STATUS,
   getUserStatusOptions,
@@ -70,10 +75,16 @@ const USER_COLUMN_VISIBILITY = { company: false }
 
 export function UsersTable() {
   const { t } = useTranslation()
-  const columns = useUsersColumns()
   const externalMode = useExternalMode()
   const { refreshTrigger } = useUsers()
   const isMobile = useMediaQuery('(max-width: 640px)')
+
+  const { data: groupsResponse } = useQuery({
+    queryKey: ['groups-with-ratios'],
+    queryFn: getGroupsWithRatios,
+    staleTime: 5 * 60 * 1000,
+  })
+  const columns = useUsersColumns(groupsResponse?.data)
 
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created_at', desc: true },

@@ -619,15 +619,26 @@ function userStatusColumn<T extends UserColumnRow>(
 
 function userGroupColumn<T extends UserColumnRow>(
   t: (key: string) => string,
+  groupRatios?: Readonly<Record<string, number>>,
 ): ColumnDef<T> {
   return {
     accessorKey: "group",
     header: t("Group"),
-    cell: ({ row }) => (
-      <BadgeCell>
-        <GroupBadge group={row.original.group} />
-      </BadgeCell>
-    ),
+    cell: ({ row }) => {
+      const ratio = groupRatios?.[row.original.group];
+      return (
+        <BadgeCell>
+          <GroupBadge
+            group={row.original.group}
+            ratio={ratio}
+            ratioLabel={ratio == null ? undefined : `x${ratio}`}
+            className="pr-0.5 text-[12px] [&>span]:text-[12px]"
+            containerClassName="gap-0.5"
+            ratioClassName="h-4 min-w-0 rounded-sm border-transparent bg-muted/70 px-1 text-[12px] text-muted-foreground [&>span]:text-[12px]"
+          />
+        </BadgeCell>
+      );
+    },
     size: 140,
     meta: { mobileHidden: true },
   };
@@ -644,6 +655,7 @@ export interface SharedUserColumnsOptions {
   modelAccessor: string;
   requestCountAccessor: string;
   usernameClassName?: string;
+  groupRatios?: Readonly<Record<string, number>>;
 }
 
 /**
@@ -697,7 +709,7 @@ export function useSharedUserColumns<T extends UserColumnRow>(
       filterFn: matchesSelectedFilterValues,
     });
     columns.push({
-      ...userGroupColumn<T>(t),
+      ...userGroupColumn<T>(t, opts.groupRatios),
       filterFn: (
         row: { getValue: (id: string) => unknown },
         id: string,
@@ -720,5 +732,6 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     opts.modelAccessor,
     opts.requestCountAccessor,
     opts.usernameClassName,
+    opts.groupRatios,
   ]);
 }

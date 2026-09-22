@@ -1,6 +1,6 @@
-# 用户管理表格统计增强
+# 用户管理增强
 
-**日期**: 2026-06-30 ~ 09-19（最后更新 09-19）
+**日期**: 2026-06-30 ~ 09-22（最后更新 09-22）
 
 ## 涉及文件
 
@@ -29,6 +29,10 @@
 - `web/default/src/i18n/locales/ru.json` — 补充统计列俄文文案。
 - `web/default/src/i18n/locales/vi.json` — 补充统计列越南文文案。
 - `web/default/src/i18n/locales/zh.json` — 补充统计列中文文案。
+- `web/src/components/group-badge.tsx` — 分组徽章支持按调用场景覆盖倍率标签样式。
+- `web/src/features/users/components/shared-user-columns.tsx` — 用户列表分组列显示基础倍率，并采用紧凑的 `x倍率` 标签。
+- `web/src/features/users/components/users-columns.tsx` — 用户列表列定义接收分组倍率映射。
+- `web/src/features/users/components/users-table.tsx` — 用户列表查询分组基础倍率并传入列定义。
 
 ## 2026-07-20 公司筛选
 
@@ -163,3 +167,10 @@
 ## 2026-09-19 用户分组同步 API 密钥
 
 - `model/user.go` — 管理员修改用户分组时，在同一事务内将该用户所有固定分组 API 密钥同步到新分组并失效对应缓存；空分组密钥继续继承用户分组，`auto` 密钥保留自动路由模式。
+
+## 2026-09-22 用户列表分组倍率展示
+
+- `web/src/components/group-badge.tsx` — `GroupBadge` 新增倍率标签样式覆盖入口，沿用现有倍率徽章组件，不影响其他页面默认样式。
+- `web/src/features/users/components/shared-user-columns.tsx` — 分组列在分组名称后展示基础倍率，格式统一为 `x1`、`x2.5`；分组名与倍率文字固定为 12px，并缩小标签间距和留白。
+- `web/src/features/users/components/users-columns.tsx` — 用户管理列定义接收分组倍率映射并传给共享列。
+- `web/src/features/users/components/users-table.tsx` — 复用用户编辑弹窗已有的分组倍率查询键与五分钟缓存，将接口结果传给表格列定义；倍率加载失败或缺失时仍只显示分组名称。
