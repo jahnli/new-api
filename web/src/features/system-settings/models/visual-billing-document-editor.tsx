@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { ChevronDown } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DataTableRowActionMenu } from '@/components/data-table'
@@ -57,6 +57,13 @@ type PricingNodeProps = {
   onChange: (node: VisualPricingNode) => void
 }
 
+function getTierDisplayLabel(
+  label: string,
+  t: (key: string) => string
+): string {
+  return label === 'base' || label === 'standard' ? t('standard') : label
+}
+
 function PricingTierFields(
   props: PricingNodeProps & {
     node: Extract<VisualPricingNode, { kind: 'tier' }>
@@ -64,6 +71,7 @@ function PricingTierFields(
 ) {
   const { t } = useTranslation()
   const node = props.node
+  const displayLabel = getTierDisplayLabel(node.label, t)
   const issues = props.issues.filter(
     (issue) => issue.id === node.id || issue.id.startsWith(`${node.id}:`)
   )
@@ -74,10 +82,14 @@ function PricingTierFields(
           <Badge variant='secondary'>{t('Tier')}</Badge>
           <Input
             aria-label={t('Tier name')}
-            value={node.label}
-            onChange={(event) =>
-              props.onChange({ ...node, label: event.target.value })
-            }
+            value={displayLabel}
+            onChange={(event) => {
+              const label =
+                event.target.value === t('standard')
+                  ? 'standard'
+                  : event.target.value
+              props.onChange({ ...node, label })
+            }}
             className='w-40 max-w-full'
           />
         </div>
@@ -175,7 +187,7 @@ function PricingRuleCard(
   const tier = node.kind === 'tier' ? node : node.yes
   const name =
     tier.kind === 'tier'
-      ? tier.label
+      ? getTierDisplayLabel(tier.label, t)
       : t('Pricing rule {{number}}', { number: props.number })
   const condition =
     node.kind === 'branch'
@@ -212,10 +224,6 @@ function PricingRuleCard(
   const hasIssues = props.issues.some((issue) =>
     ids.has(issue.id.split(':')[0])
   )
-  useEffect(() => {
-    if (hasIssues) setOpen(true)
-  }, [hasIssues])
-
   return (
     <Collapsible
       open={open || hasIssues}

@@ -86,6 +86,7 @@ import {
   parseVisualBillingDocument,
   serializeVisualBillingDocument,
   type VisualBillingDocument,
+  type VisualPricingNode,
 } from '@/features/pricing/lib/billing-expression/visual'
 import {
   type ExtraTokenValues,
@@ -121,11 +122,15 @@ const PRESET_GROUPS: PresetGroup[] = [
   {
     group: 'Fixed price',
     presets: [
-      { key: 'flat', label: 'Flat', expr: 'tier("base", p * 2 + c * 4)' },
+      {
+        key: 'flat',
+        label: 'Flat',
+        expr: 'tier("standard", p * 2 + c * 4)',
+      },
       {
         key: 'claude-opus',
         label: 'Claude Opus 4.6',
-        expr: 'tier("base", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
+        expr: 'tier("standard", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
       },
       {
         key: 'gpt-5.4',
@@ -165,22 +170,22 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'gpt-image-1-mini',
         label: 'GPT Image 1 Mini',
-        expr: 'tier("base", p * 2 + c * 8 + img * 2.5)',
+        expr: 'tier("standard", p * 2 + c * 8 + img * 2.5)',
       },
       {
         key: 'gemini-2.5-flash',
         label: 'Gemini 2.5 Flash',
-        expr: 'tier("base", p * 0.3 + c * 2.5 + cr * 0.03 + ai * 1.0)',
+        expr: 'tier("standard", p * 0.3 + c * 2.5 + cr * 0.03 + ai * 1.0)',
       },
       {
         key: 'gemini-3-pro-image',
         label: 'Gemini 3 Pro Image',
-        expr: 'tier("base", p * 2 + c * 12 + img_o * 120)',
+        expr: 'tier("standard", p * 2 + c * 12 + img_o * 120)',
       },
       {
         key: 'qwen3-omni-flash',
         label: 'Qwen3 Omni Flash',
-        expr: 'tier("base", p * 0.43 + c * 3.06 + img * 0.78 + ai * 3.81 + ao * 15.11)',
+        expr: 'tier("standard", p * 0.43 + c * 3.06 + img * 0.78 + ai * 3.81 + ao * 15.11)',
       },
     ],
   },
@@ -190,7 +195,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'claude-opus-fast',
         label: 'Claude Opus 4.6 Fast',
-        expr: 'tier("base", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
+        expr: 'tier("standard", p * 5 + c * 25 + cr * 0.5 + cc * 6.25 + cc1h * 10)',
         requestRules: [
           {
             conditions: [
@@ -242,7 +247,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'night-discount',
         label: 'Night discount (50%)',
-        expr: 'tier("base", p * 3 + c * 15)',
+        expr: 'tier("standard", p * 3 + c * 15)',
         requestRules: [
           {
             conditions: [
@@ -263,7 +268,7 @@ const PRESET_GROUPS: PresetGroup[] = [
       {
         key: 'weekend-discount',
         label: 'Weekend discount (80%)',
-        expr: 'tier("base", p * 3 + c * 15)',
+        expr: 'tier("standard", p * 3 + c * 15)',
         requestRules: [
           {
             conditions: [
@@ -337,7 +342,7 @@ function RawExprEditor({ exprString, onChange }: RawExprEditorProps) {
         aria-label={t('Billing expression')}
         value={exprString}
         onChange={(event) => onChange(event.target.value)}
-        placeholder='tier("base", p * 3 + c * 15)'
+        placeholder='tier("standard", p * 3 + c * 15)'
         rows={6}
         className='font-mono text-xs'
         spellCheck={false}
@@ -936,10 +941,10 @@ Numbers in the expression are $/1M tokens prices. For example, p * 2.5 means inp
 ## Expression Examples
 
 Simple pricing:
-tier("base", p * 2.5 + c * 15)
+tier("standard", p * 2.5 + c * 15)
 
 With cache:
-tier("base", p * 2.5 + c * 15 + cr * 0.25)
+tier("standard", p * 2.5 + c * 15 + cr * 0.25)
 
 Multi-tier (use len for conditions):
 len <= 200000
@@ -947,10 +952,10 @@ len <= 200000
   : tier("long_context", p * 6 + c * 22.5 + cr * 0.6 + cc * 7.5 + cc1h * 12)
 
 Image model:
-tier("base", p * 2 + c * 8 + img * 2.5)
+tier("standard", p * 2 + c * 8 + img * 2.5)
 
 Multimodal with audio:
-tier("base", p * 0.43 + c * 3.06 + img * 0.78 + ai * 3.81 + ao * 15.11)
+tier("standard", p * 0.43 + c * 3.06 + img * 0.78 + ai * 3.81 + ao * 15.11)
 
 Three-tier example:
 len <= 128000
@@ -962,7 +967,7 @@ len <= 128000
 ## Rules
 
 1. Every leaf branch must be wrapped in tier("name", cost_expr)
-2. Use English tier names, e.g. "base", "standard", "long_context"
+2. Use English tier names, e.g. "standard", "long_context"
 3. Use len for tier conditions (not p), supports <, <=, >, >=
 4. Multi-tier uses nested ternary: cond1 ? tier(...) : (cond2 ? tier(...) : tier(...))
 5. Price coefficients are the provider's official $/1M tokens prices
@@ -1050,10 +1055,25 @@ export type TieredPricingEditorProps = {
 
 type EditorMode = 'visual' | 'raw'
 
+function normalizeDefaultTierLabels(
+  node: VisualPricingNode
+): VisualPricingNode {
+  if (node.kind === 'tier') {
+    return node.label === 'base' ? { ...node, label: 'standard' } : node
+  }
+  return {
+    ...node,
+    yes: normalizeDefaultTierLabels(node.yes),
+    no: normalizeDefaultTierLabels(node.no),
+  }
+}
+
 function parseTierEditorDocument(source: string): VisualBillingDocument | null {
-  return parseVisualBillingDocument(
+  const document = parseVisualBillingDocument(
     source || generateExprFromVisualConfig(createDefaultVisualConfig())
   )
+  if (!document) return null
+  return { ...document, root: normalizeDefaultTierLabels(document.root) }
 }
 
 export const TieredPricingEditor = memo(function TieredPricingEditor({

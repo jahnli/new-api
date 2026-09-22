@@ -295,7 +295,7 @@ func PreviewModelPricingConversion(name string, draft PricingValues) (*ModelPric
 		}
 		mergeCacheRead := base.IsZero() || preview.CacheWriteMode == CacheWriteNone && effective["ImageRatio"].(float64) == 1 && (preview.BillingDetails.AudioInputPrice == nil || ordinaryAudio)
 		var expressionBody strings.Builder
-		expressionBody.WriteString(`tier("base", p * `)
+		expressionBody.WriteString(`tier("standard", p * `)
 		expressionBody.WriteString(base.String())
 		// Retain explicit zero coefficients for included categories. Only
 		// Claude names inherit the relay's 1h / 5m factor of 6 / 3.75.
