@@ -1,5 +1,3 @@
-import { useStatus } from '@/hooks/use-status'
-
 import { SettingsPage } from '../components/settings-page'
 import type { OperationsSettings } from '../types'
 import {
@@ -42,8 +40,6 @@ const defaultOperationsSettings: OperationsSettings = {
 }
 
 export function OperationsSettings() {
-  const { status } = useStatus()
-
   return (
     <SettingsPage
       routePath='/_authenticated/system-settings/operations/$section'
@@ -51,10 +47,6 @@ export function OperationsSettings() {
       defaultSection={OPERATIONS_DEFAULT_SECTION}
       getSectionContent={getOperationsSectionContent}
       getSectionMeta={getOperationsSectionMeta}
-      extraArgs={[
-        status?.version as string | undefined,
-        status?.start_time as number | null | undefined,
-      ]}
       loadingMessage='Loading maintenance settings...'
     />
   )
