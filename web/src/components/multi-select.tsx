@@ -47,6 +47,11 @@ export type Option = {
    * values also carry a marker icon whose tooltip repeats the hint.
    */
   hint?: string
+  /**
+   * Leading icon rendered before the label in the dropdown and on the chip.
+   * Decorative only: it never changes the accessible name.
+   */
+  icon?: React.ReactNode
 }
 
 interface MultiSelectProps {
@@ -189,6 +194,14 @@ export function MultiSelect(props: MultiSelectProps) {
     const map = new Map<string, string>()
     for (const option of props.options) {
       if (option.hint) map.set(option.value, option.hint)
+    }
+    return map
+  }, [props.options])
+
+  const iconMap = React.useMemo(() => {
+    const map = new Map<string, React.ReactNode>()
+    for (const option of props.options) {
+      if (option.icon) map.set(option.value, option.icon)
     }
     return map
   }, [props.options])
@@ -389,6 +402,7 @@ export function MultiSelect(props: MultiSelectProps) {
                     group: label,
                   })
                   const hint = hintMap.get(value)
+                  const icon = iconMap.get(value)
                   return (
                     <ComboboxChip
                       key={value}
@@ -484,6 +498,14 @@ export function MultiSelect(props: MultiSelectProps) {
                           {position + 1}
                         </span>
                       )}
+                      {icon && (
+                        <span
+                          aria-hidden='true'
+                          className='inline-flex shrink-0'
+                        >
+                          {icon}
+                        </span>
+                      )}
                       {props.copyChipOnClick ? (
                         <button
                           type='button'
@@ -567,6 +589,7 @@ export function MultiSelect(props: MultiSelectProps) {
               const isCreate = canCreate && item === trimmedInput
               const label = labelMap.get(item) ?? item
               const hint = hintMap.get(item)
+              const icon = iconMap.get(item)
               return (
                 <ComboboxItem
                   key={item}
@@ -590,6 +613,14 @@ export function MultiSelect(props: MultiSelectProps) {
                     </>
                   ) : (
                     <>
+                      {icon && (
+                        <span
+                          aria-hidden='true'
+                          className='inline-flex shrink-0'
+                        >
+                          {icon}
+                        </span>
+                      )}
                       <span className='truncate'>{label}</span>
                       {hint && (
                         <span

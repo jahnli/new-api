@@ -18,11 +18,11 @@
 - 解析为无符号类型（`*uint`）的字段会接受巨大的 JSON 正数（例如 `18446744073686646784`，即回绕后的负数）；仅检查 `>= 0` 并不足够，必须设置上限。
 - 测试操作遵循根目录 `AGENTS.md` 中“必须获得用户明确授权”的限制。获得授权后，这些不变量的回归测试应与其所保护的边界放在一起（请求校验器、转换辅助函数）。预期风格参见 `relay/helper/openai_image_request_test.go`、`relay/common/relay_utils_test.go` 和 `common/quota_math_test.go`。
 
-**上游图片数量结算：** 只有通过 `RelayInfo.UpdateImageCount`，才能根据上游响应调低或调高计费图片数量；数量为零或越界时，必须保留请求阶段预留的数量。图片数量必须从图片载荷推导，绝不能根据 JSON 结构推导：
+**上游图片数量结算：** 只有通过 HTTP 图片中继上的 `RelayInfo.UpdateImageCount`，或任务插件完成时返回的 `image_count` 用量事实，才能根据上游响应调低或调高计费图片数量；数量为零或越界时，必须保留请求阶段预留的数量。图片数量必须从图片载荷推导，绝不能根据 JSON 结构推导：
 
 - 不得使用 gjson 的 `data.#`、`len(data)` 或任何元素计数方式统计 `data`。OpenAI 兼容渠道背后的提供商可能返回非标准结构：`data` 可能是单个对象；一张图片可能拆分为一个 `url` 条目和一个 `b64_json` 条目；条目也可能只包含 `revised_prompt`。
 - 当对象形式的 `data` 含有非空 `url` 或 `b64_json` 时，计为一张图片，否则计为零。对于数组，数量为“含非空 `url` 的条目数”和“含非空 `b64_json` 的条目数”两者中的较大值。标准响应只使用一种 `response_format`，因此该值等于条目数；拆分表示的一张图片只计费一次；没有图片载荷的条目不计费。参考实现是 `relay/channel/openai/relay_image.go` 中的 `openaiImageResponseCount`；任何转发或重建 OpenAI 格式图片响应的渠道都必须复用该实现或采用相同规则。xAI 适配器已通过 `OpenaiImageHandler` 继承此规则。
 - 将 OpenAI 格式的 JSON 响应体重新发送为 SSE 时，必须按相同的结构处理规则，为每个图片载荷转发一个 `image_generation.completed` 事件（对象对应一个事件，丢弃无载荷条目）。绝不能让客户端在被收取图片费用的同时只收到 `[DONE]`。
 - 对于真实 SSE 流，应统计 `image_generation.completed` / `image_edit.completed` 事件；只有上游已完成流（`done` / `eof`）时，才可信任低于请求数量的统计结果。客户端中止连接时，不得将收费数量降低到请求数量以下。
-- 具有自身用量字段的渠道（如阿里的 `usage.image_count`）使用该值，并以 `dto.MaxImageN` 为上限；缺失或无效时回退到转换后响应的长度。通过带类型结构体重建响应的渠道应统计对应的类型化切片；任何渠道都不得读取 `data.#`。
+- 阿里（百炼）图片模型由 `alibaba` 任务插件通过 `openai_image` 宿主协议提供。其 `imageUsage` 先读取 `usage.image_count`，再读取 `usage.output_image_count`（Qwen-Image-3.0），否则统计所有 `choices[].message.content[]` 条目与 `results[]` 中展平后的图片载荷；没有图片载荷的部分不计费，若上游数量为小数、负数、越界或与载荷不一致，则保留请求阶段预留的数量。其他具有自身用量字段的渠道也遵循同一顺序：先信任经过边界校验的上游数量，再统计图片载荷。通过带类型结构体重建响应的渠道应统计对应的类型化切片；任何渠道都不得读取 `data.#`。
 - 用户明确授权修改测试后，对象结构、拆分结构和无载荷结构的回归用例应添加到 `relay/channel/openai/image_stream_test.go` 中现有的固定价格、阶梯表达式及 JSON 转 SSE 转发表格。应扩展这些表格，不得新增文件。

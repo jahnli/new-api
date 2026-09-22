@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -90,6 +91,10 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const { t } = useTranslation()
   const demoMode = useDemoMode()
   const isMobile = useMediaQuery('(max-width: 640px)')
+  const getColumnClassName = useCallback(
+    () => (logCategory === 'common' ? 'py-2' : 'py-3.5'),
+    [logCategory]
+  )
   const {
     canManageScope,
     isAdminView: isAdmin,
@@ -283,7 +288,7 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
             <TaskLogsFilterBar table={table} logCategory={logCategory} />
           )
         }
-        renderRow={(row, helpers) => {
+        renderRow={(row) => {
           const rowData = row.original as Record<string, unknown>
           const logType = rowData.type as number | undefined
           let tintClass =
@@ -300,9 +305,8 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
               key={row.id}
               row={row}
               className={cn('transition-colors', tintClass)}
-              getColumnClassName={(columnId) =>
-                helpers.getCellClassName(columnId, isCommon ? 'py-2' : 'py-3.5')
-              }
+              getColumnClassName={getColumnClassName}
+              cellRenderColumns={table.options.columns}
             />
           )
         }}

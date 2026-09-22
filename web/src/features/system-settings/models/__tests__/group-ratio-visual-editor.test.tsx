@@ -39,6 +39,9 @@ describe('GroupRatioVisualEditor vendor ratio layout', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <GroupRatioVisualEditor
+          section='overrides'
+          onSectionChange={vi.fn()}
+          defaultUseAutoGroupField={null}
           groupRatio='{"default":1}'
           topupGroupRatio='{}'
           userUsableGroups='{}'

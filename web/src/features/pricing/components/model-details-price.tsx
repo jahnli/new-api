@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { DEMO_MODE_MASK } from '@/lib/demo-mode'
+import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { FILTER_ALL } from '../constants'
@@ -14,6 +15,10 @@ import {
 } from '../lib/dynamic-price'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import { formatPrice, formatRequestPrice } from '../lib/price'
+import {
+  pricingDisplayFallbackKey,
+  taskUsageUnitLabel,
+} from '../lib/task-price-display'
 import type { PriceType, PricingModel, TokenUnit } from '../types'
 
 function SectionTitle(props: { children: React.ReactNode }) {
@@ -42,7 +47,7 @@ export function PriceSection(props: {
   currentUserGroup?: string
   maskPrices?: boolean
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = props.tokenUnit === 'K' ? '1K' : '1M'
@@ -114,7 +119,12 @@ export function PriceSection(props: {
               {t('Special billing expression')}
             </div>
             <p className='text-muted-foreground mt-1 text-xs'>
-              {t('Unable to parse structured pricing')}
+              {t(
+                pricingDisplayFallbackKey(
+                  dynamicSummary.rawExpression,
+                  props.model.billing_usage_schema
+                )
+              )}
             </p>
             <div className='mt-3'>
               <div className='text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase'>
@@ -134,10 +144,34 @@ export function PriceSection(props: {
     return (
       <section>
         <SectionTitle>{t('Base Price')}</SectionTitle>
+        {dynamicSummary.providerCount && (
+          <p className='text-muted-foreground mb-2 text-xs'>
+            {t('{{count}} providers', {
+              count: dynamicSummary.providerCount,
+            })}
+            {dynamicSummary.hasUnconfiguredProviders &&
+              ` · ${t('Not configured for some providers')}`}
+          </p>
+        )}
+        {dynamicSummary.isMixedBilling && (
+          <p className='text-muted-foreground mb-2 text-xs'>
+            {t('Token or per-call pricing')}
+          </p>
+        )}
         {dynamicSummary.primaryEntries.length > 0 ? (
-          <div className='grid grid-cols-2 gap-2'>
+          <div
+            className={cn(
+              'grid gap-2',
+              dynamicSummary.primaryEntries.length > 1 && 'grid-cols-2'
+            )}
+          >
             {dynamicSummary.primaryEntries.map((entry) => {
               const unitLabelKey = getDynamicPriceUnitLabelKey(entry)
+              const unitLabel = taskUsageUnitLabel(
+                entry,
+                i18n.language,
+                unitLabelKey ? t(unitLabelKey) : tokenUnitLabel
+              )
               const displayedPrice = props.maskPrices
                 ? DEMO_MODE_MASK
                 : (entry.formattedRange ?? entry.formatted)
@@ -152,7 +186,7 @@ export function PriceSection(props: {
                   <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
                     {displayedPrice}
                     <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
-                      / {unitLabelKey ? t(unitLabelKey) : tokenUnitLabel}
+                      / {unitLabel}
                     </span>
                   </div>
                 </div>
@@ -161,7 +195,9 @@ export function PriceSection(props: {
           </div>
         ) : (
           <p className='text-muted-foreground text-sm'>
-            {t('Dynamic Pricing')}
+            {dynamicSummary.hasUnconfiguredProviders
+              ? t('Not configured')
+              : t('Dynamic Pricing')}
           </p>
         )}
         {dynamicSummary.secondaryEntries.length > 0 && (
@@ -169,6 +205,11 @@ export function PriceSection(props: {
             <div className='space-y-1.5'>
               {dynamicSummary.secondaryEntries.map((entry) => {
                 const unitLabelKey = getDynamicPriceUnitLabelKey(entry)
+                const unitLabel = taskUsageUnitLabel(
+                  entry,
+                  i18n.language,
+                  unitLabelKey ? t(unitLabelKey) : tokenUnitLabel
+                )
                 return (
                   <div
                     key={entry.key}
@@ -178,9 +219,11 @@ export function PriceSection(props: {
                       <DynamicPriceEntryLabel entry={entry} />
                     </span>
                     <span className='text-muted-foreground font-mono text-sm tabular-nums'>
-                      {props.maskPrices ? DEMO_MODE_MASK : entry.formatted}
+                      {props.maskPrices
+                        ? DEMO_MODE_MASK
+                        : (entry.formattedRange ?? entry.formatted)}
                       <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
-                        / {unitLabelKey ? t(unitLabelKey) : tokenUnitLabel}
+                        / {unitLabel}
                       </span>
                     </span>
                   </div>
