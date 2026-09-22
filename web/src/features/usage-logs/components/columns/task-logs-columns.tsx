@@ -293,6 +293,7 @@ export function useTaskLogsColumns(
         ),
         size: 220,
         maxSize: 240,
+        meta: { pinned: 'right' as const },
       }
     )
 
