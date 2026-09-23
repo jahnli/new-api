@@ -89,7 +89,7 @@ import type { BillingUsageSchema } from '@/features/pricing/types'
 import { useDebounce } from '@/hooks/use-debounce'
 import { handleServerError } from '@/lib/handle-server-error'
 import { cn } from '@/lib/utils'
-import { usePricingPreferencesStore } from '@/stores/pricing-preferences-store'
+import { usePricingCurrencyPreference } from '@/stores/pricing-preferences-store'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import {
@@ -207,7 +207,7 @@ export const ModelPricingEditorPanel = forwardRef<
   const promptPriceId = useId()
   const formElementRef = useRef<HTMLFormElement>(null)
   const currencyConfig = useSystemConfigStore((state) => state.config.currency)
-  const preference = usePricingPreferencesStore((state) => state.currency)
+  const preference = usePricingCurrencyPreference().currency
   const siteCurrency = useMemo(
     () => getSitePricingCurrency(currencyConfig),
     [currencyConfig]

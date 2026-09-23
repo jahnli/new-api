@@ -24,6 +24,12 @@
 - `web/src/features/system-settings/models/tiered-pricing-editor.tsx` — 预设模板采用“标准”“长上下文”档位名，读取已有表达式时保留原始档位名称
 - `web/src/features/system-settings/models/visual-billing-document-editor.tsx` — 档位输入框与卡片标题原样展示名称，输入内容原样写回
 - `web/src/features/system-settings/models/model-pricing-sheet.tsx` — 新增及未设置价格模型的默认 Token 表达式使用“标准”档位
+- `controller/user.go` — 个人信息更新接口仅允许超级管理员单独提交 USD/site 定价货币偏好，并保留其他个人设置
+- `relaykit/dto/user_settings.go` — 个人设置新增 pricing_currency 字段
+- `web/src/features/model-pricing/model-pricing-panel.tsx` — 模型定价概览从当前用户设置读取货币偏好
+- `web/src/features/model-pricing/pricing-currency-selector.tsx` — 货币选择器调用个人信息接口保存选择，保存期间禁用重复操作
+- `web/src/features/system-settings/models/model-pricing-sheet.tsx` — 定价编辑器改用当前用户设置中的货币偏好
+- `web/src/stores/pricing-preferences-store.ts` — 从认证用户设置读取及更新货币偏好，停用浏览器本地偏好的读写
 
 ## 变更说明
 
@@ -35,3 +41,9 @@
 - 旧倍率定价的迁移预览生成 `tier("标准", …)`，各项价格、条件及计算逻辑保持不变。
 - 新增及“未设置价格模型”入口的初始化表达式由 `tier("base", p * 0 + c * 0)` 改为 `tier("标准", p * 0 + c * 0)`，档位标题、输入框与表达式预览保持一致，初始价格不变。
 - 已保存表达式不批量改名；其档位按原文展示，需要改名时由管理员编辑并保存。
+
+### 2026-09-23：定价货币个人偏好
+
+- 定价货币仍在模型定价编辑器中选择，选择 USD 或站点货币后通过现有 `PUT /api/user/self` 写入当前超级管理员的个人设置，跨浏览器和设备登录时沿用；未设置时默认 USD。
+- 服务端只接受独立提交的 `pricing_currency` 字段和 `USD` / `site` 两个值，校验超级管理员身份，并在更新时保留现有个人设置的其他字段。
+- 前端从当前认证用户的 `setting.pricing_currency` 读取，保存成功后同步认证状态；不再使用浏览器本地货币偏好。此设置仅影响定价编辑的显示与输入货币，不改变美元计费价格。

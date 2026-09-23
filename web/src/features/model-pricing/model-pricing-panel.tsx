@@ -37,7 +37,7 @@ import {
   type ModelPricingEditorPanelHandle,
 } from '@/features/system-settings/models/model-pricing-sheet'
 import { handleServerError } from '@/lib/handle-server-error'
-import { usePricingPreferencesStore } from '@/stores/pricing-preferences-store'
+import { usePricingCurrencyPreference } from '@/stores/pricing-preferences-store'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import {
@@ -59,9 +59,7 @@ export function ModelPricingPanel(props: {
 }) {
   const { t } = useTranslation()
   const currencyConfig = useSystemConfigStore((state) => state.config.currency)
-  const currencyPreference = usePricingPreferencesStore(
-    (state) => state.currency
-  )
+  const currencyPreference = usePricingCurrencyPreference().currency
   const canEdit = useCanEditModelPricing()
   const query = useModelPricing([props.modelName], Boolean(props.modelName))
   const save = useSaveModelPricing()

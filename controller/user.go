@@ -995,6 +995,32 @@ func UpdateSelf(c *gin.Context) {
 			recordUserSecurityAudit(c, c.GetInt("id"), "user.password_change", map[string]any{"success": succeeded, "notification_failed": notificationFailed})
 		}()
 	}
+	if value, exists := requestData["pricing_currency"]; exists {
+		// Treat this as a standalone preference update; never let a mixed
+		// request bypass the normal profile/password update path.
+		currency, ok := value.(string)
+		if passwordRequested || len(requestData) != 1 || !ok || (currency != "USD" && currency != "site") {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		if c.GetInt("role") != common.RoleRootUser {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+		user, err := model.GetUserById(c.GetInt("id"), false)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		setting := user.GetSetting()
+		setting.PricingCurrency = currency
+		if err := model.UpdateUserSetting(user.Id, setting); err != nil {
+			common.ApiErrorI18n(c, i18n.MsgUpdateFailed)
+			return
+		}
+		common.ApiSuccessI18n(c, i18n.MsgUpdateSuccess, nil)
+		return
+	}
 	// 检查是否是用户设置更新请求 (sidebar_modules 或 language)
 	if sidebarModules, sidebarExists := requestData["sidebar_modules"]; sidebarExists && !passwordRequested {
 		userId := c.GetInt("id")

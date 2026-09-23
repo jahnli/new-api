@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { usePricingPreferencesStore } from '@/stores/pricing-preferences-store'
+import { usePricingCurrencyPreference } from '@/stores/pricing-preferences-store'
 
 import { isValidPricingCurrency, type PricingCurrency } from './currency'
 
@@ -39,10 +39,9 @@ export function PricingCurrencySelector(props: {
 }) {
   const { t } = useTranslation()
   const id = useId()
-  const preference = usePricingPreferencesStore((state) => state.currency)
-  const setCurrency = usePricingPreferencesStore((state) => state.setCurrency)
+  const preference = usePricingCurrencyPreference()
   const available = isValidPricingCurrency(props.siteCurrency)
-  const value = available && preference === 'site' ? 'site' : 'USD'
+  const value = available && preference.currency === 'site' ? 'site' : 'USD'
   const items = [{ value: 'USD', label: t('US dollar (USD)') }]
   if (props.siteCurrency) {
     items.push({
@@ -89,9 +88,10 @@ export function PricingCurrencySelector(props: {
       <Select
         items={items}
         value={value}
+        disabled={preference.saving}
         onValueChange={(next) => {
           if (next === 'USD' || (next === 'site' && available)) {
-            setCurrency(next)
+            preference.setCurrency(next)
           }
         }}
       >
