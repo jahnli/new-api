@@ -1,6 +1,4 @@
 import { useMutation } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
-import type { ColumnFiltersState } from '@tanstack/react-table'
 import { Download, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -17,13 +15,10 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { useLogsViewScope } from './usage-logs-provider'
 
-const route = getRouteApi('/_authenticated/usage-logs/$section')
-
 export function CommonLogsExportButton(props: {
-  columnFilters: ColumnFiltersState
+  searchParams: Record<string, unknown>
 }) {
   const { t } = useTranslation()
-  const searchParams = route.useSearch()
   const { canManageScope, isAdminView } = useLogsViewScope()
   const selfUsername = useAuthStore((state) => state.auth.user?.username)
   const abortController = useRef<AbortController | null>(null)
@@ -33,8 +28,7 @@ export function CommonLogsExportButton(props: {
       const controller = new AbortController()
       abortController.current = controller
       const config = {
-        searchParams,
-        columnFilters: props.columnFilters,
+        searchParams: props.searchParams,
         canManageScope,
         isAdmin: isAdminView,
         selfUsername,

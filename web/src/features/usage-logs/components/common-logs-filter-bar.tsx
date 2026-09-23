@@ -280,6 +280,24 @@ export function CommonLogsFilterBar<TData>(
       })),
     [t]
   )
+  const exportSearchParams = useMemo(
+    () => ({
+      ...buildSearchParams(
+        {
+          ...filters,
+          userCategory: isSuperAdmin
+            ? getUserCategoryFilterValue(
+                filters.userCategory,
+                userCategoryOptions
+              )
+            : undefined,
+        },
+        'common'
+      ),
+      type: [logType],
+    }),
+    [filters, isSuperAdmin, logType, userCategoryOptions]
+  )
   const channelOptions = useMemo(
     () =>
       [...availableChannels]
@@ -676,9 +694,7 @@ export function CommonLogsFilterBar<TData>(
         <>
           {sensitiveToggle}
           {isSuperAdmin && (
-            <CommonLogsExportButton
-              columnFilters={props.table.getState().columnFilters}
-            />
+            <CommonLogsExportButton searchParams={exportSearchParams} />
           )}
         </>
       }

@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-23（最后更新 09-23）
+**日期**: 2026-09-09 ~ 09-24（最后更新 09-24）
 
 ## 涉及文件
 
@@ -247,6 +247,12 @@
 - `web/src/features/usage-logs/lib/export-excel.ts` — 复用当前列表参数构造管理员或个人导出请求，传递浏览器时区、校验 XLSX 响应与导出条数，并按筛选时间范围生成中文下载文件名。
 - `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统计栏新增累计 Token 徽标，按当前界面语言格式化并以亿 Token 为单位展示，同时补齐加载骨架与换行布局。
 - `web/src/features/usage-logs/constants.ts`、`web/src/features/usage-logs/types.ts` — 日志统计默认值与类型新增 `total_tokens` 字段。
+
+## 2026-09-24 Excel 导出直接使用当前筛选条件
+
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 从界面当前尚未提交的筛选草稿构造导出参数，覆盖时间、模型、类型、用户、角色、分组、渠道及请求 ID 等条件；修改条件后无需先点击查询即可直接导出。
+- `web/src/features/usage-logs/components/common-logs-export-button.tsx` — 导出按钮改为接收当前筛选参数，不再读取上一次查询写入路由的参数，也不再让旧表格列筛选覆盖当前条件。
+- `web/src/features/usage-logs/lib/export-excel.ts` — 收紧导出配置类型，仅保留导出请求实际需要的筛选、范围与用户字段，后端仍按完整筛选结果生成 XLSX。
 
 ## 自 CHANGELOG 说明列迁入
 

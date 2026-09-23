@@ -12,7 +12,10 @@ import type { FetchLogsConfig } from '../types'
 import { buildApiParams, buildQueryParams } from './utils'
 
 export async function exportUsageLogs(
-  config: Omit<FetchLogsConfig, 'logCategory' | 'page' | 'pageSize'>,
+  config: Pick<
+    FetchLogsConfig,
+    'canManageScope' | 'isAdmin' | 'selfUsername' | 'searchParams'
+  >,
   signal: AbortSignal
 ): Promise<number> {
   const params = buildApiParams({
