@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
 import type {
   ApiResponse,
@@ -14,6 +15,7 @@ import type {
   SelfSubscriptionData,
   SubscribeAllCompanyOption,
   SubscribeAllUsersResult,
+  SubscriptionQuotaType,
 } from './types'
 
 // ============================================================================
@@ -103,24 +105,26 @@ export async function invalidateUserSubscription(
 
 export async function increaseUserSubscriptionQuota(
   subId: number,
-  amount: number
+  amount: number,
+  quotaType: SubscriptionQuotaType = 'total'
 ): Promise<ApiResponse<{ quota_delta?: number }>> {
   const res = await api.post(
     `/api/subscription/admin/user_subscriptions/${subId}/increase-quota`,
-    { amount }
+    { amount, quota_type: quotaType }
   )
-  return res.data
+  return requireServerSuccess(res.data)
 }
 
 export async function decreaseUserSubscriptionQuota(
   subId: number,
-  amount: number
+  amount: number,
+  quotaType: SubscriptionQuotaType = 'total'
 ): Promise<ApiResponse<{ quota_delta?: number }>> {
   const res = await api.post(
     `/api/subscription/admin/user_subscriptions/${subId}/decrease-quota`,
-    { amount }
+    { amount, quota_type: quotaType }
   )
-  return res.data
+  return requireServerSuccess(res.data)
 }
 
 export async function deleteUserSubscription(

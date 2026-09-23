@@ -64,13 +64,14 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { DEFAULT_TOKEN_UNIT } from '../constants'
+import { DEFAULT_TOKEN_UNIT, FILTER_ALL } from '../constants'
 import { usePricingData } from '../hooks/use-pricing-data'
 import type { ParsedTaskTier } from '../lib/billing-expr'
 import { formatBillingCondition } from '../lib/billing-expression/condition-display'
 import {
   formatTaskUsageUnitPrice,
   getDynamicPriceEntries,
+  getDynamicDisplayGroupRatio,
   getDynamicPriceUnitLabelKey,
   getDynamicPricingTiers,
   getTaskUsageQuantityUnitLabelKey,
@@ -1226,6 +1227,18 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
   const { t } = useTranslation()
   const showRechargePrice = props.showRechargePrice ?? false
   const showGroupRatios = props.showGroupRatios ?? false
+  let pricingGroup = props.currentUserGroup
+  if (
+    showGroupRatios &&
+    props.selectedGroup &&
+    props.selectedGroup !== FILTER_ALL
+  ) {
+    pricingGroup = props.selectedGroup
+  }
+  const dynamicPriceMultiplier = getDynamicDisplayGroupRatio(
+    props.model,
+    pricingGroup
+  )
   const visibleUsableGroup = useMemo(() => {
     if (showGroupRatios) return props.usableGroup
     if (!props.currentUserGroup) return {}
@@ -1302,6 +1315,7 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
               <DynamicPricingBreakdown
                 billingExpr={props.model.billing_expr}
                 maskPrices={props.maskPrices}
+                priceMultiplier={dynamicPriceMultiplier}
                 usageSchema={props.model.billing_usage_schema}
                 taskPriceOptions={{
                   showRechargePrice,

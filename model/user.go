@@ -100,7 +100,7 @@ func resolveUserSortOptions(sortOptions []UserSortOptions) UserSortOptions {
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
-	SubscriptionPremiumPercent *int `json:"-" gorm:"column:subscription_premium_percent"`
+	SubscriptionPremiumPercent *float64 `json:"-" gorm:"column:subscription_premium_percent;precision:5;scale:2"`
 
 	Id                   int                        `json:"id"`
 	Username             string                     `json:"username" gorm:"unique;index" validate:"max=20"`

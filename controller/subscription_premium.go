@@ -70,7 +70,7 @@ func GetSubscriptionPremiumPolicy(c *gin.Context) {
 func UpdateSubscriptionPremiumPolicy(c *gin.Context) {
 	var request struct {
 		Enabled         *bool     `json:"enabled"`
-		DefaultPercent  *int      `json:"default_percent"`
+		DefaultPercent  *float64  `json:"default_percent"`
 		ModelNames      *[]string `json:"model_names"`
 		ExpectedVersion int64     `json:"expected_version"`
 	}
@@ -141,7 +141,7 @@ func UpdateUserSubscriptionPremiumPolicy(c *gin.Context) {
 	}
 	value, valueOK := request["percent_override"]
 	expected, expectedOK := request["expected_percent_override"]
-	var percent, previous *int
+	var percent, previous *float64
 	if !valueOK || !expectedOK || common.Unmarshal(value, &percent) != nil || common.Unmarshal(expected, &previous) != nil {
 		common.ApiErrorMsg(c, "Both percentage fields are required (null inherits the default)")
 		return

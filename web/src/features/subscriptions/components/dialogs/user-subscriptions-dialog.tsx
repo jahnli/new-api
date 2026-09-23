@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -37,8 +38,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
 } from '@/components/ui/dropdown-menu'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { formatQuota } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -54,7 +62,11 @@ import {
   resetUserSubscriptionsByPlan,
 } from '../../api'
 import { formatTimestamp } from '../../lib'
-import type { PlanRecord, UserSubscriptionRecord } from '../../types'
+import type {
+  PlanRecord,
+  SubscriptionQuotaType,
+  UserSubscriptionRecord,
+} from '../../types'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -119,12 +131,14 @@ function SubscriptionStatusBadge(props: {
 
 export function UserSubscriptionsDialog(props: Props) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [plans, setPlans] = useState<PlanRecord[]>([])
   const [subs, setSubs] = useState<UserSubscriptionRecord[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
   const [quotaAdjustmentAmount, setQuotaAdjustmentAmount] = useState('500')
+  const [quotaType, setQuotaType] = useState<SubscriptionQuotaType>('total')
   const [confirming, setConfirming] = useState(false)
   const confirmInFlightRef = useRef(false)
   const [resetting, setResetting] = useState(false)
@@ -137,6 +151,18 @@ export function UserSubscriptionsDialog(props: Props) {
     type: 'increase' | 'decrease' | 'invalidate' | 'delete'
     subId: number
   } | null>(null)
+
+  const quotaTypeItems = [
+    { value: 'basic' as const, label: t('Basic model quota') },
+    { value: 'premium' as const, label: t('Premium model quota') },
+    { value: 'total' as const, label: t('Total Quota') },
+  ]
+  const selectedSubscription = subs.find(
+    (record) => record.subscription.id === confirmAction?.subId
+  )
+  const targetedQuotaEnabled =
+    selectedSubscription?.premium_quota?.enabled &&
+    selectedSubscription.subscription.amount_total > 0
 
   const planTitleMap = useMemo(() => {
     const map = new Map<number, string>()
@@ -232,12 +258,14 @@ export function UserSubscriptionsDialog(props: Props) {
         if (confirmAction.type === 'increase') {
           res = await increaseUserSubscriptionQuota(
             confirmAction.subId,
-            adjustmentAmount
+            adjustmentAmount,
+            quotaType
           )
         } else {
           res = await decreaseUserSubscriptionQuota(
             confirmAction.subId,
-            adjustmentAmount
+            adjustmentAmount,
+            quotaType
           )
         }
         if (res.success) {
@@ -246,7 +274,12 @@ export function UserSubscriptionsDialog(props: Props) {
             successMessage = t('Quota decreased successfully')
           }
           toast.success(successMessage)
-          await loadData()
+          await Promise.all([
+            loadData(),
+            queryClient.invalidateQueries({
+              queryKey: ['subscription-premium', 'user', props.user?.id],
+            }),
+          ])
           props.onSuccess?.()
         }
       } else if (confirmAction.type === 'invalidate') {
@@ -477,6 +510,7 @@ export function UserSubscriptionsDialog(props: Props) {
                       disabled={!isActive}
                       onClick={() => {
                         setQuotaAdjustmentAmount('500')
+                        setQuotaType('total')
                         setConfirmAction({
                           type: 'increase',
                           subId: sub.id,
@@ -492,6 +526,7 @@ export function UserSubscriptionsDialog(props: Props) {
                       disabled={!isActive || sub.amount_total <= 0}
                       onClick={() => {
                         setQuotaAdjustmentAmount('500')
+                        setQuotaType('total')
                         setConfirmAction({
                           type: 'decrease',
                           subId: sub.id,
@@ -557,21 +592,69 @@ export function UserSubscriptionsDialog(props: Props) {
         >
           {confirmAction.type === 'increase' ||
           confirmAction.type === 'decrease' ? (
-            <div className='grid gap-2'>
-              <Label htmlFor='subscription-quota-adjustment-amount'>
-                {t('Amount (CNY)')}
-              </Label>
-              <Input
-                id='subscription-quota-adjustment-amount'
-                type='number'
-                min='0'
-                step='1'
-                value={quotaAdjustmentAmount}
-                onChange={(event) =>
-                  setQuotaAdjustmentAmount(event.target.value)
-                }
-              />
-            </div>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor='subscription-quota-type'>
+                  {t('Quota type')}
+                </FieldLabel>
+                <Select
+                  items={quotaTypeItems}
+                  value={quotaType}
+                  onValueChange={(value) =>
+                    value !== null && setQuotaType(value)
+                  }
+                  disabled={confirming}
+                >
+                  <SelectTrigger
+                    id='subscription-quota-type'
+                    className='w-full'
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {quotaTypeItems.map((item) => (
+                      <SelectItem
+                        key={item.value}
+                        value={item.value}
+                        disabled={
+                          item.value !== 'total' && !targetedQuotaEnabled
+                        }
+                      >
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className='text-muted-foreground text-xs'>
+                  {t(
+                    'Model quota adjustments update the total quota and user premium percentage. The other category stays approximately unchanged; rounding to two decimal places may cause small differences. Total quota adjustments keep the percentage unchanged.'
+                  )}
+                </p>
+                {quotaType !== 'total' && (
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      'The adjusted percentage becomes a user override and remains after quota resets.'
+                    )}
+                  </p>
+                )}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor='subscription-quota-adjustment-amount'>
+                  {t('Amount (CNY)')}
+                </FieldLabel>
+                <Input
+                  id='subscription-quota-adjustment-amount'
+                  type='number'
+                  min='0'
+                  step='1'
+                  value={quotaAdjustmentAmount}
+                  disabled={confirming}
+                  onChange={(event) =>
+                    setQuotaAdjustmentAmount(event.target.value)
+                  }
+                />
+              </Field>
+            </FieldGroup>
           ) : null}
         </ConfirmDialog>
       )}

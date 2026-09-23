@@ -23,7 +23,7 @@ import { PremiumQuotaSummary } from './premium-quota-summary'
 
 const overrideSchema = z.object({
   inherit: z.boolean(),
-  percent: z.number().int().min(0).max(100),
+  percent: z.number().min(0).max(100).multipleOf(0.01),
 })
 
 export function UserPremiumPolicy(props: {
@@ -118,7 +118,7 @@ function UserPremiumForm(props: {
           className='w-24'
           min={0}
           max={100}
-          step={1}
+          step={0.01}
           disabled={inherit || save.isPending}
           {...form.register('percent', { valueAsNumber: true })}
         />
@@ -128,7 +128,7 @@ function UserPremiumForm(props: {
       </div>
       {form.formState.errors.percent ? (
         <p role='alert' className='text-destructive text-sm'>
-          {t('Enter an integer from 0 to 100.')}
+          {t('Enter a percentage from 0 to 100 with up to two decimal places.')}
         </p>
       ) : null}
       <p className='text-muted-foreground text-xs'>
@@ -142,12 +142,14 @@ function UserPremiumForm(props: {
           if (
             Number.isSafeInteger(total) &&
             total >= 0 &&
-            Number.isInteger(percent) &&
+            Number.isFinite(percent) &&
             percent >= 0 &&
             percent <= 100
           ) {
             preview = formatPremiumQuota(
-              String((BigInt(total) * BigInt(percent)) / 100n)
+              String(
+                (BigInt(total) * BigInt(Math.round(percent * 100))) / 10000n
+              )
             )
           }
           return (

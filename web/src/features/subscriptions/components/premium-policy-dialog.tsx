@@ -25,7 +25,7 @@ import {
 
 const policySchema = z.object({
   enabled: z.boolean(),
-  default_percent: z.number().int().min(0).max(100),
+  default_percent: z.number().min(0).max(100).multipleOf(0.01),
   model_names: z.array(z.string()),
 })
 
@@ -150,13 +150,15 @@ function PremiumPolicyForm(props: {
           type='number'
           min={0}
           max={100}
-          step={1}
+          step={0.01}
           disabled={save.isPending}
           {...form.register('default_percent', { valueAsNumber: true })}
         />
         {form.formState.errors.default_percent ? (
           <p role='alert' className='text-destructive text-sm'>
-            {t('Enter an integer from 0 to 100.')}
+            {t(
+              'Enter a percentage from 0 to 100 with up to two decimal places.'
+            )}
           </p>
         ) : null}
       </div>

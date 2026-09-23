@@ -471,7 +471,8 @@ type AdminCreateUserSubscriptionRequest struct {
 }
 
 type AdminAdjustUserSubscriptionQuotaRequest struct {
-	Amount float64 `json:"amount"`
+	Amount    float64 `json:"amount"`
+	QuotaType string  `json:"quota_type"`
 }
 
 type AdminResetSubscriptionRequest struct {
@@ -526,16 +527,15 @@ func AdminCreateUserSubscription(c *gin.Context) {
 
 // recordSubscriptionQuotaAudit records a subscription total-quota change under the
 // subscription category, owned by the user the subscription belongs to. It is only
-// called after a successful change; delta is the signed quota change (positive when
-// increased) used to derive the previous total. Without the subscription row there
-// is no owner to attribute the entry to, so the event is left to the generic admin
-// audit fallback in the middleware.
-func recordSubscriptionQuotaAudit(c *gin.Context, action string, subscriptionId int, amountCNY float64, delta int64) {
+// called after a successful change using the transaction's before/after values.
+// Without the subscription row there is no owner to attribute the entry to, so
+// the event is left to the generic admin audit fallback in the middleware.
+func recordSubscriptionQuotaAudit(c *gin.Context, action string, subscriptionId int, amountCNY float64, adjustment *model.SubscriptionQuotaAdjustment) {
 	subscription, err := model.GetUserSubscriptionById(subscriptionId)
 	if err != nil {
 		return
 	}
-	quotaDelta := delta
+	quotaDelta := adjustment.QuotaDelta
 	if quotaDelta < 0 {
 		quotaDelta = -quotaDelta
 	}
@@ -545,8 +545,13 @@ func recordSubscriptionQuotaAudit(c *gin.Context, action string, subscriptionId 
 		"quota":           quotaDelta,
 		"target_user_id":  subscription.UserId,
 		"plan_id":         subscription.PlanId,
-		"to":              subscription.AmountTotal,
-		"from":            subscription.AmountTotal - delta,
+		"to":              adjustment.TotalAfter,
+		"from":            adjustment.TotalBefore,
+		"quota_type":      adjustment.QuotaType,
+	}
+	if adjustment.PercentBefore != nil && adjustment.PercentAfter != nil {
+		params["premium_percent_before"] = *adjustment.PercentBefore
+		params["premium_percent_after"] = *adjustment.PercentAfter
 	}
 	params["target_username"], _ = model.GetUsernameById(subscription.UserId, false)
 	model.RecordCategoryAuditLog(model.AuditCategorySubscription, subscription.UserId, c.GetInt("role"),
@@ -571,13 +576,13 @@ func AdminIncreaseUserSubscriptionQuota(c *gin.Context) {
 		common.ApiErrorMsg(c, "金额必须大于0")
 		return
 	}
-	quotaDelta, err := model.AdminIncreaseUserSubscriptionQuota(subId, req.Amount)
+	adjustment, err := model.AdminAdjustUserSubscriptionQuota(subId, req.Amount, req.QuotaType, false)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	recordSubscriptionQuotaAudit(c, "subscription.quota_increase", subId, req.Amount, quotaDelta)
-	common.ApiSuccess(c, gin.H{"quota_delta": quotaDelta})
+	recordSubscriptionQuotaAudit(c, "subscription.quota_increase", subId, req.Amount, adjustment)
+	common.ApiSuccess(c, adjustment)
 }
 
 // AdminDecreaseUserSubscriptionQuota decreases an active subscription's quota by a CNY amount.
@@ -596,13 +601,15 @@ func AdminDecreaseUserSubscriptionQuota(c *gin.Context) {
 		common.ApiErrorMsg(c, "金额必须大于0")
 		return
 	}
-	quotaDelta, err := model.AdminDecreaseUserSubscriptionQuota(subscriptionId, request.Amount)
+	adjustment, err := model.AdminAdjustUserSubscriptionQuota(subscriptionId, request.Amount, request.QuotaType, true)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	recordSubscriptionQuotaAudit(c, "subscription.quota_decrease", subscriptionId, request.Amount, -quotaDelta)
-	common.ApiSuccess(c, gin.H{"quota_delta": quotaDelta})
+	recordSubscriptionQuotaAudit(c, "subscription.quota_decrease", subscriptionId, request.Amount, adjustment)
+	// Preserve the existing API's positive decrease magnitude.
+	adjustment.QuotaDelta = -adjustment.QuotaDelta
+	common.ApiSuccess(c, adjustment)
 }
 
 func AdminResetUserSubscriptionsByPlan(c *gin.Context) {

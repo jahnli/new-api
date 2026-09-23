@@ -1,6 +1,6 @@
 # 模型广场优化
 
-**日期**: 2026-09-05 ~ 09-14
+**日期**: 2026-09-05 ~ 09-23
 
 ## 涉及文件
 
@@ -10,7 +10,7 @@
 - `web/src/features/pricing/index.tsx` — 按当前用户角色判断是否展示分组倍率，并把用户所属分组和当前筛选分组传入模型卡片与模型详情。
 - `web/default/src/features/pricing/components/pricing-toolbar.tsx` — 向筛选侧边栏透传分组倍率可见性。
 - `web/default/src/features/pricing/components/pricing-sidebar.tsx` — 分组筛选项按权限显示或隐藏倍率后缀。
-- `web/src/features/pricing/components/model-details.tsx` — 模型详情按权限过滤分组：管理员可查看全部分组与倍率，普通用户仅可见所属分组并隐藏倍率与自动分组链；同一可见分组范围传入 API 速率限制区域；独立详情页使用模型实际有效分组倍率。
+- `web/src/features/pricing/components/model-details.tsx` — 模型详情按权限过滤分组：管理员可查看全部分组与倍率，普通用户仅可见所属分组并隐藏倍率与自动分组链；同一可见分组范围传入 API 速率限制区域；独立详情页使用模型实际有效分组倍率；分档价格表按当前用户所属分组计算，管理员明确筛选分组时跟随筛选值。
 - `web/src/features/pricing/components/model-details-price.tsx` — 模型详情基础价格按当前筛选分组或用户实际所属分组计算，覆盖 Token、按次及动态表达式计费，保留供应商分组倍率。
 - `web/src/features/pricing/components/__tests__/base-price-group.test.tsx` — 覆盖筛选分组优先、全部分组时回退用户所属分组以及动态计费应用实际分组倍率。
 - `web/src/features/pricing/components/model-details-api.tsx` — API 速率限制表按权限过滤后的可见分组渲染，无可见分组时隐藏该区域。
