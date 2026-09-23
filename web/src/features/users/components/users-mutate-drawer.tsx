@@ -484,7 +484,7 @@ export function UsersMutateDrawer({
                             value={field.value}
                             className='w-full'
                             placeholder={t('Select a group')}
-                            showSelectedOptionContent
+                            showSelectedContent
                           />
                         </FormControl>
                         <FormMessage />
