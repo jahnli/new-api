@@ -78,6 +78,8 @@ interface MultiSelectProps {
    * Hidden values remain searchable/removable from the dropdown.
    */
   maxVisibleChips?: number
+  /** Displays the hidden-chip count as xN instead of the default summary. */
+  compactHiddenCount?: boolean
   /**
    * Replaces individual chips with a compact summary while preserving the
    * normal dropdown/search behaviour.
@@ -545,7 +547,9 @@ export function MultiSelect(props: MultiSelectProps) {
                     title={t('Show All')}
                     className='bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex h-[calc(--spacing(5.25))] w-fit cursor-pointer items-center justify-center rounded-sm px-1.5 text-xs font-medium whitespace-nowrap transition-colors'
                   >
-                    {t('+{{count}} more', { count: hiddenCount })}
+                    {props.compactHiddenCount
+                      ? `x${hiddenCount}`
+                      : t('+{{count}} more', { count: hiddenCount })}
                   </button>
                 )}
                 {expanded &&

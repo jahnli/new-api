@@ -7,6 +7,11 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { handleServerError } from '@/lib/handle-server-error'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -51,30 +56,32 @@ export function CommonLogsExportButton(props: {
   })
 
   return (
-    <>
-      <Button
-        type='button'
-        variant='outline'
-        onClick={() => exportMutation.mutate()}
-        disabled={exportMutation.isPending}
-        aria-busy={exportMutation.isPending}
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon'
+            className='text-muted-foreground hover:text-foreground size-7 max-sm:size-11'
+            onClick={() => exportMutation.mutate()}
+            disabled={exportMutation.isPending}
+            aria-busy={exportMutation.isPending}
+            aria-label={
+              exportMutation.isPending ? t('Exporting...') : t('Export')
+            }
+          />
+        }
       >
         {exportMutation.isPending ? (
           <Loader2 className='animate-spin' aria-hidden='true' />
         ) : (
           <Download aria-hidden='true' />
         )}
+      </TooltipTrigger>
+      <TooltipContent>
         {exportMutation.isPending ? t('Exporting...') : t('Export')}
-      </Button>
-      {exportMutation.isPending && (
-        <Button
-          type='button'
-          variant='ghost'
-          onClick={() => abortController.current?.abort()}
-        >
-          {t('Cancel')}
-        </Button>
-      )}
-    </>
+      </TooltipContent>
+    </Tooltip>
   )
 }

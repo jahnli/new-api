@@ -494,6 +494,7 @@ export function CommonLogsFilterBar<TData>(
         emptyText={t('No data')}
         allowCreate
         maxVisibleChips={1}
+        compactHiddenCount
         className='[&_[data-slot=combobox-chip-remove]]:shrink-0 [&_[data-slot=combobox-chip]]:max-w-full [&_[data-slot=combobox-chip]>span]:min-w-0'
       />
     </LogsFilterField>
@@ -673,12 +674,12 @@ export function CommonLogsFilterBar<TData>(
       stats={statsBar}
       actionStart={
         <>
+          {sensitiveToggle}
           {isSuperAdmin && (
             <CommonLogsExportButton
               columnFilters={props.table.getState().columnFilters}
             />
           )}
-          {sensitiveToggle}
         </>
       }
       primaryFiltersClassName='sm:grid-cols-[minmax(15rem,1.5fr)_repeat(4,minmax(8rem,1fr))]'
