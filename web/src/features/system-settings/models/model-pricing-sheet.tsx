@@ -139,7 +139,7 @@ export type ModelPricingEditorPanelHandle = {
   commitDraft: () => Promise<ModelRatioData | null>
 }
 
-const DEFAULT_TOKEN_BILLING_EXPR = 'tier("base", p * 0 + c * 0)'
+const DEFAULT_TOKEN_BILLING_EXPR = 'tier("标准", p * 0 + c * 0)'
 
 export const ModelPricingSheet = forwardRef<
   ModelPricingEditorPanelHandle,

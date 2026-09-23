@@ -23,6 +23,7 @@
 - `web/src/features/pricing/lib/tier-expr.ts` — 新建可视化配置的默认档位名称使用“标准”
 - `web/src/features/system-settings/models/tiered-pricing-editor.tsx` — 预设模板采用“标准”“长上下文”档位名，读取已有表达式时保留原始档位名称
 - `web/src/features/system-settings/models/visual-billing-document-editor.tsx` — 档位输入框与卡片标题原样展示名称，输入内容原样写回
+- `web/src/features/system-settings/models/model-pricing-sheet.tsx` — 新增及未设置价格模型的默认 Token 表达式使用“标准”档位
 
 ## 变更说明
 
@@ -32,4 +33,5 @@
 - 档位名称作为配置数据原样保存、回显：不再将 `base` 自动改成 `standard`，也不再将 `base`、`standard` 翻译为“标准”或将输入的“标准”反向改为英文。
 - 新建配置及预设模板中的 `standard` 档位直接使用“标准”；GPT-5.4、Claude Sonnet 4.5 和 GPT-5.4 Priority/Flex 模板中的 `long_context` 直接使用“长上下文”。
 - 旧倍率定价的迁移预览生成 `tier("标准", …)`，各项价格、条件及计算逻辑保持不变。
+- 新增及“未设置价格模型”入口的初始化表达式由 `tier("base", p * 0 + c * 0)` 改为 `tier("标准", p * 0 + c * 0)`，档位标题、输入框与表达式预览保持一致，初始价格不变。
 - 已保存表达式不批量改名；其档位按原文展示，需要改名时由管理员编辑并保存。
