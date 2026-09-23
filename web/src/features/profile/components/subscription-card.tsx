@@ -3,27 +3,21 @@ import { Crown, Clock, CalendarDays, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { CardStaggerItem } from '@/components/page-transition'
 import {
   StatusBadge,
   dotColorMap,
   textColorMap,
 } from '@/components/status-badge'
-import { CardStaggerItem } from '@/components/page-transition'
-import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TitledCard } from '@/components/ui/titled-card'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
   getPublicPlans,
   getSelfSubscriptionFull,
 } from '@/features/subscriptions/api'
 import { PremiumQuotaSummary } from '@/features/subscriptions/components/premium-quota-summary'
 import type { UserSubscriptionRecord } from '@/features/subscriptions/types'
-import { formatQuota } from '@/lib/format'
+import { toIntlLocale } from '@/i18n/languages'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
@@ -71,7 +65,7 @@ export function SubscriptionCard() {
           icon={<Crown className='size-4 text-amber-500' />}
           title={t('My Subscriptions')}
         >
-          <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+          <div className='grid gap-4'>
             {SUBSCRIPTION_SKELETON_IDS.map((skeletonId) => (
               <div key={skeletonId} className='rounded-xl border p-4'>
                 <Skeleton className='h-4 w-32' />
@@ -123,7 +117,7 @@ export function SubscriptionCard() {
         title={t('My Subscriptions')}
         description={headerDescription}
       >
-        <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+        <div className='grid gap-4'>
           {allSubscriptions.map((sub) => (
             <SubscriptionItem
               key={sub.subscription?.id}
@@ -147,20 +141,15 @@ function SubscriptionItem({
   planTitleMap: Map<number, string>
   referenceTime: number
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const subscription = sub.subscription
-  const totalAmount = Number(subscription?.amount_total || 0)
-  const usedAmount = Number(subscription?.amount_used || 0)
-  const remainAmount =
-    totalAmount > 0 ? Math.max(0, totalAmount - usedAmount) : 0
   const planTitle = planTitleMap.get(subscription?.plan_id) || ''
   const endTime = subscription?.end_time || 0
   const nextResetTime = subscription?.next_reset_time ?? 0
   const remainDays = endTime
     ? Math.max(0, Math.ceil((endTime - referenceTime) / 86400))
     : 0
-  const usagePercent =
-    totalAmount > 0 ? Math.round((usedAmount / totalAmount) * 100) : 0
   const isExpired = endTime < referenceTime
   const isCancelled = subscription?.status === 'cancelled'
   const isActive = subscription?.status === 'active' && !isExpired
@@ -199,15 +188,8 @@ function SubscriptionItem({
     endDateLabel = t('Cancelled at')
   }
 
-  let progressClassName = '[&_[data-slot=progress-indicator]]:bg-red-500'
-  if (usagePercent < 50) {
-    progressClassName = '[&_[data-slot=progress-indicator]]:bg-emerald-500'
-  } else if (usagePercent < 80) {
-    progressClassName = '[&_[data-slot=progress-indicator]]:bg-amber-500'
-  }
-
   return (
-    <div className='flex min-w-0 flex-col justify-between gap-3 rounded-xl border p-3 sm:p-4'>
+    <div className='grid min-w-0 gap-5 rounded-xl border p-4 sm:p-5 lg:grid-cols-[minmax(160px,0.7fr)_minmax(0,2fr)] lg:gap-6'>
       <div>
         <div className='flex items-center justify-between gap-2'>
           <span className='truncate text-base font-medium'>
@@ -219,57 +201,35 @@ function SubscriptionItem({
         <div className='text-muted-foreground mt-2 space-y-1 text-sm'>
           {isActive && (
             <div className='flex items-center gap-1.5'>
-              <Clock className='size-3 shrink-0' />
+              <Clock className='size-3.5 shrink-0' />
               <span>
                 {t('{{count}} days remaining', { count: remainDays })}
               </span>
             </div>
           )}
           <div className='flex items-center gap-1.5'>
-            <CalendarDays className='size-3 shrink-0' />
+            <CalendarDays className='size-3.5 shrink-0' />
             <span>
-              {endDateLabel} {new Date(endTime * 1000).toLocaleDateString()}
+              {endDateLabel}{' '}
+              {new Date(endTime * 1000).toLocaleDateString(locale)}
             </span>
           </div>
           {isActive && nextResetTime > 0 && (
             <div className='flex items-center gap-1.5'>
-              <RefreshCw className='size-3 shrink-0' />
+              <RefreshCw className='size-3.5 shrink-0' />
               <span>
                 {t('Next reset')}:{' '}
-                {new Date(nextResetTime * 1000).toLocaleDateString()}
+                {new Date(nextResetTime * 1000).toLocaleDateString(locale)}
               </span>
             </div>
           )}
         </div>
       </div>
 
-      <PremiumQuotaSummary quota={sub.premium_quota} />
-      {totalAmount > 0 && (
-        <div className='border-t pt-3'>
-          <div className='flex items-center justify-between text-sm'>
-            <Tooltip>
-              <TooltipTrigger
-                render={<span className='text-muted-foreground cursor-help' />}
-              >
-                {formatQuota(usedAmount)} / {formatQuota(totalAmount)}
-              </TooltipTrigger>
-              <TooltipContent>
-                {t('Raw Quota')}: {usedAmount}/{totalAmount} · {t('Remaining')}{' '}
-                {remainAmount}
-              </TooltipContent>
-            </Tooltip>
-            <span className='text-muted-foreground font-medium tabular-nums'>
-              {usagePercent}%
-            </span>
-          </div>
-          {isActive && (
-            <Progress
-              value={usagePercent}
-              className={cn('mt-2 h-1.5', progressClassName)}
-            />
-          )}
-        </div>
-      )}
+      <PremiumQuotaSummary
+        subscription={subscription}
+        quota={sub.premium_quota}
+      />
     </div>
   )
 }

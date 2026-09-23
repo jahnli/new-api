@@ -13,11 +13,24 @@ import { useExternalMode } from '@/hooks/use-external-mode'
 
 import { formatPremiumQuota } from '../lib/premium-quota'
 import type { PremiumQuota } from '../premium-api'
+import type { UserSubscription } from '../types'
+import { SubscriptionQuotaBreakdown } from './subscription-quota-breakdown'
 
-export function PremiumQuotaSummary(props: { quota?: PremiumQuota }) {
+export function PremiumQuotaSummary(props: {
+  quota?: PremiumQuota
+  subscription?: UserSubscription
+}) {
   const { t } = useTranslation()
   const externalMode = useExternalMode()
   const quota = props.quota
+  if (props.subscription) {
+    return (
+      <SubscriptionQuotaBreakdown
+        subscription={props.subscription}
+        quota={externalMode ? undefined : quota}
+      />
+    )
+  }
   if (externalMode || !quota) return null
   const used = BigInt(quota.premium_amount_used)
   const limit = BigInt(quota.premium_limit)
