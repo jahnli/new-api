@@ -1,7 +1,11 @@
+import { Info, Layers, Sparkles, Wallet } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { QuotaDetailsPopover } from '@/components/quota-details-popover'
+import { IconBadge } from '@/components/ui/icon-badge'
 import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -31,12 +35,107 @@ export function SubscriptionQuotaBreakdown(props: {
   )
   let displayedLimit: bigint | null = total > 0n ? total : null
   if (split) displayedLimit = basicLimit
+  const totalUsedPercent =
+    total > 0n ? Number((used * 10000n) / total) / 100 : 0
+  const ringPercent = Math.min(100, Math.max(0, totalUsedPercent))
+  let ringColor = 'text-emerald-500'
+  if (totalUsedPercent >= 80) {
+    ringColor = 'text-red-500'
+  } else if (totalUsedPercent >= 50) {
+    ringColor = 'text-amber-500'
+  }
 
   return (
-    <div className='space-y-3'>
-      <div className={cn('grid gap-3', split && 'sm:grid-cols-2')}>
+    <div
+      className={cn(
+        'grid gap-5',
+        split &&
+          'lg:grid-cols-[minmax(220px,0.65fr)_minmax(0,1.8fr)] lg:gap-x-16 lg:pr-1'
+      )}
+    >
+      {split && (
+        <div className='flex min-w-0 flex-col items-center justify-center'>
+          <p className='flex items-center gap-2 text-sm font-medium'>
+            <IconBadge size='sm' tone='primary'>
+              <Wallet />
+            </IconBadge>
+            {t('Remaining subscription quota')}
+          </p>
+          <div className='relative mt-4 mb-3 aspect-square w-48 max-w-full'>
+            <svg
+              viewBox='0 0 200 200'
+              className='size-full -rotate-90'
+              aria-hidden='true'
+            >
+              <circle
+                cx='100'
+                cy='100'
+                r='90'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='8'
+                className='text-muted'
+              />
+              <circle
+                cx='100'
+                cy='100'
+                r='90'
+                pathLength='100'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='8'
+                strokeLinecap='round'
+                strokeDasharray={`${ringPercent} 100`}
+                className={cn(ringColor, ringPercent === 0 && 'opacity-0')}
+              />
+            </svg>
+            <div className='absolute inset-7 flex flex-col items-center justify-center gap-1 text-center'>
+              <span className='text-muted-foreground text-sm'>
+                {t('Remaining')}
+              </span>
+              <span className='w-full text-2xl font-semibold tracking-tight break-all tabular-nums'>
+                {formatPremiumQuota(remaining.toString())}
+              </span>
+            </div>
+          </div>
+          <p className={cn('text-sm font-medium tabular-nums', ringColor)}>
+            {t('{{percent}}% used', {
+              percent: formatNumber(totalUsedPercent, locale),
+            })}
+          </p>
+          <dl className='grid w-full grid-cols-2 gap-3 pt-4 text-center text-sm tabular-nums'>
+            <div className='space-y-1'>
+              <dt className='text-muted-foreground'>{t('Used')}</dt>
+              <dd className='font-medium break-all'>
+                {formatPremiumQuota(used.toString())}
+              </dd>
+            </div>
+            <div className='space-y-1'>
+              <dt className='text-muted-foreground'>{t('Total Quota')}</dt>
+              <dd className='font-medium break-all'>
+                {formatPremiumQuota(total.toString())}
+              </dd>
+            </div>
+          </dl>
+          <p className='text-muted-foreground mt-4 flex items-center justify-center gap-1 text-center text-[13px] leading-relaxed'>
+            <Info className='size-3.5 shrink-0' aria-hidden='true' />
+            <span>
+              {t(
+                'Shared by basic and advanced models. Advanced models have an additional quota limit.'
+              )}
+            </span>
+          </p>
+        </div>
+      )}
+      <div
+        className={cn(
+          'flex min-w-0 flex-col self-stretch',
+          split && 'lg:pb-1.5 lg:pl-4'
+        )}
+      >
         <QuotaUsagePanel
           title={split ? t('Basic quota') : t('Total Quota')}
+          icon={split ? <Layers /> : <Wallet />}
           used={split ? basicUsed : used}
           limit={displayedLimit}
           remaining={split ? basicRemaining : remaining}
@@ -47,35 +146,24 @@ export function SubscriptionQuotaBreakdown(props: {
           }
         />
         {split && (
+          <div className='flex min-h-12 flex-1 items-center px-5 sm:px-6'>
+            <Separator className='border-t border-dashed bg-transparent' />
+          </div>
+        )}
+        {split && (
           <QuotaUsagePanel
             title={t('Advanced quota')}
+            icon={<Sparkles />}
+            allocationPercent={quota.effective_percent}
             used={premiumUsed}
             limit={premiumLimit}
             remaining={BigInt(quota.premium_available)}
-            premium
             description={`${quota.percent_source === 'user' ? t('User override') : t('System default')} · ${formatNumber(quota.effective_percent, locale)}%. ${t('Advanced usage also consumes total quota. Remaining is limited by both the advanced limit and the shared remaining quota.')} ${reservationNote}`}
           />
         )}
       </div>
-      {split && (
-        <div className='text-muted-foreground flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm'>
-          <span>{t('Remaining subscription quota')}</span>
-          <span className='text-foreground font-medium tabular-nums'>
-            {formatPremiumQuota(remaining.toString())}
-            <span className='text-muted-foreground font-normal'>
-              {' '}
-              / {formatPremiumQuota(total.toString())}
-            </span>
-          </span>
-          <p className='w-full text-xs leading-relaxed'>
-            {t(
-              'Shared by basic and advanced models. Advanced models have an additional quota limit.'
-            )}
-          </p>
-        </div>
-      )}
       {quota && !quota.enabled && (
-        <p className='text-muted-foreground text-xs'>
+        <p className='text-muted-foreground border-t px-5 py-3 text-xs sm:px-6'>
           {t('Premium quota limit is disabled')}
         </p>
       )}
@@ -85,11 +173,12 @@ export function SubscriptionQuotaBreakdown(props: {
 
 function QuotaUsagePanel(props: {
   title: string
+  icon: ReactNode
+  allocationPercent?: number
   used: bigint
   limit: bigint | null
   remaining: bigint
   description: string
-  premium?: boolean
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -136,57 +225,71 @@ function QuotaUsagePanel(props: {
   }
 
   return (
-    <div
-      className={cn(
-        'min-w-0 space-y-3 rounded-xl border p-4',
-        props.premium
-          ? 'border-violet-500/15 bg-violet-500/5'
-          : 'border-sky-500/15 bg-sky-500/5'
-      )}
-    >
-      <div className='flex flex-wrap items-center justify-between gap-2 text-sm'>
-        <span className='font-medium'>{props.title}</span>
-        <span className={cn('font-medium tabular-nums', usageColor.text)}>
+    <div className='bg-muted/20 flex min-w-0 shrink-0 flex-col gap-3 rounded-2xl'>
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <span className='flex flex-wrap items-center gap-2 text-base font-medium'>
+          <IconBadge size='sm' tone='primary'>
+            {props.icon}
+          </IconBadge>
+          {props.title}
+          {props.allocationPercent !== undefined && (
+            <span className='text-muted-foreground text-sm font-normal tabular-nums'>
+              {t('Share {{percent}}%', {
+                percent: formatNumber(props.allocationPercent, locale),
+              })}
+            </span>
+          )}
+        </span>
+        <span
+          className={cn('text-sm font-medium tabular-nums', usageColor.text)}
+        >
           {percentLabel}
         </span>
       </div>
-      <QuotaDetailsPopover
-        title={props.title}
-        triggerLabel={`${props.title} · ${t('Remaining')} ${formattedRemaining}`}
-        details={[
-          { label: t('Used'), value: formattedUsed },
-          { label: t('Total Quota'), value: formattedLimit },
-          { label: t('Remaining'), value: formattedRemaining },
-        ]}
-        description={props.description}
-      >
-        <span className='flex min-w-0 flex-col gap-1'>
-          <span className='text-muted-foreground text-sm'>
-            {t('Remaining')}
+      <div className='grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center gap-4'>
+        <QuotaDetailsPopover
+          title={props.title}
+          triggerLabel={`${props.title} · ${t('Remaining')} ${formattedRemaining}`}
+          details={[
+            { label: t('Used'), value: formattedUsed },
+            { label: t('Total Quota'), value: formattedLimit },
+            { label: t('Remaining'), value: formattedRemaining },
+          ]}
+          description={props.description}
+          triggerClassName='whitespace-normal'
+        >
+          <span className='flex min-w-0 flex-col gap-1'>
+            <span className='text-muted-foreground text-base'>
+              {t('Remaining')}
+            </span>
+            <span className='text-2xl font-semibold tracking-tight break-all tabular-nums'>
+              {formattedRemaining}
+            </span>
           </span>
-          <span className='text-2xl font-semibold tracking-tight break-all tabular-nums'>
-            {formattedRemaining}
-          </span>
-        </span>
-      </QuotaDetailsPopover>
-      {props.limit !== null && (
-        <Progress
-          value={Math.min(100, Math.max(0, percent ?? 100))}
-          aria-label={props.title}
-          aria-valuetext={percentLabel}
-          className={cn(
-            '[&_[data-slot=progress-track]]:h-2',
-            usageColor.progress
-          )}
-        />
-      )}
-      <div className='text-muted-foreground flex flex-wrap justify-between gap-1 text-sm tabular-nums'>
-        <span>
-          {t('Used')} {formattedUsed}
-        </span>
-        <span>
-          {t('Total Quota')} {formattedLimit}
-        </span>
+        </QuotaDetailsPopover>
+        <dl className='space-y-2 text-right text-sm tabular-nums'>
+          <div className='flex flex-wrap justify-end gap-x-2 gap-y-1'>
+            <dt className='text-muted-foreground'>{t('Used')}</dt>
+            <dd className='break-all'>{formattedUsed}</dd>
+          </div>
+          <div className='flex flex-wrap justify-end gap-x-2 gap-y-1'>
+            <dt className='text-muted-foreground'>{t('Total Quota')}</dt>
+            <dd className='break-all'>{formattedLimit}</dd>
+          </div>
+        </dl>
+      </div>
+      <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2'>
+        {props.limit !== null && (
+          <Progress
+            value={Math.min(100, Math.max(0, percent ?? 100))}
+            aria-label={props.title}
+            aria-valuetext={percentLabel}
+            className={cn(
+              'min-w-20 flex-1 [&_[data-slot=progress-track]]:h-1.5',
+              usageColor.progress
+            )}
+          />
+        )}
       </div>
     </div>
   )

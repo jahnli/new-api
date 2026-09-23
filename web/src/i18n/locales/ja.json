@@ -5942,6 +5942,7 @@
     "SGLang server address, without /v1": "SGLang サーバーのアドレス（/v1 なし）",
     "SGLang status": "SGLang の状態",
     "Share": "シェア",
+    "Share {{percent}}%": "割合 {{percent}}%",
     "Share your link and earn rewards": "リンクを共有して報酬を獲得",
     "Shared by basic and advanced models. Advanced models have an additional quota limit.": "基本モデルと上位モデルで共有します。上位モデルには別途利用上限があります。",
     "Shared configuration for all payment gateways": "すべての決済ゲートウェイの共有設定",

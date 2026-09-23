@@ -5942,6 +5942,7 @@
     "SGLang server address, without /v1": "Adresse du serveur SGLang, sans /v1",
     "SGLang status": "État de SGLang",
     "Share": "Part",
+    "Share {{percent}}%": "Part {{percent}} %",
     "Share your link and earn rewards": "Partagez votre lien et gagnez des récompenses",
     "Shared by basic and advanced models. Advanced models have an additional quota limit.": "Partagé entre les modèles de base et avancés. Les modèles avancés ont une limite de quota supplémentaire.",
     "Shared configuration for all payment gateways": "Configuration partagée pour toutes les passerelles de paiement",

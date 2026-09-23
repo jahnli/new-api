@@ -189,16 +189,16 @@ function SubscriptionItem({
   }
 
   return (
-    <div className='grid min-w-0 gap-5 rounded-xl border p-4 sm:p-5 lg:grid-cols-[minmax(160px,0.7fr)_minmax(0,2fr)] lg:gap-6'>
-      <div>
-        <div className='flex items-center justify-between gap-2'>
-          <span className='truncate text-base font-medium'>
+    <div className='min-w-0 rounded-2xl border p-4 sm:p-5'>
+      <div className='flex flex-col gap-3 pb-5 xl:flex-row xl:items-center xl:justify-between xl:gap-6'>
+        <div className='flex flex-wrap items-center gap-3'>
+          <span className='min-w-0 truncate text-lg font-semibold'>
             {planTitle || `${t('Subscription')} #${subscription?.id}`}
           </span>
           {statusBadge}
         </div>
 
-        <div className='text-muted-foreground mt-2 space-y-1 text-sm'>
+        <div className='text-muted-foreground flex flex-wrap gap-x-4 gap-y-2 text-sm'>
           {isActive && (
             <div className='flex items-center gap-1.5'>
               <Clock className='size-3.5 shrink-0' />
@@ -226,10 +226,12 @@ function SubscriptionItem({
         </div>
       </div>
 
-      <PremiumQuotaSummary
-        subscription={subscription}
-        quota={sub.premium_quota}
-      />
+      <div className='min-w-0'>
+        <PremiumQuotaSummary
+          subscription={subscription}
+          quota={sub.premium_quota}
+        />
+      </div>
     </div>
   )
 }

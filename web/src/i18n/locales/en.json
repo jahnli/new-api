@@ -5942,6 +5942,7 @@
     "SGLang server address, without /v1": "SGLang server address, without /v1",
     "SGLang status": "SGLang status",
     "Share": "Share",
+    "Share {{percent}}%": "Share {{percent}}%",
     "Share your link and earn rewards": "Share your link and earn rewards",
     "Shared by basic and advanced models. Advanced models have an additional quota limit.": "Shared by basic and advanced models. Advanced models have an additional quota limit.",
     "Shared configuration for all payment gateways": "Shared configuration for all payment gateways",

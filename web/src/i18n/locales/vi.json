@@ -5942,6 +5942,7 @@
     "SGLang server address, without /v1": "Địa chỉ máy chủ SGLang, không có /v1",
     "SGLang status": "Trạng thái SGLang",
     "Share": "Tỉ lệ",
+    "Share {{percent}}%": "Tỷ lệ {{percent}}%",
     "Share your link and earn rewards": "Chia sẻ liên kết của bạn và kiếm phần thưởng",
     "Shared by basic and advanced models. Advanced models have an additional quota limit.": "Dùng chung cho mô hình cơ bản và nâng cao. Mô hình nâng cao có thêm giới hạn hạn mức riêng.",
     "Shared configuration for all payment gateways": "Cấu hình chung cho tất cả các cổng thanh toán",

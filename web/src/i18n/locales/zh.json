@@ -5942,6 +5942,7 @@
     "SGLang server address, without /v1": "SGLang 服务地址，不含 /v1",
     "SGLang status": "SGLang 状态",
     "Share": "占比",
+    "Share {{percent}}%": "占比 {{percent}}%",
     "Share your link and earn rewards": "分享您的链接并赚取奖励",
     "Shared by basic and advanced models. Advanced models have an additional quota limit.": "基础和高级模型共用，高级模型另有额度上限。",
     "Shared configuration for all payment gateways": "所有支付网关的共享配置",
