@@ -28,6 +28,7 @@ import type { UsageLog } from '../../data/schema'
 import type { RequestMessage } from '../../types'
 import { LogUserIdentity } from '../log-user-identity'
 import { parseUserMessages } from '../request-messages-provider'
+import { LOG_DETAILS_DIALOG_CONTENT_HEIGHT } from './log-detail-layout'
 import { RequestLogSummary } from './request-log-summary'
 
 interface RequestContentDialogProps {
@@ -121,9 +122,9 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
         open={props.open}
         onOpenChange={handleOpenChange}
         title={t('Request Content')}
-        contentClassName='h-[92vh] w-[85vw] max-w-[85vw] sm:max-w-[85vw]'
-        contentHeight='100%'
-        bodyContainerClassName='flex-1 max-h-none overflow-hidden'
+        contentClassName='w-[65vw] max-w-[65vw] sm:max-w-[65vw]'
+        contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}
+        bodyContainerClassName='overflow-hidden'
         bodyClassName='h-full min-h-0'
       >
         <div className='flex h-full min-h-0 flex-col space-y-3'>
