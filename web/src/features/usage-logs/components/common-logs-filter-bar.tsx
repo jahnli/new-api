@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { MultiSelect } from '@/components/multi-select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
@@ -36,6 +37,7 @@ import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
 import { buildSearchParams } from '../lib/filter'
 import { getDefaultTimeRange } from '../lib/utils'
 import type { CommonLogFilters } from '../types'
+import { CommonLogsExportButton } from './common-logs-export-button'
 import { CommonLogsStats } from './common-logs-stats'
 import { CompactDateTimeRangePicker } from './compact-date-time-range-picker'
 import {
@@ -261,6 +263,14 @@ export function CommonLogsFilterBar<TData>(
   const activeDraft =
     draft.sourceKey === searchState.sourceKey ? draft : searchState
   const filters = activeDraft.filters
+  const selectedModels = useMemo(
+    () =>
+      (filters.model ?? '')
+        .split(',')
+        .map((model) => model.trim())
+        .filter(Boolean),
+    [filters.model]
+  )
   const logType = activeDraft.logType
   const userCategoryOptions = useMemo<UserCategoryOption[]>(
     () =>
@@ -473,16 +483,18 @@ export function CommonLogsFilterBar<TData>(
   )
   const modelFilter = (
     <LogsFilterField>
-      <Combobox
+      <MultiSelect
         options={modelOptions}
         placeholder={modelsLoading ? t('Loading...') : t('Model Name')}
-        searchPlaceholder={modelsLoading ? t('Loading...') : t('Model Name')}
-        value={filters.model || ''}
-        onValueChange={(value) => handleChange('model', value || undefined)}
-        emptyText='No data'
-        allowCustomValue
-        showCustomValueHint={false}
-        openOnFocus
+        inputAriaLabel={t('Model Name')}
+        selected={selectedModels}
+        onChange={(values) =>
+          handleChange('model', values.join(',') || undefined)
+        }
+        emptyText={t('No data')}
+        allowCreate
+        maxVisibleChips={1}
+        className='[&_[data-slot=combobox-chip-remove]]:shrink-0 [&_[data-slot=combobox-chip]]:max-w-full [&_[data-slot=combobox-chip]>span]:min-w-0'
       />
     </LogsFilterField>
   )
@@ -659,7 +671,16 @@ export function CommonLogsFilterBar<TData>(
       table={props.table}
       compactMobile
       stats={statsBar}
-      actionStart={sensitiveToggle}
+      actionStart={
+        <>
+          {isSuperAdmin && (
+            <CommonLogsExportButton
+              columnFilters={props.table.getState().columnFilters}
+            />
+          )}
+          {sensitiveToggle}
+        </>
+      }
       primaryFiltersClassName='sm:grid-cols-[minmax(15rem,1.5fr)_repeat(4,minmax(8rem,1fr))]'
       primaryFilters={
         <>
