@@ -15,25 +15,34 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func applyExplicitLogTextFilter(tx *gorm.DB, column string, value string) (*gorm.DB, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return tx, nil
-	}
-	if strings.Contains(value, "%") {
-		condition, pattern, err := buildLogLikeCondition(column, value)
+	// Comma-separated model filters match any entry, retaining each entry's
+	// existing contains or explicit wildcard semantics.
+	var conditions []clause.Expression
+	for entry := range strings.SplitSeq(value, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		var condition, pattern string
+		var err error
+		if strings.Contains(entry, "%") {
+			condition, pattern, err = buildLogLikeCondition(column, entry)
+		} else {
+			condition, pattern, err = buildLogContainsCondition(column, entry, common.LogDatabaseType())
+		}
 		if err != nil {
 			return nil, err
 		}
-		return tx.Where(condition, pattern), nil
+		conditions = append(conditions, clause.Expr{SQL: condition, Vars: []any{pattern}})
 	}
-	condition, pattern, err := buildLogContainsCondition(column, value, common.LogDatabaseType())
-	if err != nil {
-		return nil, err
+	if len(conditions) == 0 {
+		return tx, nil
 	}
-	return tx.Where(condition, pattern), nil
+	return tx.Where(clause.Or(conditions...)), nil
 }
 
 // resolveChannelIDs accepts either a channel ID or part of a channel name.
@@ -885,13 +894,14 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 }
 
 type Stat struct {
-	Quota int `json:"quota"`
-	Rpm   int `json:"rpm"`
-	Tpm   int `json:"tpm"`
+	Quota       int   `json:"quota"`
+	Rpm         int   `json:"rpm"`
+	Tpm         int   `json:"tpm"`
+	TotalTokens int64 `json:"total_tokens"`
 }
 
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel string, group string, userCategory string) (stat Stat, err error) {
-	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota")
+	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) total_tokens")
 
 	// 为rpm和tpm创建单独的查询
 	rpmTpmQuery := LOG_DB.Table("logs").Select("count(*) rpm, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) tpm")

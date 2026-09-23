@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-17（最后更新 09-17）
+**日期**: 2026-09-09 ~ 09-23（最后更新 09-23）
 
 ## 涉及文件
 
@@ -232,6 +232,21 @@
 - `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 右栏在请求参数之外新增「请求信息」折叠区块，两个区块各占 50% 高度并各自内部滚动，折叠其中一个时另一个占满剩余高度；请求信息排在请求参数上方，内容左内缩 24px 与区块标题文字对齐，字号在容器上用 `[&_span]:text-[13px]` 覆盖为 13px（`DetailRow` 自身保持 12px，日志详情与审计日志详情弹框不受影响）；`log` 属性为可选，未传入时不渲染该区块；弹框尺寸由 `h-[85vh] sm:max-w-[78rem]` 改为 `h-[92vh] sm:w-[95vw] sm:max-w-[95vw]`，桌面端宽度占视口 95%、高度 92vh，移动端仍为 `w-full`，`h-[92vh]` 未触及 Dialog 默认的 `max-h-[calc(100vh-2rem)]` 上限。
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 打开请求内容弹框时传入当前行日志，供区块展示运行信息。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json` — 新增 "Request Info" / 「请求信息」区块标题的七语言翻译。
+
+## 2026-09-23 使用日志多模型筛选、Token 汇总与 Excel 导出
+
+- `controller/log.go` — 管理员与个人日志统计响应新增累计输入、输出 Token 总量字段，供筛选结果汇总展示。
+- `controller/log_export.go` — 新增管理员与个人日志导出处理器，校验筛选条件和时区；个人导出强制限定当前用户及权限范围，并通过单用户去重、全局并发上限、十分钟超时与临时文件控制导出资源占用。
+- `model/log.go` — 模型名称筛选支持逗号分隔的多值 OR 查询，每个值保留包含匹配或显式通配符语义；日志统计同步汇总全部输入、输出 Token。
+- `model/log_export.go` — 新增导出筛选与精简行模型，沿用日志列表的模型、用户、角色、渠道、分组及请求 ID 等筛选语义，以单次结果流遍历导出数据，并兼容 SQLite、MySQL、PostgreSQL 与 ClickHouse 排序。
+- `router/api-router.go` — 注册管理员 `/api/log/export` 与个人 `/api/log/self/export` 下载接口，分别沿用管理员和用户认证。
+- `service/log_export.go` — 使用 Excelize 流式生成 XLSX，导出时间、类型、模型、费用及输入/输出/缓存 Token；费用按当前显示币种或额度单位转换，订阅日志优先采用订阅实际消耗，演示模式遮蔽费用，并限制 Excel 单表最大行数。
+- `go.mod`、`go.sum` — 引入 Excelize 及其传递依赖，用于流式生成 Excel 工作簿。
+- `web/src/features/usage-logs/components/common-logs-export-button.tsx` — 新增导出与取消按钮，按当前日志范围和筛选条件发起下载，展示进行中状态及成功、空数据、失败反馈。
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 模型筛选由单选搜索改为可创建选项的多选组件，以逗号拼接筛选值；工具栏接入日志导出操作。
+- `web/src/features/usage-logs/lib/export-excel.ts` — 复用当前列表参数构造管理员或个人导出请求，传递浏览器时区、校验 XLSX 响应与导出条数，并按筛选时间范围生成中文下载文件名。
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统计栏新增累计 Token 徽标，按当前界面语言格式化并以亿 Token 为单位展示，同时补齐加载骨架与换行布局。
+- `web/src/features/usage-logs/constants.ts`、`web/src/features/usage-logs/types.ts` — 日志统计默认值与类型新增 `total_tokens` 字段。
 
 ## 自 CHANGELOG 说明列迁入
 
