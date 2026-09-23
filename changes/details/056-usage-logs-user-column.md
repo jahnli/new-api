@@ -239,11 +239,11 @@
 - `controller/log_export.go` — 新增管理员与个人日志导出处理器，校验筛选条件和时区；个人导出强制限定当前用户及权限范围，并通过单用户去重、全局并发上限、十分钟超时与临时文件控制导出资源占用。
 - `model/log.go` — 模型名称筛选支持逗号分隔的多值 OR 查询，每个值保留包含匹配或显式通配符语义；日志统计同步汇总全部输入、输出 Token。
 - `model/log_export.go` — 新增导出筛选与精简行模型，沿用日志列表的模型、用户、角色、渠道、分组及请求 ID 等筛选语义，以单次结果流遍历导出数据，并兼容 SQLite、MySQL、PostgreSQL 与 ClickHouse 排序。
-- `router/api-router.go` — 注册管理员 `/api/log/export` 与个人 `/api/log/self/export` 下载接口，分别沿用管理员和用户认证。
+- `router/api-router.go` — 注册管理员 `/api/log/export` 与个人 `/api/log/self/export` 下载接口；两个接口均收紧为超级管理员认证，普通管理员和普通用户无法直接调用导出。
 - `service/log_export.go` — 使用 Excelize 流式生成 XLSX，导出时间、类型、模型、费用及输入/输出/缓存 Token；费用按当前显示币种或额度单位转换，订阅日志优先采用订阅实际消耗，演示模式遮蔽费用，并限制 Excel 单表最大行数。
 - `go.mod`、`go.sum` — 引入 Excelize 及其传递依赖，用于流式生成 Excel 工作簿。
 - `web/src/features/usage-logs/components/common-logs-export-button.tsx` — 新增导出与取消按钮，按当前日志范围和筛选条件发起下载，展示进行中状态及成功、空数据、失败反馈。
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 模型筛选由单选搜索改为可创建选项的多选组件，以逗号拼接筛选值；工具栏接入日志导出操作。
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 模型筛选由单选搜索改为可创建选项的多选组件，以逗号拼接筛选值；工具栏接入日志导出操作，并仅向超级管理员显示导出按钮。
 - `web/src/features/usage-logs/lib/export-excel.ts` — 复用当前列表参数构造管理员或个人导出请求，传递浏览器时区、校验 XLSX 响应与导出条数，并按筛选时间范围生成中文下载文件名。
 - `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统计栏新增累计 Token 徽标，按当前界面语言格式化并以亿 Token 为单位展示，同时补齐加载骨架与换行布局。
 - `web/src/features/usage-logs/constants.ts`、`web/src/features/usage-logs/types.ts` — 日志统计默认值与类型新增 `total_tokens` 字段。

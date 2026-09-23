@@ -673,9 +673,11 @@ export function CommonLogsFilterBar<TData>(
       stats={statsBar}
       actionStart={
         <>
-          <CommonLogsExportButton
-            columnFilters={props.table.getState().columnFilters}
-          />
+          {isSuperAdmin && (
+            <CommonLogsExportButton
+              columnFilters={props.table.getState().columnFilters}
+            />
+          )}
           {sensitiveToggle}
         </>
       }
