@@ -53,14 +53,14 @@ func GetSubscriptionPremiumPolicy(tx *gorm.DB) (setting.SubscriptionPremiumPolic
 	if err := common.UnmarshalJsonStr(option.Value, &policy); err != nil {
 		return policy, err
 	}
-	if policy.DefaultPercent < 0 || policy.DefaultPercent > 100 || policy.Version < 1 {
+	if !setting.ValidSubscriptionPremiumPercent(policy.DefaultPercent) || policy.Version < 1 {
 		return policy, errors.New("invalid subscription premium policy")
 	}
 	return policy, nil
 }
 
 func SaveSubscriptionPremiumPolicy(policy setting.SubscriptionPremiumPolicy, expected int64, available []string) (setting.SubscriptionPremiumPolicy, error) {
-	if policy.DefaultPercent < 0 || policy.DefaultPercent > 100 || len(policy.ModelNames) > 10000 {
+	if !setting.ValidSubscriptionPremiumPercent(policy.DefaultPercent) || len(policy.ModelNames) > 10000 {
 		return policy, errors.New("invalid premium percentage or model count")
 	}
 	err := subscriptionTransaction(func(tx *gorm.DB) error {
@@ -124,8 +124,8 @@ func SaveSubscriptionPremiumPolicy(policy setting.SubscriptionPremiumPolicy, exp
 	return policy, err
 }
 
-func UpdateSubscriptionPremiumPercent(userID int, percent, expected *int) error {
-	if userID <= 0 || percent != nil && (*percent < 0 || *percent > 100) {
+func UpdateSubscriptionPremiumPercent(userID int, percent, expected *float64) error {
+	if userID <= 0 || percent != nil && !setting.ValidSubscriptionPremiumPercent(*percent) || expected != nil && !setting.ValidSubscriptionPremiumPercent(*expected) {
 		return errors.New("invalid premium percentage")
 	}
 	return subscriptionTransaction(func(tx *gorm.DB) error {
@@ -157,22 +157,24 @@ func UpdateSubscriptionPremiumPercent(userID int, percent, expected *int) error 
 	})
 }
 
-func subscriptionPremiumLimit(total int64, percent int) int64 {
-	if total <= 0 || percent <= 0 || percent > 100 {
+func subscriptionPremiumLimit(total int64, percent float64) int64 {
+	if total <= 0 || !setting.ValidSubscriptionPremiumPercent(percent) {
 		return 0
 	}
-	return (total/100)*int64(percent) + (total%100)*int64(percent)/100
+	// Basis points are bounded to [0, 10000]; splitting avoids overflowing total*basisPoints.
+	basisPoints := int64(math.Round(percent * 100))
+	return (total/10000)*basisPoints + (total%10000)*basisPoints/10000
 }
 
 type SubscriptionPremiumQuota struct {
-	Enabled          bool   `json:"enabled"`
-	EffectivePercent int    `json:"effective_percent"`
-	PercentSource    string `json:"percent_source"`
-	AmountUsed       string `json:"premium_amount_used"`
-	Limit            string `json:"premium_limit"`
-	Available        string `json:"premium_available"`
-	OverLimit        string `json:"over_limit_quota"`
-	TrackedSince     int64  `json:"tracked_since"`
+	Enabled          bool    `json:"enabled"`
+	EffectivePercent float64 `json:"effective_percent"`
+	PercentSource    string  `json:"percent_source"`
+	AmountUsed       string  `json:"premium_amount_used"`
+	Limit            string  `json:"premium_limit"`
+	Available        string  `json:"premium_available"`
+	OverLimit        string  `json:"over_limit_quota"`
+	TrackedSince     int64   `json:"tracked_since"`
 }
 
 func AttachSubscriptionPremiumQuota(userID int, summaries []SubscriptionSummary) error {
@@ -203,20 +205,20 @@ func AttachSubscriptionPremiumQuota(userID int, summaries []SubscriptionSummary)
 
 // SubscriptionChargeContext is stored in TEXT to work identically on all main databases.
 type SubscriptionChargeContext struct {
-	Applied                bool   `json:"-"`
-	SchemaVersion          int    `json:"schema_version"`
-	BillingModelName       string `json:"billing_model_name"`
-	IsPremium              bool   `json:"is_premium"`
-	LimitEnabled           bool   `json:"limit_enabled"`
-	ResetVersion           int64  `json:"quota_reset_version"`
-	AccountedQuota         int64  `json:"accounted_quota"`
-	Phase                  string `json:"phase"`
-	Revision               int64  `json:"revision"`
-	EffectivePercent       int    `json:"effective_percent"`
-	PolicyVersion          int64  `json:"policy_version"`
-	PremiumOverLimit       int64  `json:"premium_over_limit_quota,omitempty"`
-	PendingTarget          *int64 `json:"pending_target_quota,omitempty"`
-	OriginalSubscriptionID int    `json:"original_subscription_id,omitempty"`
+	Applied                bool    `json:"-"`
+	SchemaVersion          int     `json:"schema_version"`
+	BillingModelName       string  `json:"billing_model_name"`
+	IsPremium              bool    `json:"is_premium"`
+	LimitEnabled           bool    `json:"limit_enabled"`
+	ResetVersion           int64   `json:"quota_reset_version"`
+	AccountedQuota         int64   `json:"accounted_quota"`
+	Phase                  string  `json:"phase"`
+	Revision               int64   `json:"revision"`
+	EffectivePercent       float64 `json:"effective_percent"`
+	PolicyVersion          int64   `json:"policy_version"`
+	PremiumOverLimit       int64   `json:"premium_over_limit_quota,omitempty"`
+	PendingTarget          *int64  `json:"pending_target_quota,omitempty"`
+	OriginalSubscriptionID int     `json:"original_subscription_id,omitempty"`
 }
 
 func (r *SubscriptionPreConsumeRecord) ChargeContext() (SubscriptionChargeContext, error) {
@@ -225,7 +227,7 @@ func (r *SubscriptionPreConsumeRecord) ChargeContext() (SubscriptionChargeContex
 		return ctx, nil
 	}
 	err := common.UnmarshalJsonStr(r.BillingContext, &ctx)
-	if err == nil && (ctx.SchemaVersion != 1 || ctx.AccountedQuota < 0 || ctx.AccountedQuota > math.MaxInt32 || ctx.Revision < 1 || ctx.ResetVersion < 1 || ctx.EffectivePercent < 0 || ctx.EffectivePercent > 100 ||
+	if err == nil && (ctx.SchemaVersion != 1 || ctx.AccountedQuota < 0 || ctx.AccountedQuota > math.MaxInt32 || ctx.Revision < 1 || ctx.ResetVersion < 1 || !setting.ValidSubscriptionPremiumPercent(ctx.EffectivePercent) ||
 		!slices.Contains([]string{"reserved", "settled", "refunded", "settlement_pending"}, ctx.Phase) ||
 		(ctx.PendingTarget != nil && (*ctx.PendingTarget < 0 || *ctx.PendingTarget > math.MaxInt32)) ||
 		(ctx.Phase == "settlement_pending") != (ctx.PendingTarget != nil)) {

@@ -55,6 +55,8 @@ export const userSubscriptionSchema = z.object({
 
 export type UserSubscription = z.infer<typeof userSubscriptionSchema>
 
+export type SubscriptionQuotaType = 'basic' | 'premium' | 'total'
+
 export interface UserSubscriptionRecord {
   premium_quota?: PremiumQuota
   subscription: UserSubscription

@@ -70,6 +70,14 @@
 
 - `web/src/features/subscriptions/components/premium-quota-summary.tsx` — 放大高阶额度摘要文字，并将额度说明悬停提示的等待时间缩短至 100ms，使提示快速显示。
 
+## 2026-09-23 订阅额度分类调整与精度优化
+
+- `model/subscription_quota_adjustment.go` — 新增原子化的总额度、基础模型额度和高阶模型额度调整，记录调整前后额度与比例并校验已用额度、无限额度、并发版本及两位小数舍入边界。
+- `controller/subscription.go`、`model/subscription.go` — 管理员额度增减接口支持选择额度类型，审计记录调整前后额度、额度类别及高阶比例变化。
+- `setting/subscription_premium.go`、`model/subscription_premium.go`、`controller/subscription_premium.go`、`model/user.go`、`relay/common/relay_info.go` — 高阶模型默认比例和用户覆盖比例支持 0～100 的两位小数，并以浮点比例贯穿策略校验、额度计算和中继计费上下文。
+- `web/src/features/subscriptions/api.ts`、`web/src/features/subscriptions/types.ts`、`web/src/features/subscriptions/components/dialogs/user-subscriptions-dialog.tsx`、`web/src/features/subscriptions/components/premium-policy-dialog.tsx`、`web/src/features/subscriptions/components/user-premium-policy.tsx` — 订阅管理支持选择总额度/基础模型额度/高阶模型额度，展示比例调整说明，并将比例输入精度扩展至两位小数。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充额度类型、分类调整、比例精度和调整后用户覆盖规则的多语言文案。
+
 ## 自 CHANGELOG 说明列迁入
 
 订阅管理增强：全员订阅按所选公司覆盖全部用户（含禁用、注销），重复执行覆盖同套餐有效订阅、保留已用额度且不叠加总额，并可恢复旧逻辑误清零的用量；确认框优化加载态与禁用态；管理员可按人民币金额增减单个有效用户总额度，减少后不得低于已用额度，无限额度不可减少；额度重置时总额度恢复为当前套餐额度，手动增减仅当期生效；套餐选择显示额度，套餐按公司限制可见范围，购买与批量订阅同步校验

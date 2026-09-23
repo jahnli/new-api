@@ -149,7 +149,7 @@ type RelayInfo struct {
 	SubscriptionAccountedQuota   int64
 	SubscriptionPremiumOverLimit int64
 	SubscriptionIsPremium        bool
-	SubscriptionPremiumPercent   int
+	SubscriptionPremiumPercent   float64
 	SubscriptionResetVersion     int64
 	SubscriptionId               int
 	// SubscriptionPreConsumed is the amount pre-consumed on subscription item (quota units or 1)
