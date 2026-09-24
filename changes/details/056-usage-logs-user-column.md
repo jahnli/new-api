@@ -254,6 +254,10 @@
 - `web/src/features/usage-logs/components/common-logs-export-button.tsx` — 导出按钮改为接收当前筛选参数，不再读取上一次查询写入路由的参数，也不再让旧表格列筛选覆盖当前条件。
 - `web/src/features/usage-logs/lib/export-excel.ts` — 收紧导出配置类型，仅保留导出请求实际需要的筛选、范围与用户字段，后端仍按完整筛选结果生成 XLSX。
 
+## 2026-09-24 使用日志订阅来源展示
+
+- `web/src/features/usage-logs/components/usage-logs-table.tsx` — 使用日志始终显示订阅计费来源，移除按管理员套餐或个人订阅状态查询后再决定列可见性的逻辑，避免因订阅配置状态造成费用来源信息缺失。
+
 ## 2026-09-24 使用日志 Token 分类汇总
 
 - `controller/log.go` — 管理员与个人统计接口透传请求上下文，并支持按需返回 Token 分类明细；个人统计显式限定当前用户，统计响应直接返回完整结构。
