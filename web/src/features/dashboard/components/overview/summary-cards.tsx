@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { CalendarClock } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -17,17 +16,13 @@ import type { SubscriptionPlan } from '@/features/subscriptions/types'
 import { useStatus } from '@/hooks/use-status'
 import { getCurrencyLabel, isCurrencyDisplayEnabled } from '@/lib/currency'
 import dayjs from '@/lib/dayjs'
-import {
-  formatDashboardQuota,
-  formatQuota,
-  formatRequestCount,
-} from '@/lib/format'
+import { formatDashboardQuota, formatRequestCount } from '@/lib/format'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { computeTimeRange } from '@/lib/time'
-import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { StatCard } from '../ui/stat-card'
+import { SubscriptionSummary } from './subscription-summary'
 import { WalletSummary } from './wallet-summary'
 
 const SUMMARY_SPARKLINE_BUCKETS = 12
@@ -182,11 +177,12 @@ export function SummaryCards() {
     return map
   }, [plansQuery.data?.data])
 
-  const activeSub = useMemo(() => {
+  const activeSubscriptionRecord = useMemo(() => {
     const subs = subscriptionQuery.data?.data?.subscriptions ?? []
     if (subs.length === 0) return null
-    return subs[0].subscription
+    return subs[0]
   }, [subscriptionQuery.data?.data?.subscriptions])
+  const activeSub = activeSubscriptionRecord?.subscription ?? null
 
   const nextResetTime = useMemo(() => {
     if (!activeSub) return 0
@@ -195,9 +191,9 @@ export function SummaryCards() {
     }
     const plan = planMap.get(activeSub.plan_id)
     if (!plan) return 0
-    const baseSec = activeSub.start_time || Math.floor(Date.now() / 1000)
+    const baseSec = activeSub.start_time || summaryTimeRange.end_timestamp
     return calcNextResetTime(plan, baseSec, activeSub.end_time)
-  }, [activeSub, planMap])
+  }, [activeSub, planMap, summaryTimeRange.end_timestamp])
 
   const summaryValues = useMemo(() => {
     return {
@@ -267,23 +263,9 @@ export function SummaryCards() {
     }
   })
 
-  const subAmountTotal = Number(activeSub?.amount_total ?? 0)
-  const subAmountUsed = Number(activeSub?.amount_used ?? 0)
-  const isUnlimited = subAmountTotal === 0 && activeSub !== null
-  const usagePercent =
-    isUnlimited || subAmountTotal === 0
-      ? 0
-      : Math.min(100, (subAmountUsed / subAmountTotal) * 100)
-
   const activePlanTitle = activeSub
     ? planMap.get(activeSub.plan_id)?.title
     : undefined
-  let usageProgressClassName = 'bg-emerald-500'
-  if (usagePercent >= 80) {
-    usageProgressClassName = 'bg-red-500'
-  } else if (usagePercent >= 50) {
-    usageProgressClassName = 'bg-amber-500'
-  }
 
   return (
     <div className='bg-card overflow-hidden rounded-2xl border shadow-xs'>
@@ -329,54 +311,12 @@ export function SummaryCards() {
             />
           )}
           {activeSub && (
-            <div className='flex flex-col gap-3'>
-              <div className='flex items-center justify-between gap-2'>
-                <span className='text-muted-foreground text-sm font-medium'>
-                  {t('Current Subscription')}
-                </span>
-                {activePlanTitle && (
-                  <span className='bg-primary/10 text-primary truncate rounded-md px-2 py-0.5 text-sm font-medium'>
-                    {activePlanTitle}
-                  </span>
-                )}
-              </div>
-
-              <div className='flex flex-col gap-1.5'>
-                <div className='flex items-baseline gap-1'>
-                  <span className='font-mono text-2xl font-semibold tracking-tight'>
-                    {formatQuota(subAmountUsed)}
-                  </span>
-                  <span className='text-muted-foreground text-2xl font-semibold tracking-tight'>
-                    /{' '}
-                    {isUnlimited ? t('Unlimited') : formatQuota(subAmountTotal)}
-                  </span>
-                </div>
-                {!isUnlimited && (
-                  <div className='bg-muted h-2 w-full overflow-hidden rounded-full'>
-                    <div
-                      className={cn(
-                        'h-full rounded-full transition-all duration-500',
-                        usageProgressClassName
-                      )}
-                      style={{ width: `${usagePercent}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {nextResetTime > 0 && (
-                <div className='text-muted-foreground flex items-center gap-1.5 text-sm'>
-                  <CalendarClock
-                    className='size-4 shrink-0'
-                    aria-hidden='true'
-                  />
-                  <span>
-                    {t('Next reset')}:{' '}
-                    {dayjs(nextResetTime * 1000).format('YYYY/M/D HH:mm:ss')}
-                  </span>
-                </div>
-              )}
-            </div>
+            <SubscriptionSummary
+              subscription={activeSub}
+              premiumQuota={activeSubscriptionRecord?.premium_quota}
+              planTitle={activePlanTitle}
+              nextResetTime={nextResetTime}
+            />
           )}
           {subscriptionQuery.data && !activeSub && (
             <WalletSummary
