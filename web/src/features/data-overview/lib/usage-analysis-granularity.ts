@@ -103,6 +103,9 @@ export function aggregateModelDailyStats(
 
     if (existing) {
       existing.total_tokens += item.total_tokens
+      if (item.total_quota !== undefined) {
+        existing.total_quota = (existing.total_quota ?? 0) + item.total_quota
+      }
       continue
     }
 
@@ -110,6 +113,9 @@ export function aggregateModelDailyStats(
       date,
       model_name: item.model_name,
       total_tokens: item.total_tokens,
+      ...(item.total_quota === undefined
+        ? {}
+        : { total_quota: item.total_quota }),
     })
   }
 

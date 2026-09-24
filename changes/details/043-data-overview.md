@@ -1,6 +1,15 @@
 # 数据总览页增强与公司配置管理
 
-**日期**: 2026-06-25 ~ 2026-09-18（最后更新 2026-09-18）
+**日期**: 2026-06-25 ~ 2026-09-24（最后更新 2026-09-24）
+
+### 2026-09-24 模型系列单价趋势
+
+- `model/log.go` — 模型每日统计同步聚合配额消耗，为按时间计算实际单价提供费用数据。
+- `service/feishu_department.go` — 使用分析响应新增模型系列每日统计；按模型系列关键字归类全部匹配模型，不受普通模型 Top 10 限制，并分别合并每日 Token 与配额消耗。
+- `web/src/features/data-overview/types.ts`、`web/src/features/data-overview/lib/usage-analysis-granularity.ts` — 补充模型系列每日统计与配额字段，并在日/周/月粒度聚合时同步累加配额。
+- `web/src/features/data-overview/components/usage-analysis.tsx` — 新增模型系列单价趋势折线图，按人民币费用和 Token 用量计算每亿 Token 单价；无用量日期保留断点而不按零价展示，支持日/周/月切换、固定人民币格式、空状态及语言切换后的本地化格式刷新；模型 Token 趋势复用同一图表组件。
+- `web/src/features/data-overview/index.tsx` — 首次加载使用分析时等待费用分桶统计返回，避免费用分布图插入首格导致已显示图表发生布局跳动。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐“模型系列单价趋势”七语言文案。
 
 ### 2026-09-18 模型与模型系列图表悬浮提示新增缓存命中率
 

@@ -1157,11 +1157,12 @@ func findRegisteredUserIdsByOpenIDs(openIDs []string, registeredBefore int64) ([
 
 // UsageAnalysisResponse holds all usage analysis data returned in one response.
 type UsageAnalysisResponse struct {
-	ModelStats       []model.ModelStatRow      `json:"model_stats"`
-	ModelSeriesStats []model.ModelStatRow      `json:"model_series_stats"`
-	DailyStats       []model.DailyStatRow      `json:"daily_stats"`
-	ModelDailyStats  []model.ModelDailyStatRow `json:"model_daily_stats"`
-	QuotaToCNY       float64                   `json:"quota_to_cny"`
+	ModelStats            []model.ModelStatRow      `json:"model_stats"`
+	ModelSeriesStats      []model.ModelStatRow      `json:"model_series_stats"`
+	DailyStats            []model.DailyStatRow      `json:"daily_stats"`
+	ModelDailyStats       []model.ModelDailyStatRow `json:"model_daily_stats"`
+	ModelSeriesDailyStats []model.ModelDailyStatRow `json:"model_series_daily_stats"`
+	QuotaToCNY            float64                   `json:"quota_to_cny"`
 }
 
 const usageAnalysisModelLimit = 10
@@ -1390,21 +1391,25 @@ func mergeUsageAnalysisModelDailyStats(rows []model.ModelDailyStatRow, mapping m
 		modelName string
 	}
 
-	aggregated := make(map[dailyModelKey]int64, len(rows))
+	aggregated := make(map[dailyModelKey]model.ModelDailyStatRow, len(rows))
 	for _, row := range rows {
 		key := dailyModelKey{
 			date:      row.Date,
 			modelName: usageAnalysisModelName(row.ModelName, mapping),
 		}
-		aggregated[key] += row.TotalTokens
+		current := aggregated[key]
+		current.TotalTokens += row.TotalTokens
+		current.TotalQuota += row.TotalQuota
+		aggregated[key] = current
 	}
 
 	merged := make([]model.ModelDailyStatRow, 0, len(aggregated))
-	for key, totalTokens := range aggregated {
+	for key, totals := range aggregated {
 		merged = append(merged, model.ModelDailyStatRow{
 			Date:        key.date,
 			ModelName:   key.modelName,
-			TotalTokens: totalTokens,
+			TotalTokens: totals.TotalTokens,
+			TotalQuota:  totals.TotalQuota,
 		})
 	}
 	sort.Slice(merged, func(i, j int) bool {
@@ -1444,14 +1449,20 @@ func buildUsageAnalysisForUsers(userIds []int, startTimestamp, endTimestamp int6
 
 	mapping := dataOverviewModelMapping()
 	modelStats := mergeUsageAnalysisModelStats(rawModelStats, mapping, usageAnalysisModelLimit)
-	modelSeriesStats := mergeUsageAnalysisModelSeriesStats(rawModelStats, dataOverviewModelSeriesKeywords())
+	seriesKeywords := dataOverviewModelSeriesKeywords()
+	modelSeriesStats := mergeUsageAnalysisModelSeriesStats(rawModelStats, seriesKeywords)
 	topModels := make(map[string]struct{}, len(modelStats))
 	for _, row := range modelStats {
 		topModels[row.ModelName] = struct{}{}
 	}
 	selectedRawModelNames := make([]string, 0, len(rawModelStats))
+	seriesMapping := make(map[string]string)
 	for _, row := range rawModelStats {
-		if _, ok := topModels[usageAnalysisModelName(row.ModelName, mapping)]; ok {
+		seriesName, matchesSeries := usageAnalysisModelSeriesName(row.ModelName, seriesKeywords)
+		if matchesSeries {
+			seriesMapping[strings.ToLower(strings.TrimSpace(row.ModelName))] = seriesName
+		}
+		if _, ok := topModels[usageAnalysisModelName(row.ModelName, mapping)]; ok || matchesSeries {
 			selectedRawModelNames = append(selectedRawModelNames, row.ModelName)
 		}
 	}
@@ -1460,7 +1471,19 @@ func buildUsageAnalysisForUsers(userIds []int, startTimestamp, endTimestamp int6
 	if err != nil {
 		return nil, err
 	}
-	modelDailyStats := mergeUsageAnalysisModelDailyStats(rawModelDailyStats, mapping)
+	// Series include every matching model, independent of the top-model limit.
+	topModelDailyStats := make([]model.ModelDailyStatRow, 0, len(rawModelDailyStats))
+	seriesDailyStats := make([]model.ModelDailyStatRow, 0, len(rawModelDailyStats))
+	for _, row := range rawModelDailyStats {
+		if _, ok := topModels[usageAnalysisModelName(row.ModelName, mapping)]; ok {
+			topModelDailyStats = append(topModelDailyStats, row)
+		}
+		if _, ok := seriesMapping[strings.ToLower(strings.TrimSpace(row.ModelName))]; ok {
+			seriesDailyStats = append(seriesDailyStats, row)
+		}
+	}
+	modelDailyStats := mergeUsageAnalysisModelDailyStats(topModelDailyStats, mapping)
+	modelSeriesDailyStats := mergeUsageAnalysisModelDailyStats(seriesDailyStats, seriesMapping)
 
 	quotaPerUnit := common.QuotaPerUnit
 	if quotaPerUnit <= 0 {
@@ -1472,11 +1495,12 @@ func buildUsageAnalysisForUsers(userIds []int, startTimestamp, endTimestamp int6
 	}
 
 	return &UsageAnalysisResponse{
-		ModelStats:       modelStats,
-		ModelSeriesStats: modelSeriesStats,
-		DailyStats:       dailyStats,
-		ModelDailyStats:  modelDailyStats,
-		QuotaToCNY:       usdExchangeRate / quotaPerUnit,
+		ModelStats:            modelStats,
+		ModelSeriesStats:      modelSeriesStats,
+		DailyStats:            dailyStats,
+		ModelDailyStats:       modelDailyStats,
+		ModelSeriesDailyStats: modelSeriesDailyStats,
+		QuotaToCNY:            usdExchangeRate / quotaPerUnit,
 	}, nil
 }
 

@@ -70,11 +70,13 @@ export interface ModelDailyStat {
   date: string
   model_name: string
   total_tokens: number
+  total_quota?: number
 }
 
 export interface UsageAnalysis {
   model_stats: ModelStat[]
   model_series_stats?: ModelStat[]
+  model_series_daily_stats?: ModelDailyStat[]
   daily_stats: DailyStat[]
   model_daily_stats: ModelDailyStat[]
   quota_to_cny: number
