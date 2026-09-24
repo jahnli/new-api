@@ -50,7 +50,7 @@ export function SubscriptionQuotaBreakdown(props: {
       className={cn(
         'grid gap-5',
         split &&
-          'lg:grid-cols-[minmax(220px,0.65fr)_minmax(0,1.8fr)] lg:gap-x-16 lg:pr-1'
+          'lg:grid-cols-[minmax(220px,0.65fr)_minmax(0,1.8fr)] lg:gap-x-16 lg:px-4'
       )}
     >
       {split && (
