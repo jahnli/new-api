@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { toIntlLocale } from '@/i18n/languages'
@@ -169,27 +170,29 @@ export function CommonLogsStats() {
         value={stats?.tpm || 0}
         accent='bg-slate-400/70'
       />
-      <Tooltip open={tokenTooltipOpen} onOpenChange={setTokenTooltipOpen}>
-        <StatBadge
-          label={t('Token')}
-          value={tokenValue}
-          accent='bg-emerald-500/70'
-          suffix={
-            <TooltipTrigger
-              render={
-                <button
-                  type='button'
-                  className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
-                  aria-label={t('View details')}
-                />
-              }
-            >
-              <CircleAlert className='size-3 sm:size-3.5' />
-            </TooltipTrigger>
-          }
-        />
-        <TooltipContent>{tokenDetails}</TooltipContent>
-      </Tooltip>
+      <TooltipProvider delay={100}>
+        <Tooltip open={tokenTooltipOpen} onOpenChange={setTokenTooltipOpen}>
+          <StatBadge
+            label={t('Token')}
+            value={tokenValue}
+            accent='bg-emerald-500/70'
+            suffix={
+              <TooltipTrigger
+                render={
+                  <button
+                    type='button'
+                    className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
+                    aria-label={t('View details')}
+                  />
+                }
+              >
+                <CircleAlert className='size-3 sm:size-3.5' />
+              </TooltipTrigger>
+            }
+          />
+          <TooltipContent>{tokenDetails}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   )
 }
