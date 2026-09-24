@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { formatPremiumQuota } from '@/features/subscriptions/lib/premium-quota'
+import type { PremiumQuota } from '@/features/subscriptions/premium-api'
 import type { UserSubscription } from '@/features/subscriptions/types'
 import { toIntlLocale } from '@/i18n/languages'
 import dayjs from '@/lib/dayjs'
@@ -11,6 +12,7 @@ import { formatNumber } from '@/lib/format'
 
 export function SubscriptionSummary(props: {
   subscription: UserSubscription
+  premiumQuota?: PremiumQuota
   planTitle?: string
   nextResetTime: number
 }) {
@@ -22,9 +24,9 @@ export function SubscriptionSummary(props: {
   const usedPercent = total > 0n ? Number((used * 10000n) / total) / 100 : 0
 
   return (
-    <div className='flex min-w-0 flex-col gap-8'>
+    <div className='flex min-w-0 flex-col gap-4'>
       <div className='flex items-center justify-between gap-2'>
-        <span className='dark:text-foreground text-sm font-medium text-[#152547]'>
+        <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
           {t('Current Subscription')}
         </span>
         {props.planTitle && (
@@ -55,6 +57,31 @@ export function SubscriptionSummary(props: {
           />
         )}
       </div>
+
+      {props.premiumQuota?.enabled && (
+        <div className='min-w-0 space-y-1'>
+          <div className='flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-sm'>
+            <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
+              {t('Advanced model quota')}
+            </span>
+            <span className='text-muted-foreground text-xs font-semibold tabular-nums'>
+              {t('Share {{percent}}%', {
+                percent: formatNumber(
+                  props.premiumQuota.effective_percent,
+                  locale
+                ),
+              })}
+            </span>
+          </div>
+          <p className='text-base font-semibold break-all text-[#ff9000] tabular-nums'>
+            {formatPremiumQuota(props.premiumQuota.premium_amount_used)}
+            <span className='font-semibold text-[#152547]'>
+              {' / '}
+              {formatPremiumQuota(props.premiumQuota.premium_limit)}
+            </span>
+          </p>
+        </div>
+      )}
 
       {props.nextResetTime > 0 && (
         <div className='dark:text-foreground flex items-center gap-1.5 text-sm text-[#152547]'>

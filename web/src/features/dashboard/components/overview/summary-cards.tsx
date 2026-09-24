@@ -316,6 +316,7 @@ export function SummaryCards() {
           {activeSub && (
             <SubscriptionSummary
               subscription={activeSub}
+              premiumQuota={activeSubscriptionRecord?.premium_quota}
               planTitle={activePlanTitle}
               nextResetTime={nextResetTime}
             />
