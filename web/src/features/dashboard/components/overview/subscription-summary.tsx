@@ -30,7 +30,7 @@ export function SubscriptionSummary(props: {
         {props.planTitle && (
           <Badge
             variant="secondary"
-            className="bg-primary/10 text-primary max-w-36 border-0 text-sm"
+            className="bg-primary/10 text-primary h-auto max-w-36 rounded-md border-0 px-3 py-1 text-sm"
           >
             <span className="truncate">{props.planTitle}</span>
           </Badge>
