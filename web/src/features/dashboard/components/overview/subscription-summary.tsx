@@ -9,6 +9,7 @@ import type { UserSubscription } from '@/features/subscriptions/types'
 import { toIntlLocale } from '@/i18n/languages'
 import dayjs from '@/lib/dayjs'
 import { formatNumber } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 export function SubscriptionSummary(props: {
   subscription: UserSubscription
@@ -22,6 +23,15 @@ export function SubscriptionSummary(props: {
   const isUnlimited = total === 0n
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const usedPercent = total > 0n ? Number((used * 10000n) / total) / 100 : 0
+  let usageColor = 'text-emerald-500'
+  let progressColor = '[&_[data-slot=progress-indicator]]:bg-emerald-500'
+  if (usedPercent >= 80) {
+    usageColor = 'text-red-500'
+    progressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
+  } else if (usedPercent >= 50) {
+    usageColor = 'text-amber-500'
+    progressColor = '[&_[data-slot=progress-indicator]]:bg-amber-500'
+  }
   const premiumUsed = BigInt(props.premiumQuota?.premium_amount_used ?? '0')
   const premiumLimit = BigInt(props.premiumQuota?.premium_limit ?? '0')
   let premiumUsageColor = 'text-emerald-500'
@@ -54,7 +64,9 @@ export function SubscriptionSummary(props: {
 
       <div className='space-y-1.5'>
         <p className='text-2xl leading-tight font-semibold tracking-tight break-all tabular-nums'>
-          <span>{formatPremiumQuota(used.toString())}</span>
+          <span className={usageColor}>
+            {formatPremiumQuota(used.toString())}
+          </span>
           <span className='dark:text-foreground text-[#152547]'>
             {` / ${isUnlimited ? t('Unlimited') : formatPremiumQuota(total.toString())}`}
           </span>
@@ -66,7 +78,7 @@ export function SubscriptionSummary(props: {
             aria-valuetext={t('{{percent}}% used', {
               percent: formatNumber(usedPercent, locale),
             })}
-            className='dark:[&_[data-slot=progress-track]]:bg-muted [&_[data-slot=progress-indicator]]:bg-[#ff9000] [&_[data-slot=progress-track]]:h-2 [&_[data-slot=progress-track]]:bg-[#eef3ff]'
+            className={cn('[&_[data-slot=progress-track]]:h-2', progressColor)}
           />
         )}
       </div>
