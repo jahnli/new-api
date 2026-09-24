@@ -64,6 +64,7 @@ export function SubscriptionCard() {
         <TitledCard
           icon={<Crown className='size-4 text-amber-500' />}
           title={t('My Subscriptions')}
+          disableHoverEffect
         >
           <div className='grid gap-4'>
             {SUBSCRIPTION_SKELETON_IDS.map((skeletonId) => (
@@ -116,6 +117,7 @@ export function SubscriptionCard() {
         icon={<Crown className='size-4 text-amber-500' />}
         title={t('My Subscriptions')}
         description={headerDescription}
+        disableHoverEffect
       >
         <div className='grid gap-4'>
           {allSubscriptions.map((sub) => (
