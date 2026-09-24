@@ -22,6 +22,19 @@ export function SubscriptionSummary(props: {
   const isUnlimited = total === 0n
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const usedPercent = total > 0n ? Number((used * 10000n) / total) / 100 : 0
+  const premiumUsed = BigInt(props.premiumQuota?.premium_amount_used ?? '0')
+  const premiumLimit = BigInt(props.premiumQuota?.premium_limit ?? '0')
+  let premiumUsageColor = 'text-emerald-500'
+  if (premiumLimit === 0n && premiumUsed > 0n) {
+    premiumUsageColor = 'text-red-500'
+  } else if (premiumLimit > 0n) {
+    const premiumPercent = Number((premiumUsed * 10000n) / premiumLimit) / 100
+    if (premiumPercent >= 80) {
+      premiumUsageColor = 'text-red-500'
+    } else if (premiumPercent >= 50) {
+      premiumUsageColor = 'text-amber-500'
+    }
+  }
 
   return (
     <div className='flex min-w-0 flex-col gap-4'>
@@ -59,7 +72,7 @@ export function SubscriptionSummary(props: {
       </div>
 
       {props.premiumQuota?.enabled && (
-        <div className='min-w-0 space-y-1'>
+        <div className='bg-primary/5 min-w-0 space-y-1 rounded-lg px-2.5 py-2'>
           <div className='flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-sm'>
             <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
               {t('Advanced model quota')}
@@ -73,11 +86,13 @@ export function SubscriptionSummary(props: {
               })}
             </span>
           </div>
-          <p className='text-base font-semibold break-all text-[#ff9000] tabular-nums'>
-            {formatPremiumQuota(props.premiumQuota.premium_amount_used)}
+          <p
+            className={`text-base font-semibold break-all tabular-nums ${premiumUsageColor}`}
+          >
+            {formatPremiumQuota(premiumUsed.toString())}
             <span className='font-semibold text-[#152547]'>
               {' / '}
-              {formatPremiumQuota(props.premiumQuota.premium_limit)}
+              {formatPremiumQuota(premiumLimit.toString())}
             </span>
           </p>
         </div>
