@@ -25,6 +25,7 @@
   "Skip TLS certificate verification (not recommended)": "跳过 TLS 证书校验（不推荐）",
   "Skip TLS Verify": "跳过 TLS 校验",
   "StartTLS": "StartTLS",
+  "Tokens": "Tokens",
   "Upgrade plain LDAP connection to TLS": "将明文 LDAP 连接升级为 TLS",
   "Use {{username}} as the placeholder for the login username": "使用 {{username}} 作为登录用户名的占位符",
   "User-Agent": "User-Agent"

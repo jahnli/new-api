@@ -173,7 +173,7 @@ export function CommonLogsStats() {
       <TooltipProvider delay={100}>
         <Tooltip open={tokenTooltipOpen} onOpenChange={setTokenTooltipOpen}>
           <StatBadge
-            label={t('Token')}
+            label={t('Tokens')}
             value={tokenValue}
             accent='bg-emerald-500/70'
             suffix={
