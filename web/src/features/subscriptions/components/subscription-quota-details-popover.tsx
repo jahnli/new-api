@@ -30,7 +30,7 @@ export function SubscriptionQuotaDetailsPopover(props: {
       additionalContent={
         props.showPremiumModels ? (
           <div className='space-y-2 border-t pt-3'>
-            <p className='text-xs font-medium'>{t('Advanced models')}</p>
+            <p className='text-sm font-medium'>{t('Advanced model list')}</p>
             <SubscriptionPremiumModels />
           </div>
         ) : undefined

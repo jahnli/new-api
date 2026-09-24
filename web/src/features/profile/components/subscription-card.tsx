@@ -197,7 +197,7 @@ function SubscriptionItem({
     <div className='bg-card min-w-0 rounded-2xl border p-4 sm:p-5'>
       <div className='flex flex-col gap-3 pb-5 xl:flex-row xl:items-center xl:justify-between xl:gap-6'>
         <div className='flex min-w-0 items-center gap-3'>
-          <IconBadge size='md' tone='primary'>
+          <IconBadge size='md' tone='primary' className='bg-primary/5'>
             <Crown className='text-amber-500' />
           </IconBadge>
           <span className='min-w-0 truncate text-base font-semibold'>

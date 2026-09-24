@@ -52,7 +52,7 @@ export function SubscriptionSummary(props: {
     <div className='flex min-w-0 flex-col gap-4'>
       <div className='flex items-center justify-between gap-2'>
         <span className='flex items-center gap-3'>
-          <IconBadge size='md' tone='primary'>
+          <IconBadge size='md' tone='primary' className='bg-primary/5'>
             <Crown className='text-amber-500' />
           </IconBadge>
           <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
