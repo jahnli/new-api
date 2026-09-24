@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Crown, Clock, CalendarDays, CreditCard, RefreshCw } from 'lucide-react'
+import { Crown, Clock, CalendarDays, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -11,7 +11,6 @@ import {
 } from '@/components/status-badge'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { TitledCard } from '@/components/ui/titled-card'
 import {
   getPublicPlans,
   getSelfSubscriptionFull,
@@ -62,22 +61,23 @@ export function SubscriptionCard() {
   if (loading) {
     return (
       <CardStaggerItem>
-        <TitledCard
-          icon={<CreditCard className='size-4' />}
-          iconTone='primary'
-          title={t('My Subscriptions')}
-          disableHoverEffect
-        >
+        <section className='min-w-0 space-y-3'>
+          <h2 className='text-lg font-semibold tracking-tight'>
+            {t('My Subscriptions')}
+          </h2>
           <div className='grid gap-4'>
             {SUBSCRIPTION_SKELETON_IDS.map((skeletonId) => (
-              <div key={skeletonId} className='rounded-xl border p-4'>
+              <div
+                key={skeletonId}
+                className='bg-card rounded-2xl border p-4 sm:p-5'
+              >
                 <Skeleton className='h-4 w-32' />
                 <Skeleton className='mt-3 h-3 w-24' />
                 <Skeleton className='mt-2 h-2 w-full' />
               </div>
             ))}
           </div>
-        </TitledCard>
+        </section>
       </CardStaggerItem>
     )
   }
@@ -88,7 +88,7 @@ export function SubscriptionCard() {
   const expiredCount = allSubscriptions.length - activeSubscriptions.length
 
   const headerDescription = (
-    <span className='flex items-center gap-2'>
+    <span className='flex flex-wrap items-center gap-2 text-sm'>
       <span className='flex items-center gap-1.5'>
         <span
           className={cn(
@@ -115,13 +115,13 @@ export function SubscriptionCard() {
 
   return (
     <CardStaggerItem>
-      <TitledCard
-        icon={<CreditCard className='size-4' />}
-        iconTone='primary'
-        title={t('My Subscriptions')}
-        description={headerDescription}
-        disableHoverEffect
-      >
+      <section className='min-w-0 space-y-3'>
+        <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
+          <h2 className='text-lg font-semibold tracking-tight'>
+            {t('My Subscriptions')}
+          </h2>
+          {headerDescription}
+        </div>
         <div className='grid gap-4'>
           {allSubscriptions.map((sub) => (
             <SubscriptionItem
@@ -132,7 +132,7 @@ export function SubscriptionCard() {
             />
           ))}
         </div>
-      </TitledCard>
+      </section>
     </CardStaggerItem>
   )
 }
@@ -200,7 +200,7 @@ function SubscriptionItem({
           <IconBadge size='md' tone='primary'>
             <Crown className='text-amber-500' />
           </IconBadge>
-          <span className='min-w-0 truncate text-lg font-semibold'>
+          <span className='min-w-0 truncate text-base font-semibold'>
             {planTitle || `${t('Subscription')} #${subscription?.id}`}
           </span>
           {statusBadge}
