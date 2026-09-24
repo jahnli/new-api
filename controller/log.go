@@ -112,7 +112,10 @@ func GetLogsStat(c *gin.Context) {
 	channel := c.Query("channel")
 	group := c.Query("group")
 	userCategory := c.Query("user_category")
-	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory)
+	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, model.LogStatsOptions{
+		Context:            c.Request.Context(),
+		TokenBreakdownOnly: c.Query("token_breakdown") == "true",
+	})
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -121,12 +124,7 @@ func GetLogsStat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data": gin.H{
-			"quota":        stat.Quota,
-			"rpm":          stat.Rpm,
-			"tpm":          stat.Tpm,
-			"total_tokens": stat.TotalTokens,
-		},
+		"data":    stat,
 	})
 	return
 }
@@ -141,7 +139,11 @@ func GetLogsSelfStat(c *gin.Context) {
 	channel := c.Query("channel")
 	group := c.Query("group")
 	userCategory := c.Query("user_category")
-	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory)
+	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, model.LogStatsOptions{
+		Context:            c.Request.Context(),
+		UserID:             c.GetInt("id"),
+		TokenBreakdownOnly: c.Query("token_breakdown") == "true",
+	})
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -150,13 +152,7 @@ func GetLogsSelfStat(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"success": true,
 		"message": "",
-		"data": gin.H{
-			"quota":        quotaNum.Quota,
-			"rpm":          quotaNum.Rpm,
-			"tpm":          quotaNum.Tpm,
-			"total_tokens": quotaNum.TotalTokens,
-			//"token": tokenNum,
-		},
+		"data":    quotaNum,
 	})
 	return
 }
