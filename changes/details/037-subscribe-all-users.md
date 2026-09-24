@@ -81,6 +81,8 @@
 ## 2026-09-24 额度术语与不足提示统一
 
 - `service/subscription_premium_notify.go` — 高级模型额度不足统一返回 HTTP 402，保留业务错误码 `subscription_premium_quota_insufficient`；错误文案说明标准模型仍可使用剩余订阅额度，并引导等待重置或通过飞书、钉钉申请高级模型额度。异步通知同步将“普通模型”改为“标准模型”。
+- `controller/subscription_premium.go`、`router/api-router.go` — 新增登录用户可访问的当前高级模型只读接口，仅返回策略中配置的模型名称，不开放管理配置。
+- `web/src/features/subscriptions/premium-api.ts` — 增加当前高级模型名称查询，供额度明细通过 React Query 共享缓存复用。
 - `web/src/features/subscriptions/components/dialogs/user-subscriptions-dialog.tsx` — 管理员额度调整选项将“基础模型额度”改为“标准模型额度”，内部 `basic` 额度类型保持不变。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 七种语言统一使用“标准模型额度”及对应说明，并移除不再使用的基础模型额度翻译键。
 

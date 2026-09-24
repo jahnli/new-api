@@ -32,6 +32,7 @@ type QuotaDetailsPopoverProps = {
   triggerLabel: string
   details: ReadonlyArray<{ label: string; value: string }>
   description?: string
+  additionalContent?: ReactNode
   children: ReactNode
   afterTrigger?: ReactNode
   className?: string
@@ -76,6 +77,7 @@ export function QuotaDetailsPopover(props: QuotaDetailsPopoverProps) {
             {props.description}
           </p>
         )}
+        {props.additionalContent}
       </PopoverContent>
     </Popover>
   )

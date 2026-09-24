@@ -419,6 +419,7 @@
     "Advanced Custom Routes": "高度なカスタムルート",
     "Advanced model quota": "上位モデルのクォータ",
     "Advanced model usage counts toward total quota. Available amount is limited by both the advanced quota limit and the remaining subscription quota.": "上位モデルの使用量は総枠にも計上され、利用可能額は上位枠の上限とサブスクリプションの残り枠の両方に制限されます。",
+    "Advanced models": "上位モデル",
     "Advanced options": "詳細オプション",
     "Advanced Options": "詳細オプション",
     "Advanced parameters": "Advanced parameters",

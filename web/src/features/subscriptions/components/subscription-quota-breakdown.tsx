@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   CircleQuestionMark,
   Info,
@@ -9,6 +10,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { QuotaDetailsPopover } from '@/components/quota-details-popover'
+import { Badge } from '@/components/ui/badge'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
@@ -17,7 +19,7 @@ import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { formatPremiumQuota } from '../lib/premium-quota'
-import type { PremiumQuota } from '../premium-api'
+import { getPremiumModelNames, type PremiumQuota } from '../premium-api'
 import type { UserSubscription } from '../types'
 
 export function SubscriptionQuotaBreakdown(props: {
@@ -31,6 +33,12 @@ export function SubscriptionQuotaBreakdown(props: {
   const remaining = total > used ? total - used : 0n
   const quota = props.quota
   const split = total > 0n && quota?.enabled === true
+  const premiumModelsQuery = useQuery({
+    queryKey: ['subscription-premium', 'configured-models'],
+    queryFn: getPremiumModelNames,
+    enabled: split,
+    meta: { errorToast: false },
+  })
   const premiumUsed = quota ? BigInt(quota.premium_amount_used) : 0n
   const premiumLimit = quota ? BigInt(quota.premium_limit) : 0n
   const basicLimit = total > premiumLimit ? total - premiumLimit : 0n
@@ -169,6 +177,9 @@ export function SubscriptionQuotaBreakdown(props: {
             description={t(
               'Advanced model usage counts toward total quota. Available amount is limited by both the advanced quota limit and the remaining subscription quota.'
             )}
+            modelNames={premiumModelsQuery.data}
+            modelsLoading={premiumModelsQuery.isPending}
+            modelsError={premiumModelsQuery.isError}
           />
         )}
       </div>
@@ -189,6 +200,9 @@ function QuotaUsagePanel(props: {
   limit: bigint | null
   remaining: bigint
   description: string
+  modelNames?: readonly string[]
+  modelsLoading?: boolean
+  modelsError?: boolean
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -216,6 +230,39 @@ function QuotaUsagePanel(props: {
       ? t('Unlimited')
       : formatPremiumQuota(props.limit.toString())
   const formattedUsed = formatPremiumQuota(props.used.toString())
+  const showModelNames =
+    props.modelNames !== undefined || props.modelsLoading || props.modelsError
+  let modelNamesContent: ReactNode = null
+  if (props.modelsLoading) {
+    modelNamesContent = (
+      <p className='text-muted-foreground text-xs'>{t('Loading...')}</p>
+    )
+  } else if (props.modelsError) {
+    modelNamesContent = (
+      <p className='text-muted-foreground text-xs'>{t('Failed to load')}</p>
+    )
+  } else if (props.modelNames?.length) {
+    modelNamesContent = (
+      <ul className='flex max-h-32 flex-wrap gap-1.5 overflow-y-auto pr-1'>
+        {props.modelNames.map((modelName) => (
+          <li key={modelName} className='max-w-full'>
+            <Badge
+              variant='secondary'
+              className='h-auto max-w-full py-1 text-left [overflow-wrap:anywhere] whitespace-normal'
+            >
+              {modelName}
+            </Badge>
+          </li>
+        ))}
+      </ul>
+    )
+  } else if (showModelNames) {
+    modelNamesContent = (
+      <p className='text-muted-foreground text-xs'>
+        {t('No available models')}
+      </p>
+    )
+  }
   let usageColor = {
     text: 'text-emerald-500',
     progress: '[&_[data-slot=progress-indicator]]:bg-emerald-500',
@@ -259,6 +306,16 @@ function QuotaUsagePanel(props: {
                 { label: t('Remaining'), value: formattedRemaining },
               ]}
               description={props.description}
+              additionalContent={
+                showModelNames ? (
+                  <div className='space-y-2 border-t pt-3'>
+                    <p className='text-xs font-medium'>
+                      {t('Advanced models')}
+                    </p>
+                    {modelNamesContent}
+                  </div>
+                ) : undefined
+              }
               className='w-auto'
               triggerClassName='text-muted-foreground size-5 shrink-0 justify-center p-0 hover:text-foreground'
             >

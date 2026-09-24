@@ -7,8 +7,9 @@
 - `web/src/features/profile/components/profile-header.tsx` — 将订阅信息从个人资料头部拆出，避免头部同时承载身份与订阅详情。
 - `web/src/features/profile/components/subscription-card.tsx` — 以独立卡片和响应式网格展示订阅状态、剩余天数及额度进度；无订阅记录时不渲染订阅区域；放大方案标题、状态、辅助信息及额度进度文字。
 - `web/src/features/profile/index.tsx` — 将订阅卡片接入个人资料页，并把动画容器移至订阅组件的有效内容分支，避免无订阅时遗留空元素。
-- `web/src/features/subscriptions/components/subscription-quota-breakdown.tsx` — 增加订阅总用量圆环，将标准与高级额度上下排列，在高级额度占比后提供独立明细入口，并统一图标、文字层级及区域间距。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充“占比 {{percent}}%”及标准、高级额度说明的七语言翻译。
+- `web/src/features/subscriptions/components/subscription-quota-breakdown.tsx` — 增加订阅总用量圆环，将标准与高级额度上下排列，在高级额度占比后提供独立明细入口，并在明细中展示当前高级模型列表。
+- `web/src/components/quota-details-popover.tsx` — 支持在通用额度明细中追加业务内容，供高级模型列表复用原有弹层交互。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充“占比 {{percent}}%”、标准与高级额度说明及高级模型列表标题的七语言翻译。
 
 ## 变更说明
 
@@ -30,9 +31,10 @@
 - 高级额度标题行按“高级额度 → 占比 xx% → 问号”排列，确保问号紧随占比信息；标准额度的问号紧随标题。
 - 标准额度说明明确其额度由总额度扣除高级额度上限得出；高级额度说明明确其用量计入总额度，且可用金额同时受高级额度上限与订阅剩余额度限制。
 
-## 2026-09-24 分类额度术语统一
+## 2026-09-24 分类额度术语与高级模型列表
 
 - 订阅额度卡片将“基础模型额度”统一改为“标准模型额度”，总额度共享说明和分类额度说明同步使用“标准模型”术语；内部额度计算口径保持不变。
+- 高级模型额度明细展示当前策略配置的高级模型名称；模型较多时在固定高度区域内滚动，并提供加载中、加载失败和空配置状态。
 - 七种前端语言同步替换对应翻译键与文案，移除不再使用的基础模型额度键。
 
 ## 自 CHANGELOG 说明列迁入

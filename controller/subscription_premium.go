@@ -67,6 +67,20 @@ func GetSubscriptionPremiumPolicy(c *gin.Context) {
 	common.ApiSuccess(c, policy)
 }
 
+func GetSubscriptionPremiumModels(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	policy, err := model.GetSubscriptionPremiumPolicy(model.DB)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	modelNames := policy.ModelNames
+	if modelNames == nil {
+		modelNames = []string{}
+	}
+	common.ApiSuccess(c, modelNames)
+}
+
 func UpdateSubscriptionPremiumPolicy(c *gin.Context) {
 	var request struct {
 		Enabled         *bool     `json:"enabled"`

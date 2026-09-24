@@ -33,6 +33,11 @@ export interface PremiumModelOption {
 
 const base = '/api/subscription/admin'
 
+export async function getPremiumModelNames(): Promise<string[]> {
+  const response = await api.get('/api/subscription/premium-models')
+  return requireServerSuccess(response.data).data
+}
+
 export async function getPremiumPolicy(): Promise<PremiumPolicy> {
   const response = await api.get(`${base}/premium-policy`)
   return requireServerSuccess(response.data).data
