@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { SubscriptionQuotaDetailsPopover } from '@/features/subscriptions/components/subscription-quota-details-popover'
 import { formatPremiumQuota } from '@/features/subscriptions/lib/premium-quota'
 import type { PremiumQuota } from '@/features/subscriptions/premium-api'
 import type { UserSubscription } from '@/features/subscriptions/types'
@@ -86,9 +87,23 @@ export function SubscriptionSummary(props: {
       {props.premiumQuota?.enabled && (
         <div className='bg-primary/5 min-w-0 space-y-1 rounded-lg px-2.5 py-2'>
           <div className='flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-sm'>
-            <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
-              {t('Advanced model quota')}
-            </span>
+            <div className='flex items-center gap-1'>
+              <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
+                {t('Advanced model quota')}
+              </span>
+              <SubscriptionQuotaDetailsPopover
+                title={t('Advanced model quota')}
+                used={formatPremiumQuota(premiumUsed.toString())}
+                limit={formatPremiumQuota(premiumLimit.toString())}
+                remaining={formatPremiumQuota(
+                  props.premiumQuota.premium_available
+                )}
+                description={t(
+                  'Advanced model usage counts toward total quota. Available amount is limited by both the advanced quota limit and the remaining subscription quota.'
+                )}
+                showPremiumModels
+              />
+            </div>
             <span className='text-muted-foreground text-xs font-semibold tabular-nums'>
               {t('Share {{percent}}%', {
                 percent: formatNumber(
