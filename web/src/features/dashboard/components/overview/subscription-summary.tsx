@@ -1,7 +1,8 @@
-import { CalendarClock } from 'lucide-react'
+import { CalendarClock, Crown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
+import { IconBadge } from '@/components/ui/icon-badge'
 import { Progress } from '@/components/ui/progress'
 import { SubscriptionQuotaDetailsPopover } from '@/features/subscriptions/components/subscription-quota-details-popover'
 import { formatPremiumQuota } from '@/features/subscriptions/lib/premium-quota'
@@ -50,8 +51,13 @@ export function SubscriptionSummary(props: {
   return (
     <div className='flex min-w-0 flex-col gap-4'>
       <div className='flex items-center justify-between gap-2'>
-        <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
-          {t('Current Subscription')}
+        <span className='flex items-center gap-3'>
+          <IconBadge size='md' tone='primary'>
+            <Crown className='text-amber-500' />
+          </IconBadge>
+          <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
+            {t('Current Subscription')}
+          </span>
         </span>
         {props.planTitle && (
           <Badge
