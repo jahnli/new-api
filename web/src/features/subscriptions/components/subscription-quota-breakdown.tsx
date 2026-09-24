@@ -140,7 +140,7 @@ export function SubscriptionQuotaBreakdown(props: {
         )}
       >
         <QuotaUsagePanel
-          title={split ? t('Basic quota') : t('Total Quota')}
+          title={split ? t('Basic model quota') : t('Total Quota')}
           icon={split ? <Layers /> : <Wallet />}
           used={split ? basicUsed : used}
           limit={displayedLimit}
@@ -160,7 +160,7 @@ export function SubscriptionQuotaBreakdown(props: {
         )}
         {split && (
           <QuotaUsagePanel
-            title={t('Advanced quota')}
+            title={t('Advanced model quota')}
             icon={<Sparkles />}
             allocationPercent={quota.effective_percent}
             used={premiumUsed}
