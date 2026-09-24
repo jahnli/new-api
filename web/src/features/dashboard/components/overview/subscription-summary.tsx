@@ -1,6 +1,7 @@
-import { CalendarClock } from 'lucide-react'
+import { CalendarClock, CircleHelp } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { QuotaDetailsPopover } from '@/components/quota-details-popover'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { formatPremiumQuota } from '@/features/subscriptions/lib/premium-quota'
@@ -38,8 +39,7 @@ export function SubscriptionSummary(props: {
   const total = BigInt(props.subscription.amount_total)
   const used = BigInt(props.subscription.amount_used)
   const isUnlimited = total === 0n
-  const totalPercent = getUsagePercent(used, total)
-  const totalProgressClassName = getProgressClassName(totalPercent)
+  const remaining = total > used ? total - used : 0n
   const quota = externalMode ? undefined : props.premiumQuota
   const split = total > 0n && quota?.enabled === true
   const premiumUsed = quota ? BigInt(quota.premium_amount_used) : 0n
@@ -48,75 +48,94 @@ export function SubscriptionSummary(props: {
   const standardUsed = used > premiumUsed ? used - premiumUsed : 0n
 
   return (
-    <div
-      className={cn(
-        'flex min-w-0 flex-col',
-        split ? 'flex-1 justify-between gap-3' : 'gap-2.5'
-      )}
-    >
+    <div className='flex min-w-0 flex-1 flex-col justify-between gap-3'>
       <div className='flex items-center justify-between gap-2'>
-        <span className='text-muted-foreground text-sm font-medium'>
-          {t('Current Subscription')}
-        </span>
+        <div className='text-muted-foreground flex min-w-0 items-center gap-1 text-sm font-medium'>
+          <span>{t('Current Subscription')}</span>
+          <QuotaDetailsPopover
+            title={t('Total Quota')}
+            triggerLabel={`${t('Total Quota')} · ${t('Details')}`}
+            details={[
+              { label: t('Used'), value: formatPremiumQuota(used.toString()) },
+              {
+                label: t('Total Quota'),
+                value: isUnlimited
+                  ? t('Unlimited')
+                  : formatPremiumQuota(total.toString()),
+              },
+              {
+                label: t('Remaining'),
+                value: isUnlimited
+                  ? t('Unlimited')
+                  : formatPremiumQuota(remaining.toString()),
+              },
+            ]}
+            description={
+              split
+                ? t(
+                    'Shared by standard and advanced models. Advanced models have an additional quota limit.'
+                  )
+                : t('Quota usage includes pending request reservations.')
+            }
+            className='w-auto'
+            triggerClassName='size-5 justify-center p-0 text-muted-foreground hover:text-foreground'
+          >
+            <CircleHelp className='size-3.5' aria-hidden='true' />
+          </QuotaDetailsPopover>
+        </div>
         {props.planTitle && (
           <Badge
-            variant='secondary'
-            className='bg-primary/10 text-primary max-w-36 truncate border-0 text-sm'
+            variant='outline'
+            className='bg-background text-primary border-primary/20 max-w-32 text-xs'
           >
-            {props.planTitle}
+            <span className='truncate'>{props.planTitle}</span>
           </Badge>
         )}
       </div>
 
-      <div className='space-y-1.5'>
-        <div className='flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1'>
-          <span className='text-muted-foreground text-xs font-medium'>
-            {t('Total Quota')}
-          </span>
-          <p className='flex items-baseline gap-x-1 font-mono tracking-tight'>
-            <span className='text-xl font-semibold'>
-              {formatPremiumQuota(used.toString())}
-            </span>
-            <span className='text-muted-foreground text-sm font-medium'>
-              /{' '}
-              {isUnlimited
-                ? t('Unlimited')
-                : formatPremiumQuota(total.toString())}
-            </span>
-          </p>
-        </div>
-        {!isUnlimited && (
-          <Progress
-            value={Math.min(100, totalPercent)}
-            aria-label={t('Total Quota')}
-            className={cn(
-              '[&_[data-slot=progress-track]]:h-1.5',
-              totalProgressClassName
-            )}
-          />
-        )}
-      </div>
+      <p className='flex flex-wrap items-baseline gap-x-1.5 leading-tight tracking-tight break-all tabular-nums'>
+        <span className='text-2xl font-semibold'>
+          {formatPremiumQuota(used.toString())}
+        </span>
+        <span className='text-muted-foreground text-lg font-medium'>
+          /{' '}
+          {isUnlimited ? t('Unlimited') : formatPremiumQuota(total.toString())}
+        </span>
+      </p>
 
-      {split && (
-        <div className='grid gap-3 border-t border-white/50 pt-3 dark:border-white/10'>
+      {split ? (
+        <div className='grid grid-cols-2 gap-x-3 border-y py-4 [&>div+div]:border-s [&>div+div]:ps-3'>
           <CompactQuotaRow
             title={t('Standard model quota')}
             used={standardUsed}
             limit={standardLimit}
+            description={t(
+              'Standard quota is total quota minus the advanced quota limit. Standard models can also use the remaining subscription quota.'
+            )}
           />
           <CompactQuotaRow
             title={t('Advanced model quota')}
             allocationPercent={quota.effective_percent}
             used={premiumUsed}
             limit={premiumLimit}
+            description={t(
+              'Advanced model usage counts toward total quota. Available amount is limited by both the advanced quota limit and the remaining subscription quota.'
+            )}
           />
         </div>
+      ) : (
+        <CompactQuotaRow
+          title={t('Total Quota')}
+          used={used}
+          limit={isUnlimited ? null : total}
+          description={t('Quota usage includes pending request reservations.')}
+        />
       )}
 
       {props.nextResetTime > 0 && (
-        <div className='text-muted-foreground flex items-center gap-1.5 text-xs'>
+        <div className='text-muted-foreground flex items-center gap-1.5 text-[13px]'>
           <CalendarClock className='size-3.5 shrink-0' aria-hidden='true' />
-          <span>
+          <span className='leading-relaxed'>
             {t('Next reset')}:{' '}
             {dayjs(props.nextResetTime * 1000).format('YYYY/M/D HH:mm:ss')}
           </span>
@@ -129,12 +148,14 @@ export function SubscriptionSummary(props: {
 function CompactQuotaRow(props: {
   title: string
   used: bigint
-  limit: bigint
+  limit: bigint | null
   allocationPercent?: number
+  description: string
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
-  const percent = getUsagePercent(props.used, props.limit)
+  const percent =
+    props.limit === null ? 0 : getUsagePercent(props.used, props.limit)
   const progressClassName = getProgressClassName(percent)
   const usageLabel =
     props.limit === 0n && props.used > 0n
@@ -143,35 +164,60 @@ function CompactQuotaRow(props: {
           percent: formatNumber(percent, locale),
         })
 
+  const formattedUsed = formatPremiumQuota(props.used.toString())
+  const formattedLimit =
+    props.limit === null
+      ? t('Unlimited')
+      : formatPremiumQuota(props.limit.toString())
+
   return (
-    <div className='min-w-0'>
-      <div className='flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-xs'>
-        <span className='min-w-0 font-medium'>
-          {props.title}
+    <div className='flex min-w-0 flex-col gap-2.5'>
+      <QuotaDetailsPopover
+        title={props.title}
+        triggerLabel={`${props.title} · ${t('Details')}`}
+        details={[
+          { label: t('Used'), value: formattedUsed },
+          { label: t('Total Quota'), value: formattedLimit },
+        ]}
+        description={props.description}
+        triggerClassName='items-start justify-between gap-1 text-[13px] font-medium'
+      >
+        <span className='flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 whitespace-normal'>
+          <span>{props.title}</span>
           {props.allocationPercent !== undefined && (
-            <span className='text-muted-foreground ms-1 font-normal tabular-nums'>
-              ·{' '}
+            <span className='text-muted-foreground text-[13px] font-normal whitespace-nowrap tabular-nums'>
               {t('Share {{percent}}%', {
                 percent: formatNumber(props.allocationPercent, locale),
               })}
             </span>
           )}
         </span>
-        <span className='text-muted-foreground min-w-0 text-right break-all tabular-nums'>
-          {formatPremiumQuota(props.used.toString())}
-          {' / '}
-          {formatPremiumQuota(props.limit.toString())}
-        </span>
+        <CircleHelp
+          className='text-muted-foreground mt-0.5 size-3 shrink-0'
+          aria-hidden='true'
+        />
+      </QuotaDetailsPopover>
+      <div className='mt-auto'>
+        <p className='flex flex-wrap items-baseline gap-x-1 break-all tabular-nums'>
+          <span className='text-base font-semibold tracking-tight'>
+            {formattedUsed}
+          </span>
+          <span className='text-muted-foreground text-[11px]'>
+            / {formattedLimit}
+          </span>
+        </p>
       </div>
-      <Progress
-        value={Math.min(100, percent)}
-        aria-label={props.title}
-        aria-valuetext={usageLabel}
-        className={cn(
-          'mt-1 [&_[data-slot=progress-track]]:h-1',
-          progressClassName
-        )}
-      />
+      {props.limit !== null && (
+        <Progress
+          value={Math.min(100, percent)}
+          aria-label={props.title}
+          aria-valuetext={usageLabel}
+          className={cn(
+            '[&_[data-slot=progress-track]]:h-1',
+            progressClassName
+          )}
+        />
+      )}
     </div>
   )
 }

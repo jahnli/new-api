@@ -19,6 +19,7 @@ import dayjs from '@/lib/dayjs'
 import { formatDashboardQuota, formatRequestCount } from '@/lib/format'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { computeTimeRange } from '@/lib/time'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { StatCard } from '../ui/stat-card'
@@ -269,7 +270,14 @@ export function SummaryCards() {
 
   return (
     <div className='bg-card overflow-hidden rounded-2xl border shadow-xs'>
-      <div className='grid xl:grid-cols-[minmax(0,1fr)_19rem]'>
+      <div
+        className={cn(
+          'grid',
+          activeSub
+            ? 'xl:grid-cols-[minmax(0,1fr)_24rem]'
+            : 'xl:grid-cols-[minmax(0,1fr)_19rem]'
+        )}
+      >
         <div className='flex flex-col gap-3 p-4 sm:p-5'>
           <div className='flex flex-wrap items-start justify-between gap-3'>
             <div className='flex flex-col gap-1'>
@@ -302,7 +310,14 @@ export function SummaryCards() {
           </StaggerContainer>
         </div>
 
-        <div className='flex flex-col justify-center gap-4 border-t bg-[linear-gradient(135deg,color-mix(in_oklch,var(--overview-accent-2)_12%,var(--background))_0%,color-mix(in_oklch,oklch(0.82_0.04_155)_8%,var(--background))_48%,color-mix(in_oklch,var(--overview-accent-1)_7%,var(--background))_100%)] p-4 sm:p-5 xl:border-t-0 xl:border-l'>
+        <div
+          className={cn(
+            'flex min-w-0 flex-col justify-center gap-4 border-t p-4 sm:p-5 xl:border-t-0 xl:border-l',
+            activeSub
+              ? 'bg-muted/25'
+              : 'bg-[linear-gradient(135deg,color-mix(in_oklch,var(--overview-accent-2)_12%,var(--background))_0%,color-mix(in_oklch,oklch(0.82_0.04_155)_8%,var(--background))_48%,color-mix(in_oklch,var(--overview-accent-1)_7%,var(--background))_100%)]'
+          )}
+        >
           {subscriptionQuery.isPending && <LoadingState className='min-h-32' />}
           {subscriptionQuery.isError && !subscriptionQuery.data && (
             <ErrorState
