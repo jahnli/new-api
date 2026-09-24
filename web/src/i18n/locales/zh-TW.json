@@ -417,6 +417,7 @@
     "Advanced custom configuration is required": "必須設定進階自訂",
     "Advanced custom configuration requires at least one route": "進階自訂至少需要一個路由",
     "Advanced Custom Routes": "進階自訂路由",
+    "Advanced model list": "高級模型清單",
     "Advanced model quota": "高級模型額度",
     "Advanced model usage counts toward total quota. Available amount is limited by both the advanced quota limit and the remaining subscription quota.": "高級模型用量計入總額度，剩餘可用金額受高級額度上限與訂閱剩餘額度共同限制。",
     "Advanced models": "高級模型",

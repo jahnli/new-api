@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Crown, Clock, CalendarDays, RefreshCw } from 'lucide-react'
+import { Crown, Clock, CalendarDays, CreditCard, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,6 +9,7 @@ import {
   dotColorMap,
   textColorMap,
 } from '@/components/status-badge'
+import { IconBadge } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TitledCard } from '@/components/ui/titled-card'
 import {
@@ -62,7 +63,8 @@ export function SubscriptionCard() {
     return (
       <CardStaggerItem>
         <TitledCard
-          icon={<Crown className='size-4 text-amber-500' />}
+          icon={<CreditCard className='size-4' />}
+          iconTone='primary'
           title={t('My Subscriptions')}
           disableHoverEffect
         >
@@ -114,7 +116,8 @@ export function SubscriptionCard() {
   return (
     <CardStaggerItem>
       <TitledCard
-        icon={<Crown className='size-4 text-amber-500' />}
+        icon={<CreditCard className='size-4' />}
+        iconTone='primary'
         title={t('My Subscriptions')}
         description={headerDescription}
         disableHoverEffect
@@ -191,26 +194,28 @@ function SubscriptionItem({
   }
 
   return (
-    <div className='min-w-0 rounded-2xl border p-4 sm:p-5'>
+    <div className='bg-card min-w-0 rounded-2xl border p-4 sm:p-5'>
       <div className='flex flex-col gap-3 pb-5 xl:flex-row xl:items-center xl:justify-between xl:gap-6'>
-        <div className='flex flex-wrap items-center gap-3'>
+        <div className='flex min-w-0 items-center gap-3'>
+          <IconBadge size='md' tone='primary'>
+            <Crown className='text-amber-500' />
+          </IconBadge>
           <span className='min-w-0 truncate text-lg font-semibold'>
             {planTitle || `${t('Subscription')} #${subscription?.id}`}
           </span>
           {statusBadge}
         </div>
-
         <div className='text-muted-foreground flex flex-wrap gap-x-4 gap-y-2 text-sm'>
           {isActive && (
             <div className='flex items-center gap-1.5'>
-              <Clock className='size-3.5 shrink-0' />
+              <Clock className='size-3.5 shrink-0' aria-hidden='true' />
               <span>
                 {t('{{count}} days remaining', { count: remainDays })}
               </span>
             </div>
           )}
           <div className='flex items-center gap-1.5'>
-            <CalendarDays className='size-3.5 shrink-0' />
+            <CalendarDays className='size-3.5 shrink-0' aria-hidden='true' />
             <span>
               {endDateLabel}{' '}
               {new Date(endTime * 1000).toLocaleDateString(locale)}
@@ -218,7 +223,7 @@ function SubscriptionItem({
           </div>
           {isActive && nextResetTime > 0 && (
             <div className='flex items-center gap-1.5'>
-              <RefreshCw className='size-3.5 shrink-0' />
+              <RefreshCw className='size-3.5 shrink-0' aria-hidden='true' />
               <span>
                 {t('Next reset')}:{' '}
                 {new Date(nextResetTime * 1000).toLocaleDateString(locale)}

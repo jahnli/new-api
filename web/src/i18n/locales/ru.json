@@ -417,6 +417,7 @@
     "Advanced custom configuration is required": "Требуется расширенная пользовательская конфигурация",
     "Advanced custom configuration requires at least one route": "Расширенной пользовательской конфигурации нужен хотя бы один маршрут",
     "Advanced Custom Routes": "Расширенные пользовательские маршруты",
+    "Advanced model list": "Список расширенных моделей",
     "Advanced model quota": "Квота продвинутых моделей",
     "Advanced model usage counts toward total quota. Available amount is limited by both the advanced quota limit and the remaining subscription quota.": "Расход расширенных моделей учитывается в общей квоте. Доступная сумма ограничена лимитом расширенных моделей и остатком квоты подписки.",
     "Advanced models": "Расширенные модели",
