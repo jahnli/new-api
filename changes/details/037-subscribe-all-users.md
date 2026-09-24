@@ -1,6 +1,6 @@
 # 订阅管理增强：全员订阅、单用户额度调整与高阶模型额度限制
 
-**日期**: 2026-09-20
+**日期**: 2026-09-24
 
 ## 涉及文件
 
@@ -31,7 +31,7 @@
 
 ## 2026-09-15 高阶模型额度限制
 
-订阅总额度内增加高阶模型消费上限，由管理员选择模型并设置 0～100 的整数比例；用户可以继承系统默认或单独覆盖。初始关闭限制、默认比例为 100%。高阶请求同时占用总额度与高阶额度，普通请求仍可使用全部剩余总额度；更改比例或模型配置保留已有占用。预扣与追加预留检查限额，实际结算允许超过高阶分类限额并记录超额；总额度不足时保留待结算状态。钱包回退沿用现有计费偏好。
+订阅总额度内增加高阶模型消费上限，由管理员选择模型并设置 0～100 的整数比例；用户可以继承系统默认或单独覆盖。初始关闭限制、默认比例为 100%。高阶请求同时占用总额度与高阶额度，标准模型请求仍可使用全部剩余总额度；更改比例或模型配置保留已有占用。预扣与追加预留检查限额，实际结算允许超过高阶分类限额并记录超额；总额度不足时保留待结算状态。钱包回退沿用现有计费偏好。
 
 - `setting/subscription_premium.go` — 定义全局策略、默认比例、模型列表、配置版本及首次启用时间。
 - `controller/subscription_premium.go` — 提供模型选项、全局策略及用户比例读写接口；按计费模型名称归并选项并保留别名，使用预期版本或原覆盖值检测并发修改，记录管理审计。
@@ -72,11 +72,17 @@
 
 ## 2026-09-23 订阅额度分类调整与精度优化
 
-- `model/subscription_quota_adjustment.go` — 新增原子化的总额度、基础模型额度和高阶模型额度调整，记录调整前后额度与比例并校验已用额度、无限额度、并发版本及两位小数舍入边界。
+- `model/subscription_quota_adjustment.go` — 新增原子化的总额度、标准模型额度和高阶模型额度调整，记录调整前后额度与比例并校验已用额度、无限额度、并发版本及两位小数舍入边界。
 - `controller/subscription.go`、`model/subscription.go` — 管理员额度增减接口支持选择额度类型，审计记录调整前后额度、额度类别及高阶比例变化。
 - `setting/subscription_premium.go`、`model/subscription_premium.go`、`controller/subscription_premium.go`、`model/user.go`、`relay/common/relay_info.go` — 高阶模型默认比例和用户覆盖比例支持 0～100 的两位小数，并以浮点比例贯穿策略校验、额度计算和中继计费上下文。
-- `web/src/features/subscriptions/api.ts`、`web/src/features/subscriptions/types.ts`、`web/src/features/subscriptions/components/dialogs/user-subscriptions-dialog.tsx`、`web/src/features/subscriptions/components/premium-policy-dialog.tsx`、`web/src/features/subscriptions/components/user-premium-policy.tsx` — 订阅管理支持选择总额度/基础模型额度/高阶模型额度，展示比例调整说明，并将比例输入精度扩展至两位小数。
+- `web/src/features/subscriptions/api.ts`、`web/src/features/subscriptions/types.ts`、`web/src/features/subscriptions/components/dialogs/user-subscriptions-dialog.tsx`、`web/src/features/subscriptions/components/premium-policy-dialog.tsx`、`web/src/features/subscriptions/components/user-premium-policy.tsx` — 订阅管理支持选择总额度/标准模型额度/高阶模型额度，展示比例调整说明，并将比例输入精度扩展至两位小数。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充额度类型、分类调整、比例精度和调整后用户覆盖规则的多语言文案。
+
+## 2026-09-24 额度术语与不足提示统一
+
+- `service/subscription_premium_notify.go` — 高级模型额度不足统一返回 HTTP 402，保留业务错误码 `subscription_premium_quota_insufficient`；错误文案说明标准模型仍可使用剩余订阅额度，并引导等待重置或通过飞书、钉钉申请高级模型额度。异步通知同步将“普通模型”改为“标准模型”。
+- `web/src/features/subscriptions/components/dialogs/user-subscriptions-dialog.tsx` — 管理员额度调整选项将“基础模型额度”改为“标准模型额度”，内部 `basic` 额度类型保持不变。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 七种语言统一使用“标准模型额度”及对应说明，并移除不再使用的基础模型额度翻译键。
 
 ## 自 CHANGELOG 说明列迁入
 

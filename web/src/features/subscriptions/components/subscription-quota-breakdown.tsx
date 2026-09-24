@@ -127,7 +127,7 @@ export function SubscriptionQuotaBreakdown(props: {
             <Info className='size-3.5 shrink-0' aria-hidden='true' />
             <span>
               {t(
-                'Shared by basic and advanced models. Advanced models have an additional quota limit.'
+                'Shared by standard and advanced models. Advanced models have an additional quota limit.'
               )}
             </span>
           </p>
@@ -140,7 +140,7 @@ export function SubscriptionQuotaBreakdown(props: {
         )}
       >
         <QuotaUsagePanel
-          title={split ? t('Basic model quota') : t('Total Quota')}
+          title={split ? t('Standard model quota') : t('Total Quota')}
           icon={split ? <Layers /> : <Wallet />}
           used={split ? basicUsed : used}
           limit={displayedLimit}
@@ -148,7 +148,7 @@ export function SubscriptionQuotaBreakdown(props: {
           description={
             split
               ? t(
-                  'Basic quota is total quota minus the advanced quota limit. Basic models can also use the remaining subscription quota.'
+                  'Standard quota is total quota minus the advanced quota limit. Standard models can also use the remaining subscription quota.'
                 )
               : reservationNote
           }

@@ -153,7 +153,7 @@ export function UserSubscriptionsDialog(props: Props) {
   } | null>(null)
 
   const quotaTypeItems = [
-    { value: 'basic' as const, label: t('Basic model quota') },
+    { value: 'basic' as const, label: t('Standard model quota') },
     { value: 'premium' as const, label: t('Premium model quota') },
     { value: 'total' as const, label: t('Total Quota') },
   ]
