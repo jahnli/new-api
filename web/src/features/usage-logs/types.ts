@@ -296,6 +296,10 @@ export interface LogStatistics {
   rpm: number
   tpm: number
   total_tokens: number
+  uncached_input_tokens?: number
+  uncached_output_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
 }
 
 // ============================================================================
@@ -464,6 +468,7 @@ export interface GetLogsResponse {
 }
 
 export interface GetLogStatsParams {
+  token_breakdown?: boolean
   type?: number
   username?: string
   token_name?: string

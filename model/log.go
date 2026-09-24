@@ -30,9 +30,9 @@ func applyExplicitLogTextFilter(tx *gorm.DB, column string, value string) (*gorm
 		var condition, pattern string
 		var err error
 		if strings.Contains(entry, "%") {
-			condition, pattern, err = buildLogLikeCondition(column, entry)
+			condition, pattern, err = buildLogLikeCondition(column, entry, common.DatabaseType(tx.Dialector.Name()))
 		} else {
-			condition, pattern, err = buildLogContainsCondition(column, entry, common.LogDatabaseType())
+			condition, pattern, err = buildLogContainsCondition(column, entry, common.DatabaseType(tx.Dialector.Name()))
 		}
 		if err != nil {
 			return nil, err
@@ -110,7 +110,7 @@ func applyLogUserKeywordFilter(tx *gorm.DB, keyword string, logUsernameColumn st
 		return tx, nil
 	}
 
-	logCondition, logPattern, err := buildLogContainsCondition(logUsernameColumn, keyword, common.LogDatabaseType())
+	logCondition, logPattern, err := buildLogContainsCondition(logUsernameColumn, keyword, common.DatabaseType(tx.Dialector.Name()))
 	if err != nil {
 		return nil, err
 	}
@@ -218,8 +218,12 @@ func sanitizeContainsLikePattern(input string, databaseType common.DatabaseType)
 	return "%" + input + "%", nil
 }
 
-func buildLogLikeCondition(column string, value string) (string, string, error) {
-	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
+func buildLogLikeCondition(column string, value string, databaseTypes ...common.DatabaseType) (string, string, error) {
+	databaseType := common.LogDatabaseType()
+	if len(databaseTypes) > 0 {
+		databaseType = databaseTypes[0]
+	}
+	if databaseType == common.DatabaseTypeClickHouse {
 		pattern, err := sanitizeClickHouseLikePattern(value)
 		if err != nil {
 			return "", "", err
@@ -894,65 +898,74 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 }
 
 type Stat struct {
-	Quota       int   `json:"quota"`
-	Rpm         int   `json:"rpm"`
-	Tpm         int   `json:"tpm"`
-	TotalTokens int64 `json:"total_tokens"`
+	Quota                int   `json:"quota"`
+	Rpm                  int   `json:"rpm"`
+	Tpm                  int   `json:"tpm"`
+	TotalTokens          int64 `json:"total_tokens"`
+	UncachedInputTokens  int64 `json:"uncached_input_tokens"`
+	UncachedOutputTokens int64 `json:"uncached_output_tokens"`
+	CacheReadTokens      int64 `json:"cache_read_tokens"`
+	CacheWriteTokens     int64 `json:"cache_write_tokens"`
 }
 
-func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel string, group string, userCategory string) (stat Stat, err error) {
-	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) total_tokens")
+type LogStatsOptions struct {
+	Context            context.Context
+	TokenBreakdownOnly bool
+	UserID             int
+}
 
-	// 为rpm和tpm创建单独的查询
-	rpmTpmQuery := LOG_DB.Table("logs").Select("count(*) rpm, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) tpm")
-
-	if tx, err = applyLogUserKeywordFilter(tx, username, "username"); err != nil {
-		return stat, err
+func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel string, group string, userCategory string, options ...LogStatsOptions) (stat Stat, err error) {
+	ctx := context.Background()
+	tokenBreakdownOnly := false
+	userID := 0
+	if len(options) > 0 {
+		if options[0].Context != nil {
+			ctx = options[0].Context
+		}
+		tokenBreakdownOnly = options[0].TokenBreakdownOnly
+		userID = options[0].UserID
 	}
-	if rpmTpmQuery, err = applyLogUserKeywordFilter(rpmTpmQuery, username, "username"); err != nil {
+	if tokenBreakdownOnly {
+		return sumLogQuotaData(ctx, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, userID, true)
+	}
+	tx := LOG_DB.WithContext(ctx).Table("logs")
+
+	if userID > 0 {
+		tx = tx.Where("logs.user_id = ?", userID)
+	} else if tx, err = applyLogUserKeywordFilter(tx, username, "username"); err != nil {
 		return stat, err
 	}
 	if tx, err = applyLogUserCategoryFilter(tx, userCategory); err != nil {
 		return stat, err
 	}
-	if rpmTpmQuery, err = applyLogUserCategoryFilter(rpmTpmQuery, userCategory); err != nil {
-		return stat, err
-	}
 	if tokenName != "" {
 		tx = tx.Where("token_name = ?", tokenName)
-		rpmTpmQuery = rpmTpmQuery.Where("token_name = ?", tokenName)
 	}
+	if tx, err = applyExplicitLogTextFilter(tx, "model_name", modelName); err != nil {
+		return stat, err
+	}
+	if tx, err = applyChannelFilter(tx, "channel_id", channel); err != nil {
+		return stat, err
+	}
+	if group != "" {
+		tx = tx.Where(logGroupCol+" = ?", group)
+	}
+	tx = tx.Where("type = ?", LogTypeConsume)
+
+	// Resolve shared filters once, then clone before adding independent time
+	// ranges: RPM/TPM always cover the last minute, not the selected interval.
+	rpmTpmQuery := tx.Session(&gorm.Session{}).
+		Select("count(*) rpm, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) tpm").
+		Where("created_at >= ?", time.Now().Add(-60*time.Second).Unix())
+	tx = tx.Session(&gorm.Session{})
 	if startTimestamp != 0 {
 		tx = tx.Where("created_at >= ?", startTimestamp)
 	}
 	if endTimestamp != 0 {
 		tx = tx.Where("created_at <= ?", endTimestamp)
 	}
-	if tx, err = applyExplicitLogTextFilter(tx, "model_name", modelName); err != nil {
-		return stat, err
-	}
-	if rpmTpmQuery, err = applyExplicitLogTextFilter(rpmTpmQuery, "model_name", modelName); err != nil {
-		return stat, err
-	}
-	if tx, err = applyChannelFilter(tx, "channel_id", channel); err != nil {
-		return stat, err
-	}
-	if rpmTpmQuery, err = applyChannelFilter(rpmTpmQuery, "channel_id", channel); err != nil {
-		return stat, err
-	}
-	if group != "" {
-		tx = tx.Where(logGroupCol+" = ?", group)
-		rpmTpmQuery = rpmTpmQuery.Where(logGroupCol+" = ?", group)
-	}
 
-	tx = tx.Where("type = ?", LogTypeConsume)
-	rpmTpmQuery = rpmTpmQuery.Where("type = ?", LogTypeConsume)
-
-	// 只统计最近60秒的rpm和tpm
-	rpmTpmQuery = rpmTpmQuery.Where("created_at >= ?", time.Now().Add(-60*time.Second).Unix())
-
-	// 执行查询
-	if err := tx.Scan(&stat).Error; err != nil {
+	if err := tx.Select("COALESCE(sum(quota), 0) quota").Scan(&stat).Error; err != nil {
 		common.SysError("failed to query log stat: " + err.Error())
 		return stat, errors.New("查询统计数据失败")
 	}
@@ -966,6 +979,11 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	}
 	stat.Rpm = rateStat.Rpm
 	stat.Tpm = rateStat.Tpm
+	tokens, err := sumLogQuotaData(ctx, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, userID, false)
+	if err != nil {
+		return stat, errors.New("查询统计数据失败")
+	}
+	stat.TotalTokens = tokens.TotalTokens
 
 	return stat, nil
 }

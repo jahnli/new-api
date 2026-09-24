@@ -2,10 +2,13 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // Bound per-process disk/DB work and prevent duplicate exports for one user.
@@ -87,7 +91,27 @@ func exportLogs(c *gin.Context, self bool) {
 	defer os.Remove(file.Name())
 	defer file.Close()
 	settings, _ := common.GetContextKeyType[dto.UserSetting](c, constant.ContextKeyUserSetting)
-	count, err := service.WriteLogExport(ctx, file, filter, location, settings.DemoMode)
+	// Resolve display metadata separately: changing Channel would change which
+	// log records match the export filter.
+	channelName := strings.TrimSpace(filter.Channel)
+	if channelName != "" && settings.DemoMode {
+		channelName = "已隐藏渠道"
+	} else if channelID, parseErr := strconv.Atoi(channelName); parseErr == nil {
+		channel, lookupErr := model.GetChannelById(channelID, false)
+		switch {
+		case errors.Is(lookupErr, gorm.ErrRecordNotFound):
+			channelName = "已删除渠道"
+		case lookupErr != nil:
+			common.ApiErrorMsg(c, "无法读取导出渠道名称，请稍后重试")
+			return
+		default:
+			channelName = strings.TrimSpace(channel.Name)
+			if channelName == "" {
+				channelName = "未命名渠道"
+			}
+		}
+	}
+	count, err := service.WriteLogExport(ctx, file, filter, location, settings.DemoMode, channelName)
 	if err != nil {
 		if c.Request.Context().Err() == nil {
 			common.SysError(fmt.Sprintf("log export failed for user %d: %v", userID, err))
@@ -109,11 +133,7 @@ func exportLogs(c *gin.Context, self bool) {
 		return
 	}
 	c.Header("X-Export-Count", strconv.Itoa(count))
-	startLabel := ""
-	if filter.StartTimestamp != 0 {
-		startLabel = time.Unix(filter.StartTimestamp, 0).In(location).Format("2006-01-02_15-04-05")
-	}
-	endLabel := time.Unix(filter.EndTimestamp, 0).In(location).Format("2006-01-02_15-04-05")
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="usage-logs_%s~%s.xlsx"`, startLabel, endLabel))
+	filename := service.LogExportTitle(filter, location, channelName) + ".xlsx"
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="usage-logs.xlsx"; filename*=UTF-8''%s`, url.PathEscape(filename)))
 	c.DataFromReader(http.StatusOK, info.Size(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file, nil)
 }
