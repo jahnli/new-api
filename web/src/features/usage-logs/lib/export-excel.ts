@@ -11,6 +11,19 @@ import {
 import type { FetchLogsConfig } from '../types'
 import { buildApiParams, buildQueryParams } from './utils'
 
+function getContentDispositionFilename(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const encoded = value.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded)
+    } catch {
+      return undefined
+    }
+  }
+  return value.match(/filename="([^"]+)"/i)?.[1]
+}
+
 export async function exportUsageLogs(
   config: Pick<
     FetchLogsConfig,
@@ -70,15 +83,15 @@ export async function exportUsageLogs(
   const url = URL.createObjectURL(response.data)
   const anchor = document.createElement('a')
   anchor.href = url
-  const startLabel =
-    params.start_timestamp == null
-      ? ''
-      : dayjs.unix(params.start_timestamp).format('YYYY-MM-DD_HH-mm-ss')
-  const endLabel =
-    params.end_timestamp == null
-      ? ''
-      : dayjs.unix(params.end_timestamp).format('YYYY-MM-DD_HH-mm-ss')
-  anchor.download = `${i18n.t('Usage Logs', { lng: 'zhCN' })}_${startLabel}~${endLabel}.xlsx`
+  const dateTimestamp = params.start_timestamp ?? params.end_timestamp
+  const dateLabel = dateTimestamp
+    ? dayjs.unix(dateTimestamp).format('YYYY-MM-DD')
+    : dayjs().format('YYYY-MM-DD')
+  // Channel names are resolved by the server; never use the filter ID in a name.
+  const fallbackFilename = `${dateLabel}-usage-logs.xlsx`
+  anchor.download =
+    getContentDispositionFilename(response.headers['content-disposition']) ??
+    fallbackFilename
   document.body.appendChild(anchor)
   try {
     anchor.click()
