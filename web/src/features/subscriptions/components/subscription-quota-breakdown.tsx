@@ -1,4 +1,10 @@
-import { Info, Layers, Sparkles, Wallet } from 'lucide-react'
+import {
+  CircleQuestionMark,
+  Info,
+  Layers,
+  Sparkles,
+  Wallet,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -141,7 +147,9 @@ export function SubscriptionQuotaBreakdown(props: {
           remaining={split ? basicRemaining : remaining}
           description={
             split
-              ? `${t('Basic allocation is total quota minus the advanced limit. Basic models can also use the shared remaining quota.')} ${reservationNote}`
+              ? t(
+                  'Basic quota is total quota minus the advanced quota limit. Basic models can also use the remaining subscription quota.'
+                )
               : reservationNote
           }
         />
@@ -158,7 +166,9 @@ export function SubscriptionQuotaBreakdown(props: {
             used={premiumUsed}
             limit={premiumLimit}
             remaining={BigInt(quota.premium_available)}
-            description={`${quota.percent_source === 'user' ? t('User override') : t('System default')} · ${formatNumber(quota.effective_percent, locale)}%. ${t('Advanced usage also consumes total quota. Remaining is limited by both the advanced limit and the shared remaining quota.')} ${reservationNote}`}
+            description={t(
+              'Advanced model usage counts toward total quota. Available amount is limited by both the advanced quota limit and the remaining subscription quota.'
+            )}
           />
         )}
       </div>
@@ -227,19 +237,38 @@ function QuotaUsagePanel(props: {
   return (
     <div className='bg-muted/20 flex min-w-0 shrink-0 flex-col gap-3 rounded-2xl'>
       <div className='flex flex-wrap items-center justify-between gap-2'>
-        <span className='flex flex-wrap items-center gap-2 text-base font-medium'>
+        <div className='flex flex-wrap items-center gap-2 text-base font-medium'>
           <IconBadge size='sm' tone='primary'>
             {props.icon}
           </IconBadge>
-          {props.title}
-          {props.allocationPercent !== undefined && (
-            <span className='text-muted-foreground text-sm font-normal tabular-nums'>
-              {t('Share {{percent}}%', {
-                percent: formatNumber(props.allocationPercent, locale),
-              })}
-            </span>
-          )}
-        </span>
+          <div className='flex items-center gap-1.5'>
+            <span>{props.title}</span>
+            {props.allocationPercent !== undefined && (
+              <span className='text-muted-foreground text-sm font-normal tabular-nums'>
+                {t('Share {{percent}}%', {
+                  percent: formatNumber(props.allocationPercent, locale),
+                })}
+              </span>
+            )}
+            <QuotaDetailsPopover
+              title={props.title}
+              triggerLabel={`${props.title} · ${t('Details')}`}
+              details={[
+                { label: t('Used'), value: formattedUsed },
+                { label: t('Total Quota'), value: formattedLimit },
+                { label: t('Remaining'), value: formattedRemaining },
+              ]}
+              description={props.description}
+              className='w-auto'
+              triggerClassName='text-muted-foreground size-5 shrink-0 justify-center p-0 hover:text-foreground'
+            >
+              <CircleQuestionMark
+                className='size-3.5 translate-y-px'
+                aria-hidden='true'
+              />
+            </QuotaDetailsPopover>
+          </div>
+        </div>
         <span
           className={cn('text-sm font-medium tabular-nums', usageColor.text)}
         >
@@ -247,26 +276,14 @@ function QuotaUsagePanel(props: {
         </span>
       </div>
       <div className='grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center gap-4'>
-        <QuotaDetailsPopover
-          title={props.title}
-          triggerLabel={`${props.title} · ${t('Remaining')} ${formattedRemaining}`}
-          details={[
-            { label: t('Used'), value: formattedUsed },
-            { label: t('Total Quota'), value: formattedLimit },
-            { label: t('Remaining'), value: formattedRemaining },
-          ]}
-          description={props.description}
-          triggerClassName='whitespace-normal'
-        >
-          <span className='flex min-w-0 flex-col gap-1'>
-            <span className='text-muted-foreground text-base'>
-              {t('Remaining')}
-            </span>
-            <span className='text-2xl font-semibold tracking-tight break-all tabular-nums'>
-              {formattedRemaining}
-            </span>
+        <span className='flex min-w-0 flex-col gap-1'>
+          <span className='text-muted-foreground text-base'>
+            {t('Remaining')}
           </span>
-        </QuotaDetailsPopover>
+          <span className='text-2xl font-semibold tracking-tight break-all tabular-nums'>
+            {formattedRemaining}
+          </span>
+        </span>
         <dl className='space-y-2 text-right text-sm tabular-nums'>
           <div className='flex flex-wrap justify-end gap-x-2 gap-y-1'>
             <dt className='text-muted-foreground'>{t('Used')}</dt>

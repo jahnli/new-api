@@ -7,8 +7,8 @@
 - `web/src/features/profile/components/profile-header.tsx` — 将订阅信息从个人资料头部拆出，避免头部同时承载身份与订阅详情。
 - `web/src/features/profile/components/subscription-card.tsx` — 以独立卡片和响应式网格展示订阅状态、剩余天数及额度进度；无订阅记录时不渲染订阅区域；放大方案标题、状态、辅助信息及额度进度文字。
 - `web/src/features/profile/index.tsx` — 将订阅卡片接入个人资料页，并把动画容器移至订阅组件的有效内容分支，避免无订阅时遗留空元素。
-- `web/src/features/subscriptions/components/subscription-quota-breakdown.tsx` — 增加订阅总用量圆环，将基础与高级额度上下排列，默认展示高级额度占比，并统一图标、文字层级及区域间距。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充“占比 {{percent}}%”的七语言翻译。
+- `web/src/features/subscriptions/components/subscription-quota-breakdown.tsx` — 增加订阅总用量圆环，将基础与高级额度上下排列，在高级额度占比后提供独立明细入口，并统一图标、文字层级及区域间距。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充“占比 {{percent}}%”及基础、高级额度说明的七语言翻译。
 
 ## 变更说明
 
@@ -22,7 +22,13 @@
 - 左侧不再有独立外边框和用量统计上方的横线，左右区域通过留白区分；右侧两类额度之间复用 `Separator` 展示横向虚线，分隔区域最小高度为 48px。
 - 复用 `IconBadge` 为订阅余额、基础额度和高级额度添加钱包、层叠和星光图标。底部说明添加信息图标，与 13px 说明文字垂直居中；圆环内“剩余”为 14px，分类额度中的“剩余”为 16px。
 - 高级额度标题旁直接显示当前生效的“占比 xx%”，与右侧彩色“已用 xx%”区分；组件调用 `Share {{percent}}%`，使用对应中文及其余六种语言翻译。
-- 分类额度继续使用原有计算口径，点击剩余金额仍通过 `QuotaDetailsPopover` 查看详情、比例来源及预留说明；本次调整仅影响前端展示，不修改后端扣费与额度限制。
+- 分类额度继续使用原有计算口径；本次调整仅影响前端展示，不修改后端扣费与额度限制。
+
+## 2026-09-24 额度明细入口调整
+
+- 分类额度的剩余金额改为纯文本展示，详情入口调整为标题后的独立问号按钮，继续复用 `QuotaDetailsPopover` 展示已用、总额与剩余金额。
+- 高级额度标题行按“高级额度 → 占比 xx% → 问号”排列，确保问号紧随占比信息；基础额度的问号紧随标题。
+- 基础额度说明明确其额度由总额度扣除高级额度上限得出；高级额度说明明确其用量计入总额度，且可用金额同时受高级额度上限与订阅剩余额度限制。
 
 ## 自 CHANGELOG 说明列迁入
 
