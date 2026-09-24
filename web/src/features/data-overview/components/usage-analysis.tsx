@@ -1,4 +1,5 @@
 import { VChart } from '@visactor/react-vchart'
+import type { ISpec } from '@visactor/vchart'
 import {
   ChartLine,
   DollarSign,
@@ -10,6 +11,7 @@ import {
 import { useMemo, useState, type ElementType, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { EmptyState } from '@/components/empty-state'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -19,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { toIntlLocale } from '@/i18n/languages'
 import { calculateUnitPricePer100MTokens } from '@/lib/unit-price'
 import { useChartTheme } from '@/lib/use-chart-theme'
 import { VCHART_OPTION } from '@/lib/vchart'
@@ -102,6 +105,13 @@ export function UsageAnalysisSection(props: UsageAnalysisProps) {
               {...chartProps}
             />
           )}
+          {hasModelSeriesData && (
+            <ModelTrendChart
+              data={props.data.model_series_daily_stats ?? []}
+              metric='unit-price'
+              {...chartProps}
+            />
+          )}
           {hasModelData && (
             <ModelCallDistributionChart
               data={props.data.model_stats}
@@ -129,8 +139,9 @@ export function UsageAnalysisSection(props: UsageAnalysisProps) {
             <TokenTrendChart data={props.data.daily_stats} {...chartProps} />
           )}
           {hasModelData && (
-            <ModelUsageTrendChart
+            <ModelTrendChart
               data={props.data.model_daily_stats ?? []}
+              metric='tokens'
               {...chartProps}
             />
           )}
@@ -216,11 +227,12 @@ function ChartCard(props: {
   chartKey: string
   spec: object | null
   height?: string
+  emptyState?: ReactNode
 }) {
   const Icon = props.icon
   return (
     <div className='border-border/60 border-b last:border-b-0 lg:odd:border-r [&:nth-last-child(2)]:lg:border-b-0'>
-      <div className='flex w-full items-center justify-between px-5 py-3'>
+      <div className='flex w-full flex-wrap items-center justify-between gap-2 px-5 py-3'>
         <div className='flex items-center gap-2'>
           <Icon className='text-muted-foreground/60 size-4' />
           <h3 data-chart-title={props.title} className='text-sm font-semibold'>
@@ -230,11 +242,12 @@ function ChartCard(props: {
         {props.actions}
       </div>
       <div className={`${props.height ?? 'h-[300px]'} p-2`}>
+        {props.themeReady && !props.spec && props.emptyState}
         {props.themeReady && props.spec && (
           <VChart
             key={props.chartKey}
             spec={{
-              ...(props.spec as any),
+              ...(props.spec as ISpec),
               theme: props.resolvedTheme === 'dark' ? 'dark' : 'light',
               background: 'transparent',
             }}
@@ -505,35 +518,93 @@ function TokenTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
 
 // ── 3. 模型使用趋势 ──
 
-function ModelUsageTrendChart(
-  props: ChartBaseProps & { data: ModelDailyStat[] }
+function ModelTrendChart(
+  props: ChartBaseProps & {
+    data: ModelDailyStat[]
+    metric: 'tokens' | 'unit-price'
+  }
 ) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [granularity, setGranularity] = useState<UsageTimeGranularity>('day')
-  const title = t('Model Usage Trend')
+  const isUnitPrice = props.metric === 'unit-price'
+  const title = isUnitPrice
+    ? t('Model Series Unit Price Trend')
+    : t('Model Usage Trend')
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
 
   const spec = useMemo(() => {
     if (props.data.length === 0) return null
 
     const aggregatedData = aggregateModelDailyStats(props.data, granularity)
     const bucketCount = new Set(aggregatedData.map((item) => item.date)).size
+    // Overview costs are explicitly CNY; the currency helpers follow the
+    // configurable display currency and cannot format this fixed currency.
+    const currencyFormatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'CNY',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    const values: { date: string; model: string; value: number | null }[] =
+      aggregatedData.map((item) => {
+        let value: number | null = item.total_tokens
+        if (isUnitPrice) {
+          value = null
+          if (
+            item.total_tokens > 0 &&
+            item.total_quota !== undefined &&
+            item.total_quota >= 0
+          ) {
+            value = calculateUnitPricePer100MTokens(
+              item.total_quota * props.quotaToCnyRate,
+              item.total_tokens
+            )
+          }
+        }
+        return { date: item.date, model: item.model_name, value }
+      })
+    if (isUnitPrice) {
+      if (!values.some((item) => item.value !== null)) return null
+      const dates = [...new Set(values.map((item) => item.date))]
+      const models = [...new Set(values.map((item) => item.model))].sort()
+      const byDateAndModel = new Map(
+        values.map((item) => [`${item.date}\u0000${item.model}`, item])
+      )
+      // Missing usage is a gap, not a zero price or an interpolated price.
+      values.length = 0
+      for (const date of dates) {
+        for (const model of models) {
+          values.push(
+            byDateAndModel.get(`${date}\u0000${model}`) ?? {
+              date,
+              model,
+              value: null,
+            }
+          )
+        }
+      }
+    }
+    const formatValue = (value: number | null | undefined): string => {
+      if (value == null) return '-'
+      if (isUnitPrice) {
+        return `${currencyFormatter.format(value)}/${t('100M Tokens')}`
+      }
+      return formatTokenValue(value)
+    }
 
     return {
       type: 'line' as const,
       data: [
         {
-          values: aggregatedData.map((item) => ({
-            date: item.date,
-            model: item.model_name,
-            tokens: item.total_tokens,
-          })),
+          values,
         },
       ],
       xField: 'date',
-      yField: 'tokens',
+      yField: 'value',
       seriesField: 'model',
+      ...(isUnitPrice ? { invalidType: 'break' } : {}),
       point: { visible: bucketCount <= 60, size: 3 },
-      line: { style: { curveType: 'monotone' } },
+      line: { style: { curveType: isUnitPrice ? 'linear' : 'monotone' } },
       ...APPEAR_ANIMATION,
       ...(bucketCount > DATA_ZOOM_THRESHOLD
         ? { dataZoom: makeDataZoom('line') }
@@ -553,7 +624,8 @@ function ModelUsageTrendChart(
           orient: 'left',
           type: 'linear',
           label: {
-            formatMethod: (v: number) => formatTokenValue(v),
+            formatMethod: (v: number) =>
+              isUnitPrice ? currencyFormatter.format(v) : formatTokenValue(v),
           },
         },
       ],
@@ -573,8 +645,7 @@ function ModelUsageTrendChart(
           content: [
             {
               key: (d: { model?: string }) => d.model ?? '',
-              value: (d: { tokens?: number }) =>
-                formatTokenValue(d.tokens ?? 0),
+              value: (d: { value?: number | null }) => formatValue(d.value),
             },
           ],
         },
@@ -586,16 +657,15 @@ function ModelUsageTrendChart(
           content: [
             {
               key: (d: { model?: string }) => d.model ?? '',
-              value: (d: { tokens?: number }) =>
-                formatTokenValue(d.tokens ?? 0),
+              value: (d: { value?: number | null }) => formatValue(d.value),
             },
           ],
         },
       },
     }
-  }, [granularity, props.data])
+  }, [granularity, props.data, props.quotaToCnyRate, isUnitPrice, locale, t])
 
-  if (props.data.length === 0) return null
+  if (!isUnitPrice && props.data.length === 0) return null
 
   return (
     <ChartCard
@@ -610,9 +680,10 @@ function ModelUsageTrendChart(
       }
       themeReady={props.themeReady}
       resolvedTheme={props.resolvedTheme}
-      chartKey={`model-usage-trend-${granularity}-${props.resolvedTheme}`}
+      chartKey={`model-${props.metric}-trend-${granularity}-${props.resolvedTheme}-${locale}`}
       spec={spec}
       height='h-[340px]'
+      emptyState={isUnitPrice ? <EmptyState /> : undefined}
     />
   )
 }

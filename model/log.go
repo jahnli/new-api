@@ -1242,11 +1242,12 @@ func GetDailyStats(userIds []int, startTimestamp, endTimestamp int64) ([]DailySt
 	return rows, nil
 }
 
-// ModelDailyStatRow holds per-model per-day aggregated token stats.
+// ModelDailyStatRow holds per-model per-day aggregated usage and cost.
 type ModelDailyStatRow struct {
 	Date        string `json:"date" gorm:"column:date"`
 	ModelName   string `json:"model_name" gorm:"column:model_name"`
 	TotalTokens int64  `json:"total_tokens" gorm:"column:total_tokens"`
+	TotalQuota  int64  `json:"total_quota" gorm:"column:total_quota"`
 }
 
 // GetModelDailyStats returns per-model per-day token stats for the given user IDs, limited to the top N models.
@@ -1285,7 +1286,8 @@ func GetModelDailyStatsForModels(userIds []int, startTimestamp, endTimestamp int
 	var rows []ModelDailyStatRow
 	tx := DB.Table("quota_data").
 		Select(dateExpr+` as date, model_name,
-			`+quotaDataTotalTokensExpr+` as total_tokens`).
+			`+quotaDataTotalTokensExpr+` as total_tokens,
+			COALESCE(SUM(quota), 0) as total_quota`).
 		Where("user_id IN ?", userIds).
 		Where("model_name IN ?", modelNames)
 
