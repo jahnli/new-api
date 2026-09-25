@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Ban, CreditCard, Minus, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Ban, Minus, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -49,6 +49,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 import { formatQuota } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 
@@ -91,7 +92,14 @@ import { UserPremiumPolicy } from '../user-premium-policy'
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: { id: number; username?: string } | null
+  user: {
+    id: number
+    username?: string
+    display_name?: string
+    avatar_url?: string
+    open_id?: string
+    gender?: number
+  } | null
   onSuccess?: () => void
 }
 
@@ -369,28 +377,23 @@ export function UserSubscriptionsDialog(props: Props) {
         open={props.open}
         onOpenChange={props.onOpenChange}
         title={t('User Subscription Management')}
-        description={
-          <>
-            <span className='text-foreground font-medium break-all'>
-              {props.user?.username || '-'}
-            </span>
-            <span className='text-border mx-2' aria-hidden='true'>
-              /
-            </span>
-            <span className='font-mono text-xs'>
-              ID: {props.user?.id || '-'}
-            </span>
-          </>
-        }
         headerLeading={
-          <div className='bg-primary/10 text-primary col-start-1 row-span-2 flex size-11 items-center justify-center rounded-xl'>
-            <CreditCard className='size-5' aria-hidden='true' />
-          </div>
+          props.user ? (
+            <LogUserIdentity
+              className='flex-none'
+              nameClassName='min-w-0'
+              userId={props.user.id}
+              username={props.user.username}
+              displayName={props.user.display_name}
+              avatarUrl={props.user.avatar_url}
+              openId={props.user.open_id}
+              gender={props.user.gender}
+            />
+          ) : null
         }
         contentClassName='gap-0 overflow-hidden p-0 sm:h-[84dvh] sm:max-w-5xl sm:p-0'
-        headerClassName='grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 border-b px-5 py-5 pe-12 sm:px-6 sm:pe-12'
-        titleClassName='col-start-2 text-lg'
-        descriptionClassName='col-start-2'
+        headerClassName='flex-row flex-wrap items-center gap-3 border-b px-5 py-5 pe-12 sm:px-6 sm:pe-12'
+        titleClassName='text-lg'
         bodyContainerClassName='mx-0 flex-1'
         bodyClassName='bg-muted/30 flex min-h-full flex-col gap-5 p-4 sm:h-full sm:px-6 [&>form]:shrink-0'
       >

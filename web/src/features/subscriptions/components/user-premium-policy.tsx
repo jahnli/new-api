@@ -24,10 +24,16 @@ import {
 import type { UserSubscriptionRecord } from '../types'
 import { PremiumQuotaSummary } from './premium-quota-summary'
 
-const overrideSchema = z.object({
-  inherit: z.boolean(),
-  percent: z.number().min(0).max(100).multipleOf(0.01),
-})
+const overrideSchema = z
+  .object({
+    inherit: z.boolean(),
+    percent: z.number().min(0).max(100).multipleOf(0.01),
+  })
+  .refine(
+    (value) =>
+      value.inherit || (Number.isInteger(value.percent) && value.percent >= 1),
+    { path: ['percent'] }
+  )
 
 export function UserPremiumPolicy(props: {
   userId: number
@@ -76,6 +82,7 @@ function UserPremiumForm(props: {
   })
   const inherit = form.watch('inherit')
   const percent = inherit ? props.policy.default_percent : form.watch('percent')
+  const percentInput = form.register('percent', { valueAsNumber: true })
   const activeSubscriptions = props.subscriptions.filter(
     (record) => record.subscription.status === 'active'
   )
@@ -143,9 +150,9 @@ function UserPremiumForm(props: {
                   id='premium-percent'
                   type='number'
                   className='pe-10 tabular-nums'
-                  min={0}
+                  min={1}
                   max={100}
-                  step={0.01}
+                  step={1}
                   disabled={inherit || save.isPending}
                   aria-invalid={!!form.formState.errors.percent}
                   aria-describedby={
@@ -153,7 +160,16 @@ function UserPremiumForm(props: {
                       ? 'premium-percent-error'
                       : undefined
                   }
-                  {...form.register('percent', { valueAsNumber: true })}
+                  {...percentInput}
+                  onChange={(event) => {
+                    const value = event.currentTarget.valueAsNumber
+                    if (Number.isFinite(value)) {
+                      event.currentTarget.value = String(
+                        Math.min(100, Math.max(1, Math.trunc(value)))
+                      )
+                    }
+                    void percentInput.onChange(event)
+                  }}
                 />
                 <span
                   className='text-muted-foreground pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-sm'
@@ -172,9 +188,7 @@ function UserPremiumForm(props: {
                 role='alert'
                 className='text-destructive text-sm'
               >
-                {t(
-                  'Enter a percentage from 0 to 100 with up to two decimal places.'
-                )}
+                {t('Enter a positive integer')} (1–100)
               </p>
             ) : null}
           </div>
@@ -195,7 +209,8 @@ function UserPremiumForm(props: {
                 total >= 0 &&
                 Number.isFinite(percent) &&
                 percent >= 0 &&
-                percent <= 100
+                percent <= 100 &&
+                (inherit || (Number.isInteger(percent) && percent >= 1))
               ) {
                 preview =
                   (BigInt(total) * BigInt(Math.round(percent * 100))) / 10000n

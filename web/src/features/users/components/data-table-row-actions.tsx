@@ -281,7 +281,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       <UserSubscriptionsDialog
         open={subscriptionsDialogOpen}
         onOpenChange={setSubscriptionsDialogOpen}
-        user={{ id: user.id, username: user.username }}
+        user={user}
         onSuccess={triggerRefresh}
       />
 
