@@ -62,7 +62,7 @@ export function SubscriptionSummary(props: {
         {props.planTitle && (
           <Badge
             variant='secondary'
-            className='bg-primary/10 text-primary h-auto max-w-36 rounded-md border-0 px-3 py-1 text-sm'
+            className='bg-primary/10 text-primary h-auto max-w-36 border-0 px-3 py-1 text-sm'
           >
             <span className='truncate'>{props.planTitle}</span>
           </Badge>
@@ -110,14 +110,17 @@ export function SubscriptionSummary(props: {
                 showPremiumModels
               />
             </div>
-            <span className='text-muted-foreground text-xs font-semibold tabular-nums'>
+            <Badge
+              variant='secondary'
+              className='bg-primary/10 text-primary h-auto px-2.5 py-1 text-sm tabular-nums'
+            >
               {t('Share {{percent}}%', {
                 percent: formatNumber(
                   props.premiumQuota.effective_percent,
                   locale
                 ),
               })}
-            </span>
+            </Badge>
           </div>
           <p
             className={`text-base font-semibold break-all tabular-nums ${premiumUsageColor}`}

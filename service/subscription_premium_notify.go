@@ -30,8 +30,8 @@ func notifySubscriptionPremiumQuotaInsufficient(info *relaycommon.RelayInfo) {
 	}
 	userID, email, settings := info.UserId, info.UserEmail, info.UserSetting
 	gopool.Go(func() {
-		const title = "您的订阅高阶模型额度不足"
-		const content = "您的订阅高阶模型可用额度不足以满足本次请求的预扣额度。标准模型仍可使用订阅剩余总额度。请等待额度重置或联系管理员调整高阶额度比例；如需使用钱包支付，请确认计费偏好和套餐允许钱包回退。充值钱包不会直接增加订阅高阶额度。本通知不代表请求最终失败，系统仍会按原设置尝试钱包支付。"
+		const title = "您的订阅高级模型额度不足"
+		const content = "您的订阅高级模型可用额度不足以满足本次请求的预扣额度。标准模型仍可使用订阅剩余总额度。请等待额度重置或联系管理员调整高级模型额度比例；如需使用钱包支付，请确认计费偏好和套餐允许钱包回退。充值钱包不会直接增加订阅高级模型额度。本通知不代表请求最终失败，系统仍会按原设置尝试钱包支付。"
 		if err := NotifyUser(userID, email, settings, dto.NewNotify(notifyTypeSubscriptionPremiumQuotaInsufficient, title, content, nil)); err != nil {
 			common.SysError(fmt.Sprintf("failed to send subscription premium quota notification to user %d: %s", userID, err.Error()))
 		}
