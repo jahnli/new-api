@@ -207,7 +207,8 @@ export function CommonLogsStats() {
         <Tooltip
           open={tokenTooltipOpen}
           onOpenChange={(open) => {
-            if (!open) setTokenTooltipActive(false)
+            setTokenTooltipActive(open)
+            if (open && tokenStats.isError) void tokenStats.refetch()
           }}
         >
           <StatBadge
@@ -222,16 +223,6 @@ export function CommonLogsStats() {
                     className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
                     aria-label={t('View details')}
                     aria-busy={tokenTooltipLoading}
-                    onPointerEnter={() => {
-                      setTokenTooltipActive(true)
-                      if (tokenStats.isError) void tokenStats.refetch()
-                    }}
-                    onPointerLeave={() => setTokenTooltipActive(false)}
-                    onFocus={() => {
-                      setTokenTooltipActive(true)
-                      if (tokenStats.isError) void tokenStats.refetch()
-                    }}
-                    onBlur={() => setTokenTooltipActive(false)}
                   />
                 }
               >
