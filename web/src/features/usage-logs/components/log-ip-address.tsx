@@ -19,12 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { Globe } from 'lucide-react'
 
 import { StatusBadge } from '@/components/status-badge'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 interface LogIpAddressProps {
   ipAddress?: string
@@ -39,25 +33,14 @@ export function LogIpAddress(props: LogIpAddressProps) {
 
   return (
     <div className='flex max-w-[140px] flex-col gap-0.5'>
-      <TooltipProvider delay={100}>
-        <Tooltip>
-          <TooltipTrigger render={<div className='max-w-full' />}>
-            <StatusBadge
-              label={displayIpAddress}
-              icon={Globe}
-              copyText={sensitiveVisible ? props.ipAddress : undefined}
-              size='sm'
-              showDot={false}
-              className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 font-mono [&_svg]:stroke-[1.5]'
-            />
-          </TooltipTrigger>
-          {sensitiveVisible && props.ipAddress.length > 15 && (
-            <TooltipContent side='top' className='max-w-xs break-all'>
-              {props.ipAddress}
-            </TooltipContent>
-          )}
-        </Tooltip>
-      </TooltipProvider>
+      <StatusBadge
+        label={displayIpAddress}
+        icon={Globe}
+        copyText={sensitiveVisible ? props.ipAddress : undefined}
+        size='sm'
+        showDot={false}
+        className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 font-mono [&_svg]:stroke-[1.5]'
+      />
     </div>
   )
 }

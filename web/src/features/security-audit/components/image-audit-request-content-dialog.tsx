@@ -1,12 +1,11 @@
-import { Check, Copy, ImageOff } from 'lucide-react'
+import { ImageOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { CopyButton } from '@/components/copy-button'
 import { Dialog } from '@/components/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 import { ModelBadge } from '@/features/usage-logs/components/model-badge'
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import dayjs from '@/lib/dayjs'
 
 import type { ImageAuditItem } from '../types'
@@ -34,7 +33,6 @@ export function ImageAuditRequestContentDialog(
   props: ImageAuditRequestContentDialogProps
 ) {
   const { t } = useTranslation()
-  const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
 
   if (!props.item) return null
 
@@ -87,20 +85,14 @@ export function ImageAuditRequestContentDialog(
                 <span className='text-sm font-medium'>
                   {t('Request content')}
                 </span>
-                <Button
-                  type='button'
+                <CopyButton
+                  value={item.prompt}
                   variant='ghost'
                   size='sm'
                   className='h-7 w-7 shrink-0 p-0'
-                  onClick={() => copyToClipboard(item.prompt)}
-                  title={t('Copy to clipboard')}
-                >
-                  {copiedText === item.prompt ? (
-                    <Check className='size-3.5 text-green-600' />
-                  ) : (
-                    <Copy className='size-3.5' />
-                  )}
-                </Button>
+                  iconClassName='size-3.5'
+                  tooltip={t('Copy to clipboard')}
+                />
               </div>
               <p className='bg-muted/40 min-h-0 flex-1 overflow-y-auto border-t p-3 text-sm leading-relaxed break-words whitespace-pre-wrap'>
                 {item.prompt || '-'}

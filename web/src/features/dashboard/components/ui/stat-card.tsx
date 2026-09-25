@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { useId, type ReactNode } from 'react'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -198,15 +199,16 @@ function StatCardDetails(props: { details: StatCardDetail[] }) {
           <div className='text-muted-foreground truncate text-[11px] leading-none font-medium'>
             {detail.label}
           </div>
-          <div
-            className={cn(
-              'mt-1.5 truncate text-xs font-semibold tabular-nums',
-              DETAIL_TONE_CLASSES[detail.tone ?? 'default']
-            )}
-            title={detail.value}
-          >
-            {detail.value}
-          </div>
+          <TextTooltip content={detail.value} onlyWhenOverflow>
+            <div
+              className={cn(
+                'mt-1.5 truncate text-xs font-semibold tabular-nums',
+                DETAIL_TONE_CLASSES[detail.tone ?? 'default']
+              )}
+            >
+              {detail.value}
+            </div>
+          </TextTooltip>
         </div>
       ))}
     </div>

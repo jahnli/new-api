@@ -40,7 +40,6 @@ import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -303,32 +302,30 @@ export function UserBindingDialog(props: Props) {
                   {user.username} (ID: {user.id})
                 </p>
               )}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-7 gap-1.5 px-2 text-xs'
-                        onClick={() => setShowBoundOnly((v) => !v)}
-                      />
-                    }
-                  >
-                    {showBoundOnly ? (
-                      <Eye className='h-3.5 w-3.5' />
-                    ) : (
-                      <EyeOff className='h-3.5 w-3.5' />
-                    )}
-                    {showBoundOnly ? t('Show All') : t('Bound Only')}
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {showBoundOnly
-                      ? t('Show all providers including unbound')
-                      : t('Show only bound providers')}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-7 gap-1.5 px-2 text-xs'
+                      onClick={() => setShowBoundOnly((v) => !v)}
+                    />
+                  }
+                >
+                  {showBoundOnly ? (
+                    <Eye className='h-3.5 w-3.5' />
+                  ) : (
+                    <EyeOff className='h-3.5 w-3.5' />
+                  )}
+                  {showBoundOnly ? t('Show All') : t('Bound Only')}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {showBoundOnly
+                    ? t('Show all providers including unbound')
+                    : t('Show only bound providers')}
+                </TooltipContent>
+              </Tooltip>
             </div>
 
             <Separator />

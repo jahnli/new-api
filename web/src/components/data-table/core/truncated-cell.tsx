@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useOverflow } from '@/hooks/use-overflow'
 import { cn } from '@/lib/utils'
 
 type TruncatedCellProps = {
@@ -47,10 +48,12 @@ export function TruncatedCell({
   tabIndex,
 }: TruncatedCellProps) {
   const content = tooltipContent ?? getTextContent(children)
+  const overflow = useOverflow()
 
   if (!content) {
     return (
       <div
+        ref={overflow.ref}
         tabIndex={tabIndex}
         className={cn(
           'block max-w-full min-w-0 truncate',
@@ -64,11 +67,14 @@ export function TruncatedCell({
   }
 
   return (
-    <Tooltip>
+    <Tooltip disabled={tooltipContent == null && !overflow.isOverflowing}>
       <TooltipTrigger
         render={
           <div
-            tabIndex={tabIndex}
+            tabIndex={
+              tabIndex ??
+              (overflow.isOverflowing || tooltipContent != null ? 0 : undefined)
+            }
             className={cn(
               'block max-w-full min-w-0 truncate',
               cellClassName,
@@ -77,7 +83,9 @@ export function TruncatedCell({
           />
         }
       >
-        <div className={cn('truncate', contentClassName)}>{children}</div>
+        <div ref={overflow.ref} className={cn('truncate', contentClassName)}>
+          {children}
+        </div>
       </TooltipTrigger>
       <TooltipContent
         side={side}

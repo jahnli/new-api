@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -301,44 +302,45 @@ function MultiSelectColumn(props: MultiSelectColumnProps) {
         const isSelectable = !isUnavailable
 
         return (
-          <div
-            key={node.value}
-            role='option'
-            aria-selected={isSelected}
-            aria-disabled={!isSelectable}
-            title={node.error}
-            className={cn(
-              'mx-1 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-              isUnavailable
-                ? 'text-muted-foreground cursor-not-allowed opacity-50'
-                : 'hover:bg-accent',
-              isActive && !isUnavailable && 'bg-accent'
-            )}
-            onMouseEnter={() => {
-              if (!isUnavailable) props.onHover(node, props.depth)
-            }}
-            onClick={() => {
-              if (isSelectable) props.onToggle(node)
-            }}
-          >
+          <TextTooltip key={node.value} content={node.error}>
             <div
+              role='option'
+              aria-selected={isSelected}
+              aria-disabled={!isSelectable}
+              tabIndex={node.error ? 0 : undefined}
               className={cn(
-                'border-primary flex size-4 shrink-0 items-center justify-center rounded-sm border',
-                isSelected && 'bg-primary text-primary-foreground',
-                !isSelectable && 'opacity-50'
+                'mx-1 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+                isUnavailable
+                  ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                  : 'hover:bg-accent',
+                isActive && !isUnavailable && 'bg-accent'
               )}
-              aria-hidden
+              onMouseEnter={() => {
+                if (!isUnavailable) props.onHover(node, props.depth)
+              }}
+              onClick={() => {
+                if (isSelectable) props.onToggle(node)
+              }}
             >
-              {isSelected && <Check className='size-3' />}
+              <div
+                className={cn(
+                  'border-primary flex size-4 shrink-0 items-center justify-center rounded-sm border',
+                  isSelected && 'bg-primary text-primary-foreground',
+                  !isSelectable && 'opacity-50'
+                )}
+                aria-hidden
+              >
+                {isSelected && <Check className='size-3' />}
+              </div>
+              <span className='min-w-0 flex-1 truncate'>{node.label}</span>
+              {node.error && (
+                <AlertCircle className='text-destructive size-3.5 shrink-0' />
+              )}
+              {hasChildren && (
+                <ChevronRight className='text-muted-foreground size-3.5 shrink-0' />
+              )}
             </div>
-            <span className='min-w-0 flex-1 truncate'>{node.label}</span>
-            {node.error && (
-              <AlertCircle className='text-destructive size-3.5 shrink-0' />
-            )}
-            {hasChildren && (
-              <ChevronRight className='text-muted-foreground size-3.5 shrink-0' />
-            )}
-          </div>
+          </TextTooltip>
         )
       })}
       {props.nodes.length === 0 && (

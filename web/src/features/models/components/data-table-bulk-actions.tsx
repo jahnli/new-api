@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -120,103 +121,101 @@ export function DataTableBulkActions<TData>({
             </TooltipContent>
           </Tooltip>
         )}
-        <Button
-          variant='outline'
-          size='icon'
-          className='size-8'
-          disabled={hasMissingMetadata}
-          title={t(
+        <TextTooltip
+          content={t(
             hasMissingMetadata
               ? 'Add metadata to all selected models first.'
               : 'Change vendor'
           )}
-          aria-label={t('Change vendor')}
-          onClick={() =>
-            setVendorOperation({ action: 'assign', model_ids: selectedIds })
-          }
         >
-          <Building2 />
-        </Button>
-        <Button
-          variant='outline'
-          size='icon'
-          className='size-8'
-          disabled={hasMissingMetadata}
-          title={t(
+          <span className='inline-flex' tabIndex={hasMissingMetadata ? 0 : -1}>
+            <Button
+              variant='outline'
+              size='icon'
+              className='size-8'
+              disabled={hasMissingMetadata}
+              aria-label={t('Change vendor')}
+              onClick={() =>
+                setVendorOperation({ action: 'assign', model_ids: selectedIds })
+              }
+            >
+              <Building2 />
+            </Button>
+          </span>
+        </TextTooltip>
+        <TextTooltip
+          content={t(
             hasMissingMetadata
               ? 'Add metadata to all selected models first.'
               : 'Clear vendor'
           )}
-          aria-label={t('Clear vendor')}
-          onClick={() =>
-            setVendorOperation({
-              action: 'assign',
-              model_ids: selectedIds,
-              target_vendor_id: 0,
-            })
-          }
         >
-          <Unlink />
-        </Button>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant='outline'
-                size='icon'
-                disabled={hasMissingMetadata}
-                onClick={handleEnableAll}
-                className='size-8'
-                aria-label={t('Show selected models in model square')}
-                title={t('Show selected models in model square')}
-              />
-            }
-          >
-            <Eye />
-            <span className='sr-only'>
-              {t('Show selected models in model square')}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>
-              {t(
-                hasMissingMetadata
-                  ? 'Add metadata to all selected models first.'
-                  : 'Show selected models in model square'
-              )}
-            </p>
-          </TooltipContent>
-        </Tooltip>
+          <span className='inline-flex' tabIndex={hasMissingMetadata ? 0 : -1}>
+            <Button
+              variant='outline'
+              size='icon'
+              className='size-8'
+              disabled={hasMissingMetadata}
+              aria-label={t('Clear vendor')}
+              onClick={() =>
+                setVendorOperation({
+                  action: 'assign',
+                  model_ids: selectedIds,
+                  target_vendor_id: 0,
+                })
+              }
+            >
+              <Unlink />
+            </Button>
+          </span>
+        </TextTooltip>
+        <TextTooltip
+          content={t(
+            hasMissingMetadata
+              ? 'Add metadata to all selected models first.'
+              : 'Show selected models in model square'
+          )}
+        >
+          <span className='inline-flex' tabIndex={hasMissingMetadata ? 0 : -1}>
+            <Button
+              variant='outline'
+              size='icon'
+              disabled={hasMissingMetadata}
+              onClick={handleEnableAll}
+              className='size-8'
+              aria-label={t('Show selected models in model square')}
+            >
+              <Eye />
+              <span className='sr-only'>
+                {t('Show selected models in model square')}
+              </span>
+            </Button>
+          </span>
+        </TextTooltip>
 
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant='outline'
-                size='icon'
-                disabled={hasMissingMetadata}
-                onClick={handleDisableAll}
-                className='size-8'
-                aria-label={t('Hide selected models from model square')}
-                title={t('Hide selected models from model square')}
-              />
-            }
-          >
-            <EyeOff />
-            <span className='sr-only'>
-              {t('Hide selected models from model square')}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>
-              {t(
-                hasMissingMetadata
-                  ? 'Add metadata to all selected models first.'
-                  : 'Hide selected models from model square'
-              )}
-            </p>
-          </TooltipContent>
-        </Tooltip>
+        <TextTooltip
+          content={t(
+            hasMissingMetadata
+              ? 'Add metadata to all selected models first.'
+              : 'Hide selected models from model square'
+          )}
+        >
+          <span className='inline-flex' tabIndex={hasMissingMetadata ? 0 : -1}>
+            <Button
+              variant='outline'
+              size='icon'
+              disabled={hasMissingMetadata}
+              onClick={handleDisableAll}
+              className='size-8'
+              aria-label={t('Hide selected models from model square')}
+            >
+              <EyeOff />
+              <span className='sr-only'>
+                {t('Hide selected models from model square')}
+              </span>
+            </Button>
+          </span>
+        </TextTooltip>
 
         <Tooltip>
           <TooltipTrigger
@@ -227,7 +226,6 @@ export function DataTableBulkActions<TData>({
                 onClick={handleCopyNames}
                 className='size-8'
                 aria-label={t('Copy model names')}
-                title={t('Copy model names')}
               />
             }
           >
@@ -239,33 +237,27 @@ export function DataTableBulkActions<TData>({
           </TooltipContent>
         </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant='destructive'
-                size='icon'
-                disabled={hasMissingMetadata}
-                onClick={() => setShowDeleteConfirm(true)}
-                className='size-8'
-                aria-label={t('Delete selected models')}
-                title={t('Delete selected models')}
-              />
-            }
-          >
-            <Trash2 />
-            <span className='sr-only'>{t('Delete selected models')}</span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>
-              {t(
-                hasMissingMetadata
-                  ? 'Add metadata to all selected models first.'
-                  : 'Delete selected models'
-              )}
-            </p>
-          </TooltipContent>
-        </Tooltip>
+        <TextTooltip
+          content={t(
+            hasMissingMetadata
+              ? 'Add metadata to all selected models first.'
+              : 'Delete selected models'
+          )}
+        >
+          <span className='inline-flex' tabIndex={hasMissingMetadata ? 0 : -1}>
+            <Button
+              variant='destructive'
+              size='icon'
+              disabled={hasMissingMetadata}
+              onClick={() => setShowDeleteConfirm(true)}
+              className='size-8'
+              aria-label={t('Delete selected models')}
+            >
+              <Trash2 />
+              <span className='sr-only'>{t('Delete selected models')}</span>
+            </Button>
+          </span>
+        </TextTooltip>
       </BulkActionsToolbar>
 
       {showDeleteConfirm && (

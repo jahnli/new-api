@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
@@ -161,9 +162,9 @@ export function SyncSourceHeader(props: { source: string }) {
             : context.onUnselectPrices(state.selectedModels)
         }
       />
-      <span className='min-w-0 flex-1 truncate' title={name}>
-        {name}
-      </span>
+      <TextTooltip content={name} onlyWhenOverflow>
+        <span className='min-w-0 flex-1 truncate'>{name}</span>
+      </TextTooltip>
       <span className='text-muted-foreground text-xs tabular-nums'>
         {selected}/{count}
       </span>

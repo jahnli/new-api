@@ -19,7 +19,6 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 import { MESSAGE_ACTION_LABELS } from '../../constants'
@@ -143,23 +142,21 @@ export function MessageActions({
 
   return (
     <>
-      <TooltipProvider delay={100}>
-        <div
-          className={`hidden items-center gap-0.5 transition-opacity md:flex ${visibilityClass} ${className}`}
-        >
-          {actions.map((action) => (
-            <MessageActionButton
-              className={action.className}
-              disabled={action.disabled}
-              icon={action.icon}
-              key={action.label}
-              label={t(action.label)}
-              onClick={action.onClick}
-              variant={action.variant}
-            />
-          ))}
-        </div>
-      </TooltipProvider>
+      <div
+        className={`hidden items-center gap-0.5 transition-opacity md:flex ${visibilityClass} ${className}`}
+      >
+        {actions.map((action) => (
+          <MessageActionButton
+            className={action.className}
+            disabled={action.disabled}
+            icon={action.icon}
+            key={action.label}
+            label={t(action.label)}
+            onClick={action.onClick}
+            variant={action.variant}
+          />
+        ))}
+      </div>
 
       <div className={`md:hidden ${className}`}>
         <DropdownMenu modal={false}>

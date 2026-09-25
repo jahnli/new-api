@@ -37,7 +37,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 /* eslint-disable react-refresh/only-export-components */
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
+import { TooltipTriggerContext } from '@/context/tooltip-trigger-context'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { stringToColor } from '@/lib/colors'
 import { cn } from '@/lib/utils'
@@ -161,8 +164,11 @@ export function StatusBadge({
   type: typeProp,
   className,
   onClick,
+  onKeyDown,
+  title,
   ...props
 }: StatusBadgeProps) {
+  const { t } = useTranslation()
   const { copyToClipboard } = useCopyToClipboard()
   const contextType = React.useContext(StatusBadgeTypeContext)
   const type = typeProp ?? contextType
@@ -181,24 +187,27 @@ export function StatusBadge({
 
   const isBadge = type === 'badge'
 
-  const content =
-    children ??
-    (label ? (
-      <span
-        className={cn(
-          'min-w-0 truncate leading-normal',
-          isBadge && opticalCenter && 'pb-[0.05em]'
-        )}
-      >
-        {label}
-      </span>
-    ) : null)
+  const hasExternalTooltip = React.useContext(TooltipTriggerContext)
+  const labelElement = (
+    <span
+      className={cn(
+        'min-w-0 truncate leading-normal',
+        isBadge && opticalCenter && 'pb-[0.05em]'
+      )}
+    >
+      {label}
+    </span>
+  )
+  let content = children ?? (label ? labelElement : null)
+  if (!children && label && !copyable && !title && !hasExternalTooltip) {
+    content = (
+      <TextTooltip content={label} onlyWhenOverflow>
+        {labelElement}
+      </TextTooltip>
+    )
+  }
 
-  const title = copyable
-    ? `Click to copy: ${copyText || label || ''}`
-    : label || undefined
-
-  return (
+  const badge = (
     <span
       data-slot='status-badge'
       className={cn(
@@ -216,7 +225,20 @@ export function StatusBadge({
         className
       )}
       onClick={handleClick}
-      title={title}
+      tabIndex={copyable ? 0 : undefined}
+      role={copyable ? 'button' : undefined}
+      onKeyDown={(event) => {
+        onKeyDown?.(event)
+        if (
+          !event.defaultPrevented &&
+          copyable &&
+          (event.key === 'Enter' || event.key === ' ')
+        ) {
+          event.preventDefault()
+          event.stopPropagation()
+          event.currentTarget.click()
+        }
+      }}
       {...props}
     >
       {showDot && (
@@ -231,6 +253,18 @@ export function StatusBadge({
       {Icon && <Icon className='size-3.5 shrink-0' />}
       {content}
     </span>
+  )
+
+  // A surrounding TooltipTrigger already owns this badge's description.
+  if (hasExternalTooltip) return badge
+  if (!copyable && !title) return badge
+
+  return (
+    <TextTooltip
+      content={title ?? `${t('Click to copy')}: ${copyText || label || ''}`}
+    >
+      {badge}
+    </TextTooltip>
   )
 }
 

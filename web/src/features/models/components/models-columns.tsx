@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { CopyButton } from '@/components/copy-button'
 import { BadgeListCell, TruncatedCell } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -111,28 +112,31 @@ export function useModelsColumns(
               </span>
               <div className='min-w-0 flex-1'>
                 <div className='flex min-w-0 items-center gap-1'>
-                  <Button
-                    variant='link'
-                    className='text-foreground h-auto min-w-0 shrink justify-start p-0 font-mono text-sm'
-                    title={model.model_name}
-                    onClick={() => {
-                      setCurrentRow(model)
-                      setOpen('update-model')
-                    }}
-                  >
-                    <span className='truncate'>{model.model_name}</span>
-                  </Button>
+                  <TextTooltip content={model.model_name}>
+                    <Button
+                      variant='link'
+                      className='text-foreground h-auto min-w-0 shrink justify-start p-0 font-mono text-sm'
+                      onClick={() => {
+                        setCurrentRow(model)
+                        setOpen('update-model')
+                      }}
+                    >
+                      <span className='truncate'>{model.model_name}</span>
+                    </Button>
+                  </TextTooltip>
                   <CopyButton
                     value={model.model_name}
                     className='size-6 shrink-0'
                   />
                 </div>
                 <div className='text-muted-foreground mt-1 flex min-w-0 items-center gap-2 text-xs'>
-                  <span className='truncate' title={vendor?.name}>
-                    {model.id > 0
-                      ? (vendor?.name ?? t('No vendor'))
-                      : t('Missing metadata')}
-                  </span>
+                  <TextTooltip content={vendor?.name} onlyWhenOverflow>
+                    <span className='truncate'>
+                      {model.id > 0
+                        ? (vendor?.name ?? t('No vendor'))
+                        : t('Missing metadata')}
+                    </span>
+                  </TextTooltip>
                   {model.name_rule !== 0 && (
                     <span className='shrink-0'>
                       {rules[model.name_rule as 0 | 1 | 2 | 3]?.label} ·{' '}
@@ -224,7 +228,6 @@ export function useModelsColumns(
                   render={
                     <span
                       tabIndex={0}
-                      title={t(state.description)}
                       aria-description={t(state.description)}
                       className='block whitespace-normal sm:truncate'
                     />

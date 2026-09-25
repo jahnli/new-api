@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { MJ_TASK_TYPES } from '../../constants'
@@ -188,16 +189,18 @@ export function useDrawingLogsColumns(
 
           return (
             <>
-              <button
-                type='button'
-                className='group text-left text-xs'
-                onClick={() => setDialogOpen(true)}
-                title={t('Click to view image')}
-              >
-                <span className='text-foreground truncate leading-snug group-hover:underline'>
-                  {t('View')}
-                </span>
-              </button>
+              <TextTooltip content={t('Click to view image')}>
+                <button
+                  type='button'
+                  className='group text-left text-xs'
+                  onClick={() => setDialogOpen(true)}
+                  aria-label={t('Click to view image')}
+                >
+                  <span className='text-foreground truncate leading-snug group-hover:underline'>
+                    {t('View')}
+                  </span>
+                </button>
+              </TextTooltip>
               <ImageDialog
                 imageUrl={imageUrl}
                 taskId={log.mj_id}
@@ -222,16 +225,18 @@ export function useDrawingLogsColumns(
 
           return (
             <>
-              <button
-                type='button'
-                className='group flex max-w-[220px] items-center text-left text-xs'
-                onClick={() => setDialogOpen(true)}
-                title={t('Click to view full prompt')}
-              >
-                <span className='text-muted-foreground truncate leading-snug group-hover:underline'>
-                  {prompt}
-                </span>
-              </button>
+              <TextTooltip content={t('Click to view full prompt')}>
+                <button
+                  type='button'
+                  className='group flex max-w-[220px] items-center text-left text-xs'
+                  onClick={() => setDialogOpen(true)}
+                  aria-label={t('Click to view full prompt')}
+                >
+                  <span className='text-muted-foreground truncate leading-snug group-hover:underline'>
+                    {prompt}
+                  </span>
+                </button>
+              </TextTooltip>
               <PromptDialog
                 prompt={prompt}
                 promptEn={log.prompt_en}

@@ -73,7 +73,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -1807,25 +1806,25 @@ function TooltipIconButton({
   onClick: () => void
 }) {
   return (
-    <TooltipProvider delay={100}>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              disabled={disabled}
-              onClick={onClick}
-            />
-          }
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span className='inline-flex' tabIndex={disabled ? 0 : undefined} />
+        }
+      >
+        <Button
+          type='button'
+          variant='ghost'
+          size='icon'
+          disabled={disabled}
+          onClick={onClick}
         >
           <Icon data-icon='inline-start' aria-hidden='true' />
           <span className='sr-only'>{label}</span>
-        </TooltipTrigger>
-        <TooltipContent side='top'>{label}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side='top'>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 

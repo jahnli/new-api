@@ -23,6 +23,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DataTableRowActionMenu } from '@/components/data-table/core/row-action-menu'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenuItem,
@@ -64,16 +65,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
 
   return (
     <div className='-ml-1.5 flex min-w-0 items-center gap-1 [&>button]:min-w-0 [&>button]:shrink'>
-      <Button
-        variant='ghost'
-        size='sm'
-        onClick={handleEdit}
-        title={model.id > 0 ? t('Edit') : t('Add metadata')}
-      >
-        <span className='truncate'>
-          {model.id > 0 ? t('Edit') : t('Add metadata')}
-        </span>
-      </Button>
+      <TextTooltip content={model.id > 0 ? t('Edit') : t('Add metadata')}>
+        <Button variant='ghost' size='sm' onClick={handleEdit}>
+          <span className='truncate'>
+            {model.id > 0 ? t('Edit') : t('Add metadata')}
+          </span>
+        </Button>
+      </TextTooltip>
 
       {canPrice && (
         <Button

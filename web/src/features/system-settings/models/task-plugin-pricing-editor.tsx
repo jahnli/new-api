@@ -25,6 +25,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -101,9 +102,9 @@ export function TaskPluginPricingEditor(props: TaskPluginPricingEditorProps) {
               }}
               size={16}
             />
-            <span className='truncate' title={variant.plugin_name}>
-              {variant.plugin_name}
-            </span>
+            <TextTooltip content={variant.plugin_name} onlyWhenOverflow>
+              <span className='truncate'>{variant.plugin_name}</span>
+            </TextTooltip>
           </TabsTrigger>
         ))}
       </TabsList>

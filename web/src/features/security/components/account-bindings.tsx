@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { createOAuthAuthorization } from '@/features/auth/api'
 import {
@@ -283,12 +284,11 @@ export function AccountBindings({ profile, onUpdate }: AccountBindingsProps) {
                 </div>
                 <div className='min-w-0'>
                   <div className='flex items-center gap-1.5'>
-                    <p
-                      className='truncate text-sm font-medium'
-                      title={binding.label}
-                    >
-                      {binding.label}
-                    </p>
+                    <TextTooltip content={binding.label} onlyWhenOverflow>
+                      <p className='truncate text-sm font-medium'>
+                        {binding.label}
+                      </p>
+                    </TextTooltip>
                     {binding.isBound && (
                       <StatusBadge
                         label={t('Bound')}
@@ -330,12 +330,11 @@ export function AccountBindings({ profile, onUpdate }: AccountBindingsProps) {
                 </div>
                 <div className='min-w-0'>
                   <div className='flex items-center gap-1.5'>
-                    <p
-                      className='truncate text-sm font-medium'
-                      title={provider.name}
-                    >
-                      {provider.name}
-                    </p>
+                    <TextTooltip content={provider.name} onlyWhenOverflow>
+                      <p className='truncate text-sm font-medium'>
+                        {provider.name}
+                      </p>
+                    </TextTooltip>
                     {isBound && (
                       <StatusBadge
                         label={t('Bound')}

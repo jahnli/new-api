@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ProviderBadge } from '@/components/provider-badge'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
 import type { PluginIconInput } from '@/features/task-plugins/lib/plugin-icon'
 import {
@@ -88,38 +89,39 @@ export function TaskPluginChannelBadge(props: { pluginKey?: string }) {
     plugin ?? (props.pluginKey ? { key: props.pluginKey } : undefined)
 
   return (
-    <div
-      className='flex max-w-full min-w-0 items-center gap-1.5'
-      title={
+    <TextTooltip
+      content={
         props.pluginKey
           ? `${t('Task Plugin')} · ${label} (${props.pluginKey})`
           : label
       }
     >
-      <ProviderBadge
-        iconNode={
-          <ChannelTypeLogo
-            type={CHANNEL_TYPE_TASK_PLUGIN}
-            plugin={iconInput}
-            size={18}
-          />
-        }
-        label={label}
-        colorText={false}
-        copyable={false}
-        showDot={false}
-        className='min-w-0 overflow-hidden'
-      />
-      {props.pluginKey && (
-        <StatusBadge
-          label={t('Task Plugin')}
-          variant='neutral'
-          size='sm'
+      <div className='flex max-w-full min-w-0 items-center gap-1.5'>
+        <ProviderBadge
+          iconNode={
+            <ChannelTypeLogo
+              type={CHANNEL_TYPE_TASK_PLUGIN}
+              plugin={iconInput}
+              size={18}
+            />
+          }
+          label={label}
+          colorText={false}
           copyable={false}
           showDot={false}
-          className='shrink-0 text-[10px]'
+          className='min-w-0 overflow-hidden'
         />
-      )}
-    </div>
+        {props.pluginKey && (
+          <StatusBadge
+            label={t('Task Plugin')}
+            variant='neutral'
+            size='sm'
+            copyable={false}
+            showDot={false}
+            className='shrink-0 text-[10px]'
+          />
+        )}
+      </div>
+    </TextTooltip>
   )
 }

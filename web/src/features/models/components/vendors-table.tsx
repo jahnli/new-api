@@ -29,6 +29,7 @@ import {
   useDataTable,
 } from '@/components/data-table'
 import { ErrorState } from '@/components/error-state'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -126,17 +127,18 @@ export function VendorsTable() {
           <span className='flex size-7 shrink-0 items-center justify-center'>
             {getLobeIcon(row.original.icon, 24)}
           </span>
-          <Button
-            variant='link'
-            className='text-foreground h-auto min-w-0 justify-start p-0 text-left'
-            title={row.original.name}
-            onClick={() => {
-              setCurrentVendor(row.original)
-              setOpen('update-vendor')
-            }}
-          >
-            <span className='max-w-72 truncate'>{row.original.name}</span>
-          </Button>
+          <TextTooltip content={row.original.name}>
+            <Button
+              variant='link'
+              className='text-foreground h-auto min-w-0 justify-start p-0 text-left'
+              onClick={() => {
+                setCurrentVendor(row.original)
+                setOpen('update-vendor')
+              }}
+            >
+              <span className='max-w-72 truncate'>{row.original.name}</span>
+            </Button>
+          </TextTooltip>
         </div>
       ),
     },
@@ -145,12 +147,11 @@ export function VendorsTable() {
       header: t('Description'),
       size: 350,
       cell: ({ row }) => (
-        <p
-          className='text-muted-foreground line-clamp-2 max-w-lg break-words whitespace-normal'
-          title={row.original.description}
-        >
-          {row.original.description || '—'}
-        </p>
+        <TextTooltip content={row.original.description} onlyWhenOverflow>
+          <p className='text-muted-foreground line-clamp-2 max-w-lg break-words whitespace-normal'>
+            {row.original.description || '—'}
+          </p>
+        </TextTooltip>
       ),
     },
     {

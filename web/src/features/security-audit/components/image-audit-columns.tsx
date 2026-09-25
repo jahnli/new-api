@@ -6,12 +6,12 @@ import { useTranslation } from 'react-i18next'
 
 import { LongText } from '@/components/long-text'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { getUserInfo } from '@/features/usage-logs/api'
@@ -242,15 +242,21 @@ export function useImageAuditColumns(
                   aria-label={t('Favorite')}
                 />
               )}
-              <button
-                type='button'
-                className='text-muted-foreground line-clamp-2 max-w-full min-w-0 cursor-pointer text-left !text-[13px] leading-snug !font-normal break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
-                onClick={() => onViewRequestContent(row.original)}
-                disabled={!row.original.prompt}
-                title={row.original.prompt ? t('Request Content') : undefined}
+              <TextTooltip
+                content={row.original.prompt ? t('Request Content') : undefined}
               >
-                {requestContent}
-              </button>
+                <button
+                  type='button'
+                  className='text-muted-foreground line-clamp-2 max-w-full min-w-0 cursor-pointer text-left !text-[13px] leading-snug !font-normal break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
+                  onClick={() => onViewRequestContent(row.original)}
+                  disabled={!row.original.prompt}
+                  aria-label={
+                    row.original.prompt ? t('Request Content') : undefined
+                  }
+                >
+                  {requestContent}
+                </button>
+              </TextTooltip>
             </div>
           )
         },
@@ -272,30 +278,26 @@ export function useImageAuditColumns(
             demoMode
           )
           return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <div className='flex max-w-[125px] flex-col gap-0.5' />
-                  }
-                >
-                  <StatusBadge
-                    label={channelDisplay.id}
-                    copyable={!demoMode}
-                    copyText={String(channelId)}
-                    size='sm'
-                    showDot={false}
-                    className='text-muted-foreground/70 max-w-full font-mono'
-                  />
-                  {channelDisplay.name ? (
-                    <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
-                      {channelDisplay.name}
-                    </span>
-                  ) : null}
-                </TooltipTrigger>
-                <TooltipContent>{channelDisplay.tooltip}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={<div className='flex max-w-[125px] flex-col gap-0.5' />}
+              >
+                <StatusBadge
+                  label={channelDisplay.id}
+                  copyable={!demoMode}
+                  copyText={String(channelId)}
+                  size='sm'
+                  showDot={false}
+                  className='text-muted-foreground/70 max-w-full font-mono'
+                />
+                {channelDisplay.name ? (
+                  <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
+                    {channelDisplay.name}
+                  </span>
+                ) : null}
+              </TooltipTrigger>
+              <TooltipContent>{channelDisplay.tooltip}</TooltipContent>
+            </Tooltip>
           )
         },
       },
@@ -338,12 +340,11 @@ export function useImageAuditColumns(
             return <span className='text-muted-foreground text-xs'>-</span>
           }
           return (
-            <span
-              className='text-muted-foreground block max-w-full truncate text-xs'
-              title={parts.join(' · ')}
-            >
-              {parts.join(' · ')}
-            </span>
+            <TextTooltip content={parts.join(' · ')} onlyWhenOverflow>
+              <span className='text-muted-foreground block max-w-full truncate text-xs'>
+                {parts.join(' · ')}
+              </span>
+            </TextTooltip>
           )
         },
       },

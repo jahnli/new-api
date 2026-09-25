@@ -58,6 +58,7 @@ import {
   sideDrawerHeaderClassName,
 } from '@/components/drawer-layout'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Combobox } from '@/components/ui/combobox'
@@ -858,9 +859,9 @@ function ChannelTestDialogContent({
 
           return (
             <div className='flex w-max items-center gap-2 whitespace-nowrap'>
-              <span className='font-medium whitespace-nowrap' title={model}>
-                {model}
-              </span>
+              <TextTooltip content={model}>
+                <span className='font-medium whitespace-nowrap'>{model}</span>
+              </TextTooltip>
               {isDefault && (
                 <StatusBadge
                   label={t('Default')}

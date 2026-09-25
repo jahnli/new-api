@@ -41,7 +41,6 @@ import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import dayjs from '@/lib/dayjs'
@@ -132,27 +131,25 @@ export const WebPreviewNavigationButton = ({
   children,
   ...props
 }: WebPreviewNavigationButtonProps) => (
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            className='hover:text-foreground h-8 w-8 p-0'
-            disabled={disabled}
-            onClick={onClick}
-            size='sm'
-            variant='ghost'
-            {...props}
-          />
-        }
-      >
-        {children}
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>{tooltip}</p>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger
+      render={
+        <Button
+          className='hover:text-foreground h-8 w-8 p-0'
+          disabled={disabled}
+          onClick={onClick}
+          size='sm'
+          variant='ghost'
+          {...props}
+        />
+      }
+    >
+      {children}
+    </TooltipTrigger>
+    <TooltipContent>
+      <p>{tooltip}</p>
+    </TooltipContent>
+  </Tooltip>
 )
 
 export type WebPreviewUrlProps = ComponentProps<typeof Input>

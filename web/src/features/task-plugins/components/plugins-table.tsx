@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTablePage, useDataTable } from '@/components/data-table'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -141,29 +142,28 @@ export function PluginsTable(props: PluginsTableProps) {
             i18n.language
           )
           return (
-            <div
-              className='flex min-w-0 items-center gap-2'
-              title={description || undefined}
-            >
-              <span className='shrink-0'>
-                <PluginIcon
-                  plugin={{
-                    ...row.original.meta,
-                    hasIcon: row.original.has_icon,
-                  }}
-                  size={18}
-                />
-              </span>
-              <div className='min-w-0'>
-                <div className='truncate text-sm font-medium'>
-                  {row.original.meta.name}
+            <TextTooltip content={description || undefined}>
+              <div className='flex min-w-0 items-center gap-2'>
+                <span className='shrink-0'>
+                  <PluginIcon
+                    plugin={{
+                      ...row.original.meta,
+                      hasIcon: row.original.has_icon,
+                    }}
+                    size={18}
+                  />
+                </span>
+                <div className='min-w-0'>
+                  <div className='truncate text-sm font-medium'>
+                    {row.original.meta.name}
+                  </div>
+                  <div className='text-muted-foreground truncate font-mono text-xs'>
+                    {row.original.meta.key}
+                  </div>
+                  <PluginWebsiteLink website={row.original.meta.website} />
                 </div>
-                <div className='text-muted-foreground truncate font-mono text-xs'>
-                  {row.original.meta.key}
-                </div>
-                <PluginWebsiteLink website={row.original.meta.website} />
               </div>
-            </div>
+            </TextTooltip>
           )
         },
       },
@@ -190,18 +190,20 @@ export function PluginsTable(props: PluginsTableProps) {
                 )
               : undefined
             return (
-              <div className='flex min-w-0 flex-col gap-0.5' title={staleHint}>
-                <Badge>
-                  {t('Custom (overrides factory {{version}})', {
-                    version: factoryVersion,
-                  })}
-                </Badge>
-                {staleHint ? (
-                  <span className='text-muted-foreground text-xs'>
-                    {staleHint}
-                  </span>
-                ) : null}
-              </div>
+              <TextTooltip content={staleHint}>
+                <div className='flex min-w-0 flex-col gap-0.5'>
+                  <Badge>
+                    {t('Custom (overrides factory {{version}})', {
+                      version: factoryVersion,
+                    })}
+                  </Badge>
+                  {staleHint ? (
+                    <span className='text-muted-foreground text-xs'>
+                      {staleHint}
+                    </span>
+                  ) : null}
+                </div>
+              </TextTooltip>
             )
           }
           return <Badge>{t('Third-party')}</Badge>
@@ -259,9 +261,9 @@ export function PluginsTable(props: PluginsTableProps) {
           }
           if (status === 'compile_failed') {
             return (
-              <Badge variant='destructive' title={row.original.runtime_error}>
-                {t('Compilation failed')}
-              </Badge>
+              <TextTooltip content={row.original.runtime_error}>
+                <Badge variant='destructive'>{t('Compilation failed')}</Badge>
+              </TextTooltip>
             )
           }
           if (status === 'disabled') {

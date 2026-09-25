@@ -20,6 +20,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
@@ -135,16 +136,14 @@ export function ConfigureModelsDialog(props: ConfigureModelsDialogProps) {
             >
               <TabsTrigger value='all'>{t('All')}</TabsTrigger>
               {plugins.map((item) => (
-                <TabsTrigger
-                  key={item.key}
-                  value={`plugin:${item.key}`}
-                  title={item.name}
-                >
-                  <span aria-hidden='true'>
-                    <PluginIcon plugin={item} size={16} />
-                  </span>
-                  <span className='max-w-40 truncate'>{item.name}</span>
-                </TabsTrigger>
+                <TextTooltip key={item.key} content={item.name}>
+                  <TabsTrigger value={`plugin:${item.key}`}>
+                    <span aria-hidden='true'>
+                      <PluginIcon plugin={item} size={16} />
+                    </span>
+                    <span className='max-w-40 truncate'>{item.name}</span>
+                  </TabsTrigger>
+                </TextTooltip>
               ))}
             </TabsList>
           </div>

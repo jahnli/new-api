@@ -10,6 +10,7 @@ import {
 } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -161,12 +162,11 @@ export function ChannelSelectorDialog({
         cell: ({ row }) => {
           const url = row.getValue('base_url') as string
           return (
-            <span
-              className='text-muted-foreground block max-w-xs truncate font-mono text-xs'
-              title={url}
-            >
-              {url}
-            </span>
+            <TextTooltip content={url} onlyWhenOverflow>
+              <span className='text-muted-foreground block max-w-xs truncate font-mono text-xs'>
+                {url}
+              </span>
+            </TextTooltip>
           )
         },
       },

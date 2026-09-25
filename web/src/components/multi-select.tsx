@@ -23,6 +23,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import {
   Combobox,
   ComboboxChip,
@@ -449,48 +450,49 @@ export function MultiSelect(props: MultiSelectProps) {
                       }}
                     >
                       {props.reorderable && (
-                        <button
-                          type='button'
-                          draggable
-                          aria-label={reorderLabel}
-                          title={reorderLabel}
-                          className='text-muted-foreground/70 hover:text-foreground -ml-1 shrink-0 cursor-grab active:cursor-grabbing'
-                          // Base UI cancels the native drag when its own
-                          // mousedown handler reaches the chips container.
-                          onMouseDown={(event) => event.stopPropagation()}
-                          onPointerDown={(event) => event.stopPropagation()}
-                          onDragStart={(event) => {
-                            event.dataTransfer.effectAllowed = 'move'
-                            event.dataTransfer.setData('text/plain', value)
-                            setDraggingValue(value)
-                          }}
-                          onDragEnd={() => {
-                            setDraggingValue(null)
-                            setDropTarget(null)
-                          }}
-                          onKeyDown={(event) => {
-                            if (
-                              event.key !== 'ArrowUp' &&
-                              event.key !== 'ArrowDown'
-                            ) {
-                              return
-                            }
-                            // Keep these keys away from the chip's own handler,
-                            // which would open the popup instead.
-                            event.preventDefault()
-                            event.stopPropagation()
-                            moveSelectedValue(
-                              value,
-                              event.key === 'ArrowUp' ? -1 : 1
-                            )
-                          }}
-                        >
-                          <HugeiconsIcon
-                            icon={DragDropVerticalIcon}
-                            strokeWidth={2}
-                            className='pointer-events-none size-3'
-                          />
-                        </button>
+                        <TextTooltip content={reorderLabel}>
+                          <button
+                            type='button'
+                            draggable
+                            aria-label={reorderLabel}
+                            className='text-muted-foreground/70 hover:text-foreground -ml-1 shrink-0 cursor-grab active:cursor-grabbing'
+                            // Base UI cancels the native drag when its own
+                            // mousedown handler reaches the chips container.
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onDragStart={(event) => {
+                              event.dataTransfer.effectAllowed = 'move'
+                              event.dataTransfer.setData('text/plain', value)
+                              setDraggingValue(value)
+                            }}
+                            onDragEnd={() => {
+                              setDraggingValue(null)
+                              setDropTarget(null)
+                            }}
+                            onKeyDown={(event) => {
+                              if (
+                                event.key !== 'ArrowUp' &&
+                                event.key !== 'ArrowDown'
+                              ) {
+                                return
+                              }
+                              // Keep these keys away from the chip's own handler,
+                              // which would open the popup instead.
+                              event.preventDefault()
+                              event.stopPropagation()
+                              moveSelectedValue(
+                                value,
+                                event.key === 'ArrowUp' ? -1 : 1
+                              )
+                            }}
+                          >
+                            <HugeiconsIcon
+                              icon={DragDropVerticalIcon}
+                              strokeWidth={2}
+                              className='pointer-events-none size-3'
+                            />
+                          </button>
+                        </TextTooltip>
                       )}
                       {props.showChipOrder && (
                         <span
@@ -509,65 +511,72 @@ export function MultiSelect(props: MultiSelectProps) {
                         </span>
                       )}
                       {props.copyChipOnClick ? (
-                        <button
-                          type='button'
-                          onClick={(event) =>
-                            handleCopyChip(event, value, label)
-                          }
-                          onPointerDown={(event) => event.stopPropagation()}
-                          title={t('Click to copy')}
-                          className='max-w-[16rem] cursor-pointer truncate rounded-sm hover:underline'
-                        >
-                          {label}
-                        </button>
+                        <TextTooltip content={t('Click to copy')}>
+                          <button
+                            type='button'
+                            onClick={(event) =>
+                              handleCopyChip(event, value, label)
+                            }
+                            onPointerDown={(event) => event.stopPropagation()}
+                            className='max-w-[16rem] cursor-pointer truncate rounded-sm hover:underline'
+                          >
+                            {label}
+                          </button>
+                        </TextTooltip>
                       ) : (
                         <span className='max-w-[16rem] truncate'>{label}</span>
                       )}
                       {hint && (
-                        <span
-                          title={hint}
-                          aria-hidden='true'
-                          className='text-muted-foreground inline-flex shrink-0'
-                        >
-                          <ArrowRightLeft className='size-3' />
-                        </span>
+                        <TextTooltip content={hint}>
+                          <span
+                            aria-label={hint}
+                            className='text-muted-foreground inline-flex shrink-0'
+                          >
+                            <ArrowRightLeft
+                              className='size-3'
+                              aria-hidden='true'
+                            />
+                          </span>
+                        </TextTooltip>
                       )}
                     </ComboboxChip>
                   )
                 })}
                 {hiddenCount > 0 && (
-                  <button
-                    type='button'
-                    onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      setExpanded(true)
-                    }}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    title={t('Show All')}
-                    className='bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex h-[calc(--spacing(5.25))] w-fit cursor-pointer items-center justify-center rounded-sm px-1.5 text-xs font-medium whitespace-nowrap transition-colors'
-                  >
-                    {props.compactHiddenCount
-                      ? `x${hiddenCount}`
-                      : t('+{{count}} more', { count: hiddenCount })}
-                  </button>
-                )}
-                {expanded &&
-                  typeof props.maxVisibleChips === 'number' &&
-                  values.length > props.maxVisibleChips && (
+                  <TextTooltip content={t('Show All')}>
                     <button
                       type='button'
                       onClick={(event) => {
                         event.preventDefault()
                         event.stopPropagation()
-                        setExpanded(false)
+                        setExpanded(true)
                       }}
                       onPointerDown={(event) => event.stopPropagation()}
-                      title={t('Collapse')}
                       className='bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex h-[calc(--spacing(5.25))] w-fit cursor-pointer items-center justify-center rounded-sm px-1.5 text-xs font-medium whitespace-nowrap transition-colors'
                     >
-                      {t('Collapse')}
+                      {props.compactHiddenCount
+                        ? `x${hiddenCount}`
+                        : t('+{{count}} more', { count: hiddenCount })}
                     </button>
+                  </TextTooltip>
+                )}
+                {expanded &&
+                  typeof props.maxVisibleChips === 'number' &&
+                  values.length > props.maxVisibleChips && (
+                    <TextTooltip content={t('Collapse')}>
+                      <button
+                        type='button'
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setExpanded(false)
+                        }}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        className='bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground flex h-[calc(--spacing(5.25))] w-fit cursor-pointer items-center justify-center rounded-sm px-1.5 text-xs font-medium whitespace-nowrap transition-colors'
+                      >
+                        {t('Collapse')}
+                      </button>
+                    </TextTooltip>
                   )}
               </>
             )

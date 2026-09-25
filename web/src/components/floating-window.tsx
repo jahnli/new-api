@@ -30,6 +30,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -356,7 +357,6 @@ export function FloatingWindow(props: FloatingWindowProps) {
   }
 
   const dragHandleProps = {
-    title: t('Drag to move'),
     onPointerDown: handleDragStart,
     onPointerMove: handleDragMove,
     onPointerUp: handleDragEnd,
@@ -370,41 +370,43 @@ export function FloatingWindow(props: FloatingWindowProps) {
 
   if (state.collapsed) {
     return (
-      <div
-        {...dragHandleProps}
-        style={style}
-        className={cn(
-          'bg-background border-border z-50 flex cursor-move touch-none items-center gap-2 rounded-full border py-1 pr-1 pl-3 shadow-lg select-none',
-          props.className
-        )}
-      >
-        <GripHorizontal
-          className='text-muted-foreground size-3.5 shrink-0'
-          aria-hidden='true'
-        />
-        <span className='text-sm font-semibold'>{props.title}</span>
-        {props.badge}
-        <Button
-          type='button'
-          variant='ghost'
-          size='icon-xs'
-          aria-label={t('Expand panel')}
-          onClick={() =>
-            setState((previous) => ({ ...previous, collapsed: false }))
-          }
+      <TextTooltip content={t('Drag to move')}>
+        <div
+          {...dragHandleProps}
+          style={style}
+          className={cn(
+            'bg-background border-border z-50 flex cursor-move touch-none items-center gap-2 rounded-full border py-1 pr-1 pl-3 shadow-lg select-none',
+            props.className
+          )}
         >
-          <ChevronsUpDown aria-hidden='true' />
-        </Button>
-        <Button
-          type='button'
-          variant='ghost'
-          size='icon-xs'
-          aria-label={t('Close panel')}
-          onClick={props.onClose}
-        >
-          <X aria-hidden='true' />
-        </Button>
-      </div>
+          <GripHorizontal
+            className='text-muted-foreground size-3.5 shrink-0'
+            aria-hidden='true'
+          />
+          <span className='text-sm font-semibold'>{props.title}</span>
+          {props.badge}
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon-xs'
+            aria-label={t('Expand panel')}
+            onClick={() =>
+              setState((previous) => ({ ...previous, collapsed: false }))
+            }
+          >
+            <ChevronsUpDown aria-hidden='true' />
+          </Button>
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon-xs'
+            aria-label={t('Close panel')}
+            onClick={props.onClose}
+          >
+            <X aria-hidden='true' />
+          </Button>
+        </div>
+      </TextTooltip>
     )
   }
 
@@ -424,41 +426,43 @@ export function FloatingWindow(props: FloatingWindowProps) {
         props.className
       )}
     >
-      <header
-        {...dragHandleProps}
-        className='border-border/70 flex cursor-move touch-none items-center gap-2 border-b px-4 py-3 select-none'
-      >
-        <GripHorizontal
-          className='text-muted-foreground size-3.5 shrink-0'
-          aria-hidden='true'
-        />
-        <h3 id={`${id}-title`} className='text-sm font-semibold'>
-          {props.title}
-        </h3>
-        {props.badge}
-        <div className='ml-auto flex items-center gap-1'>
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon-xs'
-            aria-label={t('Collapse panel')}
-            onClick={() =>
-              setState((previous) => ({ ...previous, collapsed: true }))
-            }
-          >
-            <ChevronsUpDown aria-hidden='true' />
-          </Button>
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon-xs'
-            aria-label={t('Close panel')}
-            onClick={props.onClose}
-          >
-            <X aria-hidden='true' />
-          </Button>
-        </div>
-      </header>
+      <TextTooltip content={t('Drag to move')}>
+        <header
+          {...dragHandleProps}
+          className='border-border/70 flex cursor-move touch-none items-center gap-2 border-b px-4 py-3 select-none'
+        >
+          <GripHorizontal
+            className='text-muted-foreground size-3.5 shrink-0'
+            aria-hidden='true'
+          />
+          <h3 id={`${id}-title`} className='text-sm font-semibold'>
+            {props.title}
+          </h3>
+          {props.badge}
+          <div className='ml-auto flex items-center gap-1'>
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon-xs'
+              aria-label={t('Collapse panel')}
+              onClick={() =>
+                setState((previous) => ({ ...previous, collapsed: true }))
+              }
+            >
+              <ChevronsUpDown aria-hidden='true' />
+            </Button>
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon-xs'
+              aria-label={t('Close panel')}
+              onClick={props.onClose}
+            >
+              <X aria-hidden='true' />
+            </Button>
+          </div>
+        </header>
+      </TextTooltip>
       <div className='min-h-0 flex-1 overflow-y-auto px-4 py-3'>
         {props.children}
       </div>
@@ -471,31 +475,31 @@ export function FloatingWindow(props: FloatingWindowProps) {
         {t('Drag to resize')}
       </div>
       {RESIZE_DIRECTIONS.map((direction) => (
-        <div
-          key={direction}
-          data-slot='floating-window-resize'
-          data-direction={direction}
-          title={t('Drag to resize')}
-          aria-hidden='true'
-          className={cn(
-            'absolute z-10 touch-none',
-            RESIZE_HANDLE_CLASS[direction],
-            direction === 'se' &&
-              'text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center justify-center rounded-tl-md'
-          )}
-          onPointerDown={(event) => handleResizeStart(event, direction)}
-          onPointerMove={handleResizeMove}
-          onPointerUp={handleResizeEnd}
-          onPointerCancel={handleResizeEnd}
-        >
-          {direction === 'se' && (
-            <HugeiconsIcon
-              icon={ArrowExpand02Icon}
-              className='pointer-events-none size-4'
-              aria-hidden='true'
-            />
-          )}
-        </div>
+        <TextTooltip key={direction} content={t('Drag to resize')}>
+          <div
+            data-slot='floating-window-resize'
+            data-direction={direction}
+            aria-hidden='true'
+            className={cn(
+              'absolute z-10 touch-none',
+              RESIZE_HANDLE_CLASS[direction],
+              direction === 'se' &&
+                'text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center justify-center rounded-tl-md'
+            )}
+            onPointerDown={(event) => handleResizeStart(event, direction)}
+            onPointerMove={handleResizeMove}
+            onPointerUp={handleResizeEnd}
+            onPointerCancel={handleResizeEnd}
+          >
+            {direction === 'se' && (
+              <HugeiconsIcon
+                icon={ArrowExpand02Icon}
+                className='pointer-events-none size-4'
+                aria-hidden='true'
+              />
+            )}
+          </div>
+        </TextTooltip>
       ))}
     </aside>
   )

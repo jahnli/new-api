@@ -20,6 +20,7 @@ import { ArrowRightLeft, ChevronDown, Info } from 'lucide-react'
 import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -131,18 +132,21 @@ function ModelCategory(props: ModelCategoryProps) {
                 {model}
               </Label>
               {props.aliases?.[model] && (
-                <Badge
-                  variant='outline'
-                  aria-label={t('Published as {{model}}', {
+                <TextTooltip
+                  content={t('Published as {{model}}', {
                     model: props.aliases[model],
                   })}
-                  title={t('Published as {{model}}', {
-                    model: props.aliases[model],
-                  })}
-                  className='max-w-40 shrink-0 truncate font-normal'
                 >
-                  {props.aliases[model]}
-                </Badge>
+                  <Badge
+                    variant='outline'
+                    aria-label={t('Published as {{model}}', {
+                      model: props.aliases[model],
+                    })}
+                    className='max-w-40 shrink-0 truncate font-normal'
+                  >
+                    {props.aliases[model]}
+                  </Badge>
+                </TextTooltip>
               )}
               {props.redirectOnly.has(normalizeModelName(model)) && (
                 <Tooltip>
@@ -157,17 +161,18 @@ function ModelCategory(props: ModelCategoryProps) {
                 </Tooltip>
               )}
               {props.onRedirectModel && (
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon-xs'
-                  className='text-muted-foreground hover:text-foreground -my-1 ml-auto shrink-0'
-                  aria-label={t('Redirect {{model}}', { model })}
-                  title={t('Set up redirect')}
-                  onClick={() => props.onRedirectModel?.(model)}
-                >
-                  <ArrowRightLeft aria-hidden='true' />
-                </Button>
+                <TextTooltip content={t('Set up redirect')}>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon-xs'
+                    className='text-muted-foreground hover:text-foreground -my-1 ml-auto shrink-0'
+                    aria-label={t('Redirect {{model}}', { model })}
+                    onClick={() => props.onRedirectModel?.(model)}
+                  >
+                    <ArrowRightLeft aria-hidden='true' />
+                  </Button>
+                </TextTooltip>
               )}
             </div>
           ))}

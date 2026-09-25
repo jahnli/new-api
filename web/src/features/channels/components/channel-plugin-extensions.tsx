@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { PluginIcon } from '@/features/task-plugins/components/plugin-icon'
 import { resolveLocalizedText } from '@/lib/localized-text'
@@ -58,29 +59,34 @@ export function ChannelPluginExtensions(props: {
           i18n.language
         )
         return (
-          <Button
+          <TextTooltip
             key={plugin.key}
-            type='button'
-            variant='ghost'
-            size='sm'
-            className='max-w-full min-w-0 gap-1.5 px-1.5 font-normal'
-            aria-haspopup='dialog'
-            aria-label={`${plugin.name} ${selectionLabel}`}
-            title={description ? `${plugin.name}: ${description}` : plugin.name}
-            onClick={() => props.onConfigure(plugin.key)}
+            content={
+              description ? `${plugin.name}: ${description}` : plugin.name
+            }
           >
-            <span aria-hidden='true' className='shrink-0'>
-              <PluginIcon plugin={plugin} size={16} />
-            </span>
-            <span className='max-w-36 truncate'>{plugin.name}</span>
-            <span className='text-muted-foreground shrink-0 text-xs tabular-nums'>
-              {selectionLabel}
-            </span>
-            <ChevronRight
-              className='text-muted-foreground size-3 shrink-0'
-              aria-hidden='true'
-            />
-          </Button>
+            <Button
+              type='button'
+              variant='ghost'
+              size='sm'
+              className='max-w-full min-w-0 gap-1.5 px-1.5 font-normal'
+              aria-haspopup='dialog'
+              aria-label={`${plugin.name} ${selectionLabel}`}
+              onClick={() => props.onConfigure(plugin.key)}
+            >
+              <span aria-hidden='true' className='shrink-0'>
+                <PluginIcon plugin={plugin} size={16} />
+              </span>
+              <span className='max-w-36 truncate'>{plugin.name}</span>
+              <span className='text-muted-foreground shrink-0 text-xs tabular-nums'>
+                {selectionLabel}
+              </span>
+              <ChevronRight
+                className='text-muted-foreground size-3 shrink-0'
+                aria-hidden='true'
+              />
+            </Button>
+          </TextTooltip>
         )
       })}
     </div>

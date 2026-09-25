@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   getLatencyColorClass,
@@ -75,28 +76,38 @@ export function ApiInfoItemComponent(props: ApiInfoItemProps) {
         </div>
 
         <div className='flex items-center gap-0.5'>
-          <Button
-            variant='ghost'
-            size='sm'
-            onClick={() => props.onTest(item.url)}
-            disabled={status.testing}
-            className='size-7 p-0'
-            title={t('Test Latency')}
-          >
-            <Zap
-              className={cn('size-3.5', status.testing && 'animate-pulse')}
-            />
-          </Button>
+          <TextTooltip content={t('Test Latency')}>
+            <span
+              tabIndex={status.testing ? 0 : -1}
+              className='inline-flex'
+              aria-label={status.testing ? t('Test Latency') : undefined}
+            >
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() => props.onTest(item.url)}
+                disabled={status.testing}
+                className='size-7 p-0'
+                aria-label={t('Test Latency')}
+              >
+                <Zap
+                  className={cn('size-3.5', status.testing && 'animate-pulse')}
+                />
+              </Button>
+            </span>
+          </TextTooltip>
 
-          <Button
-            variant='ghost'
-            size='sm'
-            onClick={() => openExternalSpeedTest(item.url)}
-            className='hidden size-7 p-0 sm:inline-flex'
-            title={t('External Speed Test')}
-          >
-            <Gauge className='size-3.5' />
-          </Button>
+          <TextTooltip content={t('External Speed Test')}>
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => openExternalSpeedTest(item.url)}
+              className='hidden size-7 p-0 sm:inline-flex'
+              aria-label={t('External Speed Test')}
+            >
+              <Gauge className='size-3.5' />
+            </Button>
+          </TextTooltip>
 
           <CopyButton
             value={item.url}
@@ -108,15 +119,17 @@ export function ApiInfoItemComponent(props: ApiInfoItemProps) {
             aria-label={t('Copy URL')}
           />
 
-          <Button
-            variant='ghost'
-            size='sm'
-            className='hidden size-7 p-0 sm:inline-flex'
-            title={t('Open in New Tab')}
-            render={<a href={item.url} target='_blank' rel='noreferrer' />}
-          >
-            <ExternalLink className='size-3.5' />
-          </Button>
+          <TextTooltip content={t('Open in New Tab')}>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='hidden size-7 p-0 sm:inline-flex'
+              aria-label={t('Open in New Tab')}
+              render={<a href={item.url} target='_blank' rel='noreferrer' />}
+            >
+              <ExternalLink className='size-3.5' />
+            </Button>
+          </TextTooltip>
         </div>
       </div>
     </div>

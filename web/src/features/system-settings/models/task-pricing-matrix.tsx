@@ -46,7 +46,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
@@ -507,67 +506,65 @@ export function TaskPricingMatrix(props: TaskPricingMatrixProps) {
   if (!firstRow) return null
 
   return (
-    <TooltipProvider>
-      <div ref={containerRef} className='flex flex-col gap-3'>
-        {allRowsFree ? (
-          <Alert className='border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200'>
-            <AlertTriangle aria-hidden='true' />
-            <AlertDescription className='text-xs text-current'>
-              {t(
-                'All combinations are priced at zero. Matching requests will be billed as free.'
+    <div ref={containerRef} className='flex flex-col gap-3'>
+      {allRowsFree ? (
+        <Alert className='border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200'>
+          <AlertTriangle aria-hidden='true' />
+          <AlertDescription className='text-xs text-current'>
+            {t(
+              'All combinations are priced at zero. Matching requests will be billed as free.'
+            )}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {shouldGroup && firstEnumField ? (
+        <div className='flex flex-col gap-2'>
+          {(firstEnumField[1].enum ?? []).map((groupValue) => (
+            <TaskMatrixGroup
+              currency={props.currency}
+              key={groupValue}
+              entries={entries.filter(
+                (entry) =>
+                  entry.row.combination[firstEnumField[0]] === groupValue
               )}
-            </AlertDescription>
-          </Alert>
-        ) : null}
-        {shouldGroup && firstEnumField ? (
-          <div className='flex flex-col gap-2'>
-            {(firstEnumField[1].enum ?? []).map((groupValue) => (
-              <TaskMatrixGroup
-                currency={props.currency}
-                key={groupValue}
-                entries={entries.filter(
-                  (entry) =>
-                    entry.row.combination[firstEnumField[0]] === groupValue
-                )}
-                enumFields={enumFields}
-                numberFields={numberFields}
-                groupField={firstEnumField[0]}
-                groupValue={groupValue}
-                open={openGroups.includes(groupValue)}
-                onOpenChange={(nextOpen) =>
-                  setOpenGroups((current) => {
-                    if (nextOpen) {
-                      return current.includes(groupValue)
-                        ? current
-                        : [...current, groupValue]
-                    }
-                    return current.filter((value) => value !== groupValue)
-                  })
-                }
-                firstRow={firstRow}
-                allRowsFree={allRowsFree}
-                matchedRowIndex={props.matchedRowIndex}
-                onRowChange={props.onRowChange}
-                onFillColumn={props.onFillColumn}
-                onPriceKeyDown={handlePriceKeyDown}
-              />
-            ))}
-          </div>
-        ) : (
-          <TaskMatrixTable
-            currency={props.currency}
-            entries={entries}
-            enumFields={enumFields}
-            numberFields={numberFields}
-            firstRow={firstRow}
-            allRowsFree={allRowsFree}
-            matchedRowIndex={props.matchedRowIndex}
-            onRowChange={props.onRowChange}
-            onFillColumn={props.onFillColumn}
-            onPriceKeyDown={handlePriceKeyDown}
-          />
-        )}
-      </div>
-    </TooltipProvider>
+              enumFields={enumFields}
+              numberFields={numberFields}
+              groupField={firstEnumField[0]}
+              groupValue={groupValue}
+              open={openGroups.includes(groupValue)}
+              onOpenChange={(nextOpen) =>
+                setOpenGroups((current) => {
+                  if (nextOpen) {
+                    return current.includes(groupValue)
+                      ? current
+                      : [...current, groupValue]
+                  }
+                  return current.filter((value) => value !== groupValue)
+                })
+              }
+              firstRow={firstRow}
+              allRowsFree={allRowsFree}
+              matchedRowIndex={props.matchedRowIndex}
+              onRowChange={props.onRowChange}
+              onFillColumn={props.onFillColumn}
+              onPriceKeyDown={handlePriceKeyDown}
+            />
+          ))}
+        </div>
+      ) : (
+        <TaskMatrixTable
+          currency={props.currency}
+          entries={entries}
+          enumFields={enumFields}
+          numberFields={numberFields}
+          firstRow={firstRow}
+          allRowsFree={allRowsFree}
+          matchedRowIndex={props.matchedRowIndex}
+          onRowChange={props.onRowChange}
+          onFillColumn={props.onFillColumn}
+          onPriceKeyDown={handlePriceKeyDown}
+        />
+      )}
+    </div>
   )
 }

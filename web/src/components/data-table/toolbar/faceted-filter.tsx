@@ -21,6 +21,7 @@ import { Check as CheckIcon, PlusCircle as PlusCircledIcon } from 'lucide-react'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -173,12 +174,11 @@ function DataTableFacetedFilterInner<TData, TValue>({
                       <CheckIcon className={cn('text-background h-4 w-4')} />
                     </div>
                     {optionIcon}
-                    <span
-                      className='min-w-0 flex-1 truncate'
-                      title={t(option.label)}
-                    >
-                      {t(option.label)}
-                    </span>
+                    <TextTooltip content={t(option.label)} onlyWhenOverflow>
+                      <span className='min-w-0 flex-1 truncate'>
+                        {t(option.label)}
+                      </span>
+                    </TextTooltip>
                     {optionCount}
                   </CommandItem>
                 )

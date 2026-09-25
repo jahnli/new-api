@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StaticDataTable } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -373,23 +374,31 @@ export function MultiKeyManageDialog({
               )}
 
               {autoDisabledCount > 0 && (
-                <Button
-                  variant='destructive'
-                  size='sm'
-                  onClick={() => {
-                    if (!canEditSensitive) return
-                    setConfirmAction({ type: 'delete-disabled' })
-                  }}
-                  disabled={!canEditSensitive}
-                  title={
+                <TextTooltip
+                  content={
                     canEditSensitive
                       ? undefined
                       : t('No permission to perform this action')
                   }
                 >
-                  <Trash2 className='mr-2 h-4 w-4' />
-                  {t('Delete Auto-Disabled')}
-                </Button>
+                  <span
+                    className='inline-flex'
+                    tabIndex={canEditSensitive ? undefined : 0}
+                  >
+                    <Button
+                      variant='destructive'
+                      size='sm'
+                      onClick={() => {
+                        if (!canEditSensitive) return
+                        setConfirmAction({ type: 'delete-disabled' })
+                      }}
+                      disabled={!canEditSensitive}
+                    >
+                      <Trash2 className='mr-2 h-4 w-4' />
+                      {t('Delete Auto-Disabled')}
+                    </Button>
+                  </span>
+                </TextTooltip>
               )}
             </div>
           </div>

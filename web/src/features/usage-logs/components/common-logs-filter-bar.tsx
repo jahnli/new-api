@@ -6,6 +6,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { MultiSelect } from '@/components/multi-select'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
@@ -565,13 +566,14 @@ export function CommonLogsFilterBar<TData>(
               {selectedLogType?.label ?? t('All Types')}
             </span>
             {selectedLogType?.deprecated && (
-              <Badge
-                variant='secondary'
-                className='h-4 px-1.5 text-[10px] font-normal'
-                title={deprecatedTypeDescription}
-              >
-                {t('Deprecated')}
-              </Badge>
+              <TextTooltip content={deprecatedTypeDescription}>
+                <Badge
+                  variant='secondary'
+                  className='h-4 px-1.5 text-[10px] font-normal'
+                >
+                  {t('Deprecated')}
+                </Badge>
+              </TextTooltip>
             )}
           </SelectValue>
         </SelectTrigger>
@@ -591,13 +593,14 @@ export function CommonLogsFilterBar<TData>(
               >
                 {t(type.label)}
                 {type.deprecated && (
-                  <Badge
-                    variant='secondary'
-                    className='h-4 px-1.5 text-[10px] font-normal'
-                    title={deprecatedTypeDescription}
-                  >
-                    {t('Deprecated')}
-                  </Badge>
+                  <TextTooltip content={deprecatedTypeDescription}>
+                    <Badge
+                      variant='secondary'
+                      className='h-4 px-1.5 text-[10px] font-normal'
+                    >
+                      {t('Deprecated')}
+                    </Badge>
+                  </TextTooltip>
                 )}
               </SelectItem>
             ))}

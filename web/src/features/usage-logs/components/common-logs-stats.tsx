@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { toIntlLocale } from '@/i18n/languages'
@@ -203,40 +202,38 @@ export function CommonLogsStats() {
         value={stats?.tpm || 0}
         accent='bg-slate-400/70'
       />
-      <TooltipProvider delay={100}>
-        <Tooltip
-          open={tokenTooltipOpen}
-          onOpenChange={(open) => {
-            setTokenTooltipActive(open)
-            if (open && tokenStats.isError) void tokenStats.refetch()
-          }}
-        >
-          <StatBadge
-            label={t('Tokens')}
-            value={tokenValue}
-            accent='bg-emerald-500/70'
-            suffix={
-              <TooltipTrigger
-                render={
-                  <button
-                    type='button'
-                    className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
-                    aria-label={t('View details')}
-                    aria-busy={tokenTooltipLoading}
-                  />
-                }
-              >
-                {tokenTooltipLoading && tokenTooltipLoadingVisible ? (
-                  <Loader2 className='size-3 animate-spin sm:size-3.5' />
-                ) : (
-                  <CircleAlert className='size-3 sm:size-3.5' />
-                )}
-              </TooltipTrigger>
-            }
-          />
-          <TooltipContent>{tokenDetails}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip
+        open={tokenTooltipOpen}
+        onOpenChange={(open) => {
+          setTokenTooltipActive(open)
+          if (open && tokenStats.isError) void tokenStats.refetch()
+        }}
+      >
+        <StatBadge
+          label={t('Tokens')}
+          value={tokenValue}
+          accent='bg-emerald-500/70'
+          suffix={
+            <TooltipTrigger
+              render={
+                <button
+                  type='button'
+                  className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
+                  aria-label={t('View details')}
+                  aria-busy={tokenTooltipLoading}
+                />
+              }
+            >
+              {tokenTooltipLoading && tokenTooltipLoadingVisible ? (
+                <Loader2 className='size-3 animate-spin sm:size-3.5' />
+              ) : (
+                <CircleAlert className='size-3 sm:size-3.5' />
+              )}
+            </TooltipTrigger>
+          }
+        />
+        <TooltipContent>{tokenDetails}</TooltipContent>
+      </Tooltip>
     </div>
   )
 }

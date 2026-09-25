@@ -20,6 +20,7 @@ import { TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge, type StatusVariant } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -81,7 +82,6 @@ export function ModelSquareStatus(props: { model: Model; detail?: boolean }) {
       label={label}
       icon={variant === 'warning' ? TriangleAlert : undefined}
       copyable={false}
-      title={undefined}
     />
   )
   if (props.detail) {
@@ -94,19 +94,20 @@ export function ModelSquareStatus(props: { model: Model; detail?: boolean }) {
   }
   return (
     <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            variant='ghost'
-            size='sm'
-            title={description}
-            aria-description={description}
-            className='h-auto max-w-full min-w-0 cursor-pointer border-0 p-0'
-          />
-        }
-      >
-        {badge}
-      </PopoverTrigger>
+      <TextTooltip content={description}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='sm'
+              aria-description={description}
+              className='h-auto max-w-full min-w-0 cursor-pointer border-0 p-0'
+            />
+          }
+        >
+          {badge}
+        </PopoverTrigger>
+      </TextTooltip>
       <PopoverContent
         role='dialog'
         className='max-w-[calc(100vw-2rem)] break-words whitespace-normal'

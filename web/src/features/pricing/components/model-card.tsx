@@ -21,6 +21,7 @@ import { memo, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { DEMO_MODE_MASK } from '@/lib/demo-mode'
@@ -322,19 +323,17 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           )}
         </div>
         <div className='min-w-0 flex-1'>
-          <h3
-            className='line-clamp-2 font-mono text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]'
-            title={props.model.model_name}
-          >
-            {props.model.model_name}
-          </h3>
+          <TextTooltip content={props.model.model_name} onlyWhenOverflow>
+            <h3 className='line-clamp-2 font-mono text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]'>
+              {props.model.model_name}
+            </h3>
+          </TextTooltip>
           {props.model.vendor_name && (
-            <p
-              className='text-muted-foreground mt-1 truncate text-xs'
-              title={props.model.vendor_name}
-            >
-              {props.model.vendor_name}
-            </p>
+            <TextTooltip content={props.model.vendor_name} onlyWhenOverflow>
+              <p className='text-muted-foreground mt-1 truncate text-xs'>
+                {props.model.vendor_name}
+              </p>
+            </TextTooltip>
           )}
         </div>
         <CopyButton
@@ -359,13 +358,15 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 className='text-muted-foreground flex min-w-0 items-baseline gap-1.5 text-xs'
               >
                 <span className='shrink-0'>{t('Tags')}</span>
-                <span className='truncate' title={tags.join(', ')}>
-                  {tags.slice(0, 2).join(', ')}
-                </span>
-                {tags.length > 2 && (
-                  <span className='shrink-0' title={tags.slice(2).join(', ')}>
-                    +{tags.length - 2}
+                <TextTooltip content={tags.join(', ')}>
+                  <span className='truncate'>
+                    {tags.slice(0, 2).join(', ')}
                   </span>
+                </TextTooltip>
+                {tags.length > 2 && (
+                  <TextTooltip content={tags.slice(2).join(', ')}>
+                    <span className='shrink-0'>+{tags.length - 2}</span>
+                  </TextTooltip>
                 )}
               </div>
             )}
@@ -408,18 +409,19 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                   {t('Groups')}
                 </dt>
                 <dd className='flex min-w-0 items-baseline gap-1'>
-                  <span className='truncate' title={displayGroup}>
-                    {displayGroup}
-                  </span>
+                  <TextTooltip content={displayGroup} onlyWhenOverflow>
+                    <span className='truncate'>{displayGroup}</span>
+                  </TextTooltip>
                   {hiddenGroupCount > 0 && (
-                    <span
-                      className='text-muted-foreground shrink-0'
-                      title={groups
+                    <TextTooltip
+                      content={groups
                         .filter((group) => group !== displayGroup)
                         .join(', ')}
                     >
-                      +{hiddenGroupCount}
-                    </span>
+                      <span className='text-muted-foreground shrink-0'>
+                        +{hiddenGroupCount}
+                      </span>
+                    </TextTooltip>
                   )}
                 </dd>
               </div>
@@ -430,16 +432,17 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                   {t('Endpoints')}
                 </dt>
                 <dd className='flex min-w-0 items-baseline gap-1'>
-                  <span className='truncate' title={endpoints.join(', ')}>
-                    {endpoints.slice(0, 2).join(', ')}
-                  </span>
-                  {endpoints.length > 2 && (
-                    <span
-                      className='text-muted-foreground shrink-0'
-                      title={endpoints.slice(2).join(', ')}
-                    >
-                      +{endpoints.length - 2}
+                  <TextTooltip content={endpoints.join(', ')}>
+                    <span className='truncate'>
+                      {endpoints.slice(0, 2).join(', ')}
                     </span>
+                  </TextTooltip>
+                  {endpoints.length > 2 && (
+                    <TextTooltip content={endpoints.slice(2).join(', ')}>
+                      <span className='text-muted-foreground shrink-0'>
+                        +{endpoints.length - 2}
+                      </span>
+                    </TextTooltip>
                   )}
                 </dd>
               </div>

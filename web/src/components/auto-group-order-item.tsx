@@ -27,6 +27,7 @@ import { Reorder, useDragControls } from 'motion/react'
 import type { KeyboardEvent, PointerEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 
 type AutoGroupOrderItemProps = {
@@ -66,26 +67,28 @@ export function AutoGroupOrderItem(props: AutoGroupOrderItemProps) {
       dragControls={dragControls}
       className='bg-background relative flex min-w-0 items-center gap-2 rounded-lg border p-2'
     >
-      <Button
-        type='button'
-        variant='ghost'
-        size='icon-sm'
-        className='text-muted-foreground cursor-grab touch-none font-mono active:cursor-grabbing'
-        aria-label={t('Drag {{group}} to reorder', { group: props.group })}
-        title={t('Drag {{group}} to reorder', { group: props.group })}
-        onPointerDown={handleDragStart}
-        onKeyDown={handleDragKeyDown}
+      <TextTooltip
+        content={t('Drag {{group}} to reorder', { group: props.group })}
       >
-        <HugeiconsIcon icon={Drag01Icon} strokeWidth={2} aria-hidden='true' />
-      </Button>
+        <Button
+          type='button'
+          variant='ghost'
+          size='icon-sm'
+          className='text-muted-foreground cursor-grab touch-none font-mono active:cursor-grabbing'
+          aria-label={t('Drag {{group}} to reorder', { group: props.group })}
+          onPointerDown={handleDragStart}
+          onKeyDown={handleDragKeyDown}
+        >
+          <HugeiconsIcon icon={Drag01Icon} strokeWidth={2} aria-hidden='true' />
+        </Button>
+      </TextTooltip>
       {props.leading}
       <div className='flex min-w-0 flex-1 flex-wrap items-center gap-2'>
-        <span
-          className='min-w-0 truncate text-sm font-medium'
-          title={props.group}
-        >
-          {props.group}
-        </span>
+        <TextTooltip content={props.group} onlyWhenOverflow>
+          <span className='min-w-0 truncate text-sm font-medium'>
+            {props.group}
+          </span>
+        </TextTooltip>
         {props.children}
       </div>
       <div className='flex shrink-0 gap-1'>

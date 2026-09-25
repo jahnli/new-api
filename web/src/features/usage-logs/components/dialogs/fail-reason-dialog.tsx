@@ -1,11 +1,9 @@
-import { Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { CopyButton } from '@/components/copy-button'
 import { Dialog } from '@/components/dialog'
-import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 interface FailReasonDialogProps {
   failReason: string
@@ -19,7 +17,6 @@ export function FailReasonDialog({
   onOpenChange,
 }: FailReasonDialogProps) {
   const { t } = useTranslation()
-  const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
 
   return (
     <Dialog
@@ -38,19 +35,14 @@ export function FailReasonDialog({
               {t('Error Message')}
             </Label>
             <div className='bg-muted/50 relative rounded-md border border-red-200 p-3'>
-              <Button
+              <CopyButton
+                value={failReason}
                 variant='ghost'
                 size='sm'
                 className='absolute top-2 right-2 h-8 w-8 p-0'
-                onClick={() => copyToClipboard(failReason)}
-                title={t('Copy to clipboard')}
-              >
-                {copiedText === failReason ? (
-                  <Check className='size-4 text-green-600' />
-                ) : (
-                  <Copy className='size-4' />
-                )}
-              </Button>
+                iconClassName='size-4'
+                tooltip={t('Copy to clipboard')}
+              />
               <p className='overflow-wrap-anywhere pr-10 text-sm leading-relaxed break-all whitespace-pre-wrap text-red-600'>
                 {failReason || '-'}
               </p>

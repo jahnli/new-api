@@ -16,19 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useRef, useState } from 'react'
-
+import { TextTooltip } from '@/components/text-tooltip'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { useOverflow } from '@/hooks/use-overflow'
 import { cn } from '@/lib/utils'
 
 type LongTextProps = {
@@ -42,65 +37,37 @@ export function LongText({
   className = '',
   contentClassName = '',
 }: LongTextProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [isOverflown, setIsOverflown] = useState(false)
+  const isMobile = useMediaQuery('(max-width: 639px)')
+  const mobileOverflow = useOverflow(isMobile)
 
-  useEffect(() => {
-    if (checkOverflow(ref.current)) {
-      setIsOverflown(true)
-      return
-    }
-
-    setIsOverflown(false)
-  }, [])
-
-  if (!isOverflown) {
+  if (!isMobile) {
     return (
-      <div ref={ref} className={cn('truncate', className)}>
-        {children}
-      </div>
+      <TextTooltip
+        content={children}
+        contentClassName={contentClassName}
+        onlyWhenOverflow
+      >
+        <div className={cn('truncate', className)}>{children}</div>
+      </TextTooltip>
     )
   }
 
   return (
-    <>
-      <div className='hidden sm:block'>
-        <TooltipProvider delay={100}>
-          <Tooltip>
-            <TooltipTrigger
-              render={<div ref={ref} className={cn('truncate', className)} />}
-            >
-              {children}
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className={contentClassName}>{children}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      <div className='sm:hidden'>
-        <Popover>
-          <PopoverTrigger
-            nativeButton={false}
-            render={<div ref={ref} className={cn('truncate', className)} />}
-          >
-            {children}
-          </PopoverTrigger>
-          <PopoverContent className={cn('w-fit', contentClassName)}>
-            <p>{children}</p>
-          </PopoverContent>
-        </Popover>
-      </div>
-    </>
+    <Popover>
+      <PopoverTrigger
+        nativeButton={false}
+        disabled={!mobileOverflow.isOverflowing}
+        render={
+          <div ref={mobileOverflow.ref} className={cn('truncate', className)} />
+        }
+      >
+        {children}
+      </PopoverTrigger>
+      <PopoverContent
+        className={cn('w-fit max-w-xs break-words', contentClassName)}
+      >
+        <p>{children}</p>
+      </PopoverContent>
+    </Popover>
   )
-}
-
-const checkOverflow = (textContainer: HTMLDivElement | null) => {
-  if (textContainer) {
-    return (
-      textContainer.offsetHeight < textContainer.scrollHeight ||
-      textContainer.offsetWidth < textContainer.scrollWidth
-    )
-  }
-  return false
 }

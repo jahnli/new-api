@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DataTableColumnHeader } from '@/components/data-table'
+import { TextTooltip } from '@/components/text-tooltip'
 
 import {
   SyncPriceCell,
@@ -30,12 +31,11 @@ export function useUpstreamRatioSyncColumns(
         minSize: 180,
         meta: { mobileTitle: true },
         cell: ({ row }) => (
-          <span
-            className='block max-w-72 truncate font-medium'
-            title={row.original.model}
-          >
-            {row.original.model}
-          </span>
+          <TextTooltip content={row.original.model} onlyWhenOverflow>
+            <span className='block max-w-72 truncate font-medium'>
+              {row.original.model}
+            </span>
+          </TextTooltip>
         ),
       },
       {

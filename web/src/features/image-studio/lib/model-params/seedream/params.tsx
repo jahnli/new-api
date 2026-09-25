@@ -16,7 +16,6 @@ import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
@@ -193,30 +192,28 @@ export function SeedreamParams(props: SeedreamParamsProps) {
       <div className='flex flex-col gap-1.5'>
         <Label className='text-muted-foreground inline-flex items-center gap-1 text-xs font-medium'>
           {t('Prompt optimization')}
-          <TooltipProvider delay={100}>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type='button'
-                    aria-label={t('Prompt optimization mode help')}
-                    className='hover:text-foreground focus-visible:ring-ring/50 inline-flex rounded-sm outline-none focus-visible:ring-2'
-                  />
-                }
-              >
-                <CircleHelp className='size-3.5' />
-              </TooltipTrigger>
-              <TooltipContent
-                side='right'
-                align='start'
-                className='max-w-72 whitespace-normal'
-              >
-                {t(
-                  'Standard mode generates higher-quality content but takes longer.'
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type='button'
+                  aria-label={t('Prompt optimization mode help')}
+                  className='hover:text-foreground focus-visible:ring-ring/50 inline-flex rounded-sm outline-none focus-visible:ring-2'
+                />
+              }
+            >
+              <CircleHelp className='size-3.5' />
+            </TooltipTrigger>
+            <TooltipContent
+              side='right'
+              align='start'
+              className='max-w-72 whitespace-normal'
+            >
+              {t(
+                'Standard mode generates higher-quality content but takes longer.'
+              )}
+            </TooltipContent>
+          </Tooltip>
         </Label>
         {renderSelect(
           props.config.optimizePromptMode,

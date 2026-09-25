@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 
 import type { MultiKeyConfirmAction } from '../../types'
@@ -39,20 +40,25 @@ export function MultiKeyTableRowActions({
           {t('Enable')}
         </Button>
       )}
-      <Button
-        variant='destructive'
-        size='sm'
-        onClick={() => {
-          if (!canDelete) return
-          onAction({ type: 'delete', keyIndex })
-        }}
-        disabled={!canDelete}
-        title={
+      <TextTooltip
+        content={
           canDelete ? undefined : t('No permission to perform this action')
         }
       >
-        {t('Delete')}
-      </Button>
+        <span className='inline-flex' tabIndex={canDelete ? undefined : 0}>
+          <Button
+            variant='destructive'
+            size='sm'
+            onClick={() => {
+              if (!canDelete) return
+              onAction({ type: 'delete', keyIndex })
+            }}
+            disabled={!canDelete}
+          >
+            {t('Delete')}
+          </Button>
+        </span>
+      </TextTooltip>
     </div>
   )
 }

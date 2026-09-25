@@ -2,6 +2,7 @@ import { ChevronDown, RotateCcw } from 'lucide-react'
 import { memo, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -76,32 +77,33 @@ function FilterChip(props: {
   onClick: () => void
 }) {
   return (
-    <Button
-      type='button'
-      variant={props.active ? 'secondary' : 'outline'}
-      size='sm'
-      onClick={props.onClick}
-      aria-pressed={props.active}
-      className='h-auto max-w-full gap-1.5 px-2 py-1 text-xs'
-      title={props.option.label}
-    >
-      {props.option.icon && (
-        <span className='shrink-0'>{props.option.icon}</span>
-      )}
-      <span className='truncate'>{props.option.label}</span>
-      {(props.option.suffix || props.option.count != null) && (
-        <span
-          className={cn(
-            'rounded-md px-1.5 py-0.5 text-[12px]',
-            props.active
-              ? 'bg-background text-foreground'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {props.option.suffix ?? props.option.count}
-        </span>
-      )}
-    </Button>
+    <TextTooltip content={props.option.label}>
+      <Button
+        type='button'
+        variant={props.active ? 'secondary' : 'outline'}
+        size='sm'
+        onClick={props.onClick}
+        aria-pressed={props.active}
+        className='h-auto max-w-full gap-1.5 px-2 py-1 text-xs'
+      >
+        {props.option.icon && (
+          <span className='shrink-0'>{props.option.icon}</span>
+        )}
+        <span className='truncate'>{props.option.label}</span>
+        {(props.option.suffix || props.option.count != null) && (
+          <span
+            className={cn(
+              'rounded-md px-1.5 py-0.5 text-[12px]',
+              props.active
+                ? 'bg-background text-foreground'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
+            {props.option.suffix ?? props.option.count}
+          </span>
+        )}
+      </Button>
+    </TextTooltip>
   )
 }
 

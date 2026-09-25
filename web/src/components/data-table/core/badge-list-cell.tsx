@@ -29,7 +29,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
@@ -59,6 +58,14 @@ export function BadgeListCell({
   }
 
   const showTooltip = items.length > max
+
+  if (!showTooltip) {
+    return (
+      <div className='-ml-1.5 max-w-full'>
+        <StatusBadgeList items={items} max={max} renderItem={(item) => item} />
+      </div>
+    )
+  }
 
   if (expandable && showTooltip) {
     return (
@@ -90,27 +97,23 @@ export function BadgeListCell({
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger render={<div className='-ml-1.5 max-w-full' />}>
-          <StatusBadgeList
-            items={items}
-            max={max}
-            renderItem={(item) => item}
-          />
-        </TooltipTrigger>
-        {showTooltip && (
-          <TooltipContent
-            side='top'
-            className={
-              tooltipClassName ??
-              'border-border bg-popover max-h-48 max-w-[320px] overflow-y-auto p-2'
-            }
-          >
-            <div className='flex flex-wrap gap-1'>{items}</div>
-          </TooltipContent>
-        )}
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger
+        render={<div tabIndex={0} className='-ml-1.5 max-w-full' />}
+      >
+        <StatusBadgeList items={items} max={max} renderItem={(item) => item} />
+      </TooltipTrigger>
+      {showTooltip && (
+        <TooltipContent
+          side='top'
+          className={
+            tooltipClassName ??
+            'border-border bg-popover max-h-48 max-w-[320px] overflow-y-auto p-2'
+          }
+        >
+          <div className='flex flex-wrap gap-1'>{items}</div>
+        </TooltipContent>
+      )}
+    </Tooltip>
   )
 }

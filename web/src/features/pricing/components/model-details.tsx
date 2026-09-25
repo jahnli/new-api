@@ -38,6 +38,7 @@ import { StaticDataTable } from '@/components/data-table'
 import { sideDrawerContentClassName } from '@/components/drawer-layout'
 import { GroupBadge } from '@/components/group-badge'
 import { PublicLayout } from '@/components/layout'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -751,9 +752,9 @@ function GroupPricingSection(props: GroupPricingSectionProps) {
                 }}
                 size={16}
               />
-              <span className='truncate' title={variant.plugin_name}>
-                {variant.plugin_name}
-              </span>
+              <TextTooltip content={variant.plugin_name} onlyWhenOverflow>
+                <span className='truncate'>{variant.plugin_name}</span>
+              </TextTooltip>
             </TabsTrigger>
           ))}
         </TabsList>

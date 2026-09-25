@@ -58,7 +58,6 @@ import { Spinner } from '@/components/ui/spinner'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { requireServerSuccess } from '@/lib/server-error-message'
@@ -404,22 +403,20 @@ export function TaskArtifactsCell(props: { log: TaskLog }) {
 
   if (previewMode === 'discarded') {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className='text-muted-foreground cursor-help text-xs' />
-            }
-          >
-            {t('Result not retained')}
-          </TooltipTrigger>
-          <TooltipContent>
-            {t(
-              'The result was returned in the API response and was not saved as an artifact'
-            )}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span className='text-muted-foreground cursor-help text-xs' />
+          }
+        >
+          {t('Result not retained')}
+        </TooltipTrigger>
+        <TooltipContent>
+          {t(
+            'The result was returned in the API response and was not saved as an artifact'
+          )}
+        </TooltipContent>
+      </Tooltip>
     )
   }
   if (!shouldLoadTaskArtifacts(props.log, true)) {

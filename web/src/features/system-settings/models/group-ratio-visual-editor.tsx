@@ -49,6 +49,7 @@ import {
 } from '@/components/drawer-layout'
 import { EmptyState } from '@/components/empty-state'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -1030,12 +1031,14 @@ function GroupOverrideRules({
                                 cellClassName: 'font-medium',
                                 cell: (override) => (
                                   <span className='inline-flex max-w-48 items-center gap-1.5'>
-                                    <span
-                                      className='truncate'
-                                      title={override.targetGroup}
+                                    <TextTooltip
+                                      content={override.targetGroup}
+                                      onlyWhenOverflow
                                     >
-                                      {override.targetGroup}
-                                    </span>
+                                      <span className='truncate'>
+                                        {override.targetGroup}
+                                      </span>
+                                    </TextTooltip>
                                     {!registryNames.includes(
                                       override.targetGroup
                                     ) && (

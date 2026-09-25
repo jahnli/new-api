@@ -14,7 +14,6 @@ import { FadeIn } from '@/components/page-transition'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
 import dayjs from '@/lib/dayjs'
 
@@ -268,179 +267,175 @@ export function DataOverview() {
   }
 
   return (
-    <TooltipProvider delay={100}>
-      <SectionPageLayout>
-        <SectionPageLayout.Title>
-          <div className='flex flex-wrap items-center gap-x-3 gap-y-2'>
-            <span>{t('Data Overview')}</span>
-            {departmentSelector}
-            <CompactDateTimeRangePicker
-              start={dateRange.start}
-              end={dateRange.end}
-              onChange={setDateRange}
-              className='max-w-[302px]'
-            />
-            {selectedNode && (
-              <div className='ml-auto flex items-center gap-2'>
-                <Button
-                  className='gap-1.5'
-                  onClick={handleSearch}
-                  disabled={loadingState.isSearching}
-                >
-                  {loadingState.isSearching ? (
-                    <Loader2 className='size-3.5 animate-spin' />
-                  ) : (
-                    <Search className='size-3.5' />
-                  )}
-                  {t('Search')}
-                </Button>
-                <ExportDialog
-                  queryParams={queryParams}
-                  treeData={displayTreeData}
-                  stats={statsQuery.data?.data}
-                  subStats={subStatsQuery.data?.data ?? []}
-                />
-                <NotifySettingsDialog />
-              </div>
-            )}
-          </div>
-        </SectionPageLayout.Title>
-        <SectionPageLayout.Content>
-          <FadeIn>
-            {treeQuery.isError && (
-              <Alert variant='destructive'>
-                <AlertCircle className='size-4' />
-                <AlertTitle>{t('Failed to load department tree')}</AlertTitle>
-                <AlertDescription>
-                  {treeQuery.error instanceof Error
-                    ? treeQuery.error.message
-                    : t('An unexpected error occurred')}
-                </AlertDescription>
-              </Alert>
-            )}
+    <SectionPageLayout>
+      <SectionPageLayout.Title>
+        <div className='flex flex-wrap items-center gap-x-3 gap-y-2'>
+          <span>{t('Data Overview')}</span>
+          {departmentSelector}
+          <CompactDateTimeRangePicker
+            start={dateRange.start}
+            end={dateRange.end}
+            onChange={setDateRange}
+            className='max-w-[302px]'
+          />
+          {selectedNode && (
+            <div className='ml-auto flex items-center gap-2'>
+              <Button
+                className='gap-1.5'
+                onClick={handleSearch}
+                disabled={loadingState.isSearching}
+              >
+                {loadingState.isSearching ? (
+                  <Loader2 className='size-3.5 animate-spin' />
+                ) : (
+                  <Search className='size-3.5' />
+                )}
+                {t('Search')}
+              </Button>
+              <ExportDialog
+                queryParams={queryParams}
+                treeData={displayTreeData}
+                stats={statsQuery.data?.data}
+                subStats={subStatsQuery.data?.data ?? []}
+              />
+              <NotifySettingsDialog />
+            </div>
+          )}
+        </div>
+      </SectionPageLayout.Title>
+      <SectionPageLayout.Content>
+        <FadeIn>
+          {treeQuery.isError && (
+            <Alert variant='destructive'>
+              <AlertCircle className='size-4' />
+              <AlertTitle>{t('Failed to load department tree')}</AlertTitle>
+              <AlertDescription>
+                {treeQuery.error instanceof Error
+                  ? treeQuery.error.message
+                  : t('An unexpected error occurred')}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {treeQuery.isLoading && <DepartmentOverviewSkeleton />}
+          {treeQuery.isLoading && <DepartmentOverviewSkeleton />}
 
-            {treeData && displayTreeData.length === 0 && (
-              <div className='flex flex-col items-center justify-center py-16'>
-                <Building2 className='text-muted-foreground mb-4 size-12' />
-                <p className='text-muted-foreground text-sm'>
-                  {t('No departments available')}
-                </p>
-              </div>
-            )}
+          {treeData && displayTreeData.length === 0 && (
+            <div className='flex flex-col items-center justify-center py-16'>
+              <Building2 className='text-muted-foreground mb-4 size-12' />
+              <p className='text-muted-foreground text-sm'>
+                {t('No departments available')}
+              </p>
+            </div>
+          )}
 
-            {treeData &&
-              displayTreeData.length > 0 &&
-              selectedNode &&
-              !queryParams && <DepartmentSearchPrompt />}
+          {treeData &&
+            displayTreeData.length > 0 &&
+            selectedNode &&
+            !queryParams && <DepartmentSearchPrompt />}
 
-            {statsQuery.isError && (
-              <Alert variant='destructive'>
-                <AlertCircle className='size-4' />
-                <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
-                <AlertDescription>
-                  {statsQuery.error instanceof Error
-                    ? statsQuery.error.message
-                    : t('An unexpected error occurred')}
-                </AlertDescription>
-              </Alert>
-            )}
+          {statsQuery.isError && (
+            <Alert variant='destructive'>
+              <AlertCircle className='size-4' />
+              <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
+              <AlertDescription>
+                {statsQuery.error instanceof Error
+                  ? statsQuery.error.message
+                  : t('An unexpected error occurred')}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {loadingState.showStatsSkeleton && <StatsCardsSkeleton />}
+          {loadingState.showStatsSkeleton && <StatsCardsSkeleton />}
 
-            {statsQuery.data?.data && (
-              <DepartmentStatsCards stat={statsQuery.data.data} />
-            )}
+          {statsQuery.data?.data && (
+            <DepartmentStatsCards stat={statsQuery.data.data} />
+          )}
 
-            {subStatsQuery.isError && (
-              <Alert variant='destructive' className='mt-4'>
-                <AlertCircle className='size-4' />
-                <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
-                <AlertDescription>
-                  {subStatsQuery.error instanceof Error
-                    ? subStatsQuery.error.message
-                    : t('An unexpected error occurred')}
-                </AlertDescription>
-              </Alert>
-            )}
+          {subStatsQuery.isError && (
+            <Alert variant='destructive' className='mt-4'>
+              <AlertCircle className='size-4' />
+              <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
+              <AlertDescription>
+                {subStatsQuery.error instanceof Error
+                  ? subStatsQuery.error.message
+                  : t('An unexpected error occurred')}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {loadingState.showSubStatsSkeleton && (
-              <SubDepartmentStatsSkeleton />
-            )}
+          {loadingState.showSubStatsSkeleton && <SubDepartmentStatsSkeleton />}
 
-            {subStatsQuery.data?.data &&
-              subStatsQuery.data.data.length > 0 &&
-              queryParams && (
-                <SubDepartmentStats
-                  data={subStatsQuery.data.data}
-                  companyId={queryParams.company_id}
-                  activityFormula={statsQuery.data?.data.active_user_formula}
-                  startTimestamp={queryParams.start_timestamp}
-                  endTimestamp={queryParams.end_timestamp}
-                />
-              )}
-
-            {usersQuery.isError && (
-              <Alert variant='destructive' className='mt-4'>
-                <AlertCircle className='size-4' />
-                <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
-                <AlertDescription>
-                  {usersQuery.error instanceof Error
-                    ? usersQuery.error.message
-                    : t('An unexpected error occurred')}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {rankingsQuery.isError && (
-              <Alert variant='destructive' className='mt-4'>
-                <AlertCircle className='size-4' />
-                <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
-                <AlertDescription>
-                  {rankingsQuery.error instanceof Error
-                    ? rankingsQuery.error.message
-                    : t('An unexpected error occurred')}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {queryParams && (
-              <DepartmentUsersTable
+          {subStatsQuery.data?.data &&
+            subStatsQuery.data.data.length > 0 &&
+            queryParams && (
+              <SubDepartmentStats
+                data={subStatsQuery.data.data}
                 companyId={queryParams.company_id}
-                departmentId={queryParams.department_id}
+                activityFormula={statsQuery.data?.data.active_user_formula}
                 startTimestamp={queryParams.start_timestamp}
                 endTimestamp={queryParams.end_timestamp}
-                initialUsers={usersQuery.data?.data}
-                initialRankings={rankingsQuery.data?.data}
-                initialUsersLoading={loadingState.showUsersSkeleton}
-                initialRankingsLoading={loadingState.showRankingsSkeleton}
               />
             )}
 
-            {usageQuery.isError && (
-              <Alert variant='destructive' className='mt-4'>
-                <AlertCircle className='size-4' />
-                <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
-                <AlertDescription>
-                  {usageQuery.error instanceof Error
-                    ? usageQuery.error.message
-                    : t('An unexpected error occurred')}
-                </AlertDescription>
-              </Alert>
-            )}
+          {usersQuery.isError && (
+            <Alert variant='destructive' className='mt-4'>
+              <AlertCircle className='size-4' />
+              <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
+              <AlertDescription>
+                {usersQuery.error instanceof Error
+                  ? usersQuery.error.message
+                  : t('An unexpected error occurred')}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {showUsageSkeleton && <UsageAnalysisSkeleton />}
+          {rankingsQuery.isError && (
+            <Alert variant='destructive' className='mt-4'>
+              <AlertCircle className='size-4' />
+              <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
+              <AlertDescription>
+                {rankingsQuery.error instanceof Error
+                  ? rankingsQuery.error.message
+                  : t('An unexpected error occurred')}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {!showUsageSkeleton && usageQuery.data?.data && (
-              <UsageAnalysisSection
-                data={usageQuery.data.data}
-                costBuckets={statsQuery.data?.data.cost_buckets}
-              />
-            )}
-          </FadeIn>
-        </SectionPageLayout.Content>
-      </SectionPageLayout>
-    </TooltipProvider>
+          {queryParams && (
+            <DepartmentUsersTable
+              companyId={queryParams.company_id}
+              departmentId={queryParams.department_id}
+              startTimestamp={queryParams.start_timestamp}
+              endTimestamp={queryParams.end_timestamp}
+              initialUsers={usersQuery.data?.data}
+              initialRankings={rankingsQuery.data?.data}
+              initialUsersLoading={loadingState.showUsersSkeleton}
+              initialRankingsLoading={loadingState.showRankingsSkeleton}
+            />
+          )}
+
+          {usageQuery.isError && (
+            <Alert variant='destructive' className='mt-4'>
+              <AlertCircle className='size-4' />
+              <AlertTitle>{t('Failed to load statistics')}</AlertTitle>
+              <AlertDescription>
+                {usageQuery.error instanceof Error
+                  ? usageQuery.error.message
+                  : t('An unexpected error occurred')}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {showUsageSkeleton && <UsageAnalysisSkeleton />}
+
+          {!showUsageSkeleton && usageQuery.data?.data && (
+            <UsageAnalysisSection
+              data={usageQuery.data.data}
+              costBuckets={statsQuery.data?.data.cost_buckets}
+            />
+          )}
+        </FadeIn>
+      </SectionPageLayout.Content>
+    </SectionPageLayout>
   )
 }

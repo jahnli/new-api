@@ -22,6 +22,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import {
   Popover,
   PopoverContent,
@@ -30,7 +31,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
@@ -601,29 +601,25 @@ export function useCommonLogsColumns(
                 {log.is_stream &&
                   other?.stream_status &&
                   other.stream_status.status !== 'ok' && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <CircleAlert className='size-3 text-red-500' />
-                          }
-                        />
-                        <TooltipContent>
-                          <div className='space-y-0.5 text-xs'>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<CircleAlert className='size-3 text-red-500' />}
+                      />
+                      <TooltipContent>
+                        <div className='space-y-0.5 text-xs'>
+                          <p>
+                            {t('Stream Status')}: {t('Error')}
+                          </p>
+                          <p>{other.stream_status.end_reason || 'unknown'}</p>
+                          {(other.stream_status.error_count ?? 0) > 0 && (
                             <p>
-                              {t('Stream Status')}: {t('Error')}
+                              {t('Soft Errors')}:{' '}
+                              {other.stream_status.error_count}
                             </p>
-                            <p>{other.stream_status.end_reason || 'unknown'}</p>
-                            {(other.stream_status.error_count ?? 0) > 0 && (
-                              <p>
-                                {t('Soft Errors')}:{' '}
-                                {other.stream_status.error_count}
-                              </p>
-                            )}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   )}
               </div>
             </div>
@@ -741,125 +737,121 @@ export function useCommonLogsColumns(
             typeof multiKeyIndex === 'number' &&
             Number.isFinite(multiKeyIndex)
           return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <div className='flex max-w-[120px] flex-col gap-0.5' />
-                  }
-                >
-                  <div className='relative inline-flex w-fit items-center gap-1'>
+            <Tooltip>
+              <TooltipTrigger
+                render={<div className='flex max-w-[120px] flex-col gap-0.5' />}
+              >
+                <div className='relative inline-flex w-fit items-center gap-1'>
+                  <StatusBadge
+                    label={channelDisplay.id}
+                    copyable={!demoMode}
+                    copyText={String(log.channel)}
+                    size='sm'
+                    showDot={false}
+                    className='text-muted-foreground/70 font-mono'
+                  />
+                  {showMultiKeyIndex && (
                     <StatusBadge
-                      label={channelDisplay.id}
-                      copyable={!demoMode}
-                      copyText={String(log.channel)}
+                      label={String(multiKeyIndex)}
                       size='sm'
                       showDot={false}
-                      className='text-muted-foreground/70 font-mono'
+                      copyable={false}
+                      variant='neutral'
+                      className='h-5 min-w-5 justify-center rounded-full px-1 font-mono text-xs'
+                      aria-label={`${t('Key')} ${multiKeyIndex}`}
                     />
-                    {showMultiKeyIndex && (
-                      <StatusBadge
-                        label={String(multiKeyIndex)}
-                        size='sm'
-                        showDot={false}
-                        copyable={false}
-                        variant='neutral'
-                        className='h-5 min-w-5 justify-center rounded-full px-1 font-mono text-xs'
-                        aria-label={`${t('Key')} ${multiKeyIndex}`}
-                      />
-                    )}
-                    {hasRetryChain && (
-                      <Popover>
-                        <PopoverTrigger
-                          render={
-                            <button
-                              type='button'
-                              className='text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-5 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:outline-none'
-                              aria-label={t('Retry Chain')}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          }
-                        >
-                          <GitBranch
-                            className='size-3.5 text-amber-500'
-                            aria-hidden='true'
-                          />
-                        </PopoverTrigger>
-                        <PopoverContent
-                          side='top'
-                          align='start'
-                          className='w-64 text-xs'
-                        >
-                          <div className='flex flex-col gap-1'>
-                            <p className='font-medium'>{t('Retry Chain')}</p>
-                            <p className='text-muted-foreground font-mono break-all'>
-                              {channelChain}
-                            </p>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                    {affinity && (
-                      <button
-                        type='button'
-                        className='absolute -top-1 -right-1 leading-none text-amber-500'
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setAffinityTarget({
-                            rule_name: affinity.rule_name || '',
-                            using_group:
-                              affinity.using_group ||
-                              affinity.selected_group ||
-                              '',
-                            key_hint: affinity.key_hint || '',
-                            key_fp: affinity.key_fp || '',
-                          })
-                          setAffinityDialogOpen(true)
-                        }}
-                      >
-                        <Sparkles className='size-3 fill-current' />
-                      </button>
-                    )}
-                  </div>
-                  {channelDisplay.name && (
-                    <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
-                      {channelDisplay.name}
-                    </span>
                   )}
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className='space-y-1'>
-                    <p>{channelDisplay.tooltip}</p>
-                    {channelChain && (
-                      <p className='text-muted-foreground text-xs'>
-                        {t('Chain')}: {channelChain}
+                  {hasRetryChain && (
+                    <Popover>
+                      <PopoverTrigger
+                        render={
+                          <button
+                            type='button'
+                            className='text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-5 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:outline-none'
+                            aria-label={t('Retry Chain')}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        }
+                      >
+                        <GitBranch
+                          className='size-3.5 text-amber-500'
+                          aria-hidden='true'
+                        />
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side='top'
+                        align='start'
+                        className='w-64 text-xs'
+                      >
+                        <div className='flex flex-col gap-1'>
+                          <p className='font-medium'>{t('Retry Chain')}</p>
+                          <p className='text-muted-foreground font-mono break-all'>
+                            {channelChain}
+                          </p>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                  {affinity && (
+                    <button
+                      type='button'
+                      className='absolute -top-1 -right-1 leading-none text-amber-500'
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setAffinityTarget({
+                          rule_name: affinity.rule_name || '',
+                          using_group:
+                            affinity.using_group ||
+                            affinity.selected_group ||
+                            '',
+                          key_hint: affinity.key_hint || '',
+                          key_fp: affinity.key_fp || '',
+                        })
+                        setAffinityDialogOpen(true)
+                      }}
+                    >
+                      <Sparkles className='size-3 fill-current' />
+                    </button>
+                  )}
+                </div>
+                {channelDisplay.name && (
+                  <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
+                    {channelDisplay.name}
+                  </span>
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className='space-y-1'>
+                  <p>{channelDisplay.tooltip}</p>
+                  {channelChain && (
+                    <p className='text-muted-foreground text-xs'>
+                      {t('Chain')}: {channelChain}
+                    </p>
+                  )}
+                  {showMultiKeyIndex && (
+                    <p className='text-muted-foreground text-xs'>
+                      {t('Key')}: {multiKeyIndex}
+                    </p>
+                  )}
+                  {affinity && (
+                    <div className='border-t pt-1 text-xs'>
+                      <p className='font-medium'>{t('Channel Affinity')}</p>
+                      <p>
+                        {t('Rule')}: {affinity.rule_name || '-'}
                       </p>
-                    )}
-                    {showMultiKeyIndex && (
-                      <p className='text-muted-foreground text-xs'>
-                        {t('Key')}: {multiKeyIndex}
+                      <p>
+                        {t('Group')}:{' '}
+                        {sensitiveVisible
+                          ? affinity.using_group ||
+                            affinity.selected_group ||
+                            '-'
+                          : '••••'}
                       </p>
-                    )}
-                    {affinity && (
-                      <div className='border-t pt-1 text-xs'>
-                        <p className='font-medium'>{t('Channel Affinity')}</p>
-                        <p>
-                          {t('Rule')}: {affinity.rule_name || '-'}
-                        </p>
-                        <p>
-                          {t('Group')}:{' '}
-                          {sensitiveVisible
-                            ? affinity.using_group ||
-                              affinity.selected_group ||
-                              '-'
-                            : '••••'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                    </div>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
           )
         },
         size: 110,
@@ -901,21 +893,23 @@ export function useCommonLogsColumns(
 
           return (
             <>
-              <button
-                type='button'
-                className='group flex max-w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
-                onClick={() => setDialogOpen(true)}
-                title={t('Click to view the full conversation')}
-              >
-                <span className='text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline'>
-                  {latestMessage}
-                </span>
-                {messages.length > 1 && (
-                  <span className='text-muted-foreground/40 shrink-0 !font-normal'>
-                    +{messages.length - 1}
+              <TextTooltip content={t('Click to view the full conversation')}>
+                <button
+                  type='button'
+                  className='group flex max-w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
+                  onClick={() => setDialogOpen(true)}
+                  aria-label={t('Click to view the full conversation')}
+                >
+                  <span className='text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline'>
+                    {latestMessage}
                   </span>
-                )}
-              </button>
+                  {messages.length > 1 && (
+                    <span className='text-muted-foreground/40 shrink-0 !font-normal'>
+                      +{messages.length - 1}
+                    </span>
+                  )}
+                </button>
+              </TextTooltip>
               <RequestContentDialog
                 requestMessage={requestMessage}
                 log={log}
@@ -964,21 +958,19 @@ export function useCommonLogsColumns(
         }
 
         return (
-          <TooltipProvider delay={100}>
-            <Tooltip>
-              <TooltipTrigger render={<div className='max-w-[150px]' />}>
-                <span className='text-muted-foreground block truncate font-mono text-xs !font-normal'>
-                  {client}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent
-                side='top'
-                className='max-w-md font-mono text-xs break-all'
-              >
+          <Tooltip>
+            <TooltipTrigger render={<div className='max-w-[150px]' />}>
+              <span className='text-muted-foreground block truncate font-mono text-xs !font-normal'>
                 {client}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent
+              side='top'
+              className='max-w-md font-mono text-xs break-all'
+            >
+              {client}
+            </TooltipContent>
+          </Tooltip>
         )
       },
       size: 150,
@@ -1023,25 +1015,14 @@ export function useCommonLogsColumns(
           if (groupRatioText) metaParts.push(groupRatioText)
           return (
             <div className='flex max-w-[105px] min-w-0 flex-col gap-0.5'>
-              <TooltipProvider delay={100}>
-                <Tooltip>
-                  <TooltipTrigger render={<div className='max-w-full' />}>
-                    <StatusBadge
-                      label={displayName}
-                      icon={KeyRound}
-                      copyText={sensitiveVisible ? tokenName : undefined}
-                      size='sm'
-                      showDot={false}
-                      className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)] font-normal [&>span]:truncate'
-                    />
-                  </TooltipTrigger>
-                  {sensitiveVisible && tokenName.length > 16 && (
-                    <TooltipContent side='top' className='max-w-xs break-all'>
-                      {tokenName}
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+              <StatusBadge
+                label={displayName}
+                icon={KeyRound}
+                copyText={sensitiveVisible ? tokenName : undefined}
+                size='sm'
+                showDot={false}
+                className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)] font-normal [&>span]:truncate'
+              />
               {metaParts.length > 0 && (
                 <span className='text-muted-foreground/60 truncate [font-family:var(--font-body)] !text-xs'>
                   {metaParts.join(' · ')}
@@ -1129,14 +1110,16 @@ export function useCommonLogsColumns(
 
           return (
             <>
-              <button
-                type='button'
-                className='group flex max-w-[150px] items-center gap-1 text-left text-xs'
-                onClick={() => setDialogOpen(true)}
-                title={t('Click to view full details')}
-              >
-                {detailContent}
-              </button>
+              <TextTooltip content={t('Click to view full details')}>
+                <button
+                  type='button'
+                  className='group flex max-w-[150px] items-center gap-1 text-left text-xs'
+                  onClick={() => setDialogOpen(true)}
+                  aria-label={t('Click to view full details')}
+                >
+                  {detailContent}
+                </button>
+              </TextTooltip>
               <DetailsDialog
                 log={log}
                 isAdmin={isAdmin}

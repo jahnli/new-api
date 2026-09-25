@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Dialog } from '@/components/dialog'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -149,25 +150,27 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
                   <span className='max-w-[28rem] truncate font-mono'>
                     {props.requestMessage.request_id}
                   </span>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='h-6 w-6 shrink-0 p-0'
-                    onClick={() =>
-                      void handleCopy(
-                        props.requestMessage.request_id,
-                        'request-id'
-                      )
-                    }
-                    title={t('Copy to clipboard')}
-                  >
-                    {copiedTarget === 'request-id' &&
-                    copiedText === props.requestMessage.request_id ? (
-                      <Check className='size-3 text-green-600' />
-                    ) : (
-                      <Copy className='size-3' />
-                    )}
-                  </Button>
+                  <TextTooltip content={t('Copy to clipboard')}>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-6 w-6 shrink-0 p-0'
+                      onClick={() =>
+                        void handleCopy(
+                          props.requestMessage.request_id,
+                          'request-id'
+                        )
+                      }
+                      aria-label={t('Copy to clipboard')}
+                    >
+                      {copiedTarget === 'request-id' &&
+                      copiedText === props.requestMessage.request_id ? (
+                        <Check className='size-3 text-green-600' />
+                      ) : (
+                        <Copy className='size-3' />
+                      )}
+                    </Button>
+                  </TextTooltip>
                 </div>
                 {props.client && (
                   <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
@@ -246,22 +249,24 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
                           </span>
                         )}
                       </CollapsibleTrigger>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-7 w-7 shrink-0 p-0'
-                        onClick={() =>
-                          void handleCopy(entry.message, entry.key)
-                        }
-                        title={t('Copy to clipboard')}
-                      >
-                        {copiedTarget === entry.key &&
-                        copiedText === entry.message ? (
-                          <Check className='size-3.5 text-green-600' />
-                        ) : (
-                          <Copy className='size-3.5' />
-                        )}
-                      </Button>
+                      <TextTooltip content={t('Copy to clipboard')}>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='h-7 w-7 shrink-0 p-0'
+                          onClick={() =>
+                            void handleCopy(entry.message, entry.key)
+                          }
+                          aria-label={t('Copy to clipboard')}
+                        >
+                          {copiedTarget === entry.key &&
+                          copiedText === entry.message ? (
+                            <Check className='size-3.5 text-green-600' />
+                          ) : (
+                            <Copy className='size-3.5' />
+                          )}
+                        </Button>
+                      </TextTooltip>
                     </div>
                     <CollapsibleContent className='CollapsibleContent'>
                       <p className='bg-muted/40 border-t py-2.5 pr-3 pl-9 text-sm leading-relaxed break-words whitespace-pre-wrap'>

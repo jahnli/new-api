@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useTranslation } from 'react-i18next'
 
 import { StaticDataTable } from '@/components/data-table'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -152,22 +153,26 @@ export function SystemTasksTable(props: SystemTasksTableProps) {
               <TableCell className='text-muted-foreground max-w-[280px] truncate py-3 align-middle font-mono text-xs'>
                 {task.locked_by || '-'}
               </TableCell>
-              <TableCell
-                className='text-muted-foreground py-3 align-middle text-xs whitespace-nowrap'
-                title={formatTimestampToDate(task.updated_at)}
-              >
-                {formatTimestampRelative(
-                  task.updated_at,
-                  'seconds',
-                  toIntlLocale(i18n.language)
-                )}
-              </TableCell>
-              <TableCell
-                className='text-destructive max-w-[220px] truncate py-3 pr-4 align-middle text-xs'
-                title={task.error || undefined}
-              >
-                {task.error || '-'}
-              </TableCell>
+              <TextTooltip content={formatTimestampToDate(task.updated_at)}>
+                <TableCell
+                  tabIndex={0}
+                  className='text-muted-foreground py-3 align-middle text-xs whitespace-nowrap'
+                >
+                  {formatTimestampRelative(
+                    task.updated_at,
+                    'seconds',
+                    toIntlLocale(i18n.language)
+                  )}
+                </TableCell>
+              </TextTooltip>
+              <TextTooltip content={task.error} onlyWhenOverflow>
+                <TableCell
+                  tabIndex={task.error ? 0 : undefined}
+                  className='text-destructive max-w-[220px] truncate py-3 pr-4 align-middle text-xs'
+                >
+                  {task.error || '-'}
+                </TableCell>
+              </TextTooltip>
             </TableRow>
           )
         })}

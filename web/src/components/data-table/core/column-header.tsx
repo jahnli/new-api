@@ -22,10 +22,10 @@ import {
   ArrowUp as ArrowUpIcon,
   ChevronsUpDown as CaretSortIcon,
   EyeOff as EyeNoneIcon,
-  Info,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { DescriptionTooltip } from '@/components/description-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -38,12 +38,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 import type { DataTableSortField } from './types'
@@ -147,6 +141,12 @@ export function DataTableColumnHeader<TData, TValue>({
 
   return (
     <div className={cn('flex items-center space-x-2', className)}>
+      {description && descriptionPosition === 'after-title' ? (
+        <>
+          {titleContent}
+          <DescriptionTooltip description={description} />
+        </>
+      ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -154,13 +154,17 @@ export function DataTableColumnHeader<TData, TValue>({
               variant='ghost'
               size='sm'
               className='data-popup-open:bg-accent -ms-3 h-8'
+              aria-label={
+                description && descriptionPosition === 'after-title'
+                  ? t('Sort by')
+                  : undefined
+              }
             />
           }
         >
-          {titleContent}
-          {description && descriptionPosition === 'after-title' ? (
-            <DescriptionTooltip description={description} />
-          ) : null}
+          {description && descriptionPosition === 'after-title'
+            ? null
+            : titleContent}
           <SortDirectionIcon
             direction={resolveSortDirection(
               column,
@@ -215,27 +219,5 @@ export function DataTableColumnHeader<TData, TValue>({
         <DescriptionTooltip description={description} />
       ) : null}
     </div>
-  )
-}
-
-function DescriptionTooltip({ description }: { description: string }) {
-  return (
-    <TooltipProvider delay={0}>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Info
-              className='text-muted-foreground size-3.5 shrink-0 cursor-help'
-              aria-label={description}
-            />
-          }
-        />
-        <TooltipContent className='max-w-64'>
-          <p className='text-xs leading-relaxed whitespace-pre-line'>
-            {description}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
   )
 }

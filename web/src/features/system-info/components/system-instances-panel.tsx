@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ErrorState } from '@/components/error-state'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,7 +35,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { toIntlLocale } from '@/i18n/languages'
@@ -198,14 +198,12 @@ function ResourceCell(props: ResourceCellProps) {
   if (!props.tooltip) return content
 
   return (
-    <TooltipProvider delay={100}>
-      <Tooltip>
-        <TooltipTrigger className='block w-full rounded-sm text-left focus-visible:ring-2 focus-visible:outline-none'>
-          {content}
-        </TooltipTrigger>
-        <TooltipContent className='max-w-80'>{props.tooltip}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger className='block w-full rounded-sm text-left focus-visible:ring-2 focus-visible:outline-none'>
+        {content}
+      </TooltipTrigger>
+      <TooltipContent className='max-w-80'>{props.tooltip}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -351,19 +349,17 @@ function SystemInstancesList(props: SystemInstancesTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell className='py-2.5 align-middle'>
-                  <TooltipProvider delay={100}>
-                    <Tooltip>
-                      <TooltipTrigger
-                        className='inline-flex shrink-0 rounded-full focus-visible:ring-2 focus-visible:outline-none'
-                        aria-label={t('Node role')}
-                      >
-                        <Badge variant='outline'>{roleLabel(instance)}</Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {t(roleDescriptionKey(instance))}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger
+                      className='inline-flex shrink-0 rounded-full focus-visible:ring-2 focus-visible:outline-none'
+                      aria-label={t('Node role')}
+                    >
+                      <Badge variant='outline'>{roleLabel(instance)}</Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {t(roleDescriptionKey(instance))}
+                    </TooltipContent>
+                  </Tooltip>
                 </TableCell>
                 <TableCell className='py-2.5 align-middle'>
                   <ResourceCell value={resources?.cpu?.usage_percent} />
@@ -415,51 +411,52 @@ function SystemInstancesList(props: SystemInstancesTableProps) {
                 <TableCell className='text-muted-foreground py-2.5 align-middle text-xs whitespace-nowrap'>
                   {formatTimestampToDate(instance.started_at)}
                 </TableCell>
-                <TableCell
-                  className='text-muted-foreground py-2.5 align-middle text-xs whitespace-nowrap'
-                  title={formatTimestampToDate(instance.last_seen_at)}
+                <TextTooltip
+                  content={formatTimestampToDate(instance.last_seen_at)}
                 >
-                  {formatTimestampRelative(
-                    instance.last_seen_at,
-                    'seconds',
-                    toIntlLocale(i18n.language)
-                  )}
-                </TableCell>
+                  <TableCell
+                    tabIndex={0}
+                    className='text-muted-foreground py-2.5 align-middle text-xs whitespace-nowrap'
+                  >
+                    {formatTimestampRelative(
+                      instance.last_seen_at,
+                      'seconds',
+                      toIntlLocale(i18n.language)
+                    )}
+                  </TableCell>
+                </TextTooltip>
                 <TableCell className='py-2.5 pr-4 text-right align-middle'>
                   {instance.status === 'stale' ? (
-                    <TooltipProvider delay={100}>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              type='button'
-                              variant='destructive'
-                              size='icon-xs'
-                              onClick={() =>
-                                props.onDeleteStaleInstance(instance)
-                              }
-                              disabled={
-                                props.isDeletingInstance ||
-                                isDeletingThisInstance
-                              }
-                              aria-label={t('Delete stale instance')}
-                            >
-                              {isDeletingThisInstance ? (
-                                <Loader2
-                                  className='size-3 animate-spin'
-                                  aria-hidden='true'
-                                />
-                              ) : (
-                                <Trash2 className='size-3' aria-hidden='true' />
-                              )}
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>
-                          {t('Delete stale instance')}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            type='button'
+                            variant='destructive'
+                            size='icon-xs'
+                            onClick={() =>
+                              props.onDeleteStaleInstance(instance)
+                            }
+                            disabled={
+                              props.isDeletingInstance || isDeletingThisInstance
+                            }
+                            aria-label={t('Delete stale instance')}
+                          >
+                            {isDeletingThisInstance ? (
+                              <Loader2
+                                className='size-3 animate-spin'
+                                aria-hidden='true'
+                              />
+                            ) : (
+                              <Trash2 className='size-3' aria-hidden='true' />
+                            )}
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>
+                        {t('Delete stale instance')}
+                      </TooltipContent>
+                    </Tooltip>
                   ) : (
                     <span className='text-muted-foreground text-xs'>-</span>
                   )}

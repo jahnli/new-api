@@ -1,11 +1,9 @@
-import { Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { CopyButton } from '@/components/copy-button'
 import { Dialog } from '@/components/dialog'
-import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 interface PromptDialogProps {
   prompt: string
@@ -21,7 +19,6 @@ export function PromptDialog({
   onOpenChange,
 }: PromptDialogProps) {
   const { t } = useTranslation()
-  const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
 
   return (
     <Dialog
@@ -39,19 +36,14 @@ export function PromptDialog({
           <div className='space-y-2'>
             <Label className='text-sm font-semibold'>{t('Prompt')}</Label>
             <div className='bg-muted/50 relative rounded-md border p-3'>
-              <Button
+              <CopyButton
+                value={prompt}
                 variant='ghost'
                 size='sm'
                 className='absolute top-2 right-2 h-8 w-8 p-0'
-                onClick={() => copyToClipboard(prompt)}
-                title={t('Copy to clipboard')}
-              >
-                {copiedText === prompt ? (
-                  <Check className='size-4 text-green-600' />
-                ) : (
-                  <Copy className='size-4' />
-                )}
-              </Button>
+                iconClassName='size-4'
+                tooltip={t('Copy to clipboard')}
+              />
               <p className='pr-10 text-sm leading-relaxed break-words whitespace-pre-wrap'>
                 {prompt || '-'}
               </p>
@@ -65,19 +57,14 @@ export function PromptDialog({
                 {t('Prompt (EN)')}
               </Label>
               <div className='bg-muted/50 relative rounded-md border p-3'>
-                <Button
+                <CopyButton
+                  value={promptEn}
                   variant='ghost'
                   size='sm'
                   className='absolute top-2 right-2 h-8 w-8 p-0'
-                  onClick={() => copyToClipboard(promptEn)}
-                  title={t('Copy to clipboard')}
-                >
-                  {copiedText === promptEn ? (
-                    <Check className='size-4 text-green-600' />
-                  ) : (
-                    <Copy className='size-4' />
-                  )}
-                </Button>
+                  iconClassName='size-4'
+                  tooltip={t('Copy to clipboard')}
+                />
                 <p className='pr-10 text-sm leading-relaxed break-words whitespace-pre-wrap'>
                   {promptEn}
                 </p>

@@ -5,10 +5,10 @@ import { useState } from 'react'
 
 import { DataTableColumnHeader } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDemoMode } from '@/hooks/use-demo-mode'
@@ -34,18 +34,16 @@ export function CacheTooltip({
   if (tokens <= 0) return null
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger
-          render={<Zap className={`size-3 flex-shrink-0 ${color}`} />}
-        />
-        <TooltipContent side='top'>
-          <p className='text-xs'>
-            {label}: {formatTokens(tokens)}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger
+        render={<Zap className={`size-3 flex-shrink-0 ${color}`} />}
+      />
+      <TooltipContent side='top'>
+        <p className='text-xs'>
+          {label}: {formatTokens(tokens)}
+        </p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -207,16 +205,18 @@ export function createFailReasonColumn<T>(config: {
 
       return (
         <>
-          <button
-            type='button'
-            className='group flex max-w-[200px] items-center gap-1 text-left text-xs'
-            onClick={() => setDialogOpen(true)}
-            title={cellTitle}
-          >
-            <span className='truncate leading-snug text-red-600 group-hover:underline dark:text-red-400'>
-              {failReason}
-            </span>
-          </button>
+          <TextTooltip content={cellTitle}>
+            <button
+              type='button'
+              className='group flex max-w-[200px] items-center gap-1 text-left text-xs'
+              onClick={() => setDialogOpen(true)}
+              aria-label={cellTitle}
+            >
+              <span className='truncate leading-snug text-red-600 group-hover:underline dark:text-red-400'>
+                {failReason}
+              </span>
+            </button>
+          </TextTooltip>
           <FailReasonDialog
             failReason={failReason}
             open={dialogOpen}

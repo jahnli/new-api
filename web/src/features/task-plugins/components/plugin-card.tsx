@@ -20,6 +20,7 @@ import { flexRender, type Row } from '@tanstack/react-table'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { resolveLocalizedText } from '@/lib/localized-text'
 
@@ -118,23 +119,21 @@ function PluginCardComponent({ row }: { row: Row<TaskPluginListItem> }) {
           <div className={labelClass}>{t('Models')}</div>
           <div className='flex flex-wrap gap-1'>
             {models.slice(0, MAX_VISIBLE_MODELS).map((model) => (
-              <Badge
-                key={model}
-                variant='outline'
-                className='max-w-full font-mono font-normal'
-                title={model}
-              >
-                <span className='min-w-0 truncate'>{model}</span>
-              </Badge>
+              <TextTooltip key={model} content={model}>
+                <Badge
+                  variant='outline'
+                  className='max-w-full font-mono font-normal'
+                >
+                  <span className='min-w-0 truncate'>{model}</span>
+                </Badge>
+              </TextTooltip>
             ))}
             {hiddenModels.length > 0 ? (
-              <Badge
-                variant='secondary'
-                className='font-normal'
-                title={hiddenModels.join(', ')}
-              >
-                +{hiddenModels.length}
-              </Badge>
+              <TextTooltip content={hiddenModels.join(', ')}>
+                <Badge variant='secondary' className='font-normal'>
+                  +{hiddenModels.length}
+                </Badge>
+              </TextTooltip>
             ) : null}
           </div>
         </div>

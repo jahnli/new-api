@@ -24,6 +24,7 @@ import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import {
   Command,
@@ -313,12 +314,11 @@ export function ChannelProviderPicker(props: ChannelProviderPickerProps) {
                     </span>
                     <span className='min-w-0 flex-1'>
                       <span className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1'>
-                        <span
-                          className='max-w-full truncate font-medium'
-                          title={option.label}
-                        >
-                          {option.label}
-                        </span>
+                        <TextTooltip content={option.label} onlyWhenOverflow>
+                          <span className='max-w-full truncate font-medium'>
+                            {option.label}
+                          </span>
+                        </TextTooltip>
                         {option.badge && (
                           <StatusBadge
                             label={t(option.badge.labelKey)}
@@ -338,12 +338,13 @@ export function ChannelProviderPicker(props: ChannelProviderPickerProps) {
                         )}
                       </span>
                       {option.description && (
-                        <span
-                          className='text-muted-foreground mt-1 line-clamp-2 text-xs leading-relaxed break-words'
-                          title={option.detail || option.description}
+                        <TextTooltip
+                          content={option.detail || option.description}
                         >
-                          {option.description}
-                        </span>
+                          <span className='text-muted-foreground mt-1 line-clamp-2 text-xs leading-relaxed break-words'>
+                            {option.description}
+                          </span>
+                        </TextTooltip>
                       )}
                     </span>
                   </span>
@@ -361,24 +362,24 @@ export function ChannelProviderPicker(props: ChannelProviderPickerProps) {
                         (option.plugin ? t('Plugin') : t('Built-in'))}
                     </Badge>
                     {option.extensionNames && (
-                      <span
-                        aria-label={t('Plugin extensions')}
-                        title={option.extensionSummary}
-                        className='text-muted-foreground flex min-w-0 items-center gap-1 text-xs'
-                      >
-                        <Puzzle className='size-3' aria-hidden='true' />
-                        <span className='truncate'>
-                          {option.extensionNames}
+                      <TextTooltip content={option.extensionSummary}>
+                        <span
+                          aria-label={t('Plugin extensions')}
+                          className='text-muted-foreground flex min-w-0 items-center gap-1 text-xs'
+                        >
+                          <Puzzle className='size-3' aria-hidden='true' />
+                          <span className='truncate'>
+                            {option.extensionNames}
+                          </span>
                         </span>
-                      </span>
+                      </TextTooltip>
                     )}
                     {option.plugin && (
-                      <span
-                        className='text-muted-foreground min-w-0 truncate text-xs'
-                        title={option.plugin.key}
-                      >
-                        {option.plugin.key}
-                      </span>
+                      <TextTooltip content={option.plugin.key} onlyWhenOverflow>
+                        <span className='text-muted-foreground min-w-0 truncate text-xs'>
+                          {option.plugin.key}
+                        </span>
+                      </TextTooltip>
                     )}
                     {option.target.kind === 'builtin' && (
                       <span className='text-muted-foreground ml-auto shrink-0 text-[11px] tabular-nums'>

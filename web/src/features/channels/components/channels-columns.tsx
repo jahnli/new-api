@@ -25,7 +25,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { toIntlLocale } from '@/i18n/languages'
@@ -386,29 +385,27 @@ export function BalanceCell({ channel }: { channel: Channel }) {
   // Tag row: only show cumulative used quota
   if (isTagRow) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <StatusBadge
-                label={
-                  sensitiveVisible
-                    ? `${t('Used:')} ${usedDisplay}`
-                    : maskedUsedLabel
-                }
-                variant='neutral'
-                size='sm'
-                copyable={false}
-                showDot={false}
-                className='-ml-1.5 cursor-help'
-              />
-            }
-          />
-          <TooltipContent>
-            <p>{sensitiveVisible ? usedLabel : maskedUsedLabel}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <StatusBadge
+              label={
+                sensitiveVisible
+                  ? `${t('Used:')} ${usedDisplay}`
+                  : maskedUsedLabel
+              }
+              variant='neutral'
+              size='sm'
+              copyable={false}
+              showDot={false}
+              className='-ml-1.5 cursor-help'
+            />
+          }
+        />
+        <TooltipContent>
+          <p>{sensitiveVisible ? usedLabel : maskedUsedLabel}</p>
+        </TooltipContent>
+      </Tooltip>
     )
   }
 
@@ -508,7 +505,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
   )
 
   return (
-    <TooltipProvider>
+    <>
       <div className='-ml-1.5 flex items-center gap-1'>
         <Tooltip>
           <TooltipTrigger
@@ -592,7 +589,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
           }}
         />
       )}
-    </TooltipProvider>
+    </>
   )
 }
 
@@ -729,52 +726,46 @@ export function useChannelsColumns(
                     maxWidth='max-w-full'
                   />
                   {isPassThrough && (
-                    <TooltipProvider delay={100}>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <AlertTriangle className='h-3.5 w-3.5 flex-shrink-0 text-amber-500' />
-                          }
-                        />
-                        <TooltipContent side='top'>
-                          {t(
-                            'Request body pass-through is enabled. The request body will be sent directly to the upstream without any conversion.'
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <AlertTriangle className='h-3.5 w-3.5 flex-shrink-0 text-amber-500' />
+                        }
+                      />
+                      <TooltipContent side='top'>
+                        {t(
+                          'Request body pass-through is enabled. The request body will be sent directly to the upstream without any conversion.'
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                   {hasParamOverride && (
-                    <TooltipProvider delay={100}>
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <SlidersHorizontal className='text-info h-3.5 w-3.5 flex-shrink-0' />
-                          }
-                        />
-                        <TooltipContent side='top'>
-                          {t('Override request parameters')}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <SlidersHorizontal className='text-info h-3.5 w-3.5 flex-shrink-0' />
+                        }
+                      />
+                      <TooltipContent side='top'>
+                        {t('Override request parameters')}
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                   <UpstreamUpdateTags channel={channel} />
                 </div>
                 {channel.remark && (
-                  <TooltipProvider delay={100}>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <span className='text-muted-foreground text-xs' />
-                        }
-                      >
-                        {truncateText(channel.remark, 40)}
-                      </TooltipTrigger>
-                      <TooltipContent side='bottom' className='max-w-xs'>
-                        {channel.remark}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <span className='text-muted-foreground text-xs' />
+                      }
+                    >
+                      {truncateText(channel.remark, 40)}
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom' className='max-w-xs'>
+                      {channel.remark}
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>
@@ -827,20 +818,16 @@ export function useChannelsColumns(
           return (
             <div className='flex max-w-full min-w-0 items-center gap-2 overflow-hidden'>
               {isMultiKey && (
-                <TooltipProvider delay={100}>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <span className='border-border bg-muted text-primary inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border' />
-                      }
-                    >
-                      <MultiKeyModeIcon className='h-3 w-3' />
-                    </TooltipTrigger>
-                    <TooltipContent side='top'>
-                      {multiKeyTooltip}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span className='border-border bg-muted text-primary inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border' />
+                    }
+                  >
+                    <MultiKeyModeIcon className='h-3 w-3' />
+                  </TooltipTrigger>
+                  <TooltipContent side='top'>{multiKeyTooltip}</TooltipContent>
+                </Tooltip>
               )}
               {type === CHANNEL_TYPE_TASK_PLUGIN ? (
                 <TaskPluginChannelBadge
@@ -849,70 +836,66 @@ export function useChannelsColumns(
                   }
                 />
               ) : (
-                <TooltipProvider delay={300}>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <div className='max-w-full min-w-0 overflow-hidden' />
-                      }
-                    >
-                      <ProviderBadge
-                        iconKey={`${iconName}.Color`}
-                        iconSize={18}
-                        label={typeName}
-                        colorText={false}
-                        copyable={false}
-                        showDot={false}
-                        className='max-w-full min-w-0 overflow-hidden'
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent side='top'>{typeName}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <div className='max-w-full min-w-0 overflow-hidden' />
+                    }
+                  >
+                    <ProviderBadge
+                      iconKey={`${iconName}.Color`}
+                      iconSize={18}
+                      label={typeName}
+                      colorText={false}
+                      copyable={false}
+                      showDot={false}
+                      className='max-w-full min-w-0 overflow-hidden'
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side='top'>{typeName}</TooltipContent>
+                </Tooltip>
               )}
               {isIonet && (
-                <TooltipProvider delay={100}>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <span
-                          className='flex cursor-pointer items-center gap-1.5 text-xs font-medium'
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (!deploymentId) {
-                              return
-                            }
-                            const targetUrl = `/models/deployments?dFilter=${encodeURIComponent(String(deploymentId))}`
-                            window.open(targetUrl, '_blank', 'noopener')
-                          }}
-                        />
-                      }
-                    >
-                      <StatusBadge
-                        label='IO.NET'
-                        variant='purple'
-                        size='sm'
-                        copyable={false}
-                        className='cursor-pointer'
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span
+                        className='flex cursor-pointer items-center gap-1.5 text-xs font-medium'
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!deploymentId) {
+                            return
+                          }
+                          const targetUrl = `/models/deployments?dFilter=${encodeURIComponent(String(deploymentId))}`
+                          window.open(targetUrl, '_blank', 'noopener')
+                        }}
                       />
-                    </TooltipTrigger>
-                    <TooltipContent side='top'>
-                      <div className='max-w-xs space-y-1'>
-                        <div className='text-xs'>
-                          {t('From IO.NET deployment')}
-                        </div>
-                        {deploymentId && (
-                          <div className='text-muted-foreground font-mono text-xs'>
-                            {t('Deployment ID')}: {deploymentId}
-                          </div>
-                        )}
-                        <div className='text-muted-foreground text-xs'>
-                          {t('Click to open deployment')}
-                        </div>
+                    }
+                  >
+                    <StatusBadge
+                      label='IO.NET'
+                      variant='purple'
+                      size='sm'
+                      copyable={false}
+                      className='cursor-pointer'
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side='top'>
+                    <div className='max-w-xs space-y-1'>
+                      <div className='text-xs'>
+                        {t('From IO.NET deployment')}
                       </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                      {deploymentId && (
+                        <div className='text-muted-foreground font-mono text-xs'>
+                          {t('Deployment ID')}: {deploymentId}
+                        </div>
+                      )}
+                      <div className='text-muted-foreground text-xs'>
+                        {t('Click to open deployment')}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           )
@@ -1002,32 +985,30 @@ export function useChannelsColumns(
 
             if (statusReason || statusTime) {
               return (
-                <TooltipProvider delay={100}>
-                  <Tooltip>
-                    <TooltipTrigger render={<span />}>
-                      <StatusBadge
-                        label={label}
-                        variant={config.variant}
-                        size='sm'
-                        copyable={false}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent side='top' className='max-w-xs'>
-                      <div className='space-y-1 text-xs'>
-                        {statusReason && (
-                          <div>
-                            {t('Reason:')} {statusReason}
-                          </div>
-                        )}
-                        {statusTime && (
-                          <div>
-                            {t('Time:')} {statusTime}
-                          </div>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger render={<span />}>
+                    <StatusBadge
+                      label={label}
+                      variant={config.variant}
+                      size='sm'
+                      copyable={false}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side='top' className='max-w-xs'>
+                    <div className='space-y-1 text-xs'>
+                      {statusReason && (
+                        <div>
+                          {t('Reason:')} {statusReason}
+                        </div>
+                      )}
+                      {statusTime && (
+                        <div>
+                          {t('Time:')} {statusTime}
+                        </div>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
               )
             }
           }
@@ -1204,24 +1185,22 @@ export function useChannelsColumns(
 
           // For valid timestamps, show tooltip with full date
           return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <StatusBadge
-                      label={timeText}
-                      variant='neutral'
-                      size='sm'
-                      copyable={false}
-                      className='-ml-1.5 cursor-pointer'
-                    />
-                  }
-                />
-                <TooltipContent side='top'>
-                  <p className='font-mono text-sm'>{fullDate}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <StatusBadge
+                    label={timeText}
+                    variant='neutral'
+                    size='sm'
+                    copyable={false}
+                    className='-ml-1.5 cursor-pointer'
+                  />
+                }
+              />
+              <TooltipContent side='top'>
+                <p className='font-mono text-sm'>{fullDate}</p>
+              </TooltipContent>
+            </Tooltip>
           )
         },
         size: 120,

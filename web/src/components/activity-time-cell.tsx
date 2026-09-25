@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Fragment, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import {
   Tooltip,
   TooltipContent,
@@ -94,13 +95,15 @@ function ActivityTimeLabel(props: { label: string; icon?: ReactNode }) {
   }
 
   return (
-    <span
-      title={props.label}
-      className='text-muted-foreground inline-flex size-4 items-center justify-center'
-    >
-      {props.icon}
-      <span className='sr-only'>{props.label}</span>
-    </span>
+    <TextTooltip content={props.label} delay={0}>
+      <span
+        tabIndex={0}
+        className='text-muted-foreground inline-flex size-4 items-center justify-center'
+      >
+        {props.icon}
+        <span className='sr-only'>{props.label}</span>
+      </span>
+    </TextTooltip>
   )
 }
 

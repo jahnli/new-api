@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   HoverCard,
@@ -68,13 +69,14 @@ function ModelBadgeContent(props: ModelBadgeProps & { copyable: boolean }) {
         )}
       >
         {provider?.icon && (
-          <span
-            className='flex h-[18px] w-[18px] shrink-0 items-center justify-center'
-            title={provider.label ?? provider.name}
-            aria-label={provider.label ?? provider.name}
-          >
-            {getLobeIcon(provider.icon, 18)}
-          </span>
+          <TextTooltip content={provider.label ?? provider.name}>
+            <span
+              className='flex h-[18px] w-[18px] shrink-0 items-center justify-center'
+              aria-label={provider.label ?? provider.name}
+            >
+              {getLobeIcon(provider.icon, 18)}
+            </span>
+          </TextTooltip>
         )}
         <span
           className={

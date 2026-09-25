@@ -10,6 +10,7 @@ import {
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -272,61 +273,64 @@ function CascaderColumn(props: CascaderColumnProps) {
         )
 
         return (
-          <div
-            key={node.value}
-            role='option'
-            aria-selected={isSelected}
-            aria-disabled={isDisabled}
-            aria-expanded={canNavigate ? isActive : undefined}
-            tabIndex={!isDisabled || canNavigate ? 0 : -1}
-            title={errorText}
-            className={cn(
-              'mx-1 flex items-start gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring',
-              isDisabled && 'text-muted-foreground opacity-50',
-              isDisabled && !canNavigate && 'cursor-not-allowed',
-              (!isDisabled || canNavigate) && 'cursor-pointer hover:bg-accent',
-              isActive && (!isDisabled || canNavigate) && 'bg-accent',
-              isSelected && !isDisabled && 'text-primary font-medium'
-            )}
-            onMouseEnter={() => {
-              if (!isDisabled || canNavigate) {
-                props.onHover(node, props.depth)
-              }
-            }}
-            onClick={() => {
-              if (isDisabled && canNavigate) {
-                props.onHover(node, props.depth)
-                return
-              }
-              props.onSelect(node)
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowRight' && canNavigate) {
-                event.preventDefault()
-                props.onHover(node, props.depth)
-              } else if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                event.currentTarget.click()
-              }
-            }}
-          >
-            <span className='min-w-0 flex-1'>
-              <span className='block truncate'>{node.label}</span>
-              {errorText && (
-                <span className='mt-0.5 flex items-start gap-1 text-[11px] leading-tight'>
-                  <AlertCircle className='mt-px size-3 shrink-0' />
-                  <span className='line-clamp-2'>{errorText}</span>
-                </span>
+          <TextTooltip key={node.value} content={errorText}>
+            <div
+              role='option'
+              aria-selected={isSelected}
+              aria-disabled={isDisabled}
+              aria-expanded={canNavigate ? isActive : undefined}
+              tabIndex={!isDisabled || canNavigate || errorText ? 0 : -1}
+              className={cn(
+                'mx-1 flex items-start gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring',
+                isDisabled && 'text-muted-foreground opacity-50',
+                isDisabled && !canNavigate && 'cursor-not-allowed',
+                (!isDisabled || canNavigate) &&
+                  'cursor-pointer hover:bg-accent',
+                isActive && (!isDisabled || canNavigate) && 'bg-accent',
+                isSelected && !isDisabled && 'text-primary font-medium'
               )}
-            </span>
-            {isSelected && <Check className='text-primary size-3.5 shrink-0' />}
-            {!isSelected && isChildrenLoading && (
-              <Loader2 className='text-muted-foreground size-3.5 shrink-0 animate-spin' />
-            )}
-            {!isSelected && !isChildrenLoading && hasChildren && (
-              <ChevronRight className='text-muted-foreground size-3.5 shrink-0' />
-            )}
-          </div>
+              onMouseEnter={() => {
+                if (!isDisabled || canNavigate) {
+                  props.onHover(node, props.depth)
+                }
+              }}
+              onClick={() => {
+                if (isDisabled && canNavigate) {
+                  props.onHover(node, props.depth)
+                  return
+                }
+                props.onSelect(node)
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowRight' && canNavigate) {
+                  event.preventDefault()
+                  props.onHover(node, props.depth)
+                } else if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  event.currentTarget.click()
+                }
+              }}
+            >
+              <span className='min-w-0 flex-1'>
+                <span className='block truncate'>{node.label}</span>
+                {errorText && (
+                  <span className='mt-0.5 flex items-start gap-1 text-[11px] leading-tight'>
+                    <AlertCircle className='mt-px size-3 shrink-0' />
+                    <span className='line-clamp-2'>{errorText}</span>
+                  </span>
+                )}
+              </span>
+              {isSelected && (
+                <Check className='text-primary size-3.5 shrink-0' />
+              )}
+              {!isSelected && isChildrenLoading && (
+                <Loader2 className='text-muted-foreground size-3.5 shrink-0 animate-spin' />
+              )}
+              {!isSelected && !isChildrenLoading && hasChildren && (
+                <ChevronRight className='text-muted-foreground size-3.5 shrink-0' />
+              )}
+            </div>
+          </TextTooltip>
         )
       })}
     </div>
@@ -372,46 +376,47 @@ function SearchResultList(props: SearchResultListProps) {
             (key, options) => t(key, options)
           )
           return (
-            <div
-              key={item.node.value}
-              role='option'
-              aria-selected={isSelected}
-              aria-disabled={isDisabled}
-              title={errorText}
-              className={cn(
-                'mx-1 flex cursor-pointer flex-col gap-0.5 rounded-md px-3 py-2 transition-colors',
-                isDisabled
-                  ? 'text-muted-foreground cursor-not-allowed opacity-50'
-                  : 'hover:bg-accent',
-                isSelected && 'bg-accent'
-              )}
-              onClick={() => props.onSelect(item.node)}
-            >
-              <div className='flex items-center gap-2'>
-                <span
-                  className={cn(
-                    'truncate text-sm',
-                    isSelected && 'text-primary font-medium'
+            <TextTooltip key={item.node.value} content={errorText}>
+              <div
+                role='option'
+                aria-selected={isSelected}
+                aria-disabled={isDisabled}
+                tabIndex={errorText ? 0 : undefined}
+                className={cn(
+                  'mx-1 flex cursor-pointer flex-col gap-0.5 rounded-md px-3 py-2 transition-colors',
+                  isDisabled
+                    ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'hover:bg-accent',
+                  isSelected && 'bg-accent'
+                )}
+                onClick={() => props.onSelect(item.node)}
+              >
+                <div className='flex items-center gap-2'>
+                  <span
+                    className={cn(
+                      'truncate text-sm',
+                      isSelected && 'text-primary font-medium'
+                    )}
+                  >
+                    {item.node.label}
+                  </span>
+                  {isSelected && (
+                    <Check className='text-primary size-3.5 shrink-0' />
                   )}
-                >
-                  {item.node.label}
-                </span>
-                {isSelected && (
-                  <Check className='text-primary size-3.5 shrink-0' />
+                </div>
+                {item.breadcrumb && (
+                  <span className='text-muted-foreground truncate text-[11px]'>
+                    {item.breadcrumb}
+                  </span>
+                )}
+                {errorText && (
+                  <span className='flex items-start gap-1 text-[11px] leading-tight'>
+                    <AlertCircle className='mt-px size-3 shrink-0' />
+                    <span>{errorText}</span>
+                  </span>
                 )}
               </div>
-              {item.breadcrumb && (
-                <span className='text-muted-foreground truncate text-[11px]'>
-                  {item.breadcrumb}
-                </span>
-              )}
-              {errorText && (
-                <span className='flex items-start gap-1 text-[11px] leading-tight'>
-                  <AlertCircle className='mt-px size-3 shrink-0' />
-                  <span>{errorText}</span>
-                </span>
-              )}
-            </div>
+            </TextTooltip>
           )
         })
       )}

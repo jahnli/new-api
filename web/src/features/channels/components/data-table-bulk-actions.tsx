@@ -100,7 +100,6 @@ export function DataTableBulkActions<TData>({
                 onClick={handleEnableAll}
                 className='size-8'
                 aria-label={t('Enable selected channels')}
-                title={t('Enable selected channels')}
               />
             }
           >
@@ -121,7 +120,6 @@ export function DataTableBulkActions<TData>({
                 onClick={handleDisableAll}
                 className='size-8'
                 aria-label={t('Disable selected channels')}
-                title={t('Disable selected channels')}
               />
             }
           >
@@ -142,7 +140,6 @@ export function DataTableBulkActions<TData>({
                 onClick={() => setShowTagDialog(true)}
                 className='size-8'
                 aria-label={t('Set tag for selected channels')}
-                title={t('Set tag for selected channels')}
               />
             }
           >
@@ -172,11 +169,6 @@ export function DataTableBulkActions<TData>({
                   !canEditSensitive && 'cursor-not-allowed opacity-50'
                 )}
                 aria-label={t('Delete selected channels')}
-                title={
-                  canEditSensitive
-                    ? t('Delete selected channels')
-                    : t('No permission to perform this action')
-                }
               />
             }
           >

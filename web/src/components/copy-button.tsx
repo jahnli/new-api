@@ -17,15 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Check, Copy } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { TooltipTriggerContext } from '@/context/tooltip-trigger-context'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { cn } from '@/lib/utils'
 
@@ -53,6 +50,7 @@ export function CopyButton({
   'aria-label': ariaLabel,
 }: CopyButtonProps) {
   const { t } = useTranslation()
+  const hasExternalTooltip = useContext(TooltipTriggerContext)
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
   const isCopied = copiedText === value
   const resolvedTooltip = tooltip ?? t('Copy to clipboard')
@@ -77,16 +75,11 @@ export function CopyButton({
     </Button>
   )
 
-  if (tooltip || successTooltip) {
-    return (
-      <Tooltip>
-        <TooltipTrigger render={button} />
-        <TooltipContent>
-          <p>{isCopied ? resolvedSuccessTooltip : resolvedTooltip}</p>
-        </TooltipContent>
-      </Tooltip>
-    )
-  }
+  if (hasExternalTooltip) return button
 
-  return button
+  return (
+    <TextTooltip content={isCopied ? resolvedSuccessTooltip : resolvedTooltip}>
+      {button}
+    </TextTooltip>
+  )
 }

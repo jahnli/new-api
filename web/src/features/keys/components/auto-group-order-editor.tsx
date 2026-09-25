@@ -23,6 +23,7 @@ import { useMemo, type ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { AutoGroupOrderItem } from '@/components/auto-group-order-item'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -163,34 +164,35 @@ export function AutoGroupOrderEditor(props: AutoGroupOrderEditorProps) {
                   className='text-muted-foreground size-3.5 shrink-0'
                 />
               )}
-              <span
-                data-slot='global-auto-order-chip'
-                title={option.desc}
-                className='bg-muted/30 flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-1'
-              >
+              <TextTooltip content={option.desc}>
                 <span
-                  data-slot='global-auto-order-index'
-                  aria-hidden='true'
-                  className='bg-primary/10 text-primary flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums'
+                  data-slot='global-auto-order-chip'
+                  className='bg-muted/30 flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-1'
                 >
-                  {index + 1}
-                </span>
-                <span
-                  data-slot='global-auto-order-name'
-                  className='max-w-40 truncate text-xs font-medium'
-                >
-                  {option.label}
-                </span>
-                {option.desc && (
                   <span
-                    data-slot='global-auto-order-description'
-                    className='sr-only'
+                    data-slot='global-auto-order-index'
+                    aria-hidden='true'
+                    className='bg-primary/10 text-primary flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums'
                   >
-                    {option.desc}
+                    {index + 1}
                   </span>
-                )}
-                <GroupRatioBadge ratio={option.ratio} />
-              </span>
+                  <span
+                    data-slot='global-auto-order-name'
+                    className='max-w-40 truncate text-xs font-medium'
+                  >
+                    {option.label}
+                  </span>
+                  {option.desc && (
+                    <span
+                      data-slot='global-auto-order-description'
+                      className='sr-only'
+                    >
+                      {option.desc}
+                    </span>
+                  )}
+                  <GroupRatioBadge ratio={option.ratio} />
+                </span>
+              </TextTooltip>
             </li>
           ))}
         </ol>

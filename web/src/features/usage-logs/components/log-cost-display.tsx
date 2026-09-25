@@ -29,7 +29,6 @@ import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDemoMode } from '@/hooks/use-demo-mode'
@@ -122,43 +121,41 @@ export function LogCostDisplay(props: LogCostDisplayProps) {
   }
 
   return (
-    <TooltipProvider>
-      <div className='inline-flex w-fit items-center gap-1.5'>
-        <StatusBadge
-          type='badge'
-          variant='neutral'
-          size='lg'
-          copyable={false}
-          className='border-border/80 bg-muted/60 text-foreground rounded-md border font-semibold tabular-nums'
-        >
-          {source ? (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <span
-                    className='inline-flex shrink-0 cursor-help'
-                    role='img'
-                    aria-label={source}
-                    tabIndex={0}
-                  >
-                    <HugeiconsIcon
-                      icon={isSubscription ? CrownIcon : Wallet01Icon}
-                      className='size-3.5'
-                      strokeWidth={2}
-                      aria-hidden='true'
-                    />
-                  </span>
-                }
-              />
-              <TooltipContent>{source}</TooltipContent>
-            </Tooltip>
-          ) : null}
-          <span className='whitespace-nowrap'>
-            <QuotaAmount quota={quota} masked={demoMode} />
-          </span>
-        </StatusBadge>
-        {showToolSurcharge ? <ToolSurchargeMarker /> : null}
-      </div>
-    </TooltipProvider>
+    <div className='inline-flex w-fit items-center gap-1.5'>
+      <StatusBadge
+        type='badge'
+        variant='neutral'
+        size='lg'
+        copyable={false}
+        className='border-border/80 bg-muted/60 text-foreground rounded-md border font-semibold tabular-nums'
+      >
+        {source ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  className='inline-flex shrink-0 cursor-help'
+                  role='img'
+                  aria-label={source}
+                  tabIndex={0}
+                >
+                  <HugeiconsIcon
+                    icon={isSubscription ? CrownIcon : Wallet01Icon}
+                    className='size-3.5'
+                    strokeWidth={2}
+                    aria-hidden='true'
+                  />
+                </span>
+              }
+            />
+            <TooltipContent>{source}</TooltipContent>
+          </Tooltip>
+        ) : null}
+        <span className='whitespace-nowrap'>
+          <QuotaAmount quota={quota} masked={demoMode} />
+        </span>
+      </StatusBadge>
+      {showToolSurcharge ? <ToolSurchargeMarker /> : null}
+    </div>
   )
 }

@@ -12,7 +12,6 @@ import { TitledCard } from '@/components/ui/titled-card'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { formatNumber } from '@/lib/format'
@@ -301,7 +300,6 @@ export function RechargeFormCard({
                           variant='outline'
                           onClick={() => onPaymentMethodSelect(method)}
                           disabled={disabled || !!paymentLoading}
-                          title={disabledReason}
                           aria-label={
                             disabledReason
                               ? `${method.name}. ${disabledReason}`
@@ -333,12 +331,20 @@ export function RechargeFormCard({
                       )
 
                       return disabled ? (
-                        <TooltipProvider key={method.type}>
-                          <Tooltip>
-                            <TooltipTrigger render={button} />
-                            <TooltipContent>{disabledReason}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Tooltip key={method.type}>
+                          <TooltipTrigger
+                            render={
+                              <span
+                                tabIndex={0}
+                                aria-label={disabledReason}
+                                className='min-w-0'
+                              />
+                            }
+                          >
+                            {button}
+                          </TooltipTrigger>
+                          <TooltipContent>{disabledReason}</TooltipContent>
+                        </Tooltip>
                       ) : (
                         button
                       )
@@ -399,7 +405,6 @@ export function RechargeFormCard({
                             variant='outline'
                             onClick={() => onWaffoMethodSelect(method, index)}
                             disabled={belowMin || !!paymentLoading}
-                            title={disabledReason}
                             aria-label={
                               disabledReason
                                 ? `${method.name}. ${disabledReason}`
@@ -422,12 +427,20 @@ export function RechargeFormCard({
                         )
 
                         return belowMin ? (
-                          <TooltipProvider key={methodKey}>
-                            <Tooltip>
-                              <TooltipTrigger render={button} />
-                              <TooltipContent>{disabledReason}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip key={methodKey}>
+                            <TooltipTrigger
+                              render={
+                                <span
+                                  tabIndex={0}
+                                  aria-label={disabledReason}
+                                  className='min-w-0 [&>button]:w-full'
+                                />
+                              }
+                            >
+                              {button}
+                            </TooltipTrigger>
+                            <TooltipContent>{disabledReason}</TooltipContent>
+                          </Tooltip>
                         ) : (
                           button
                         )

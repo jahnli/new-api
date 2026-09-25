@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import {
   formatLatency,
   formatThroughput,
@@ -82,63 +83,71 @@ export const ModelPerfBadge = memo(function ModelPerfBadge(
     >
       <dl className='flex min-w-0 items-start gap-5 text-xs tabular-nums'>
         <div className='w-24 shrink-0'>
-          <dt
-            title={t(
+          <TextTooltip
+            content={t(
               'Success rate excludes business rejections and includes the current partial hour.'
             )}
-            className='text-muted-foreground flex items-center justify-between gap-1 text-[11px] leading-4'
           >
-            <span>{t('Status')}</span>
-            <span className='font-mono'>
-              {hasSuccessRate ? `${successRate.toFixed(2)}%` : '—'}
-            </span>
-          </dt>
-          <dd
-            role='img'
-            aria-label={t(
+            <dt className='text-muted-foreground flex items-center justify-between gap-1 text-[11px] leading-4'>
+              <span>{t('Status')}</span>
+              <span className='font-mono'>
+                {hasSuccessRate ? `${successRate.toFixed(2)}%` : '—'}
+              </span>
+            </dt>
+          </TextTooltip>
+          <TextTooltip
+            content={t(
               'Recent success-rate samples; gray bars indicate missing data.'
             )}
-            title={t(
-              'Recent success-rate samples; gray bars indicate missing data.'
-            )}
-            className='mt-1 flex h-3 w-24 items-center gap-px'
           >
-            {STATUS_SLOTS.map((slot) => {
-              const rate = statusRates[slot]
-              return (
-                <span
-                  key={slot}
-                  aria-hidden
-                  className={cn(
-                    'h-full w-[3px] shrink-0 rounded-xs',
-                    rate != null &&
-                      Number.isFinite(rate) &&
-                      rate >= 0 &&
-                      rate <= 100
-                      ? getSuccessRateDotClass(rate)
-                      : 'bg-muted-foreground/15'
-                  )}
-                />
-              )
-            })}
-          </dd>
+            <dd
+              role='img'
+              aria-label={t(
+                'Recent success-rate samples; gray bars indicate missing data.'
+              )}
+              className='mt-1 flex h-3 w-24 items-center gap-px'
+            >
+              {STATUS_SLOTS.map((slot) => {
+                const rate = statusRates[slot]
+                return (
+                  <span
+                    key={slot}
+                    aria-hidden
+                    className={cn(
+                      'h-full w-[3px] shrink-0 rounded-xs',
+                      rate != null &&
+                        Number.isFinite(rate) &&
+                        rate >= 0 &&
+                        rate <= 100
+                        ? getSuccessRateDotClass(rate)
+                        : 'bg-muted-foreground/15'
+                    )}
+                  />
+                )
+              })}
+            </dd>
+          </TextTooltip>
         </div>
-        <div title={t('Average latency')} className='shrink-0'>
-          <dt className='text-muted-foreground text-[11px] leading-4'>
-            {t('Latency short')}
-          </dt>
-          <dd className='mt-1 font-mono whitespace-nowrap'>
-            {latencyText === '—' ? '—s' : latencyText}
-          </dd>
-        </div>
-        <div title={t('Throughput')} className='shrink-0'>
-          <dt className='text-muted-foreground text-[11px] leading-4'>
-            {t('Throughput short')}
-          </dt>
-          <dd className='mt-1 font-mono whitespace-nowrap'>
-            {throughputText === '—' ? '—t/s' : throughputText}
-          </dd>
-        </div>
+        <TextTooltip content={t('Average latency')}>
+          <div className='shrink-0'>
+            <dt className='text-muted-foreground text-[11px] leading-4'>
+              {t('Latency short')}
+            </dt>
+            <dd className='mt-1 font-mono whitespace-nowrap'>
+              {latencyText === '—' ? '—s' : latencyText}
+            </dd>
+          </div>
+        </TextTooltip>
+        <TextTooltip content={t('Throughput')}>
+          <div className='shrink-0'>
+            <dt className='text-muted-foreground text-[11px] leading-4'>
+              {t('Throughput short')}
+            </dt>
+            <dd className='mt-1 font-mono whitespace-nowrap'>
+              {throughputText === '—' ? '—t/s' : throughputText}
+            </dd>
+          </div>
+        </TextTooltip>
       </dl>
       {props.children}
     </div>

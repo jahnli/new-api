@@ -39,7 +39,6 @@ import { Toggle } from '@/components/ui/toggle'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { getFlowQuotaDates } from '@/features/dashboard/api'
@@ -537,24 +536,22 @@ export function FlowCharts(props: FlowChartsProps) {
               <span className='text-muted-foreground text-xs font-medium'>
                 {t('Flow width metric')}
               </span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        type='button'
-                        className='text-muted-foreground/60 hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded-md'
-                        aria-label={t('Flow width metric')}
-                      />
-                    }
-                  >
-                    <Info className='size-3.5' />
-                  </TooltipTrigger>
-                  <TooltipContent className='max-w-[14rem]'>
-                    {t('Choose how flow widths are calculated.')}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type='button'
+                      className='text-muted-foreground/60 hover:text-foreground flex size-5 shrink-0 items-center justify-center rounded-md'
+                      aria-label={t('Flow width metric')}
+                    />
+                  }
+                >
+                  <Info className='size-3.5' />
+                </TooltipTrigger>
+                <TooltipContent className='max-w-[14rem]'>
+                  {t('Choose how flow widths are calculated.')}
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Tabs
               value={metric}
@@ -670,55 +667,53 @@ export function FlowCharts(props: FlowChartsProps) {
             </IconBadge>
             <div className='text-sm font-semibold'>{chartTitle}</div>
           </div>
-          <TooltipProvider>
-            <div className='flex min-w-0 items-center gap-1 overflow-x-auto pb-1 lg:justify-end lg:pb-0'>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type='button'
-                      className='text-muted-foreground/60 hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md'
-                      aria-label={t('Show or hide flow columns')}
-                    />
-                  }
-                >
-                  <Info className='size-3.5' />
-                </TooltipTrigger>
-                <TooltipContent className='max-w-[16rem]'>
-                  {t('Click a stage to show or hide that column')}
-                </TooltipContent>
-              </Tooltip>
-              {stages.map((stage, index) => {
-                const meta = FLOW_STAGE_META[stage]
-                const visible = visibleStages.includes(stage)
-                return (
-                  <Fragment key={stage}>
-                    {index > 0 && (
-                      <ChevronRight className='text-muted-foreground/40 size-3.5 shrink-0' />
-                    )}
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Toggle
-                            variant='outline'
-                            size='sm'
-                            pressed={visible}
-                            onPressedChange={() => toggleStage(stage)}
-                            aria-label={t(meta.labelKey)}
-                            className={cn('shrink-0', !visible && 'opacity-50')}
-                          />
-                        }
-                      >
-                        {!visible && <EyeOff className='size-3' />}
-                        {t(meta.labelKey)}
-                      </TooltipTrigger>
-                      <TooltipContent>{t(meta.descKey)}</TooltipContent>
-                    </Tooltip>
-                  </Fragment>
-                )
-              })}
-            </div>
-          </TooltipProvider>
+          <div className='flex min-w-0 items-center gap-1 overflow-x-auto pb-1 lg:justify-end lg:pb-0'>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type='button'
+                    className='text-muted-foreground/60 hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md'
+                    aria-label={t('Show or hide flow columns')}
+                  />
+                }
+              >
+                <Info className='size-3.5' />
+              </TooltipTrigger>
+              <TooltipContent className='max-w-[16rem]'>
+                {t('Click a stage to show or hide that column')}
+              </TooltipContent>
+            </Tooltip>
+            {stages.map((stage, index) => {
+              const meta = FLOW_STAGE_META[stage]
+              const visible = visibleStages.includes(stage)
+              return (
+                <Fragment key={stage}>
+                  {index > 0 && (
+                    <ChevronRight className='text-muted-foreground/40 size-3.5 shrink-0' />
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Toggle
+                          variant='outline'
+                          size='sm'
+                          pressed={visible}
+                          onPressedChange={() => toggleStage(stage)}
+                          aria-label={t(meta.labelKey)}
+                          className={cn('shrink-0', !visible && 'opacity-50')}
+                        />
+                      }
+                    >
+                      {!visible && <EyeOff className='size-3' />}
+                      {t(meta.labelKey)}
+                    </TooltipTrigger>
+                    <TooltipContent>{t(meta.descKey)}</TooltipContent>
+                  </Tooltip>
+                </Fragment>
+              )
+            })}
+          </div>
         </div>
         <div className='h-[560px] p-1.5 sm:h-[680px] sm:p-2 2xl:h-[760px]'>
           {chartContent}
