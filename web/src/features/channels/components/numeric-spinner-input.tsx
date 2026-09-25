@@ -1,7 +1,6 @@
 import { Minus, Plus } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 
-import { TextTooltip } from '@/components/text-tooltip'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
@@ -160,21 +159,17 @@ export function NumericSpinnerInput({
             autoFocus
           />
         ) : (
-          <TextTooltip content={localValue}>
-            <span className='inline-flex' tabIndex={disabled ? 0 : undefined}>
-              <button
-                type='button'
-                onClick={handleStartEdit}
-                disabled={disabled}
-                className={cn(
-                  'h-7 min-w-8 max-w-16 cursor-text truncate px-1 text-center font-mono text-sm tabular-nums',
-                  disabled && 'cursor-default opacity-50'
-                )}
-              >
-                {localValue}
-              </button>
-            </span>
-          </TextTooltip>
+          <button
+            type='button'
+            onClick={handleStartEdit}
+            disabled={disabled}
+            className={cn(
+              'h-7 min-w-8 max-w-16 cursor-text truncate px-1 text-center font-mono text-sm tabular-nums',
+              disabled && 'cursor-default opacity-50'
+            )}
+          >
+            {localValue}
+          </button>
         )}
 
         <button

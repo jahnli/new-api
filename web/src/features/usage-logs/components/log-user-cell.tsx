@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
 
-import { LongText } from '@/components/long-text'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
 import type { UserColumnRow } from '@/features/users/types'
@@ -84,7 +83,7 @@ export function LogUserCell(props: LogUserCellProps) {
   )
 
   if (demoMode) {
-    return <LongText className='w-[120px]'>{primaryName}</LongText>
+    return <div className='w-[120px] truncate'>{primaryName}</div>
   }
 
   if (!props.sensitiveVisible) {
@@ -96,7 +95,7 @@ export function LogUserCell(props: LogUserCellProps) {
           </AvatarFallback>
         </Avatar>
         <div className='flex min-w-0 flex-1 flex-col gap-1'>
-          <LongText className='max-w-full'>••••</LongText>
+          <div className='max-w-full truncate'>••••</div>
         </div>
       </div>
     )
@@ -162,10 +161,10 @@ export function LogUserCell(props: LogUserCellProps) {
         avatarLink
       )}
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
-        <LongText className='max-w-full'>{primaryName}</LongText>
+        <div className='max-w-full truncate'>{primaryName}</div>
         {primaryName !== resolvedUsername ? (
           <div className='text-muted-foreground/70 flex min-w-0 items-center gap-1.5 text-xs'>
-            <LongText className='min-w-0 flex-1'>{resolvedUsername}</LongText>
+            <div className='min-w-0 flex-1 truncate'>{resolvedUsername}</div>
           </div>
         ) : null}
       </div>

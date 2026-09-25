@@ -22,7 +22,6 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
-import { TextTooltip } from '@/components/text-tooltip'
 import {
   Popover,
   PopoverContent,
@@ -893,23 +892,21 @@ export function useCommonLogsColumns(
 
           return (
             <>
-              <TextTooltip content={t('Click to view the full conversation')}>
-                <button
-                  type='button'
-                  className='group flex max-w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
-                  onClick={() => setDialogOpen(true)}
-                  aria-label={t('Click to view the full conversation')}
-                >
-                  <span className='text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline'>
-                    {latestMessage}
+              <button
+                type='button'
+                className='group flex max-w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
+                onClick={() => setDialogOpen(true)}
+                aria-label={t('Click to view the full conversation')}
+              >
+                <span className='text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline'>
+                  {latestMessage}
+                </span>
+                {messages.length > 1 && (
+                  <span className='text-muted-foreground/40 shrink-0 !font-normal'>
+                    +{messages.length - 1}
                   </span>
-                  {messages.length > 1 && (
-                    <span className='text-muted-foreground/40 shrink-0 !font-normal'>
-                      +{messages.length - 1}
-                    </span>
-                  )}
-                </button>
-              </TextTooltip>
+                )}
+              </button>
               <RequestContentDialog
                 requestMessage={requestMessage}
                 log={log}
@@ -1110,16 +1107,14 @@ export function useCommonLogsColumns(
 
           return (
             <>
-              <TextTooltip content={t('Click to view full details')}>
-                <button
-                  type='button'
-                  className='group flex max-w-[150px] items-center gap-1 text-left text-xs'
-                  onClick={() => setDialogOpen(true)}
-                  aria-label={t('Click to view full details')}
-                >
-                  {detailContent}
-                </button>
-              </TextTooltip>
+              <button
+                type='button'
+                className='group flex max-w-[150px] items-center gap-1 text-left text-xs'
+                onClick={() => setDialogOpen(true)}
+                aria-label={t('Click to view full details')}
+              >
+                {detailContent}
+              </button>
               <DetailsDialog
                 log={log}
                 isAdmin={isAdmin}

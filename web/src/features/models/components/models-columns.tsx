@@ -112,18 +112,16 @@ export function useModelsColumns(
               </span>
               <div className='min-w-0 flex-1'>
                 <div className='flex min-w-0 items-center gap-1'>
-                  <TextTooltip content={model.model_name}>
-                    <Button
-                      variant='link'
-                      className='text-foreground h-auto min-w-0 shrink justify-start p-0 font-mono text-sm'
-                      onClick={() => {
-                        setCurrentRow(model)
-                        setOpen('update-model')
-                      }}
-                    >
-                      <span className='truncate'>{model.model_name}</span>
-                    </Button>
-                  </TextTooltip>
+                  <Button
+                    variant='link'
+                    className='text-foreground h-auto min-w-0 shrink justify-start p-0 font-mono text-sm'
+                    onClick={() => {
+                      setCurrentRow(model)
+                      setOpen('update-model')
+                    }}
+                  >
+                    <span className='truncate'>{model.model_name}</span>
+                  </Button>
                   <CopyButton
                     value={model.model_name}
                     className='size-6 shrink-0'

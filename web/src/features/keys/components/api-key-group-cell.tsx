@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { BadgeCell, TruncatedCell } from '@/components/data-table'
+import { BadgeCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
 import {
@@ -29,20 +29,16 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
     const ratio =
       group && typeof props.ratio === 'number' ? props.ratio : undefined
     return (
-      <TruncatedCell
-        className={isMobile ? 'w-full' : 'max-w-50'}
-        tabIndex={0}
-        tooltipContent={group || t('Follow user group')}
-        tooltipClassName='break-all'
-      >
+      <div className={cn('min-w-0 truncate', isMobile ? 'w-full' : 'max-w-50')}>
         <GroupBadge
           group={group}
+          showTooltip={false}
           ratio={ratio}
           ratioLabel={group ? undefined : t('Inherited')}
           className='px-0'
           containerClassName={cn('gap-3', isMobile && 'w-full justify-between')}
         />
-      </TruncatedCell>
+      </div>
     )
   }
 

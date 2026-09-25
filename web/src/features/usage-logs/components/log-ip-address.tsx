@@ -23,6 +23,7 @@ import { StatusBadge } from '@/components/status-badge'
 interface LogIpAddressProps {
   ipAddress?: string
   sensitiveVisible?: boolean
+  showTooltip?: boolean
 }
 
 export function LogIpAddress(props: LogIpAddressProps) {
@@ -35,6 +36,7 @@ export function LogIpAddress(props: LogIpAddressProps) {
     <div className='flex max-w-[140px] flex-col gap-0.5'>
       <StatusBadge
         label={displayIpAddress}
+        showTooltip={props.showTooltip}
         icon={Globe}
         copyText={sensitiveVisible ? props.ipAddress : undefined}
         size='sm'

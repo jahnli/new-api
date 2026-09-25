@@ -34,6 +34,7 @@ interface CopyButtonProps {
   variant?: 'ghost' | 'outline' | 'default' | 'secondary' | 'destructive'
   size?: 'default' | 'sm' | 'lg' | 'icon'
   tooltip?: string
+  showTooltip?: boolean
   successTooltip?: string
   'aria-label'?: string
 }
@@ -46,6 +47,7 @@ export function CopyButton({
   variant = 'ghost',
   size = 'icon',
   tooltip,
+  showTooltip = true,
   successTooltip,
   'aria-label': ariaLabel,
 }: CopyButtonProps) {
@@ -75,7 +77,7 @@ export function CopyButton({
     </Button>
   )
 
-  if (hasExternalTooltip) return button
+  if (!showTooltip || hasExternalTooltip) return button
 
   return (
     <TextTooltip content={isCopied ? resolvedSuccessTooltip : resolvedTooltip}>

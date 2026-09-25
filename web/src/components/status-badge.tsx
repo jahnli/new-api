@@ -134,6 +134,7 @@ export interface StatusBadgeProps extends Omit<
   variant?: StatusVariant | null
   size?: 'sm' | 'md' | 'lg' | null
   copyable?: boolean
+  showTooltip?: boolean
   copyText?: string
   autoColor?: string
   /**
@@ -158,6 +159,7 @@ export function StatusBadge({
   pulse = false,
   showDot = false,
   copyable = true,
+  showTooltip = true,
   copyText,
   autoColor,
   opticalCenter = false,
@@ -199,7 +201,14 @@ export function StatusBadge({
     </span>
   )
   let content = children ?? (label ? labelElement : null)
-  if (!children && label && !copyable && !title && !hasExternalTooltip) {
+  if (
+    showTooltip &&
+    !children &&
+    label &&
+    !copyable &&
+    !title &&
+    !hasExternalTooltip
+  ) {
     content = (
       <TextTooltip content={label} onlyWhenOverflow>
         {labelElement}
@@ -256,7 +265,7 @@ export function StatusBadge({
   )
 
   // A surrounding TooltipTrigger already owns this badge's description.
-  if (hasExternalTooltip) return badge
+  if (!showTooltip || hasExternalTooltip) return badge
   if (!copyable && !title) return badge
 
   return (

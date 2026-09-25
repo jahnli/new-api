@@ -264,7 +264,9 @@ export function useAuditLogColumns(
         accessorKey: 'ip',
         header: 'IP',
         size: 130,
-        cell: ({ row }) => <LogIpAddress ipAddress={row.original.ip} />,
+        cell: ({ row }) => (
+          <LogIpAddress ipAddress={row.original.ip} showTooltip={false} />
+        ),
         meta: { label: 'IP' },
       },
       {

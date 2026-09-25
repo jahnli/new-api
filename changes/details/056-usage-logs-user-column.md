@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-25（最后更新 09-25）
+**日期**: 2026-09-09 ~ 09-26（最后更新 09-26）
 
 ## 涉及文件
 
@@ -272,6 +272,48 @@
 
 - `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 分类悬浮明细按当前筛选范围的总消费与总 Token 计算每百万 Token 综合单价，使用账单货币格式固定显示两位小数，并在敏感金额隐藏时同步遮蔽；悬停触发明细请求时延迟 200 毫秒显示加载图标，数据返回后再打开明细，短请求及缓存命中不闪烁加载状态；统一由 Tooltip 管理触发器与弹框间的悬停边界，避免边缘位置反复开关。
 - `web/src/components/token-breakdown-tooltip-content.tsx` — Token 明细顶部依次展示总 Token 与单价，输入、输出及缓存分类继续排列在分隔线下方。
+
+## 2026-09-26 悬停明细与复制提示统一
+
+### 变更说明
+
+- Token 分类统计的激活与关闭统一由 Tooltip 的打开状态回调驱动，移除触发按钮独立的移入、移出、聚焦及失焦状态切换，避免指针在按钮与浮层之间移动时反复关闭；重新激活且上次请求失败时重试加载。保留已有的 200 毫秒加载图标延迟、数据返回后再展示明细及金额脱敏行为。
+- 日志页与图片审计继承全局 TooltipProvider，普通提示使用公共延迟；完整会话、错误、客户端和任务产物说明不再使用浏览器原生标题。公共实现与全站接入范围见 [#039](039-user-management-table.md#2026-09-26-表格说明与全站悬停提示统一)。
+- IP 地址与令牌名称直接复用 StatusBadge 的复制提示，移除依赖字符数的外层提示条件，避免中文名称实际被列宽截断但字符数未达阈值时无法查看完整内容；继续只向提示和复制入口传递当前允许展示的内容。
+- 提示词、失败原因、日志详情及图片审计请求内容中的兼容复制动作复用 CopyButton。请求内容弹窗保留按消息标识区分的跨按钮复制状态，避免重复消息同时显示复制成功，仅替换其提示外观。
+
+### 涉及文件
+
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统一异步明细激活、悬停边界与失败后重新加载，移除局部 Provider。
+- `web/src/features/usage-logs/components/columns/column-helpers.tsx` — 公共日志单元格说明迁为共享提示。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 流式异常、渠道、客户端及详情入口继承统一提示，令牌名称直接复用公共徽标。
+- `web/src/features/usage-logs/components/columns/drawing-logs-columns.tsx` — 图片预览和完整提示词入口去除原生标题。
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 日志类型停用说明改用公共提示。
+- `web/src/features/usage-logs/components/log-ip-address.tsx` — 去除按地址长度创建的空外层提示，复用徽标复制与完整内容提示。
+- `web/src/features/usage-logs/components/log-cost-display.tsx` — 费用与计费来源说明继承全局配置。
+- `web/src/features/usage-logs/components/model-badge.tsx` — 提供商名称改用公共提示，保留原模型映射预览。
+- `web/src/features/usage-logs/components/task-artifacts.tsx` — 未保存为产物的结果说明继承全局配置。
+- `web/src/features/usage-logs/components/timing-metrics-cell.tsx` — 流式状态异常提示移除局部 Provider。
+- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 请求转换等复制入口复用 CopyButton。
+- `web/src/features/usage-logs/components/dialogs/fail-reason-dialog.tsx` — 失败原因复制入口复用 CopyButton。
+- `web/src/features/usage-logs/components/dialogs/prompt-dialog.tsx` — 提示词与否定提示词复制入口复用 CopyButton。
+- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 保留原消息复制状态，按钮说明改用公共提示。
+- `web/src/features/security-audit/components/image-audit-columns.tsx` — 渠道与参数完整内容提示统一。
+- `web/src/features/security-audit/components/image-audit-request-content-dialog.tsx` — 请求内容复制入口复用 CopyButton。
+
+### 2026-09-26 日志与审计冗余提示精简
+
+在上述统一提示基础上，关闭以下已能直接辨识或点击查看的说明，不添加原生 `title` 替代。复制、详情弹框、头像资料卡与模型映射明细卡继续保留。
+
+涉及文件：
+
+- `web/src/features/usage-logs/components/log-user-cell.tsx` — 共享用户单元格的姓名、账号及脱敏占位由 LongText 改为普通截断文字，不再显示文字 Tooltip；保留头像资料卡、飞书跳转和原有脱敏逻辑，同步作用于复用该单元格的常规审计。
+- `web/src/features/usage-logs/components/model-badge.tsx` — 通过公共组件的 `showTooltip={false}` 关闭模型名复制提示，移除提供商图标提示；保留点击复制及有映射或响应差异时的明细入口，复用该模型徽标的审计页面同步生效。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 请求内容和详情列移除“点击查看完整对话”“点击查看完整详情”的 Tooltip 包装，保留按钮、无障碍名称及打开弹框的事件。
+- `web/src/features/usage-logs/components/log-ip-address.tsx` — 透传可选 `showTooltip` 至 StatusBadge，默认行为不变。
+- `web/src/features/usage-logs/audit/components/audit-log-columns.tsx` — 常规审计 IP 列显式关闭悬停提示，保留点击复制与成功反馈；普通使用日志 IP 列未关闭。
+- `web/src/features/security-audit/components/off-hours-columns.tsx` — 非工作时间请求的每个 IP 徽标关闭复制悬停提示，保留复制功能；多个 IP 超过展示数量时仍使用原有完整列表提示。
+- `web/src/features/security-audit/components/image-audit-columns.tsx` — 图片审计请求内容按钮移除说明 Tooltip，保留两行摘要、空内容禁用状态及点击查看完整请求内容。
 
 ## 2026-09-24 使用日志 Excel 标题、汇总说明与文件名
 

@@ -1,6 +1,6 @@
-# 用户管理增强
+# 用户管理与共享悬停交互增强
 
-**日期**: 2026-06-30 ~ 09-22（最后更新 09-22）
+**日期**: 2026-06-30 ~ 09-26（最后更新 09-26）
 
 ## 涉及文件
 
@@ -33,6 +33,90 @@
 - `web/src/features/users/components/shared-user-columns.tsx` — 用户列表分组列显示基础倍率，并采用紧凑的 `x倍率` 标签。
 - `web/src/features/users/components/users-columns.tsx` — 用户列表列定义接收分组倍率映射。
 - `web/src/features/users/components/users-table.tsx` — 用户列表查询分组基础倍率并传入列定义。
+
+## 2026-09-26 表格说明与全站悬停提示统一
+
+沿用本条目已有的表头说明、时间单元格与长文本能力，将普通悬停提示统一为公共 Tooltip。使用日志的异步明细加载与复制交互另见 [#056](056-usage-logs-user-column.md)。
+
+### 变更说明
+
+- 应用入口统一挂载 TooltipProvider，普通提示继承公共组件的 100 毫秒延迟，各页面不再重复创建 Provider；表头说明与时间标签图标使用零延迟，渠道类型移除原有 300 毫秒特例。
+- 新增 TextTooltip 组合现有 Tooltip 原语，通过渲染插槽复用原元素，不增加布局包装；支持指定方向、换行、按需覆盖延迟和仅在内容溢出时提示，空内容直接返回原元素。
+- 表头说明提取为 DescriptionTooltip，触发区域统一为 24 像素，支持键盘聚焦；说明图标与排序按钮分离，避免嵌套按钮。
+- 长文本与截断单元格共用溢出检测，在容器尺寸、文本内容与字体加载变化后重新测量；多个实例共享 ResizeObserver 和字体加载监听，卸载时清理观察。显式传入的额外明细不受仅溢出显示的限制。
+- LongText 桌面端使用 Tooltip，移动端保留点击展开 Popover；徽标列表没有隐藏项时不创建空提示，保留已有可点击展开模式。
+- StatusBadge 的原生标题迁为公共提示，支持复制的徽标补充键盘操作；CopyButton 默认展示复制及成功提示。触发器和弹层内部共享上下文，自动提示遇到已有外层提示时让位，避免完整标签列表被内部复制提示关闭。
+- 普通业务元素移除原生 `title`，已有 Tooltip 的按钮移除重复标题；保留禁用状态说明、拖拽及复制事件、列表键值和脱敏后的展示内容。浮层动画统一为 100 毫秒并尊重减少动态效果偏好。
+- 弹窗、表头与区块的真实标题属性、iframe 无障碍标题以及 SVG、Markdown 作者标题元数据保持原用途；复杂交互浮层继续使用原有 HoverCard 或 Popover。
+
+### 涉及文件：公共能力
+
+- `web/src/main.tsx` — 应用入口挂载统一 Provider。
+- `web/src/components/ui/tooltip.tsx` — 统一动画、减少动态效果适配及触发器与弹层的嵌套提示上下文。
+- `web/src/components/text-tooltip.tsx` — 新增普通文字提示封装。
+- `web/src/components/description-tooltip.tsx` — 新增公共帮助图标与说明提示。
+- `web/src/context/tooltip-trigger-context.ts` — 新增外层提示上下文。
+- `web/src/hooks/use-overflow.ts` — 新增共享尺寸观察、文本变化与字体变化检测。
+- `web/src/components/long-text.tsx` — 按实际溢出展示，保留移动端点击展开。
+- `web/src/components/data-table/core/truncated-cell.tsx` — 截断单元格接入动态检测与键盘提示入口。
+- `web/src/components/data-table/core/column-header.tsx` — 复用公共说明组件，保持表头零延迟并分离排序与帮助按钮。
+- `web/src/components/data-table/core/badge-list-cell.tsx` — 移除局部 Provider，无隐藏项时避免创建空提示。
+- `web/src/components/data-table/toolbar/bulk-actions.tsx` — 清除选择按钮去除重复原生标题。
+- `web/src/components/data-table/toolbar/faceted-filter.tsx` — 筛选项完整名称改为仅截断时显示提示。
+- `web/src/components/activity-time-cell.tsx` — 创建与活动时间图标改为零延迟提示，保留辅助文字。
+- `web/src/components/status-badge.tsx` — 统一徽标复制与完整文本提示，防止自动提示嵌套。
+- `web/src/components/copy-button.tsx` — 默认提供复制提示及成功反馈，已有外层提示时复用外层。
+- `web/src/components/multi-select.tsx` — 统一标签复制、拖动、说明和展开收起提示。
+- `web/src/components/auto-group-order-item.tsx` — 统一排序拖动与截断分组名提示。
+- `web/src/components/floating-window.tsx` — 移动与缩放说明改用公共提示，保留指针捕获行为。
+- `web/src/components/layout/components/public-header.tsx` — 站点名和导航名称按截断情况显示提示。
+- `web/src/components/ui/sidebar.tsx` — 侧栏边缘提示接入公共封装及已有翻译，菜单提示沿用折叠条件并继承全局配置。
+- `web/src/components/ai-elements/actions.tsx`、`web/src/components/ai-elements/artifact.tsx`、`web/src/components/ai-elements/web-preview.tsx` — 消息、产物和预览操作提示移除局部 Provider。
+- `web/src/components/ai-elements/prompt-input.tsx` — 隐藏文件输入移除冗余标题，保留无障碍名称。
+
+### 涉及文件：功能页接入
+
+- `web/src/features/users/components/dept-multi-select.tsx`、`web/src/features/users/components/dialogs/user-binding-dialog.tsx` — 部门加载错误和绑定筛选操作提示统一。
+- `web/src/features/channels/components/channel-plugin-extensions.tsx`、`web/src/features/channels/components/channel-type-badge.tsx` — 插件扩展操作与插件渠道类型说明接入公共提示。
+- `web/src/features/channels/components/channels-columns.tsx`、`web/src/features/channels/components/data-table-bulk-actions.tsx` — 渠道额度、备注、透传与参数覆盖说明继承全局配置，批量按钮去除双重提示。
+- `web/src/features/channels/components/numeric-spinner-input.tsx`、`web/src/features/channels/components/upstream-model-selection.tsx` — 数值调节与上游模型选择操作说明统一。
+- `web/src/features/channels/components/drawers/channel-provider-picker.tsx` — 供应商与插件标识的截断提示统一。
+- `web/src/features/channels/components/dialogs/advanced-custom-editor-dialog.tsx` — 高级编辑弹窗移除局部 Provider。
+- `web/src/features/channels/components/dialogs/channel-test-dialog.tsx`、`web/src/features/channels/components/dialogs/configure-models-dialog.tsx` — 模型名称与配置操作提示统一。
+- `web/src/features/channels/components/dialogs/multi-key-manage-dialog.tsx`、`web/src/features/channels/components/dialogs/multi-key-table-row-actions.tsx` — 多密钥管理与行操作说明统一。
+- `web/src/features/models/components/data-table-bulk-actions.tsx`、`web/src/features/models/components/data-table-row-actions.tsx` — 行操作与批量操作去除原生提示，禁用按钮通过可聚焦包装保留原因说明。
+- `web/src/features/models/components/model-square-status.tsx`、`web/src/features/models/components/models-columns.tsx` — 模型广场状态及厂商完整名称提示统一。
+- `web/src/features/models/components/vendor-linked-models.tsx`、`web/src/features/models/components/vendors-table.tsx` — 关联模型与厂商描述提示统一。
+- `web/src/features/pricing/components/model-card.tsx`、`web/src/features/pricing/components/model-details.tsx` — 模型名、厂商、分组、标签、端点与任务插件名称改用公共提示。
+- `web/src/features/pricing/components/model-perf-badge.tsx`、`web/src/features/pricing/components/model-price-cell.tsx`、`web/src/features/pricing/components/pricing-sidebar.tsx` — 成功率口径、性能指标、价格标签和筛选项提示统一。
+- `web/src/features/dashboard/components/flow/flow-charts.tsx`、`web/src/features/dashboard/components/models/log-stat-cards.tsx` — 流向图说明与模型统计完整值提示统一。
+- `web/src/features/dashboard/components/overview/api-info-item.tsx`、`web/src/features/dashboard/components/ui/stat-card.tsx` — 接口测试操作和统计详情接入公共提示，保留测试中禁用状态。
+- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/components/department-tree-select.tsx` — 页面移除局部 Provider，部门树操作说明统一。
+- `web/src/features/image-studio/lib/model-params/seedream/params.tsx` — 提示词优化帮助继承全局提示配置。
+- `web/src/features/keys/components/auto-group-order-editor.tsx` — 自动分组排序操作提示统一。
+- `web/src/features/playground/components/message/message-actions.tsx` — 消息操作移除局部 Provider。
+- `web/src/features/security/components/account-bindings.tsx` — 绑定方式名称仅在截断时显示提示。
+- `web/src/features/subscriptions/components/premium-quota-summary.tsx` — 高级模型额度帮助继承全局提示配置。
+- `web/src/features/system-info/components/system-instances-panel.tsx`、`web/src/features/system-info/components/system-tasks-table.tsx` — 实例角色、存储明细、心跳时间、删除操作及任务错误提示统一。
+- `web/src/features/system-settings/models/channel-selector-dialog.tsx`、`web/src/features/system-settings/models/group-ratio-visual-editor.tsx` — 价格来源地址与分组完整名称改用截断提示。
+- `web/src/features/system-settings/models/task-plugin-pricing-editor.tsx`、`web/src/features/system-settings/models/task-pricing-matrix.tsx` — 插件名称提示统一，价格组合说明继承全局配置。
+- `web/src/features/system-settings/models/upstream-price-cells.tsx`、`web/src/features/system-settings/models/upstream-ratio-sync-columns.tsx` — 上游价格项与模型名称提示统一。
+- `web/src/features/task-plugins/components/plugin-card.tsx`、`web/src/features/task-plugins/components/plugins-table.tsx` — 插件模型列表、说明、失效状态与运行错误接入公共提示。
+- `web/src/features/wallet/components/recharge-form-card.tsx` — 支付方式禁用原因改用可聚焦提示触发区域，保留网格布局。
+- 使用日志及图片审计相关文件和特有行为记录在 [#056 的提示统一补充](056-usage-logs-user-column.md#2026-09-26-悬停明细与复制提示统一)。
+
+### 2026-09-26 冗余提示按场景关闭
+
+在统一提示能力上提供按场景关闭的选项，减少已有明确内容或操作入口上的重复气泡；关闭后不回退为原生 `title`，原有显示、点击与复制能力保留。
+
+涉及文件：
+
+- `web/src/components/status-badge.tsx` — 新增默认开启的 `showTooltip`，关闭时同时跳过复制说明和标签溢出提示，保留徽标展示、鼠标复制与键盘操作。
+- `web/src/components/copy-button.tsx` — 新增默认开启的 `showTooltip`，允许调用方关闭普通及成功悬停提示，保留复制处理、状态图标和无障碍名称；未传入的页面维持默认行为。
+- `web/src/features/keys/components/api-key-group-cell.tsx` — 固定分组及继承用户分组改为普通截断容器，并关闭内部 GroupBadge 的自动提示；保留分组名、倍率与继承标记，自动跨组的机制说明继续保留。
+- `web/src/features/channels/components/numeric-spinner-input.tsx` — 移除数值显示按钮的 Tooltip 及仅为提示增加的包装，优先级和权重控件仍支持点击编辑、加减、上下限约束和提交。
+- `web/src/features/models/components/models-columns.tsx` — 移除模型名称的 Tooltip，保留点击名称打开编辑弹框与独立复制按钮；厂商截断名称、复制按钮及其他列提示保持各自用途。
+- 日志和审计中的用户文字、模型名、详情入口及 IP 提示关闭范围见 [#056](056-usage-logs-user-column.md#2026-09-26-日志与审计冗余提示精简)。
 
 ## 2026-07-20 公司筛选
 

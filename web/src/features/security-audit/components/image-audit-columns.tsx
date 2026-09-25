@@ -242,21 +242,17 @@ export function useImageAuditColumns(
                   aria-label={t('Favorite')}
                 />
               )}
-              <TextTooltip
-                content={row.original.prompt ? t('Request Content') : undefined}
+              <button
+                type='button'
+                className='text-muted-foreground line-clamp-2 max-w-full min-w-0 cursor-pointer text-left !text-[13px] leading-snug !font-normal break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
+                onClick={() => onViewRequestContent(row.original)}
+                disabled={!row.original.prompt}
+                aria-label={
+                  row.original.prompt ? t('Request Content') : undefined
+                }
               >
-                <button
-                  type='button'
-                  className='text-muted-foreground line-clamp-2 max-w-full min-w-0 cursor-pointer text-left !text-[13px] leading-snug !font-normal break-all whitespace-normal hover:underline disabled:cursor-default disabled:no-underline'
-                  onClick={() => onViewRequestContent(row.original)}
-                  disabled={!row.original.prompt}
-                  aria-label={
-                    row.original.prompt ? t('Request Content') : undefined
-                  }
-                >
-                  {requestContent}
-                </button>
-              </TextTooltip>
+                {requestContent}
+              </button>
             </div>
           )
         },
