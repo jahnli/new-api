@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-24（最后更新 09-24）
+**日期**: 2026-09-09 ~ 09-25（最后更新 09-25）
 
 ## 涉及文件
 
@@ -267,6 +267,11 @@
 - `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 徽标新增详情入口，仅在打开悬浮提示时加载分类明细；筛选变化会取消旧请求，并为汇总和明细分别展示加载、失败及重试状态。
 - `web/src/components/token-breakdown-tooltip-content.tsx` — 抽取统一的 Token 分类明细组件，按当前界面语言以亿 Token 展示总量、输入、输出、缓存读取和缓存写入。
 - `web/src/features/data-overview/components/department-stats-cards.tsx` — 部门统计卡片复用统一 Token 分类明细组件，移除重复的 Tooltip 内容实现，既有展示口径保持不变。
+
+## 2026-09-25 使用日志 Token 综合单价
+
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 分类悬浮明细按当前筛选范围的总消费与总 Token 计算每百万 Token 综合单价，使用账单货币格式固定显示两位小数，并在敏感金额隐藏时同步遮蔽。
+- `web/src/components/token-breakdown-tooltip-content.tsx` — Token 明细顶部依次展示总 Token 与单价，输入、输出及缓存分类继续排列在分隔线下方。
 
 ## 2026-09-24 使用日志 Excel 标题、汇总说明与文件名
 

@@ -15,6 +15,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { toIntlLocale } from '@/i18n/languages'
+import {
+  formatBillingCurrencyFromUSD,
+  getCurrencyDisplay,
+} from '@/lib/currency'
 import { formatLogQuota } from '@/lib/format'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
@@ -120,6 +124,24 @@ export function CommonLogsStats() {
   }).format((stats?.total_tokens ?? 0) / 100_000_000)} ${t('100M')}`
   let tokenDetails: ReactNode = <LoadingState className='min-h-24' size='sm' />
   if (tokenStats.data) {
+    let averagePricePerMillionTokens = '-'
+    if (!sensitiveVisible) {
+      averagePricePerMillionTokens = '••••'
+    } else if (tokenStats.data.total_tokens > 0) {
+      const { config } = getCurrencyDisplay()
+      const averagePriceUSD =
+        ((stats?.quota ?? 0) * 1_000_000) /
+        config.quotaPerUnit /
+        tokenStats.data.total_tokens
+      averagePricePerMillionTokens = formatBillingCurrencyFromUSD(
+        averagePriceUSD,
+        {
+          fixedFractionDigits: 2,
+          abbreviate: false,
+          locale,
+        }
+      )
+    }
     tokenDetails = (
       <TokenBreakdownTooltipContent
         totalTokens={tokenStats.data.total_tokens}
@@ -127,6 +149,7 @@ export function CommonLogsStats() {
         outputTokens={tokenStats.data.uncached_output_tokens ?? 0}
         cacheReadTokens={tokenStats.data.cache_read_tokens ?? 0}
         cacheWriteTokens={tokenStats.data.cache_write_tokens ?? 0}
+        averagePricePerMillionTokens={averagePricePerMillionTokens}
       />
     )
   } else if (tokenStats.isError) {
