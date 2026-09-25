@@ -112,7 +112,7 @@ export function SubscriptionSummary(props: {
             </div>
             <Badge
               variant='secondary'
-              className='bg-primary/10 text-primary h-auto px-2.5 py-1 text-sm tabular-nums'
+              className='bg-primary/10 text-primary h-auto px-2 py-0.5 text-xs tabular-nums'
             >
               {t('Share {{percent}}%', {
                 percent: formatNumber(
