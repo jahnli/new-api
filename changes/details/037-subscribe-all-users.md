@@ -1,6 +1,6 @@
-# 订阅管理增强：全员订阅、单用户额度调整与高阶模型额度限制
+# 订阅管理增强：公司范围订阅、分类额度调整与高级模型限额
 
-**日期**: 2026-09-24
+**日期**: 2026-09-25
 
 ## 涉及文件
 
@@ -18,6 +18,10 @@
 - `web/src/components/__tests__/confirm-dialog.test.tsx` — 覆盖加载图标与按钮禁用。
 - `web/src/features/subscriptions/components/dialogs/subscribe-all-dialog.tsx` — 弹窗加宽加高，底部操作栏固定；增加必选公司、加载失败/无公司状态，并提示覆盖同套餐有效订阅、保留额度且包含禁用/注销用户。
 - `web/src/features/subscriptions/components/dialogs/user-subscriptions-dialog.tsx` — 用户订阅操作菜单新增“减少”，按人民币金额扣减总额度；无限额度订阅禁用该操作。
+- `web/src/features/subscriptions/components/user-premium-policy.tsx` — 用户高级模型比例设置与套餐额度预览分栏展示，手动比例输入限制为正整数。
+- `web/src/features/subscriptions/components/premium-quota-summary.tsx` — 合并可用额度与新上限展示，增加上限变化箭头并保留固定图标占位。
+- `web/src/features/usage-logs/components/log-user-identity.tsx` — 增加可选姓名区域样式，供订阅弹框紧凑复用用户分析弹框的用户信息组。
+- `web/src/features/users/components/data-table-row-actions.tsx` — 向订阅弹框传入完整用户行数据，用于展示头像、姓名与用户名。
 - `web/src/features/subscriptions/components/dialogs/__tests__/quota-decrease.test.tsx` — 覆盖有效有限额度提交减少请求及无限额度禁用操作。
 - `web/src/features/subscriptions/components/dialogs/__tests__/company-selection.test.tsx` — 覆盖公司展示及未选公司时禁用确认。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充公司范围全员订阅及减少额度操作的 7 语言翻译。
@@ -85,6 +89,18 @@
 - `web/src/features/subscriptions/premium-api.ts` — 增加当前高级模型名称查询，供额度明细通过 React Query 共享缓存复用。
 - `web/src/features/subscriptions/components/dialogs/user-subscriptions-dialog.tsx` — 管理员额度调整选项将“基础模型额度”改为“标准模型额度”，内部 `basic` 额度类型保持不变。
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 七种语言统一使用“标准模型额度”及对应说明，并移除不再使用的基础模型额度翻译键。
+
+## 2026-09-25 用户订阅管理弹框与额度预览优化
+
+- 管理弹框改为分区卡片布局，桌面端高度为视口的 84%、最大宽度为 `max-w-5xl`；下方订阅区域填满剩余高度，新增入口固定在区域顶部，表格支持内部滚动，总额度列增加用量进度条。
+- 头部左侧直接复用用户分析弹框的 `LogUserIdentity`，右侧展示标题；传入头像、显示名称、用户名等资料，保留悬停资料卡能力。通过可选 `nameClassName` 去掉本弹框内姓名区域的预留宽度，其他调用方维持默认布局。
+- 高级模型额度设置与用量分栏展示，额度卡片显示套餐名称和订阅 ID，复用个人资料页相同尺寸、配色与背景的皇冠 `IconBadge`。隐藏重复的高级模型额度标题行，说明及额度辅助文字统一使用 `text-sm`。
+- 可用额度和新额度上限并排展示，窄屏自动换行；新上限使用原始 `bigint` 额度与当前上限比较，提高时显示向上箭头和成功色，降低时显示向下箭头和警告色。相同或预览无效时不显示箭头，但保留固定的 16×16px 图标位置和文字间距，避免图标切换引起布局跳动，并保留读屏方向提示。
+- 用户手动覆盖比例改为 1～100 的正整数，步进为 1；输入或粘贴时去掉小数部分并限制上下界，保存与预览校验同步收紧。继承系统默认时仍接受原有 0～100、最多两位小数的策略值，不改变后端及全局策略契约。
+- 增加、减少额度弹框移除比例联动及舍入的长说明；选择特定模型额度时，仍提示调整会成为用户覆盖比例且在重置后保留。
+- 七种语言补充“可用额度”和“新额度上限”的简短文案，使用翻译脚本写入并执行 `bun run i18n:sync`。
+
+本次实现过程中执行 `bun run typecheck`、对修改过的 TSX 文件执行 `bunx --no-install oxlint -c .oxlintrc.json <文件路径>` 与 `bunx --no-install oxfmt --check <文件路径>`，均通过；`git diff --check` 通过。未新增、修改或运行测试，最终箭头切换效果尚未在浏览器中复核。
 
 ## 自 CHANGELOG 说明列迁入
 
