@@ -687,11 +687,6 @@ export function UserSubscriptionsDialog(props: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className='text-muted-foreground text-xs'>
-                  {t(
-                    'Model quota adjustments update the total quota and user premium percentage. The other category stays approximately unchanged; rounding to two decimal places may cause small differences. Total quota adjustments keep the percentage unchanged.'
-                  )}
-                </p>
                 {quotaType !== 'total' && (
                   <p className='text-muted-foreground text-xs'>
                     {t(

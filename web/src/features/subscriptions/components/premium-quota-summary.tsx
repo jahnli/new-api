@@ -97,7 +97,7 @@ export function PremiumQuotaSummary(props: {
         />
       </div>
       {props.limitPreview !== undefined ? (
-        <div className='text-muted-foreground flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm leading-relaxed tabular-nums'>
+        <div className='text-muted-foreground flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm leading-relaxed tabular-nums'>
           <span>
             {quota.enabled
               ? t('Available quota: {{amount}}', {
@@ -111,24 +111,24 @@ export function PremiumQuotaSummary(props: {
               'text-warning': limitDecreased,
             })}
           >
-            {limitIncreased && (
-              <>
-                <ArrowUp className='size-4 shrink-0' aria-hidden='true' />
+            <span className='size-4 shrink-0' aria-hidden='true'>
+              {limitIncreased && <ArrowUp className='size-4' />}
+              {limitDecreased && <ArrowDown className='size-4' />}
+            </span>
+            <span>
+              {limitIncreased && (
                 <span className='sr-only'>{t('Increase quota')}</span>
-              </>
-            )}
-            {limitDecreased && (
-              <>
-                <ArrowDown className='size-4 shrink-0' aria-hidden='true' />
+              )}
+              {limitDecreased && (
                 <span className='sr-only'>{t('Decrease quota')}</span>
-              </>
-            )}
-            {t('New quota limit: {{amount}}', {
-              amount:
-                props.limitPreview === null
-                  ? '—'
-                  : formatPremiumQuota(props.limitPreview.toString()),
-            })}
+              )}
+              {t('New quota limit: {{amount}}', {
+                amount:
+                  props.limitPreview === null
+                    ? '—'
+                    : formatPremiumQuota(props.limitPreview.toString()),
+              })}
+            </span>
           </span>
         </div>
       ) : (
