@@ -16,7 +16,6 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
-import { formatPremiumQuota } from '../lib/premium-quota'
 import {
   getUserPremiumPolicy,
   saveUserPremiumPolicy,
@@ -190,7 +189,7 @@ function UserPremiumForm(props: {
           <div className='bg-muted/25 space-y-3 border-t px-5 py-3 md:border-s md:border-t-0'>
             {activeSubscriptions.map((record) => {
               const total = record.subscription.amount_total
-              let preview = '—'
+              let preview: bigint | null = null
               if (
                 Number.isSafeInteger(total) &&
                 total >= 0 &&
@@ -198,11 +197,8 @@ function UserPremiumForm(props: {
                 percent >= 0 &&
                 percent <= 100
               ) {
-                preview = formatPremiumQuota(
-                  String(
-                    (BigInt(total) * BigInt(Math.round(percent * 100))) / 10000n
-                  )
-                )
+                preview =
+                  (BigInt(total) * BigInt(Math.round(percent * 100))) / 10000n
               }
               return (
                 <div

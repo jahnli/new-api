@@ -1,4 +1,4 @@
-import { Info } from 'lucide-react'
+import { ArrowDown, ArrowUp, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useExternalMode } from '@/hooks/use-external-mode'
+import { cn } from '@/lib/utils'
 
 import { formatPremiumQuota } from '../lib/premium-quota'
 import type { PremiumQuota } from '../premium-api'
@@ -19,7 +20,7 @@ import { SubscriptionQuotaBreakdown } from './subscription-quota-breakdown'
 export function PremiumQuotaSummary(props: {
   quota?: PremiumQuota
   subscription?: UserSubscription
-  limitPreview?: string
+  limitPreview?: bigint | null
   hideHeader?: boolean
 }) {
   const { t } = useTranslation()
@@ -36,6 +37,10 @@ export function PremiumQuotaSummary(props: {
   if (externalMode || !quota) return null
   const used = BigInt(quota.premium_amount_used)
   const limit = BigInt(quota.premium_limit)
+  const limitIncreased =
+    props.limitPreview != null && props.limitPreview > limit
+  const limitDecreased =
+    props.limitPreview != null && props.limitPreview < limit
   let percent = used > 0n ? 100 : 0
   if (limit > 0n) {
     const calculated = (used * 100n) / limit
@@ -100,8 +105,30 @@ export function PremiumQuotaSummary(props: {
                 })
               : t('Premium quota limit is disabled')}
           </span>
-          <span>
-            {t('New quota limit: {{amount}}', { amount: props.limitPreview })}
+          <span
+            className={cn('inline-flex items-center gap-1.5', {
+              'text-success': limitIncreased,
+              'text-warning': limitDecreased,
+            })}
+          >
+            {limitIncreased && (
+              <>
+                <ArrowUp className='size-4 shrink-0' aria-hidden='true' />
+                <span className='sr-only'>{t('Increase quota')}</span>
+              </>
+            )}
+            {limitDecreased && (
+              <>
+                <ArrowDown className='size-4 shrink-0' aria-hidden='true' />
+                <span className='sr-only'>{t('Decrease quota')}</span>
+              </>
+            )}
+            {t('New quota limit: {{amount}}', {
+              amount:
+                props.limitPreview === null
+                  ? '—'
+                  : formatPremiumQuota(props.limitPreview.toString()),
+            })}
           </span>
         </div>
       ) : (
