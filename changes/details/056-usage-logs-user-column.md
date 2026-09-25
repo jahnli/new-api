@@ -270,7 +270,7 @@
 
 ## 2026-09-25 使用日志 Token 综合单价
 
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 分类悬浮明细按当前筛选范围的总消费与总 Token 计算每百万 Token 综合单价，使用账单货币格式固定显示两位小数，并在敏感金额隐藏时同步遮蔽。
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 分类悬浮明细按当前筛选范围的总消费与总 Token 计算每百万 Token 综合单价，使用账单货币格式固定显示两位小数，并在敏感金额隐藏时同步遮蔽；悬停触发明细请求时延迟 200 毫秒显示加载图标，数据返回后再打开明细，短请求及缓存命中不闪烁加载状态。
 - `web/src/components/token-breakdown-tooltip-content.tsx` — Token 明细顶部依次展示总 Token 与单价，输入、输出及缓存分类继续排列在分隔线下方。
 
 ## 2026-09-24 使用日志 Excel 标题、汇总说明与文件名

@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { CircleAlert } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { CircleAlert, Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/error-state'
-import { LoadingState } from '@/components/loading-state'
 import { TokenBreakdownTooltipContent } from '@/components/token-breakdown-tooltip-content'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -65,7 +64,9 @@ export function CommonLogsStats() {
     structuralSharing: true,
   })
   const [defaultTimeRange] = useState(getDefaultTimeRange)
-  const [tokenTooltipOpen, setTokenTooltipOpen] = useState(false)
+  const [tokenTooltipActive, setTokenTooltipActive] = useState(false)
+  const [tokenTooltipLoadingVisible, setTokenTooltipLoadingVisible] =
+    useState(false)
   const { sensitiveVisible } = useUsageLogsContext()
   const params = useMemo(() => {
     const hasTimeParams = searchParams.startTime ?? searchParams.endTime
@@ -112,7 +113,7 @@ export function CommonLogsStats() {
         : requireServerSuccess(await getUserLogStats(detailParams, signal))
       return result.data || DEFAULT_LOG_STATS
     },
-    enabled: tokenTooltipOpen && !!stats && !isFetching,
+    enabled: tokenTooltipActive && !!stats && !isFetching,
     staleTime: 60_000,
     retry: false,
     meta: { errorToast: false },
@@ -122,7 +123,23 @@ export function CommonLogsStats() {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format((stats?.total_tokens ?? 0) / 100_000_000)} ${t('100M')}`
-  let tokenDetails: ReactNode = <LoadingState className='min-h-24' size='sm' />
+  const tokenTooltipLoading = tokenTooltipActive && tokenStats.isFetching
+  const tokenTooltipOpen =
+    tokenTooltipActive && tokenStats.isSuccess && !tokenStats.isFetching
+  useEffect(() => {
+    if (!tokenTooltipLoading) {
+      setTokenTooltipLoadingVisible(false)
+      return
+    }
+
+    const timer = window.setTimeout(
+      () => setTokenTooltipLoadingVisible(true),
+      200
+    )
+    return () => window.clearTimeout(timer)
+  }, [tokenTooltipLoading])
+
+  let tokenDetails: ReactNode = null
   if (tokenStats.data) {
     let averagePricePerMillionTokens = '-'
     if (!sensitiveVisible) {
@@ -150,13 +167,6 @@ export function CommonLogsStats() {
         cacheReadTokens={tokenStats.data.cache_read_tokens ?? 0}
         cacheWriteTokens={tokenStats.data.cache_write_tokens ?? 0}
         averagePricePerMillionTokens={averagePricePerMillionTokens}
-      />
-    )
-  } else if (tokenStats.isError) {
-    tokenDetails = (
-      <ErrorState
-        className='min-h-24 border-0 p-2'
-        onRetry={() => void tokenStats.refetch()}
       />
     )
   }
@@ -194,7 +204,12 @@ export function CommonLogsStats() {
         accent='bg-slate-400/70'
       />
       <TooltipProvider delay={100}>
-        <Tooltip open={tokenTooltipOpen} onOpenChange={setTokenTooltipOpen}>
+        <Tooltip
+          open={tokenTooltipOpen}
+          onOpenChange={(open) => {
+            if (!open) setTokenTooltipActive(false)
+          }}
+        >
           <StatBadge
             label={t('Tokens')}
             value={tokenValue}
@@ -206,10 +221,25 @@ export function CommonLogsStats() {
                     type='button'
                     className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
                     aria-label={t('View details')}
+                    aria-busy={tokenTooltipLoading}
+                    onPointerEnter={() => {
+                      setTokenTooltipActive(true)
+                      if (tokenStats.isError) void tokenStats.refetch()
+                    }}
+                    onPointerLeave={() => setTokenTooltipActive(false)}
+                    onFocus={() => {
+                      setTokenTooltipActive(true)
+                      if (tokenStats.isError) void tokenStats.refetch()
+                    }}
+                    onBlur={() => setTokenTooltipActive(false)}
                   />
                 }
               >
-                <CircleAlert className='size-3 sm:size-3.5' />
+                {tokenTooltipLoading && tokenTooltipLoadingVisible ? (
+                  <Loader2 className='size-3 animate-spin sm:size-3.5' />
+                ) : (
+                  <CircleAlert className='size-3 sm:size-3.5' />
+                )}
               </TooltipTrigger>
             }
           />
