@@ -41,6 +41,7 @@ import {
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -219,20 +220,22 @@ export function DataTableColumnHeader<TData, TValue>({
 
 function DescriptionTooltip({ description }: { description: string }) {
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Info
-            className='text-muted-foreground size-3.5 shrink-0 cursor-help'
-            aria-label={description}
-          />
-        }
-      />
-      <TooltipContent className='max-w-64'>
-        <p className='text-xs leading-relaxed whitespace-pre-line'>
-          {description}
-        </p>
-      </TooltipContent>
-    </Tooltip>
+    <TooltipProvider delay={0}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Info
+              className='text-muted-foreground size-3.5 shrink-0 cursor-help'
+              aria-label={description}
+            />
+          }
+        />
+        <TooltipContent className='max-w-64'>
+          <p className='text-xs leading-relaxed whitespace-pre-line'>
+            {description}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
