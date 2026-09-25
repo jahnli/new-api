@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Ban, Minus, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Ban, CreditCard, Minus, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import {
   Select,
   SelectContent,
@@ -368,211 +369,269 @@ export function UserSubscriptionsDialog(props: Props) {
         open={props.open}
         onOpenChange={props.onOpenChange}
         title={t('User Subscription Management')}
-        description={`${props.user?.username || '-'} (ID: ${props.user?.id || '-'})`}
-        contentClassName='sm:max-w-4xl'
-        bodyClassName='space-y-4'
+        description={
+          <>
+            <span className='text-foreground font-medium break-all'>
+              {props.user?.username || '-'}
+            </span>
+            <span className='text-border mx-2' aria-hidden='true'>
+              /
+            </span>
+            <span className='font-mono text-xs'>
+              ID: {props.user?.id || '-'}
+            </span>
+          </>
+        }
+        headerLeading={
+          <div className='bg-primary/10 text-primary col-start-1 row-span-2 flex size-11 items-center justify-center rounded-xl'>
+            <CreditCard className='size-5' aria-hidden='true' />
+          </div>
+        }
+        contentClassName='gap-0 overflow-hidden p-0 sm:h-[84dvh] sm:max-w-5xl sm:p-0'
+        headerClassName='grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 border-b px-5 py-5 pe-12 sm:px-6 sm:pe-12'
+        titleClassName='col-start-2 text-lg'
+        descriptionClassName='col-start-2'
+        bodyContainerClassName='mx-0 flex-1'
+        bodyClassName='bg-muted/30 flex min-h-full flex-col gap-5 p-4 sm:h-full sm:px-6 [&>form]:shrink-0'
       >
         {props.open && props.user ? (
           <UserPremiumPolicy
             userId={props.user.id}
             subscriptions={subs}
+            planTitleMap={planTitleMap}
             onSaved={() => {
               void loadData()
               props.onSuccess?.()
             }}
           />
         ) : null}
-        <div className='flex gap-2'>
-          <Combobox
-            options={plans.map((planRecord) => ({
-              value: String(planRecord.plan.id),
-              label: planRecord.plan.title,
-              suffix: (
-                <Badge variant='secondary'>
-                  {formatPlanQuota(planRecord.plan)}
-                </Badge>
-              ),
-            }))}
-            value={selectedPlanId}
-            onValueChange={(value) =>
-              value !== null && setSelectedPlanId(value)
+        <section className='bg-background flex flex-1 flex-col overflow-hidden rounded-xl border sm:min-h-64'>
+          <div className='shrink-0 space-y-4 border-b p-5'>
+            <h3 className='text-sm font-semibold'>{t('Subscriptions')}</h3>
+            <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
+              <Combobox
+                options={plans.map((planRecord) => ({
+                  value: String(planRecord.plan.id),
+                  label: planRecord.plan.title,
+                  suffix: (
+                    <Badge variant='secondary'>
+                      {formatPlanQuota(planRecord.plan)}
+                    </Badge>
+                  ),
+                }))}
+                value={selectedPlanId}
+                onValueChange={(value) =>
+                  value !== null && setSelectedPlanId(value)
+                }
+                className='w-full min-w-0 sm:flex-1'
+                itemClassName='pl-8'
+                showSelectedContent
+                placeholder={t('Select subscription plan')}
+                aria-label={t('Select subscription plan')}
+                openOnFocus={false}
+              />
+              <Button
+                className='shrink-0'
+                onClick={handleCreate}
+                disabled={creating || !selectedPlanId}
+              >
+                <Plus className='size-4' aria-hidden='true' />
+                {t('Add subscription')}
+              </Button>
+            </div>
+          </div>
+
+          <StaticDataTable
+            className='min-h-0 flex-1 overflow-auto rounded-none border-0'
+            tableProps={{ withContainer: false }}
+            tableClassName='[&_td]:px-5 [&_td]:py-4 [&_th]:px-5 [&_th]:py-3'
+            headerRowClassName='bg-muted/40 hover:bg-muted/40'
+            data={loading ? [] : subs}
+            getRowKey={(record) => record.subscription.id}
+            emptyClassName={loading ? 'py-8' : 'text-muted-foreground py-8'}
+            emptyContent={
+              loading ? t('Loading...') : t('No subscription records')
             }
-            className='flex-1'
-            itemClassName='pl-8'
-            showSelectedContent
-            placeholder={t('Select subscription plan')}
-            openOnFocus={false}
+            columns={[
+              {
+                id: 'id',
+                header: t('ID'),
+                cell: (record) => <TableId value={record.subscription.id} />,
+              },
+              {
+                id: 'plan',
+                header: t('Plan'),
+                cell: (record) => {
+                  const sub = record.subscription
+
+                  return (
+                    <div className='space-y-1'>
+                      <div className='font-medium'>
+                        {planTitleMap.get(sub.plan_id) || `#${sub.plan_id}`}
+                      </div>
+                      <div className='text-muted-foreground text-xs'>
+                        {t('Source')}: {sub.source || '-'}
+                      </div>
+                    </div>
+                  )
+                },
+              },
+              {
+                id: 'status',
+                header: t('Status'),
+                cell: (record) => (
+                  <SubscriptionStatusBadge sub={record.subscription} t={t} />
+                ),
+              },
+              {
+                id: 'validity',
+                header: t('Validity'),
+                cell: (record) => {
+                  const sub = record.subscription
+
+                  return (
+                    <div className='space-y-1.5 text-xs tabular-nums'>
+                      <div className='flex items-baseline gap-3'>
+                        <span className='text-muted-foreground'>
+                          {t('Start')}
+                        </span>
+                        <span>{formatTimestamp(sub.start_time)}</span>
+                      </div>
+                      <div className='flex items-baseline gap-3'>
+                        <span className='text-muted-foreground'>
+                          {t('End')}
+                        </span>
+                        <span>{formatTimestamp(sub.end_time)}</span>
+                      </div>
+                    </div>
+                  )
+                },
+              },
+              {
+                id: 'quota',
+                header: t('Total Quota'),
+                cell: (record) => {
+                  const sub = record.subscription
+                  const total = Number(sub.amount_total || 0)
+                  const used = Number(sub.amount_used || 0)
+                  if (total <= 0) return t('Unlimited')
+                  return (
+                    <div className='min-w-28 space-y-2'>
+                      <div className='flex items-baseline gap-1 text-xs tabular-nums'>
+                        <span className='font-semibold'>
+                          {formatQuota(used)}
+                        </span>
+                        <span className='text-muted-foreground'>
+                          / {formatQuota(total)}
+                        </span>
+                      </div>
+                      <Progress
+                        value={Math.min(100, Math.max(0, (used / total) * 100))}
+                        aria-label={t('Total Quota')}
+                      />
+                    </div>
+                  )
+                },
+              },
+              {
+                id: 'actions',
+                header: t('Actions'),
+                className: 'text-right',
+                cellClassName: 'text-right',
+                cell: (record) => {
+                  const sub = record.subscription
+                  const now = Date.now() / 1000
+                  const isExpired =
+                    (sub.end_time || 0) > 0 && sub.end_time < now
+                  const isActive = sub.status === 'active' && !isExpired
+
+                  return (
+                    <DataTableRowActionMenu ariaLabel={t('Actions')}>
+                      <DropdownMenuItem
+                        disabled={!isActive}
+                        onClick={() => {
+                          setAdvanceResetTime(true)
+                          setResetAction({
+                            planId: sub.plan_id,
+                            planTitle:
+                              planTitleMap.get(sub.plan_id) ||
+                              `#${sub.plan_id}`,
+                          })
+                        }}
+                      >
+                        {t('Reset quota')}
+                        <DropdownMenuShortcut>
+                          <RotateCcw size={16} />
+                        </DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!isActive}
+                        onClick={() => {
+                          setQuotaAdjustmentAmount('500')
+                          setQuotaType('total')
+                          setConfirmAction({
+                            type: 'increase',
+                            subId: sub.id,
+                          })
+                        }}
+                      >
+                        {t('Increase')}
+                        <DropdownMenuShortcut>
+                          <Plus size={16} />
+                        </DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!isActive || sub.amount_total <= 0}
+                        onClick={() => {
+                          setQuotaAdjustmentAmount('500')
+                          setQuotaType('total')
+                          setConfirmAction({
+                            type: 'decrease',
+                            subId: sub.id,
+                          })
+                        }}
+                      >
+                        {t('Decrease')}
+                        <DropdownMenuShortcut>
+                          <Minus size={16} />
+                        </DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!isActive}
+                        onClick={() =>
+                          setConfirmAction({
+                            type: 'invalidate',
+                            subId: sub.id,
+                          })
+                        }
+                      >
+                        {t('Invalidate')}
+                        <DropdownMenuShortcut>
+                          <Ban size={16} />
+                        </DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant='destructive'
+                        onClick={() =>
+                          setConfirmAction({
+                            type: 'delete',
+                            subId: sub.id,
+                          })
+                        }
+                      >
+                        {t('Delete')}
+                        <DropdownMenuShortcut>
+                          <Trash2 size={16} />
+                        </DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    </DataTableRowActionMenu>
+                  )
+                },
+              },
+            ]}
           />
-          <Button onClick={handleCreate} disabled={creating || !selectedPlanId}>
-            <Plus className='mr-1 h-4 w-4' />
-            {t('Add subscription')}
-          </Button>
-        </div>
-
-        <StaticDataTable
-          data={loading ? [] : subs}
-          getRowKey={(record) => record.subscription.id}
-          emptyClassName={loading ? 'py-8' : 'text-muted-foreground py-8'}
-          emptyContent={
-            loading ? t('Loading...') : t('No subscription records')
-          }
-          columns={[
-            {
-              id: 'id',
-              header: t('ID'),
-              cell: (record) => <TableId value={record.subscription.id} />,
-            },
-            {
-              id: 'plan',
-              header: t('Plan'),
-              cell: (record) => {
-                const sub = record.subscription
-
-                return (
-                  <div>
-                    <div className='font-medium'>
-                      {planTitleMap.get(sub.plan_id) || `#${sub.plan_id}`}
-                    </div>
-                    <div className='text-muted-foreground text-sm'>
-                      {t('Source')}: {sub.source || '-'}
-                    </div>
-                  </div>
-                )
-              },
-            },
-            {
-              id: 'status',
-              header: t('Status'),
-              cell: (record) => (
-                <SubscriptionStatusBadge sub={record.subscription} t={t} />
-              ),
-            },
-            {
-              id: 'validity',
-              header: t('Validity'),
-              cell: (record) => {
-                const sub = record.subscription
-
-                return (
-                  <div className='text-sm'>
-                    <div>
-                      {t('Start')}: {formatTimestamp(sub.start_time)}
-                    </div>
-                    <div>
-                      {t('End')}: {formatTimestamp(sub.end_time)}
-                    </div>
-                  </div>
-                )
-              },
-            },
-            {
-              id: 'quota',
-              header: t('Total Quota'),
-              cell: (record) => {
-                const sub = record.subscription
-                const total = Number(sub.amount_total || 0)
-                const used = Number(sub.amount_used || 0)
-                return total > 0
-                  ? `${formatQuota(used)}/${formatQuota(total)}`
-                  : t('Unlimited')
-              },
-            },
-            {
-              id: 'actions',
-              header: t('Actions'),
-              className: 'text-right',
-              cellClassName: 'text-right',
-              cell: (record) => {
-                const sub = record.subscription
-                const now = Date.now() / 1000
-                const isExpired = (sub.end_time || 0) > 0 && sub.end_time < now
-                const isActive = sub.status === 'active' && !isExpired
-
-                return (
-                  <DataTableRowActionMenu ariaLabel={t('Actions')}>
-                    <DropdownMenuItem
-                      disabled={!isActive}
-                      onClick={() => {
-                        setAdvanceResetTime(true)
-                        setResetAction({
-                          planId: sub.plan_id,
-                          planTitle:
-                            planTitleMap.get(sub.plan_id) || `#${sub.plan_id}`,
-                        })
-                      }}
-                    >
-                      {t('Reset quota')}
-                      <DropdownMenuShortcut>
-                        <RotateCcw size={16} />
-                      </DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={!isActive}
-                      onClick={() => {
-                        setQuotaAdjustmentAmount('500')
-                        setQuotaType('total')
-                        setConfirmAction({
-                          type: 'increase',
-                          subId: sub.id,
-                        })
-                      }}
-                    >
-                      {t('Increase')}
-                      <DropdownMenuShortcut>
-                        <Plus size={16} />
-                      </DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={!isActive || sub.amount_total <= 0}
-                      onClick={() => {
-                        setQuotaAdjustmentAmount('500')
-                        setQuotaType('total')
-                        setConfirmAction({
-                          type: 'decrease',
-                          subId: sub.id,
-                        })
-                      }}
-                    >
-                      {t('Decrease')}
-                      <DropdownMenuShortcut>
-                        <Minus size={16} />
-                      </DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={!isActive}
-                      onClick={() =>
-                        setConfirmAction({
-                          type: 'invalidate',
-                          subId: sub.id,
-                        })
-                      }
-                    >
-                      {t('Invalidate')}
-                      <DropdownMenuShortcut>
-                        <Ban size={16} />
-                      </DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant='destructive'
-                      onClick={() =>
-                        setConfirmAction({
-                          type: 'delete',
-                          subId: sub.id,
-                        })
-                      }
-                    >
-                      {t('Delete')}
-                      <DropdownMenuShortcut>
-                        <Trash2 size={16} />
-                      </DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                  </DataTableRowActionMenu>
-                )
-              },
-            },
-          ]}
-        />
+        </section>
       </Dialog>
 
       {confirmAction && (
