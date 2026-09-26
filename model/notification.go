@@ -1,14 +1,17 @@
 package model
 
 import (
+	"cmp"
 	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -25,18 +28,23 @@ const (
 var ErrNotificationConflict = errors.New("notification is active or has no failed recipients")
 
 type NotificationRecord struct {
-	ID           int                    `json:"id" gorm:"primaryKey"`
-	SenderID     int                    `json:"user_id" gorm:"index"`
+	ID       int    `json:"id" gorm:"primaryKey"`
+	Kind     string `json:"-" gorm:"size:16;index"`
+	OwnerID  int    `json:"-" gorm:"index"`
+	Name     string `json:"-" gorm:"size:128"`
+	IsPublic bool   `json:"-"`
+	// Keep the original index names when renaming the records table.
+	SenderID     int                    `json:"user_id" gorm:"index:idx_notification_records_sender_id"`
 	Sender       string                 `json:"sender_name" gorm:"size:128"`
 	DisplayName  string                 `json:"display_name" gorm:"-"`
 	AvatarUrl    string                 `json:"avatar_url" gorm:"-"`
 	OpenId       string                 `json:"open_id" gorm:"-"`
 	Gender       int                    `json:"gender" gorm:"-"`
-	Channel      string                 `json:"channel" gorm:"size:16;index"`
+	Channel      string                 `json:"channel" gorm:"size:16;index:idx_notification_records_channel"`
 	CompanyID    int                    `json:"company_id"`
 	Title        string                 `json:"title" gorm:"size:512"`
 	Summary      string                 `json:"summary" gorm:"type:text"`
-	IsTest       bool                   `json:"is_test" gorm:"index"`
+	IsTest       bool                   `json:"is_test" gorm:"index:idx_notification_records_is_test"`
 	Status       string                 `json:"status" gorm:"size:16;index:idx_notification_queue,priority:1"`
 	Total        int                    `json:"total"`
 	SuccessCount int                    `json:"success_count"`
@@ -44,24 +52,29 @@ type NotificationRecord struct {
 	UnknownCount int                    `json:"unknown_count"`
 	Claim        string                 `json:"-" gorm:"size:64"`
 	LeaseUntil   int64                  `json:"-" gorm:"index:idx_notification_queue,priority:2"`
-	CreatedAt    time.Time              `json:"created_at" gorm:"index"`
+	CreatedAt    time.Time              `json:"created_at" gorm:"index:idx_notification_records_created_at"`
 	UpdatedAt    time.Time              `json:"updated_at"`
 	Message      json.RawMessage        `json:"message,omitempty" gorm:"-"`
 	Deliveries   []NotificationDelivery `json:"deliveries,omitempty" gorm:"-"`
 }
 
+// Both API projections share one table; only this complete schema is migrated.
+func (NotificationRecord) TableName() string { return "notification_messages" }
+
 type NotificationDelivery struct {
-	ID        int       `json:"id" gorm:"primaryKey"`
-	RecordID  int       `json:"record_id" gorm:"index"`
-	Recipient string    `json:"recipient" gorm:"size:320"`
-	Status    string    `json:"status" gorm:"size:16"`
-	Attempts  int       `json:"attempts"`
-	Error     string    `json:"error" gorm:"type:text"`
-	MessageID string    `json:"message_id" gorm:"type:text"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        int              `json:"id" gorm:"primaryKey"`
+	RecordID  int              `json:"record_id" gorm:"index"`
+	Recipient string           `json:"recipient" gorm:"size:320"`
+	Status    string           `json:"status" gorm:"size:16"`
+	Attempts  int              `json:"attempts"`
+	Error     string           `json:"error" gorm:"type:text"`
+	MessageID string           `json:"message_id" gorm:"type:text"`
+	UpdatedAt time.Time        `json:"updated_at"`
+	History   NotificationBlob `json:"-"`
 }
 
-// Attempts are append-only, including an unknown result when a worker loses its lease.
+// Attempts are JSON snapshots in NotificationDelivery.History, not a table.
+// ID preserves legacy audit IDs; new entries are identified by delivery_id + attempt.
 type NotificationAttempt struct {
 	ID         int       `json:"id" gorm:"primaryKey"`
 	DeliveryID int       `json:"delivery_id" gorm:"index"`
@@ -84,6 +97,8 @@ type NotificationSavedMessage struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 	Message   json.RawMessage `json:"message,omitempty" gorm:"-"`
 }
+
+func (NotificationSavedMessage) TableName() string { return "notification_messages" }
 
 // Binary chunks avoid TEXT's 64KB MySQL limit and large individual SQL packets.
 // These tables live only in the main database, never the independent log database.
@@ -153,6 +168,7 @@ func loadNotificationPayload(db *gorm.DB, kind string, id int) ([]byte, error) {
 
 func CreateNotification(record *NotificationRecord, payload []byte, recipients []string) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
+		record.Kind = "record"
 		record.Status, record.Total = NotificationQueued, len(recipients)
 		if strings.HasPrefix(record.Claim, "direct:") {
 			record.Status = NotificationSending
@@ -182,7 +198,7 @@ type NotificationFilter struct {
 }
 
 func notificationQuery(filter NotificationFilter) *gorm.DB {
-	query := DB.Model(&NotificationRecord{})
+	query := DB.Model(&NotificationRecord{}).Where("kind = ?", "record")
 	if !filter.Admin {
 		query = query.Where("sender_id = ?", filter.ViewerID)
 	}
@@ -264,7 +280,7 @@ func ListNotifications(filter NotificationFilter) ([]NotificationRecord, int64, 
 
 func GetNotification(id, viewerID int, admin, includeMessage bool) (*NotificationRecord, error) {
 	var record NotificationRecord
-	query := DB.Where("id = ?", id)
+	query := DB.Where("id = ? AND kind = ?", id, "record")
 	if !admin {
 		query = query.Where("sender_id = ?", viewerID)
 	}
@@ -278,30 +294,51 @@ func GetNotification(id, viewerID int, admin, includeMessage bool) (*Notificatio
 		}
 		record.Message = payload
 	}
-	if err := DB.Where("record_id = ?", id).Order("id asc").Find(&record.Deliveries).Error; err != nil {
+	if err := DB.Omit("history").Where("record_id = ?", id).Order("id asc").Find(&record.Deliveries).Error; err != nil {
 		return nil, err
 	}
 	return &record, nil
 }
 
 func NotificationAttempts(recordID int) ([]NotificationAttempt, error) {
-	deliveryIDs := DB.Model(&NotificationDelivery{}).Select("id").Where("record_id = ?", recordID)
+	var deliveries []NotificationDelivery
+	if err := DB.Select("id", "history").Where("record_id = ?", recordID).Order("id asc").Find(&deliveries).Error; err != nil {
+		return nil, err
+	}
 	attempts := make([]NotificationAttempt, 0)
-	err := DB.Where("delivery_id IN (?)", deliveryIDs).Order("id asc").Find(&attempts).Error
-	return attempts, err
+	for _, delivery := range deliveries {
+		if len(delivery.History) == 0 {
+			continue
+		}
+		var history []NotificationAttempt
+		if err := common.Unmarshal(delivery.History, &history); err != nil {
+			return nil, err
+		}
+		attempts = append(attempts, history...)
+	}
+	slices.SortFunc(attempts, func(a, b NotificationAttempt) int {
+		if order := a.CreatedAt.Compare(b.CreatedAt); order != 0 {
+			return order
+		}
+		if order := cmp.Compare(a.DeliveryID, b.DeliveryID); order != 0 {
+			return order
+		}
+		return cmp.Compare(a.Attempt, b.Attempt)
+	})
+	return attempts, nil
 }
 
 // The caller must authorize access to the parent record before using this query.
 func ListNotificationDeliveries(recordID int) ([]NotificationDelivery, error) {
 	items := make([]NotificationDelivery, 0)
-	err := DB.Where("record_id = ?", recordID).Order("id asc").Find(&items).Error
+	err := DB.Omit("history").Where("record_id = ?", recordID).Order("id asc").Find(&items).Error
 	return items, err
 }
 
 func RetryNotification(id, userID int, admin bool, claim string) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
 		var record NotificationRecord
-		query := lockForUpdate(tx).Where("id = ?", id)
+		query := lockForUpdate(tx).Where("id = ? AND kind = ?", id, "record")
 		if !admin {
 			query = query.Where("sender_id = ? AND is_test = ?", userID, true)
 		}
@@ -332,7 +369,7 @@ func RetryNotification(id, userID int, admin bool, claim string) error {
 func ClaimNotification(ctx context.Context, claim string) (*NotificationRecord, error) {
 	db := DB.WithContext(ctx)
 	var candidate NotificationRecord
-	if err := db.Where("status = ?", NotificationQueued).Order("id asc").First(&candidate).Error; err != nil {
+	if err := db.Where("kind = ? AND status = ?", "record", NotificationQueued).Order("id asc").First(&candidate).Error; err != nil {
 		return nil, err
 	}
 	result := db.Model(&NotificationRecord{}).Where("id = ? AND status = ?", candidate.ID, NotificationQueued).
@@ -357,7 +394,7 @@ func ClaimNotification(ctx context.Context, claim string) (*NotificationRecord, 
 func BeginNotificationDelivery(recordID int, claim string) (*NotificationDelivery, error) {
 	var delivery NotificationDelivery
 	err := DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&NotificationRecord{}).Where("id = ? AND claim = ? AND status = ? AND lease_until > ?", recordID, claim, NotificationSending, time.Now().Unix()).
+		result := tx.Model(&NotificationRecord{}).Where("id = ? AND kind = ? AND claim = ? AND status = ? AND lease_until > ?", recordID, "record", claim, NotificationSending, time.Now().Unix()).
 			Updates(map[string]any{"lease_until": time.Now().Add(3 * time.Minute).Unix(), "updated_at": time.Now()})
 		if result.Error != nil {
 			return result.Error
@@ -365,7 +402,7 @@ func BeginNotificationDelivery(recordID int, claim string) (*NotificationDeliver
 		if result.RowsAffected != 1 {
 			return ErrNotificationConflict
 		}
-		if err := tx.Where("record_id = ? AND status = ?", recordID, NotificationQueued).Order("id asc").First(&delivery).Error; err != nil {
+		if err := tx.Omit("history").Where("record_id = ? AND status = ?", recordID, NotificationQueued).Order("id asc").First(&delivery).Error; err != nil {
 			return err
 		}
 		result = tx.Model(&NotificationDelivery{}).Where("id = ? AND status = ?", delivery.ID, NotificationQueued).
@@ -385,23 +422,43 @@ func BeginNotificationDelivery(recordID int, claim string) (*NotificationDeliver
 func FinishNotificationDelivery(recordID int, claim string, delivery *NotificationDelivery, status, messageID, reason string) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
 		var record NotificationRecord
-		if err := lockForUpdate(tx).Where("id = ? AND claim = ? AND status = ? AND lease_until > ?", recordID, claim, NotificationSending, time.Now().Unix()).First(&record).Error; err != nil {
+		if err := lockForUpdate(tx).Where("id = ? AND kind = ? AND claim = ? AND status = ? AND lease_until > ?", recordID, "record", claim, NotificationSending, time.Now().Unix()).First(&record).Error; err != nil {
 			return err
 		}
-		result := tx.Model(&NotificationDelivery{}).Where("id = ? AND status = ?", delivery.ID, NotificationSending).
-			Updates(map[string]any{"status": status, "error": reason, "message_id": messageID})
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected != 1 {
-			return ErrNotificationConflict
-		}
-		attempt := NotificationAttempt{DeliveryID: delivery.ID, Attempt: delivery.Attempts, Status: status, Error: reason, MessageID: messageID}
-		if err := tx.Create(&attempt).Error; err != nil {
+		if err := finishNotificationAttempt(tx, recordID, delivery.ID, status, messageID, reason); err != nil {
 			return err
 		}
 		return refreshNotificationState(tx, &record, false)
 	})
+}
+
+// The parent notification must be locked by the caller. Read the history inside
+// that transaction so lease recovery and completion cannot overwrite each other.
+func finishNotificationAttempt(tx *gorm.DB, recordID, deliveryID int, status, messageID, reason string) error {
+	var delivery NotificationDelivery
+	if err := tx.Where("id = ? AND record_id = ? AND status = ?", deliveryID, recordID, NotificationSending).First(&delivery).Error; err != nil {
+		return err
+	}
+	var history []NotificationAttempt
+	if len(delivery.History) > 0 {
+		if err := common.Unmarshal(delivery.History, &history); err != nil {
+			return err
+		}
+	}
+	history = append(history, NotificationAttempt{DeliveryID: delivery.ID, Attempt: delivery.Attempts, Status: status, Error: reason, MessageID: messageID, CreatedAt: time.Now()})
+	payload, err := common.Marshal(history)
+	if err != nil {
+		return err
+	}
+	result := tx.Model(&NotificationDelivery{}).Where("id = ? AND status = ?", delivery.ID, NotificationSending).
+		Updates(map[string]any{"status": status, "error": reason, "message_id": messageID, "history": NotificationBlob(payload)})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return ErrNotificationConflict
+	}
+	return nil
 }
 
 func refreshNotificationState(tx *gorm.DB, record *NotificationRecord, release bool) error {
@@ -437,7 +494,7 @@ func refreshNotificationState(tx *gorm.DB, record *NotificationRecord, release b
 
 func RecoverExpiredNotifications() error {
 	var records []NotificationRecord
-	if err := DB.Where("status = ? AND lease_until < ?", NotificationSending, time.Now().Unix()).Limit(20).Find(&records).Error; err != nil {
+	if err := DB.Where("kind = ? AND status = ? AND lease_until < ?", "record", NotificationSending, time.Now().Unix()).Limit(20).Find(&records).Error; err != nil {
 		return err
 	}
 	for _, expired := range records {
@@ -451,15 +508,12 @@ func RecoverExpiredNotifications() error {
 				return err
 			}
 			var deliveries []NotificationDelivery
-			if err := tx.Where("record_id = ? AND status = ?", record.ID, NotificationSending).Find(&deliveries).Error; err != nil {
+			if err := tx.Omit("history").Where("record_id = ? AND status = ?", record.ID, NotificationSending).Find(&deliveries).Error; err != nil {
 				return err
 			}
 			for _, delivery := range deliveries {
 				reason := "worker interrupted; delivery outcome is unknown and will not be retried"
-				if err := tx.Model(&NotificationDelivery{}).Where("id = ? AND status = ?", delivery.ID, NotificationSending).Updates(map[string]any{"status": NotificationUnknown, "error": reason}).Error; err != nil {
-					return err
-				}
-				if err := tx.Create(&NotificationAttempt{DeliveryID: delivery.ID, Attempt: delivery.Attempts, Status: NotificationUnknown, Error: reason}).Error; err != nil {
+				if err := finishNotificationAttempt(tx, record.ID, delivery.ID, NotificationUnknown, "", reason); err != nil {
 					return err
 				}
 			}
@@ -483,7 +537,7 @@ func RecoverExpiredNotifications() error {
 func FinishDirectNotification(id int, claim string) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
 		var record NotificationRecord
-		if err := lockForUpdate(tx).Where("id = ?", id).First(&record).Error; err != nil {
+		if err := lockForUpdate(tx).Where("id = ? AND kind = ?", id, "record").First(&record).Error; err != nil {
 			return err
 		}
 		if record.Status != NotificationSending || record.Claim != claim {
@@ -498,6 +552,9 @@ func FinishDirectNotification(id int, claim string) error {
 }
 
 func ListNotificationSaved(kind string, userID, page, pageSize int, keyword, scope string) ([]NotificationSavedMessage, int64, error) {
+	if kind != "template" && kind != "draft" {
+		return nil, 0, errors.New("unsupported notification library kind")
+	}
 	items := make([]NotificationSavedMessage, 0)
 	query := DB.Where("kind = ?", kind)
 	if kind == "template" {
@@ -524,6 +581,9 @@ func ListNotificationSaved(kind string, userID, page, pageSize int, keyword, sco
 }
 
 func GetNotificationSaved(id int, kind string, userID int) (*NotificationSavedMessage, error) {
+	if kind != "template" && kind != "draft" {
+		return nil, errors.New("unsupported notification library kind")
+	}
 	var item NotificationSavedMessage
 	query := DB.Where("id = ? AND kind = ?", id, kind)
 	if kind == "template" {
@@ -534,7 +594,7 @@ func GetNotificationSaved(id int, kind string, userID int) (*NotificationSavedMe
 	if err := query.First(&item).Error; err != nil {
 		return nil, err
 	}
-	payload, err := loadNotificationPayload(DB, "saved", id)
+	payload, err := loadNotificationPayload(DB, "saved_message", id)
 	if err != nil {
 		return nil, err
 	}
@@ -543,6 +603,9 @@ func GetNotificationSaved(id int, kind string, userID int) (*NotificationSavedMe
 }
 
 func SaveNotificationMessage(item *NotificationSavedMessage, payload []byte, userID int, admin bool) error {
+	if item.Kind != "template" && item.Kind != "draft" {
+		return errors.New("unsupported notification library kind")
+	}
 	return DB.Transaction(func(tx *gorm.DB) error {
 		if item.ID == 0 {
 			item.OwnerID = userID
@@ -565,15 +628,18 @@ func SaveNotificationMessage(item *NotificationSavedMessage, payload []byte, use
 				return err
 			}
 			item.UpdatedAt = existing.UpdatedAt
-			if err := tx.Where("kind = ? AND owner_id = ?", "saved", item.ID).Delete(&NotificationPayload{}).Error; err != nil {
+			if err := tx.Where("kind = ? AND owner_id = ?", "saved_message", item.ID).Delete(&NotificationPayload{}).Error; err != nil {
 				return err
 			}
 		}
-		return storeNotificationPayload(tx, "saved", item.ID, payload)
+		return storeNotificationPayload(tx, "saved_message", item.ID, payload)
 	})
 }
 
 func DeleteNotificationSaved(id int, kind string, userID int, admin bool) error {
+	if kind != "template" && kind != "draft" {
+		return errors.New("unsupported notification library kind")
+	}
 	return DB.Transaction(func(tx *gorm.DB) error {
 		query := tx.Where("id = ? AND kind = ?", id, kind)
 		if admin && kind == "template" {
@@ -588,6 +654,6 @@ func DeleteNotificationSaved(id int, kind string, userID int, admin bool) error 
 		if result.RowsAffected != 1 {
 			return gorm.ErrRecordNotFound
 		}
-		return tx.Where("kind = ? AND owner_id = ?", "saved", id).Delete(&NotificationPayload{}).Error
+		return tx.Where("kind = ? AND owner_id = ?", "saved_message", id).Delete(&NotificationPayload{}).Error
 	})
 }

@@ -382,14 +382,12 @@ func migrateDB() error {
 		&ImageStudioGeneration{},
 		&RequestMessage{},
 		&Company{},
-		&NotificationRecord{},
-		&NotificationDelivery{},
-		&NotificationAttempt{},
-		&NotificationSavedMessage{},
-		&NotificationPayload{},
 	)
 	if err != nil {
 		return err
+	}
+	if err := migrateNotificationStorage(DB); err != nil {
+		return fmt.Errorf("notification storage migration: %w", err)
 	}
 	if err := InitializeUserAuthVersions(); err != nil {
 		return err
