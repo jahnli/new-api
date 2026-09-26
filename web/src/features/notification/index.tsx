@@ -174,12 +174,12 @@ export function Notifications() {
       <SectionPageLayout.Title>{t('Notifications')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <div className='w-full min-w-0 space-y-6 pb-8'>
-          <header className='from-primary/7 via-card to-card relative overflow-hidden rounded-2xl border bg-gradient-to-br px-5 py-6 sm:px-7'>
+          <header className='from-primary/7 via-card to-card relative overflow-hidden rounded-2xl border bg-gradient-to-br px-5 py-4 sm:px-7'>
             <div className='bg-primary/5 pointer-events-none absolute -top-20 -right-12 size-64 rounded-full' />
-            <div className='relative flex flex-wrap items-center justify-between gap-5'>
-              <div className='flex items-center gap-4'>
-                <div className='bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-2xl'>
-                  <Bell className='size-6' />
+            <div className='relative flex flex-wrap items-center justify-between gap-4'>
+              <div className='flex items-center gap-3'>
+                <div className='bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl'>
+                  <Bell className='size-5' />
                 </div>
                 <div>
                   <div className='flex flex-wrap items-center gap-2'>
