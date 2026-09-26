@@ -161,9 +161,12 @@ export function useSidebarData(): SidebarData {
           },
           {
             title: t('Notifications'),
-            url: '/company-notifications',
+            url: '/notification',
             icon: Bell,
-            requiredRole: ROLE.SUPER_ADMIN,
+            requiredPermission: {
+              resource: 'notification',
+              action: 'view',
+            },
           },
           {
             title: t('Company Management'),

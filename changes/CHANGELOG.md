@@ -43,7 +43,7 @@
 | 036 | 2026-06-24 | 系统公告弹窗宽度由 26rem 加大到 36rem | `web/default/src/components/notification-popover.tsx` |
 | 037 | 2026-09-25 | 订阅管理增强：支持公司范围订阅、分类额度调整与高级模型限额，优化管理弹框和额度变化预览，完善结算及不足提示 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
-| 039 | 2026-09-26 | 用户管理与共享交互增强：完善统计筛选、成本中心及分组联动，统一悬停提示并按界面精简重复说明 | [详情](details/039-user-management-table.md) |
+| 039 | 2026-09-26 | 用户管理与共享交互增强：完善统计筛选、成本中心、分组联动与跨页选择，统一悬停提示并精简重复说明 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |
 | 041 | 2026-06-25 | 飞书同步改用 directory/v1/employees/mget 单接口，并重构 User 表飞书字段（employee_number→job_number，新增部门、职务、入职日期等字段） | [详情](details/041-feishu-field-refactor.md) |
 | 042 | 2026-08-05 | 用户管理表格头像悬停资料卡片：飞书风格展示职级、部门、入职日期等资料字段，敏感字段仅超级管理员可见，并支持公司名称、性别图标与自定义字段解析 | [详情](details/042-user-profile-hover-card.md) |

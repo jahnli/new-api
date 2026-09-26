@@ -36,7 +36,7 @@ type ConfirmDialogProps = {
   onOpenChange: (open: boolean) => void
   title: React.ReactNode
   disabled?: boolean
-  desc: React.JSX.Element | string
+  desc?: React.JSX.Element | string
   cancelBtnText?: string
   confirmText?: React.ReactNode
   destructive?: boolean
@@ -66,9 +66,11 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
       <AlertDialogContent className={cn(className)}>
         <AlertDialogHeader className='text-start'>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription render={<div />}>
-            {desc}
-          </AlertDialogDescription>
+          {desc && (
+            <AlertDialogDescription render={<div />}>
+              {desc}
+            </AlertDialogDescription>
+          )}
         </AlertDialogHeader>
         {children}
         <AlertDialogFooter>

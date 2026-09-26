@@ -382,6 +382,11 @@ func migrateDB() error {
 		&ImageStudioGeneration{},
 		&RequestMessage{},
 		&Company{},
+		&NotificationRecord{},
+		&NotificationDelivery{},
+		&NotificationAttempt{},
+		&NotificationSavedMessage{},
+		&NotificationPayload{},
 	)
 	if err != nil {
 		return err

@@ -34,6 +34,10 @@
 - `web/src/features/users/components/users-columns.tsx` — 用户列表列定义接收分组倍率映射。
 - `web/src/features/users/components/users-table.tsx` — 用户列表查询分组基础倍率并传入列定义。
 
+## 2026-09-26 用户表格跨页选择稳定性
+
+- `web/src/features/users/components/users-table.tsx` — 使用用户 ID 作为表格稳定行标识，避免分页、筛选或排序后因默认行索引复用而将选择状态错误关联到其他用户。
+
 ## 2026-09-26 表格说明与全站悬停提示统一
 
 沿用本条目已有的表头说明、时间单元格与长文本能力，将普通悬停提示统一为公共 Tooltip。使用日志的异步明细加载与复制交互另见 [#056](056-usage-logs-user-column.md)。

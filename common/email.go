@@ -2,12 +2,15 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"mime"
 	"mime/multipart"
 	"mime/quotedprintable"
+	"net"
 	"net/mail"
 	"net/smtp"
 	"net/textproto"
@@ -20,7 +23,10 @@ type EmailAttachment struct {
 	Filename    string
 	ContentType string
 	Data        []byte
+	ContentID   string
 }
+
+var ErrSMTPDeliveryUnknown = errors.New("SMTP delivery outcome is unknown")
 
 func generateMessageID(from string) (string, error) {
 	split := strings.Split(from, "@")
@@ -95,12 +101,22 @@ func SendEmail(subject string, receiver string, content string) error {
 	return sendSMTPMessage(receiver, mail)
 }
 
-func SendEmailWithAttachments(subject string, receiver string, content string, attachments []EmailAttachment) error {
-	mail, err := buildHTMLMessage(subject, receiver, content, attachments)
+// SendNotificationEmail returns the actual MIME Message-ID after SMTP accepts
+// DATA. Its deadline covers dialing, TLS, authentication and message transfer.
+func SendNotificationEmail(ctx context.Context, subject, receiver, content string, attachments []EmailAttachment) (string, error) {
+	message, err := buildHTMLMessage(subject, receiver, content, attachments)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return sendSMTPMessage(receiver, mail)
+	parsed, err := mail.ReadMessage(bytes.NewReader(message))
+	if err != nil {
+		return "", err
+	}
+	id := parsed.Header.Get("Message-ID")
+	if err := sendSMTPMessageContext(ctx, receiver, message); err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 func buildHTMLMessage(subject string, receiver string, content string, attachments []EmailAttachment) ([]byte, error) {
@@ -132,6 +148,9 @@ func buildHTMLMessage(subject string, receiver string, content string, attachmen
 		if err != nil || mediaType != attachment.ContentType || !strings.HasPrefix(mediaType, "image/") {
 			return nil, fmt.Errorf("invalid attachment content type")
 		}
+		if strings.ContainsAny(attachment.ContentID, "<>\r\n\t ") {
+			return nil, fmt.Errorf("invalid attachment content ID")
+		}
 	}
 
 	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
@@ -150,7 +169,11 @@ func buildHTMLMessage(subject string, receiver string, content string, attachmen
 
 	var body bytes.Buffer
 	multipartWriter := multipart.NewWriter(&body)
-	if _, err := body.WriteString(header + "Content-Type: multipart/mixed; boundary=\"" + multipartWriter.Boundary() + "\"\r\n\r\n"); err != nil {
+	multipartType := "mixed"
+	if slices.ContainsFunc(attachments, func(attachment EmailAttachment) bool { return attachment.ContentID != "" }) {
+		multipartType = "related"
+	}
+	if _, err := body.WriteString(header + "Content-Type: multipart/" + multipartType + "; boundary=\"" + multipartWriter.Boundary() + "\"\r\n\r\n"); err != nil {
 		return nil, err
 	}
 	textHeader := make(textproto.MIMEHeader)
@@ -172,6 +195,10 @@ func buildHTMLMessage(subject string, receiver string, content string, attachmen
 		partHeader := make(textproto.MIMEHeader)
 		partHeader.Set("Content-Type", attachment.ContentType)
 		partHeader.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": attachment.Filename}))
+		if attachment.ContentID != "" {
+			partHeader.Set("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": attachment.Filename}))
+			partHeader.Set("Content-ID", "<"+attachment.ContentID+">")
+		}
 		partHeader.Set("Content-Transfer-Encoding", "base64")
 		part, err := multipartWriter.CreatePart(partHeader)
 		if err != nil {
@@ -195,6 +222,10 @@ func buildHTMLMessage(subject string, receiver string, content string, attachmen
 }
 
 func sendSMTPMessage(receiver string, mail []byte) error {
+	return sendSMTPMessageContext(context.Background(), receiver, mail)
+}
+
+func sendSMTPMessageContext(ctx context.Context, receiver string, mail []byte) error {
 	from := SMTPFrom
 	if from == "" {
 		from = SMTPAccount
@@ -203,7 +234,9 @@ func sendSMTPMessage(receiver string, mail []byte) error {
 	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
 	to := strings.Split(receiver, ";")
 	var err error
-	client, err := newSMTPClient(addr)
+	// Existing callers retain their SMTP behavior; notification workers supply
+	// a deadline and must be able to release a blocked SMTP connection.
+	client, err := newSMTPClientWithContext(ctx, addr)
 	if err != nil {
 		return err
 	}
@@ -227,11 +260,15 @@ func sendSMTPMessage(receiver string, mail []byte) error {
 	}
 	_, err = w.Write(mail)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrSMTPDeliveryUnknown, err)
 	}
 	err = w.Close()
 	if err != nil {
-		return err
+		var rejected *textproto.Error
+		if errors.As(err, &rejected) {
+			return err
+		}
+		return fmt.Errorf("%w: %v", ErrSMTPDeliveryUnknown, err)
 	}
 	err = client.Quit()
 	if err != nil {
@@ -240,4 +277,57 @@ func sendSMTPMessage(receiver string, mail []byte) error {
 	// DATA was already accepted by the SMTP server. A QUIT failure does not
 	// mean delivery failed and must not encourage callers to resend the mail.
 	return nil
+}
+
+func newSMTPClientWithContext(ctx context.Context, addr string) (*smtp.Client, error) {
+	if ctx.Done() == nil {
+		return newSMTPClient(addr)
+	}
+	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	if deadline, ok := ctx.Deadline(); ok {
+		if err := conn.SetDeadline(deadline); err != nil {
+			_ = conn.Close()
+			return nil, err
+		}
+	}
+	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	wrapped := &notificationSMTPConn{Conn: conn, stop: stop}
+	var transport net.Conn = wrapped
+	if SMTPSSLEnabled || (SMTPPort == 465 && !SMTPStartTLSEnabled) {
+		tlsConn := tls.Client(wrapped, smtpTLSConfig())
+		if err := tlsConn.HandshakeContext(ctx); err != nil {
+			_ = wrapped.Close()
+			return nil, err
+		}
+		transport = tlsConn
+	}
+	client, err := smtp.NewClient(transport, SMTPServer)
+	if err != nil {
+		_ = transport.Close()
+		return nil, err
+	}
+	if SMTPStartTLSEnabled && !SMTPSSLEnabled {
+		if supported, _ := client.Extension("STARTTLS"); !supported {
+			_ = client.Close()
+			return nil, fmt.Errorf("SMTP server does not support STARTTLS")
+		}
+		if err := client.StartTLS(smtpTLSConfig()); err != nil {
+			_ = client.Close()
+			return nil, err
+		}
+	}
+	return client, nil
+}
+
+type notificationSMTPConn struct {
+	net.Conn
+	stop func() bool
+}
+
+func (conn *notificationSMTPConn) Close() error {
+	conn.stop()
+	return conn.Conn.Close()
 }

@@ -31,6 +31,10 @@ interface MarkdownProps {
   breaks?: boolean
   children: string
   className?: string
+  /** Display literal code blocks with line numbers instead of diagram renderers. */
+  codeLineNumbers?: boolean
+  /** Resolve Markdown image tokens without rewriting text or code blocks. */
+  imageSources?: Record<string, string>
 }
 
 const markdownOptions = {
@@ -720,6 +724,16 @@ const markdownParser = new Marked({
 
 markdownParser.use(...markdownExtensions)
 
+const numberedCodeRenderer = new Renderer()
+numberedCodeRenderer.code = (token: Tokens.Code): string => {
+  const lines = token.text
+    .split('\n')
+    .map(
+      (line) => `<span class="markdown-code-line">${escapeHtml(line)}</span>`
+    )
+  return `<pre><code class="markdown-numbered-code">${lines.join('')}</code></pre>`
+}
+
 function addExternalLinkAttributes(html: string, baseUrl?: string): string {
   if (typeof window === 'undefined') {
     return html
@@ -751,21 +765,55 @@ function addExternalLinkAttributes(html: string, baseUrl?: string): string {
 function renderMarkdown(
   markdown: string,
   breaks = false,
-  baseUrl?: string
+  baseUrl?: string,
+  imageSources?: Record<string, string>,
+  codeLineNumbers = false
 ): string {
   const parsedHtml = markdownParser.parse(markdown, {
     ...markdownOptions,
     breaks,
+    ...(codeLineNumbers ? { renderer: numberedCodeRenderer } : {}),
+    walkTokens(token) {
+      markdownParser.defaults.walkTokens?.call(markdownParser, token)
+      if (
+        token.type === 'image' &&
+        imageSources &&
+        Object.hasOwn(imageSources, token.href)
+      ) {
+        token.href = imageSources[token.href]
+      }
+    },
   })
   const html = DOMPurify.sanitize(parsedHtml, sanitizeOptions)
 
   return addExternalLinkAttributes(html, baseUrl)
 }
 
+export function markdownImageReferences(markdown: string): string[] {
+  const references: string[] = []
+  markdownParser.walkTokens(markdownParser.lexer(markdown), (token) => {
+    if (token.type === 'image') references.push(token.href)
+  })
+  return references
+}
+
 export function Markdown(props: MarkdownProps) {
   const html = useMemo(
-    () => renderMarkdown(props.children, props.breaks, props.baseUrl),
-    [props.breaks, props.children, props.baseUrl]
+    () =>
+      renderMarkdown(
+        props.children,
+        props.breaks,
+        props.baseUrl,
+        props.imageSources,
+        props.codeLineNumbers
+      ),
+    [
+      props.breaks,
+      props.children,
+      props.baseUrl,
+      props.imageSources,
+      props.codeLineNumbers,
+    ]
   )
 
   return (
@@ -783,6 +831,8 @@ export function Markdown(props: MarkdownProps) {
         '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono',
         '[&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:bg-muted [&_pre]:p-3 [&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto',
         '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-sm',
+        props.codeLineNumbers &&
+          '[&_.markdown-numbered-code]:grid [&_.markdown-numbered-code]:[counter-reset:line] [&_.markdown-code-line]:min-h-lh [&_.markdown-code-line]:[counter-increment:line] [&_.markdown-code-line]:before:mr-3 [&_.markdown-code-line]:before:inline-block [&_.markdown-code-line]:before:w-[3ch] [&_.markdown-code-line]:before:text-right [&_.markdown-code-line]:before:text-neutral-500 [&_.markdown-code-line]:before:content-[counter(line)] [&_.markdown-code-line]:before:select-none',
         '[&_thead]:bg-muted [&_th]:border [&_td]:border [&_th]:px-3 [&_td]:px-3 [&_th]:py-2 [&_td]:py-2 [&_th]:text-left',
         '[&_hr]:my-6 [&_img]:my-4 [&_img]:max-w-full [&_img]:rounded-lg',
         '[&_.katex-display]:my-4 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',

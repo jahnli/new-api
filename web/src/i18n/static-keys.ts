@@ -265,6 +265,11 @@ export const STATIC_I18N_KEYS = [
   // Admin permission catalog (backend-provided labels)
   'Channel interface view',
   'Access the channel management interface.',
+  'Notifications',
+  'View notifications',
+  "View notification records and templates within the account's scope.",
+  'Send notifications',
+  'Send notifications and manage public notification templates.',
 
   // Company management
   'No platform',

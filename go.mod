@@ -50,6 +50,7 @@ require (
 	github.com/waffo-com/waffo-go v1.3.2
 	github.com/xuri/excelize/v2 v2.10.1
 	github.com/yapingcat/gomedia v0.0.0-20240906162731-17feea57090c
+	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.53.0
 	golang.org/x/image v0.41.0
 	golang.org/x/net v0.56.0

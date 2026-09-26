@@ -36,7 +36,6 @@ import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
 import { Route as AuthenticatedCompaniesIndexRouteImport } from './routes/_authenticated/companies/index'
-import { Route as AuthenticatedCompanyNotificationsIndexRouteImport } from './routes/_authenticated/company-notifications/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedDataOverviewIndexRouteImport } from './routes/_authenticated/data-overview/index'
@@ -46,6 +45,7 @@ import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authentica
 import { Route as AuthenticatedModelSquareSettingsIndexRouteImport } from './routes/_authenticated/model-square-settings/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
+import { Route as AuthenticatedNotificationIndexRouteImport } from './routes/_authenticated/notification/index'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedSecurityAuditIndexRouteImport } from './routes/_authenticated/security-audit/index'
@@ -215,12 +215,6 @@ const AuthenticatedCompaniesIndexRoute =
     path: '/companies/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedCompanyNotificationsIndexRoute =
-  AuthenticatedCompanyNotificationsIndexRouteImport.update({
-    id: '/company-notifications/',
-    path: '/company-notifications/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/dashboard/',
@@ -272,6 +266,12 @@ const AuthenticatedModelsSectionRoute =
   AuthenticatedModelsSectionRouteImport.update({
     id: '/models/$section',
     path: '/models/$section',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedNotificationIndexRoute =
+  AuthenticatedNotificationIndexRouteImport.update({
+    id: '/notification/',
+    path: '/notification/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPlaygroundIndexRoute =
@@ -497,13 +497,13 @@ export interface FileRoutesByFullPath {
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/companies/': typeof AuthenticatedCompaniesIndexRoute
-  '/company-notifications/': typeof AuthenticatedCompanyNotificationsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/data-overview/': typeof AuthenticatedDataOverviewIndexRoute
   '/image-studio/': typeof AuthenticatedImageStudioIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/model-square-settings/': typeof AuthenticatedModelSquareSettingsIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
+  '/notification/': typeof AuthenticatedNotificationIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
   '/security-audit/': typeof AuthenticatedSecurityAuditIndexRoute
@@ -565,13 +565,13 @@ export interface FileRoutesByTo {
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/companies': typeof AuthenticatedCompaniesIndexRoute
-  '/company-notifications': typeof AuthenticatedCompanyNotificationsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/data-overview': typeof AuthenticatedDataOverviewIndexRoute
   '/image-studio': typeof AuthenticatedImageStudioIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/model-square-settings': typeof AuthenticatedModelSquareSettingsIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
+  '/notification': typeof AuthenticatedNotificationIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
   '/security-audit': typeof AuthenticatedSecurityAuditIndexRoute
@@ -637,13 +637,13 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/companies/': typeof AuthenticatedCompaniesIndexRoute
-  '/_authenticated/company-notifications/': typeof AuthenticatedCompanyNotificationsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/data-overview/': typeof AuthenticatedDataOverviewIndexRoute
   '/_authenticated/image-studio/': typeof AuthenticatedImageStudioIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/model-square-settings/': typeof AuthenticatedModelSquareSettingsIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
+  '/_authenticated/notification/': typeof AuthenticatedNotificationIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
   '/_authenticated/security-audit/': typeof AuthenticatedSecurityAuditIndexRoute
@@ -708,13 +708,13 @@ export interface FileRouteTypes {
     | '/usage-logs/audit'
     | '/channels/'
     | '/companies/'
-    | '/company-notifications/'
     | '/dashboard/'
     | '/data-overview/'
     | '/image-studio/'
     | '/keys/'
     | '/model-square-settings/'
     | '/models/'
+    | '/notification/'
     | '/playground/'
     | '/profile/'
     | '/security-audit/'
@@ -776,13 +776,13 @@ export interface FileRouteTypes {
     | '/usage-logs/audit'
     | '/channels'
     | '/companies'
-    | '/company-notifications'
     | '/dashboard'
     | '/data-overview'
     | '/image-studio'
     | '/keys'
     | '/model-square-settings'
     | '/models'
+    | '/notification'
     | '/playground'
     | '/profile'
     | '/security-audit'
@@ -847,13 +847,13 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/audit'
     | '/_authenticated/channels/'
     | '/_authenticated/companies/'
-    | '/_authenticated/company-notifications/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/data-overview/'
     | '/_authenticated/image-studio/'
     | '/_authenticated/keys/'
     | '/_authenticated/model-square-settings/'
     | '/_authenticated/models/'
+    | '/_authenticated/notification/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
     | '/_authenticated/security-audit/'
@@ -1094,13 +1094,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCompaniesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/company-notifications/': {
-      id: '/_authenticated/company-notifications/'
-      path: '/company-notifications'
-      fullPath: '/company-notifications/'
-      preLoaderRoute: typeof AuthenticatedCompanyNotificationsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/dashboard'
@@ -1162,6 +1155,13 @@ declare module '@tanstack/react-router' {
       path: '/models/$section'
       fullPath: '/models/$section'
       preLoaderRoute: typeof AuthenticatedModelsSectionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notification/': {
+      id: '/_authenticated/notification/'
+      path: '/notification'
+      fullPath: '/notification/'
+      preLoaderRoute: typeof AuthenticatedNotificationIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/playground/': {
@@ -1495,13 +1495,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsAuditRoute: typeof AuthenticatedUsageLogsAuditRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedCompaniesIndexRoute: typeof AuthenticatedCompaniesIndexRoute
-  AuthenticatedCompanyNotificationsIndexRoute: typeof AuthenticatedCompanyNotificationsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDataOverviewIndexRoute: typeof AuthenticatedDataOverviewIndexRoute
   AuthenticatedImageStudioIndexRoute: typeof AuthenticatedImageStudioIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelSquareSettingsIndexRoute: typeof AuthenticatedModelSquareSettingsIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
+  AuthenticatedNotificationIndexRoute: typeof AuthenticatedNotificationIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
   AuthenticatedSecurityAuditIndexRoute: typeof AuthenticatedSecurityAuditIndexRoute
@@ -1528,8 +1528,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsAuditRoute: AuthenticatedUsageLogsAuditRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedCompaniesIndexRoute: AuthenticatedCompaniesIndexRoute,
-  AuthenticatedCompanyNotificationsIndexRoute:
-    AuthenticatedCompanyNotificationsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedDataOverviewIndexRoute: AuthenticatedDataOverviewIndexRoute,
   AuthenticatedImageStudioIndexRoute: AuthenticatedImageStudioIndexRoute,
@@ -1537,6 +1535,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedModelSquareSettingsIndexRoute:
     AuthenticatedModelSquareSettingsIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
+  AuthenticatedNotificationIndexRoute: AuthenticatedNotificationIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
   AuthenticatedSecurityAuditIndexRoute: AuthenticatedSecurityAuditIndexRoute,

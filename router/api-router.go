@@ -47,6 +47,24 @@ func SetApiRouter(router *gin.Engine) {
 		}
 		apiRouter.GET("/rankings", middleware.HeaderNavModuleAuth("rankings"), controller.GetRankings)
 		apiRouter.GET("/image-studio/assets/*path", controller.GetImageStudioImage)
+		notificationRoute := apiRouter.Group("/notification")
+		notificationRoute.Use(middleware.UserAuth(), middleware.RequirePermission(authz.NotificationView), middleware.DisableCache())
+		{
+			notificationRoute.GET("/config", controller.GetNotificationConfig)
+			notificationRoute.GET("/audience", middleware.AdminAuth(), middleware.RequirePermission(authz.NotificationSend), controller.GetNotificationAudience)
+			notificationRoute.POST("/test", middleware.UserCriticalRateLimit("notification-test"), controller.SendNotification)
+			notificationRoute.POST("/send", middleware.AdminAuth(), middleware.RequirePermission(authz.NotificationSend), middleware.UserCriticalRateLimit("notification-send"), controller.SendNotification)
+			notificationRoute.GET("/records", controller.ListNotificationRecords)
+			notificationRoute.GET("/records/export", middleware.AdminAuth(), controller.ExportNotificationRecords)
+			notificationRoute.GET("/records/:id", controller.GetNotificationRecord)
+			notificationRoute.POST("/records/:id/retry", middleware.UserCriticalRateLimit("notification-retry"), controller.RetryNotificationRecord)
+			notificationRoute.POST("/records/retry", middleware.UserCriticalRateLimit("notification-retry"), controller.RetryNotificationRecords)
+			notificationRoute.GET("/templates", controller.ListNotificationSaved)
+			notificationRoute.GET("/templates/:id", controller.GetNotificationSaved)
+			notificationRoute.POST("/templates", middleware.UserCriticalRateLimit("notification-save"), controller.SaveNotificationMessage)
+			notificationRoute.PUT("/templates/:id", middleware.UserCriticalRateLimit("notification-save"), controller.SaveNotificationMessage)
+			notificationRoute.DELETE("/templates/:id", controller.DeleteNotificationSaved)
+		}
 		imageStudioRoute := apiRouter.Group("/image-studio")
 		imageStudioRoute.Use(middleware.UserAuth())
 		{
@@ -270,7 +288,6 @@ func SetApiRouter(router *gin.Engine) {
 			companyRoute.PUT("/:id", controller.UpdateCompany)
 			companyRoute.PATCH("/:id/status", controller.SetCompanyStatus)
 			companyRoute.POST("/:id/test", controller.TestCompanyConnection)
-			companyRoute.POST("/notifications/send", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.SendCompanyNotification)
 		}
 		performanceRoute := apiRouter.Group("/performance")
 		performanceRoute.Use(middleware.RootAuth())

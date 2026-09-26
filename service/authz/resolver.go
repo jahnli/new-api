@@ -23,6 +23,11 @@ func Can(userID int, systemRole int, permission Permission) bool {
 	if e == nil {
 		return false
 	}
+	// Per-user grants describe administrator overrides. A demoted account must
+	// not regain those grants merely because ordinary users now have a role.
+	if len(roles) == 1 && roles[0] == BuiltInRoleUser && !roleBaselineAllows(e, BuiltInRoleUser, permission) {
+		return false
+	}
 	if effect, ok := explicitSubjectEffect(e, UserSubject(userID), permission); ok {
 		return effect == EffectAllow
 	}
