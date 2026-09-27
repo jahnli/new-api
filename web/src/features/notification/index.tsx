@@ -288,12 +288,6 @@ export function Notifications() {
                           })
                         }}
                         onProcessingChange={setProcessingImages}
-                        onImagesChange={(value) => {
-                          form.setValue('images', value, { shouldDirty: true })
-                          if (form.formState.isSubmitted) {
-                            void form.trigger(['content', 'images'])
-                          }
-                        }}
                         onSend={() => beginSend(!config.data.can_send)}
                         disabled={!canTest || pendingSend !== null}
                       />

@@ -26,7 +26,10 @@ import (
 	_ "golang.org/x/image/webp"
 )
 
-const NotificationMaxBodyBytes = 72 * 1024 * 1024
+const notificationMaxImageBytes = 15 * 1024 * 1024
+
+// Allow ten base64-encoded images plus message text and request metadata.
+const NotificationMaxBodyBytes = 10*((notificationMaxImageBytes+2)/3*4) + 2*1024*1024
 
 type NotificationImage struct {
 	ID          string `json:"id,omitempty"`
@@ -172,12 +175,12 @@ func PrepareNotificationMessage(message *NotificationMessage, maxRecipients int,
 		if attachment.Filename == "" || len(attachment.Filename) > 255 || strings.ContainsAny(attachment.Filename, "/\\\r\n\x00") {
 			return errors.New("invalid image filename")
 		}
-		if len(attachment.Data) > base64.StdEncoding.EncodedLen(5*1024*1024) {
-			return errors.New("each image must not exceed 5 MB")
+		if len(attachment.Data) > base64.StdEncoding.EncodedLen(notificationMaxImageBytes) {
+			return errors.New("each image must not exceed 15 MiB")
 		}
 		data, err := base64.StdEncoding.Strict().DecodeString(attachment.Data)
-		if err != nil || len(data) == 0 || len(data) > 5*1024*1024 {
-			return errors.New("invalid image base64 or image exceeds 5 MB")
+		if err != nil || len(data) == 0 || len(data) > notificationMaxImageBytes {
+			return errors.New("invalid image base64 or image exceeds 15 MiB")
 		}
 		contentType := http.DetectContentType(data)
 		if !slices.Contains([]string{"image/jpeg", "image/png", "image/gif", "image/webp"}, contentType) || contentType != attachment.ContentType {
