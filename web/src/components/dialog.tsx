@@ -43,6 +43,7 @@ type DialogProps = React.ComponentProps<typeof DialogRoot> & {
   headerTrailing?: React.ReactNode
   contentHeight?: React.CSSProperties['height']
   contentClassName?: string
+  overlayClassName?: string
   headerClassName?: string
   titleClassName?: string
   descriptionClassName?: string
@@ -51,6 +52,7 @@ type DialogProps = React.ComponentProps<typeof DialogRoot> & {
   footerClassName?: string
   initialFocus?: boolean
   showCloseButton?: boolean
+  keepMounted?: React.ComponentProps<typeof DialogContent>['keepMounted']
 }
 
 const dialogContentMotionClassName =
@@ -67,6 +69,7 @@ export function Dialog({
   headerTrailing,
   contentHeight = 'auto',
   contentClassName,
+  overlayClassName,
   headerClassName,
   titleClassName,
   descriptionClassName,
@@ -75,6 +78,7 @@ export function Dialog({
   footerClassName,
   initialFocus,
   showCloseButton,
+  keepMounted,
   ...dialogProps
 }: DialogProps) {
   return (
@@ -83,9 +87,11 @@ export function Dialog({
       <DialogContent
         className={cn(
           'flex w-full flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 sm:max-w-2xl sm:p-6',
-          contentClassName,
-          dialogContentMotionClassName
+          dialogContentMotionClassName,
+          contentClassName
         )}
+        overlayClassName={overlayClassName}
+        keepMounted={keepMounted}
         initialFocus={initialFocus}
         showCloseButton={showCloseButton}
         style={

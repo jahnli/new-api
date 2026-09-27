@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from 'react'
+import { memo, useCallback, useState, type ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
@@ -18,18 +18,25 @@ interface TitleIconPickerProps extends Pick<
 export function TitleIconPicker(props: TitleIconPickerProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const onChange = props.onChange
 
-  const selectIcon = (icon: string): void => {
-    props.onChange(icon)
-    setOpen(false)
-  }
+  const selectIcon = useCallback(
+    (icon: string): void => {
+      onChange(icon)
+      setOpen(false)
+    },
+    [onChange]
+  )
 
   return (
     <Dialog
       open={open}
       onOpenChange={setOpen}
       title={t('Select icon')}
-      contentClassName='sm:max-w-2xl'
+      keepMounted
+      // Override the default keyframes; Base UI waits for this opacity transition.
+      contentClassName='animate-none! transition-opacity duration-200! ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none sm:max-w-2xl'
+      overlayClassName='animate-none! transition-opacity duration-200! ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none supports-backdrop-filter:backdrop-filter-none'
       trigger={
         props.value ? (
           <InputGroupButton
@@ -67,30 +74,42 @@ export function TitleIconPicker(props: TitleIconPickerProps) {
         )
       }
     >
-      <div className='grid max-h-[60vh] grid-cols-6 gap-2 overflow-y-auto p-1 sm:grid-cols-10'>
-        <Button
-          type='button'
-          variant={props.value === '' ? 'secondary' : 'outline'}
-          className='aria-pressed:ring-primary h-11 w-full border-dashed aria-pressed:ring-2'
-          aria-label={t('None')}
-          title={t('None')}
-          aria-pressed={props.value === ''}
-          onClick={() => selectIcon('')}
-        />
-        {NOTIFICATION_TITLE_ICONS.map((icon) => (
-          <Button
-            key={icon}
-            type='button'
-            variant={props.value === icon ? 'secondary' : 'ghost'}
-            className='aria-pressed:ring-primary h-11 w-full text-2xl aria-pressed:ring-2'
-            aria-label={`${t('Select icon')}: ${icon}`}
-            aria-pressed={props.value === icon}
-            onClick={() => selectIcon(icon)}
-          >
-            <span aria-hidden='true'>{icon}</span>
-          </Button>
-        ))}
-      </div>
+      <TitleIconGrid value={props.value} onSelect={selectIcon} />
     </Dialog>
   )
 }
+
+// Keep the mounted buttons out of the dialog's open/close render path.
+const TitleIconGrid = memo(function TitleIconGrid(props: {
+  value: string
+  onSelect: (icon: string) => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='grid max-h-[60vh] grid-cols-6 gap-2 overflow-y-auto p-1 sm:grid-cols-10'>
+      <Button
+        type='button'
+        variant={props.value === '' ? 'secondary' : 'outline'}
+        className='aria-pressed:ring-primary h-11 w-full border-dashed aria-pressed:ring-2'
+        aria-label={t('None')}
+        title={t('None')}
+        aria-pressed={props.value === ''}
+        onClick={() => props.onSelect('')}
+      />
+      {NOTIFICATION_TITLE_ICONS.map((icon) => (
+        <Button
+          key={icon}
+          type='button'
+          variant={props.value === icon ? 'secondary' : 'ghost'}
+          className='aria-pressed:ring-primary h-11 w-full text-2xl aria-pressed:ring-2'
+          aria-label={`${t('Select icon')}: ${icon}`}
+          aria-pressed={props.value === icon}
+          onClick={() => props.onSelect(icon)}
+        >
+          <span aria-hidden='true'>{icon}</span>
+        </Button>
+      ))}
+    </div>
+  )
+})
