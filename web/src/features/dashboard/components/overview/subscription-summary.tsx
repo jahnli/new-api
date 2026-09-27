@@ -117,7 +117,8 @@ export function SubscriptionSummary(props: {
               {t('Share {{percent}}%', {
                 percent: formatNumber(
                   props.premiumQuota.effective_percent,
-                  locale
+                  locale,
+                  { minimumFractionDigits: 1, maximumFractionDigits: 1 }
                 ),
               })}
             </Badge>

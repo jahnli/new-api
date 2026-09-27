@@ -222,7 +222,10 @@ function QuotaUsagePanel(props: {
             className="bg-primary/10 text-primary h-auto px-2.5 py-1 text-sm tabular-nums"
           >
             {t("Share {{percent}}%", {
-              percent: formatNumber(props.allocationPercent, locale),
+              percent: formatNumber(props.allocationPercent, locale, {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }),
             })}
           </Badge>
         )}
