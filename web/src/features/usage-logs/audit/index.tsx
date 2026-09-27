@@ -16,14 +16,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient } from '@tanstack/react-query'
-import { lazy, Suspense, useCallback, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { LoadingState } from '@/components/loading-state'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getUserProfile } from '@/features/profile/api'
+import { getSecurityAuditSetting } from '@/features/security-audit/api'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
 import {
   ADMIN_PERMISSION_RESOURCES,
@@ -54,9 +55,41 @@ export function AuditLogs(
   const [scope, setScope] = useState<'all' | 'self'>('all')
   const [accessRevoked, setAccessRevoked] = useState(false)
   const canReadSecurityAudit = !!user && user.role >= ROLE.SUPER_ADMIN
-  const section = canReadSecurityAudit
+  const settingQuery = useQuery({
+    queryKey: ['security-audit', 'setting'],
+    queryFn: getSecurityAuditSetting,
+    enabled: canReadSecurityAudit,
+    staleTime: 60 * 1000,
+  })
+  const imageAuditEnabled =
+    canReadSecurityAudit && settingQuery.data?.data?.image_studio === true
+  const requestedSection = canReadSecurityAudit
     ? (props.search?.section ?? 'general')
     : 'general'
+  const section =
+    requestedSection === 'image-studio' && !imageAuditEnabled
+      ? 'general'
+      : requestedSection
+  const navigate = props.navigate
+
+  useEffect(() => {
+    if (
+      requestedSection !== 'image-studio' ||
+      settingQuery.data?.data?.image_studio !== false
+    ) {
+      return
+    }
+    navigate?.({
+      replace: true,
+      search: (previous) => ({
+        ...previous,
+        section: 'general',
+        imageAuditPage: undefined,
+        imageAuditPageSize: undefined,
+      }),
+    })
+  }, [requestedSection, settingQuery.data?.data?.image_studio, navigate])
+
   const isGeneralAudit = section === 'general'
   const canReadAll =
     !!user &&
@@ -156,9 +189,11 @@ export function AuditLogs(
                 <TabsTrigger value='off-hours'>
                   {t('Off-Hours Requests')}
                 </TabsTrigger>
-                <TabsTrigger value='image-studio'>
-                  {t('Image Audit')}
-                </TabsTrigger>
+                {imageAuditEnabled && (
+                  <TabsTrigger value='image-studio'>
+                    {t('Image Audit')}
+                  </TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
           )}

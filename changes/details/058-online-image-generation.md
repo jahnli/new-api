@@ -1,6 +1,6 @@
-# 新增在线生图功能
+# 在线生图与图片审计管理
 
-**日期**: 2026-09-09
+**日期**: 2026-09-27
 
 ## 涉及文件
 
@@ -59,6 +59,42 @@
 - `web/src/features/image-studio/components/generate-panel.tsx`、`web/src/features/image-studio/components/params-panel.tsx`、`web/src/features/image-studio/index.tsx` — 参数面板改为基于当前模型适配器渲染，数量参数下沉至模型专属配置，并统一生成按钮、参考图和模型选择器的禁用状态。
 - `web/src/features/image-studio/components/__tests__/*.test.tsx`、`web/src/features/image-studio/hooks/__tests__/generation-progress.test.tsx` — 更新模型专属参数布局测试，并增加生成期间锁定模型与参数控件的测试覆盖。
 
+### 2026-09-27 涉及文件
+
+- `setting/system_setting/audit_setting.go` — 图片审计统一使用 `image_studio` 开关，移除独立的原生 API 自动保存字段及默认值。
+- `controller/image_studio_storage.go`、`router/api-router.go` — 新增登录用户可读的生图保存状态接口；新建和追加图片入口按总开关跳过保存，下载完成后再次检查开关并清理本次已写入的图片。
+- `controller/image_studio_relay_hook.go`、`relay/channel/openai/relay_image.go` — 原生 API 图片来源采集和后台归档统一服从图片审计开关。
+- `web/src/features/image-studio/api.ts`、`web/src/features/image-studio/types.ts` — 读取保存状态，识别服务端明确跳过保存的响应，增加临时结果标记。
+- `web/src/features/image-studio/hooks/use-image-studio.ts` — 生成及重试前读取保存状态，关闭时直接使用生成结果展示；处理生成期间关闭保存的情况，并合并重试返回的图片。
+- `web/src/features/image-studio/hooks/use-generation-history.ts`、`web/src/features/image-studio/index.tsx` — 临时结果不进入历史列表，不向服务端更新收藏或用量；新增生成时移除上一份临时结果，展示未保存提示，并等待历史加载完成后允许生成。
+- `web/src/features/system-settings/security/audit-section.tsx`、`web/src/features/system-settings/security/index.tsx`、`web/src/features/system-settings/security/section-registry.tsx`、`web/src/features/system-settings/types.ts` — 设置页保留一个图片审计开关及展示、存储两个上限，删除独立 API 自动保存的表单、默认值、类型和提交逻辑，精简三项说明。
+- `web/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 清理现有界面用例中已删除的 API 自动保存参数，保留原有断言。
+- `web/src/features/usage-logs/audit/index.tsx` — 图片审计未开启时隐藏标签；直接访问已关闭的图片审计分区时回退至常规审计并替换地址中的分区参数。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 同步总开关、临时结果提示和精简说明，删除废弃开关及旧说明翻译。
+- `web/src/i18n/locales/_reports/{ja,ru,zh}.untranslated.json` — 同步移除废弃 API 自动保存文案的报告条目。
+
+## 2026-09-27：统一图片审计与保存开关
+
+以下规则取代此前独立图片审计查询开关与 API 自动归档开关的配置方式；下方旧记录保留用于追踪功能演变。
+
+- 沿用 `audit_setting.image_studio` 作为唯一开关，默认开启；仅超级管理员能修改，对所有用户的在线生图保存及现有原生 API 自动归档链路生效。原 `auto_save_api_image_generation` 不再参与运行逻辑。
+- 开启时，在线生图保存图片和历史，现有 API 自动归档链路随之启用，审计页可查询已保存记录。API 自动归档仍限于现有图片响应采集链路，不表示所有提供商、流式或异步接口均已覆盖；持久化仍依赖可用的对象存储。
+- 关闭时，后端跳过新增记录和追加图片，返回 `persisted: false`；前端将其视为按配置不保存，继续临时展示生成结果，支持预览、下载及失败重试，刷新或离开页面后无法从历史恢复。临时结果不会因重新开启开关而自动补录。
+- 在线生图页面提示用户在刷新或离开前下载。临时结果不出现在历史列表，也不触发收藏或用量持久化；真实消费日志及扣费流程保持独立。
+- 图片审计标签仅在配置明确开启时展示。关闭后直接访问图片审计分区会回退到常规审计，后端审计查询继续拒绝未开启的请求。
+- 已有记录不因关闭而删除，用户仍可查看自己的已有历史。展示上限和存储上限保持独立；移除或清空历史仍只隐藏，超出存储上限时才在后续保存后的裁剪中永久删除最旧记录及图片。
+- 设置说明简化为“保存在线生图、API 生图及历史记录”“历史记录的最大条数；移除记录不删除已存储的记录或图片”“生图记录存储上限，超出后删除存储及图片”，并同步七语言。
+
+## 本次验证
+
+- `go build ./...`：通过。
+- 在 `web/` 执行 `bun run typecheck`：通过；对本次修改的前端文件执行 `oxlint -c .oxlintrc.json` 和 `oxfmt --check`：通过。
+- 在 `web/` 执行 `bun run build --log-level error`：开关合并后通过；后续说明精简与标签隐藏改动已执行类型检查、定向 lint 和格式检查，未再次构建。
+- 在 `web/` 执行 `bun run i18n:sync`：完成语言同步及报告更新。
+- 未运行测试，未执行真实生图联调或三种数据库的实库验证，不据此声明这些行为已经验证。
+
 ## 自 CHANGELOG 说明列迁入
+
+2026-09-17 的说明：新增在线生图功能：图片生成/编辑、参数预设与历史记录服务端持久化（S3 兼容对象存储、模型参数按适配器管理），并配套安全审计图片审计页与原生 API 生图自动归档
 
 新增在线生图功能：支持图片生成/编辑、参数配置、提示词预设、历史记录和 Playground 图片中继接口；补充 gpt-image-2 参数适配、模型专属参数、4K 尺寸预设、自定义尺寸校验、最多 8 张生成、生成进度/停止按钮与结果参数翻译优化；优化加载态、历史记录选中态、弹窗遮罩和大图性能；使用日志详情支持结构化展示图片生成参数并补齐翻译；侧边栏入口及 6 语言文案调整为「在线生图」；修复 OpenAI 图生图 JSON 转 multipart 上传、历史图一键带入图生图、生成进度与重置交互；生成历史改为服务端持久化：新增 ImageStudioGeneration 数据库模型与文件存储控制器，前端历史记录由 localStorage 迁移至服务端 API；图片文件存储由本地磁盘迁移至 S3 兼容对象存储（支持 MinIO、RustFS 等），Bucket 与凭据统一由 IMAGE_STUDIO_S3_DSN 环境变量配置且对象目录固定为 image；生成数量上限收紧为最多 4 张，并在后端图片请求校验中同步限制；生成/编辑请求不再发送 n 参数，多张生成改为并行单图请求，支持部分成功保留、灰色失败占位展示及消费汇总，不再弹出部分失败 warning toast；安全审计新增图片审计页，支持按时间和用户筛选全员生图记录、预览与下载图片、查看请求内容及生成详情，用户头像支持悬停资料卡片；生成详情与请求内容弹框统一为最大 78rem、视口 85% 高度，放大详情文字并将图片数量改为主题色标签；在线生图与图片审计大图预览统一图片和提示词宽度，整体按视口居中并优化图片区、提示词与操作栏间距；图片审计由独立开关控制并默认启用，安全审计入口、页面与接口收紧为仅超级管理员可访问，关闭开关时隐藏图片审计区块并拒绝查询；图片审计表格默认分页调整为每页 10 条，预览界面精简提示词展示并统一详情标签尺寸；图片审计请求内容列支持点击打开完整内容弹框，参考使用日志采用左右布局展示提示词与生成参数，并支持复制请求内容；弹框底部增加最多 4 张完整比例图片预览，点击可叠层查看大图且保留请求内容弹框，头像悬停加载用户资料卡片；移除图片审计表格详情列；图片审计默认选中本月，非工作时间请求默认筛选当天；新增原生 API 生图自动归档开关（默认关闭），成功响应可异步保存至在线生图历史且跳过 Playground 重复记录；生图记录新增 User-Agent 采集：在线生图 UI 存储路径取浏览器请求头、原生 API 中继路径取 RelayInfo.ClientApp，图片审计请求内容弹框在头像右侧单独一行完整展示 User-Agent（与使用日志口径一致，仅记录原始值不做映射）；历史上限拆分为独立的在线生图展示上限和存储上限，默认值分别调整为 20 和 50，用户移除或清空历史仅隐藏记录并保留数据库与对象存储数据，只有超过存储上限时才永久裁剪最旧记录及图片；用户可用模型按名称倒序返回，使在线生图默认优先选择 g 开头模型；模型参数系统重构为按模型适配器管理独立默认值、校验、请求构建和参数缓存，切换 GPT Image 与 Seedream 时可恢复各自配置，并在生成期间锁定模型参数；S3 兼容存储的地址、访问账号、访问密码和 Bucket 四项环境变量合并为单个 DSN，并校验凭据与 Bucket 完整性

@@ -1,9 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+import { getImageStudioSetting } from './api'
 import { GeneratePanel } from './components/generate-panel'
 import { HistoryPanel } from './components/history-panel'
 import { ParamsPanel } from './components/params-panel'
@@ -27,6 +30,10 @@ import type {
 
 export function ImageStudio() {
   const { t } = useTranslation()
+  const recordingSetting = useQuery({
+    queryKey: ['image-studio', 'setting'],
+    queryFn: () => getImageStudioSetting(),
+  })
   const {
     config,
     updateGroup,
@@ -40,6 +47,7 @@ export function ImageStudio() {
   } = useImageStudioState()
   const {
     history,
+    isLoadingHistory,
     addRecord,
     patchRecordLocally,
     patchRecord,
@@ -95,6 +103,7 @@ export function ImageStudio() {
 
   const canGenerate =
     !isGenerating &&
+    !isLoadingHistory &&
     Boolean(config.model) &&
     prompt.trim().length > 0 &&
     customSizeValid &&
@@ -221,6 +230,16 @@ export function ImageStudio() {
 
       {/* Workspace */}
       <div className='flex min-h-0 flex-col gap-4 lg:overflow-hidden lg:p-4'>
+        {(recordingSetting.data?.history_enabled === false ||
+          activeRecord?.transient) && (
+          <Alert>
+            <AlertDescription>
+              {t(
+                'New images are not saved to history. Download them before refreshing or leaving this page.'
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
         <GeneratePanel
           model={config.model}
           mode={mode}
@@ -258,7 +277,7 @@ export function ImageStudio() {
       {/* History */}
       <div className='lg:before:bg-border min-h-64 rounded-lg border p-3 lg:relative lg:h-full lg:min-h-0 lg:rounded-none lg:border-0 lg:p-4 lg:before:absolute lg:before:top-1.5 lg:before:bottom-1.5 lg:before:left-0 lg:before:w-px'>
         <HistoryPanel
-          history={history}
+          history={history.filter((record) => !record.transient)}
           activeRecordId={activeRecordId}
           onRestore={handleRestore}
           onDelete={handleDelete}

@@ -31,7 +31,7 @@ export interface ReferenceImage {
 
 export interface GeneratedImage {
   id: string
-  /** Backend-served persisted image URL. */
+  /** Stored image URL or a temporary source returned by the provider. */
   src: string
   storageId?: string
   mimeType?: string
@@ -56,6 +56,8 @@ export interface ImageGenerationError {
 
 export interface GenerationRecord {
   id: string
+  /** Temporary page state; never saved or shown in persistent history. */
+  transient?: boolean
   createdAt: number
   mode: StudioMode
   prompt: string

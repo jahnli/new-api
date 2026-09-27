@@ -61,7 +61,7 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 // sent to persist an image studio history record. Extraction is skipped unless
 // auto-recording is enabled, so the base64 payloads are not copied needlessly.
 func captureImageResponseSources(c *gin.Context, info *relaycommon.RelayInfo, responseBody []byte) {
-	if c == nil || !system_setting.GetAuditSetting().AutoSaveApiImageGeneration {
+	if c == nil || !system_setting.GetAuditSetting().ImageStudio {
 		return
 	}
 	// The Image Studio UI (playground) stores its own records from the frontend,

@@ -22,11 +22,10 @@ const MaxImageStudioMaxHistory = 1000
 
 // AuditSetting 安全审计配置
 type AuditSetting struct {
-	OffHours    OffHoursAuditSetting `json:"off_hours"`
-	ImageStudio bool                 `json:"image_studio"`
-	// AutoSaveApiImageGeneration 控制是否把通过原生 API（非在线生图 UI）产生的
-	// 图片自动记录进在线生图历史。开启后会额外下载并持久化生成的图片，增加存储开销。
-	AutoSaveApiImageGeneration bool `json:"auto_save_api_image_generation"`
+	OffHours OffHoursAuditSetting `json:"off_hours"`
+	// ImageStudio 统一控制在线生图历史、API 生图自动保存及管理员审计查询。
+	// 关闭时保留已有记录，不影响消费日志或计费。
+	ImageStudio bool `json:"image_studio"`
 	// ImageStudioDisplayHistoryLimit 是在线生图历史每用户展示的最大条数。用户从历史
 	// 中移除记录只会隐藏该记录，不会删除数据库信息或对象存储中的图片。
 	ImageStudioDisplayHistoryLimit int `json:"image_studio_display_history_limit"`
@@ -42,7 +41,6 @@ var auditSetting = AuditSetting{
 		EndHour:   7,
 	},
 	ImageStudio:                    true,
-	AutoSaveApiImageGeneration:     false,
 	ImageStudioDisplayHistoryLimit: DefaultImageStudioDisplayHistoryLimit,
 	ImageStudioMaxHistory:          DefaultImageStudioMaxHistory,
 }

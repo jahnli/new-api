@@ -11,6 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relay"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 )
 
 // imageAutoRecordTimeout bounds the background download+store work so a slow or
@@ -34,7 +35,7 @@ func recordRelayImageGeneration(ctx context.Context, input relay.ImageAutoRecord
 		}
 	}()
 
-	if len(input.Images) == 0 {
+	if len(input.Images) == 0 || !system_setting.GetAuditSetting().ImageStudio {
 		return
 	}
 
@@ -102,6 +103,10 @@ func recordRelayImageGeneration(ctx context.Context, input relay.ImageAutoRecord
 		return
 	}
 
+	if !system_setting.GetAuditSetting().ImageStudio {
+		deleteImageStudioStoredImages(stored)
+		return
+	}
 	if err := model.CreateImageStudioGeneration(record); err != nil {
 		deleteImageStudioStoredImages(stored)
 		common.SysLog("failed to persist relay image studio auto-record: " + err.Error())

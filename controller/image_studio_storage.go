@@ -78,7 +78,16 @@ type imageStudioUsageRequest struct {
 	ChannelId        int `json:"channel_id"`
 }
 
+func GetImageStudioSetting(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	common.ApiSuccess(c, gin.H{"history_enabled": system_setting.GetAuditSetting().ImageStudio})
+}
+
 func StoreImageStudioImages(c *gin.Context) {
+	if !system_setting.GetAuditSetting().ImageStudio {
+		common.ApiSuccess(c, gin.H{"persisted": false})
+		return
+	}
 	var req imageStudioStoreRequest
 	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
 		common.ApiError(c, err)
@@ -144,6 +153,12 @@ func StoreImageStudioImages(c *gin.Context) {
 		})
 	}
 
+	// Recheck after downloads so disabling recording also cancels pending saves.
+	if !system_setting.GetAuditSetting().ImageStudio {
+		deleteImageStudioStoredImages(results)
+		common.ApiSuccess(c, gin.H{"persisted": false})
+		return
+	}
 	if err := model.CreateImageStudioGeneration(record); err != nil {
 		deleteImageStudioStoredImages(results)
 		common.ApiError(c, err)
@@ -162,6 +177,10 @@ func StoreImageStudioImages(c *gin.Context) {
 }
 
 func AppendImageStudioGenerationImage(c *gin.Context) {
+	if !system_setting.GetAuditSetting().ImageStudio {
+		common.ApiSuccess(c, gin.H{"persisted": false})
+		return
+	}
 	var req imageStudioAppendImageRequest
 	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
 		common.ApiError(c, err)
@@ -191,6 +210,11 @@ func AppendImageStudioGenerationImage(c *gin.Context) {
 		Width:         storedImage.Width,
 		Height:        storedImage.Height,
 		RevisedPrompt: req.RevisedPrompt,
+	}
+	if !system_setting.GetAuditSetting().ImageStudio {
+		deleteImageStudioStoredImages([]imageStudioStoredImage{storedImage})
+		common.ApiSuccess(c, gin.H{"persisted": false})
+		return
 	}
 	record, err := model.AppendImageStudioGenerationImage(c.Param("id"), c.GetInt("id"), asset)
 	if err != nil {

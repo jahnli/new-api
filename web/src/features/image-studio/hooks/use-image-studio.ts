@@ -5,6 +5,7 @@ import {
   editImages,
   fetchGenerationLog,
   generateImages,
+  getImageStudioSetting,
   storeImageStudioGeneration,
 } from '../api'
 import { DEFAULT_ESTIMATE_MS, ESTIMATE_SAMPLE_SIZE } from '../constants'
@@ -18,6 +19,7 @@ import type {
   GeneratedImage,
   GenerationRecord,
   ImageStudioConfig,
+  ImageStudioGenerationRecord,
   ReferenceImage,
   StudioMode,
 } from '../types'
@@ -44,7 +46,7 @@ function extractApiErrorMessage(error: unknown): string {
 }
 
 function mapStoredImages(
-  storedRecord: Awaited<ReturnType<typeof appendImageStudioGenerationImage>>
+  storedRecord: ImageStudioGenerationRecord
 ): GeneratedImage[] {
   return storedRecord.images.map((image) => ({
     id: image.id,
@@ -95,6 +97,7 @@ export function useImageGeneration({
     errors: string[]
     successfulIndexes: Set<number>
     latestImages: GeneratedImage[]
+    transient: boolean
   } | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -148,6 +151,8 @@ export function useImageGeneration({
       let persistenceQueue = Promise.resolve()
 
       try {
+        const setting = await getImageStudioSetting(controller.signal)
+        let saveHistory = setting.history_enabled
         const send =
           mode === 'edit' && !runtimeLimits.usesGenerationEndpointForEdits
             ? editImages
@@ -175,10 +180,8 @@ export function useImageGeneration({
           successfulRequests.push({ requestId: requestResult.requestId })
           const persistImageOutputs = async () => {
             for (const imageOutput of imageOutputs) {
-              let storedRecord: Awaited<
-                ReturnType<typeof storeImageStudioGeneration>
-              >
-              if (activeRecord === null) {
+              let storedRecord: ImageStudioGenerationRecord | null = null
+              if (saveHistory && activeRecord === null) {
                 storedRecord = await storeImageStudioGeneration(
                   {
                     id: recordId,
@@ -203,7 +206,7 @@ export function useImageGeneration({
                   },
                   controller.signal
                 )
-              } else {
+              } else if (saveHistory) {
                 storedRecord = await appendImageStudioGenerationImage(
                   recordId,
                   {
@@ -214,37 +217,48 @@ export function useImageGeneration({
                 )
               }
 
-              const persistedImages = mapStoredImages(storedRecord)
-              const persistedRecord: GenerationRecord = {
-                id: storedRecord.id,
-                createdAt: storedRecord.created_at,
-                mode: storedRecord.mode,
-                prompt: storedRecord.prompt,
-                model: storedRecord.model,
-                group: storedRecord.group,
-                parameterSnapshot: storedRecord.parameter_snapshot ?? {
+              // A disabled recording response is intentional, not a generation failure.
+              if (storedRecord === null) saveHistory = false
+              const images = storedRecord
+                ? mapStoredImages(storedRecord)
+                : [
+                    ...(activeRecord?.images ?? []),
+                    {
+                      id: `${recordId}-${activeRecord?.images.length ?? 0}`,
+                      src: imageOutput.src,
+                      revisedPrompt: imageOutput.revisedPrompt,
+                    },
+                  ]
+              const nextRecord: GenerationRecord = {
+                id: recordId,
+                transient: !saveHistory,
+                createdAt: startedAt,
+                mode,
+                prompt,
+                model: config.model,
+                group: config.group,
+                parameterSnapshot: storedRecord?.parameter_snapshot ?? {
                   ...config.parameters,
                 },
-                size: storedRecord.size,
-                quality: storedRecord.quality || undefined,
-                moderation: storedRecord.moderation || undefined,
-                outputFormat: storedRecord.output_format || undefined,
-                n: storedRecord.n,
-                images: persistedImages,
+                size: resolveParameterSize(config.parameters),
+                quality: payload.quality,
+                moderation: payload.moderation,
+                outputFormat: payload.output_format,
+                n: requestedImageCount,
+                images,
                 usage: { durationMs },
-                favorite: storedRecord.favorite,
-                channelId: storedRecord.channel_id,
+                favorite: storedRecord?.favorite,
+                channelId: storedRecord?.channel_id,
                 referenceImages,
               }
 
               if (activeRecord === null) {
-                activeRecord = persistedRecord
-                addRecord(persistedRecord)
-                setActiveRecordId(persistedRecord.id)
+                addRecord(nextRecord)
+                setActiveRecordId(nextRecord.id)
               } else {
-                activeRecord = persistedRecord
-                patchRecordLocally(persistedRecord.id, persistedRecord)
+                patchRecordLocally(nextRecord.id, nextRecord)
               }
+              activeRecord = nextRecord
             }
           }
 
@@ -286,6 +300,7 @@ export function useImageGeneration({
         if (activeRecord === null) {
           const failedRecord: GenerationRecord = {
             id: recordId,
+            transient: !saveHistory,
             createdAt: startedAt,
             mode,
             prompt,
@@ -363,6 +378,7 @@ export function useImageGeneration({
       } finally {
         abortRef.current = null
         setIsGenerating(false)
+        setPendingImageCount(0)
       }
     },
     [addRecord, patchRecord, patchRecordLocally]
@@ -388,6 +404,7 @@ export function useImageGeneration({
           errors: [...(record.imageErrors ?? imageErrors)],
           successfulIndexes: new Set<number>(),
           latestImages: record.images,
+          transient: Boolean(record.transient),
         }
       }
 
@@ -414,6 +431,7 @@ export function useImageGeneration({
       ])
 
       try {
+        const setting = await getImageStudioSetting(controller.signal)
         const requestResult = await send(payload, controller.signal)
         const responseImage = requestResult.response.data?.find(
           (image) => image.b64_json || image.url
@@ -425,8 +443,17 @@ export function useImageGeneration({
         const imageSource = responseImage.b64_json
           ? `data:${imageMimeTypeForOutputFormat(outputFormat)};base64,${responseImage.b64_json}`
           : (responseImage.url ?? '')
-        const storedRecord = record.images.every((image) => image.storageId)
-          ? await appendImageStudioGenerationImage(
+        let storedRecord: ImageStudioGenerationRecord | null = null
+        if (
+          setting.history_enabled &&
+          !record.transient &&
+          !retryBatchRef.current?.transient
+        ) {
+          if (
+            record.images.length > 0 &&
+            record.images.every((image) => image.storageId)
+          ) {
+            storedRecord = await appendImageStudioGenerationImage(
               record.id,
               {
                 src: imageSource,
@@ -434,7 +461,8 @@ export function useImageGeneration({
               },
               controller.signal
             )
-          : await storeImageStudioGeneration(
+          } else {
+            storedRecord = await storeImageStudioGeneration(
               {
                 id: record.id,
                 created_at: record.createdAt,
@@ -462,14 +490,35 @@ export function useImageGeneration({
               },
               controller.signal
             )
+          }
+        }
         const retryBatch = retryBatchRef.current
         if (retryBatch && retryBatch.recordId === record.id) {
           retryBatch.successfulIndexes.add(errorIndex)
-          retryBatch.latestImages = mapStoredImages(storedRecord)
+          if (storedRecord) {
+            const images = new Map(
+              retryBatch.latestImages.map((image) => [image.id, image])
+            )
+            for (const image of mapStoredImages(storedRecord)) {
+              images.set(image.id, image)
+            }
+            retryBatch.latestImages = [...images.values()]
+          } else {
+            retryBatch.transient = true
+            retryBatch.latestImages = [
+              ...retryBatch.latestImages,
+              {
+                id: `${record.id}-retry-${errorIndex}-${Date.now()}`,
+                src: imageSource,
+                revisedPrompt: responseImage.revised_prompt,
+              },
+            ]
+          }
           const remainingErrors = retryBatch.errors.filter(
             (_message, index) => !retryBatch.successfulIndexes.has(index)
           )
           patchRecordLocally(record.id, {
+            transient: retryBatch.transient,
             images: retryBatch.latestImages,
             imageErrors: remainingErrors,
             failedImageCount: remainingErrors.length,

@@ -68,6 +68,7 @@ func SetApiRouter(router *gin.Engine) {
 		imageStudioRoute := apiRouter.Group("/image-studio")
 		imageStudioRoute.Use(middleware.UserAuth())
 		{
+			imageStudioRoute.GET("/setting", controller.GetImageStudioSetting)
 			imageStudioRoute.GET("/generations", controller.ListImageStudioGenerations)
 			imageStudioRoute.POST("/generations", controller.StoreImageStudioImages)
 			imageStudioRoute.POST("/generations/:id/images", controller.AppendImageStudioGenerationImage)

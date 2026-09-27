@@ -39,7 +39,12 @@ export function useGenerationHistory() {
 
   const addRecord = useCallback(
     (record: GenerationRecord) => {
-      setHistory((prev) => [record, ...prev].slice(0, displayLimit))
+      setHistory((prev) =>
+        [record, ...prev.filter((item) => !item.transient)].slice(
+          0,
+          displayLimit + (record.transient ? 1 : 0)
+        )
+      )
       void saveGeneration(record)
     },
     [displayLimit]
@@ -63,7 +68,13 @@ export function useGenerationHistory() {
           record.id === id ? { ...record, ...patch } : record
         )
         const updatedRecord = nextHistory.find((record) => record.id === id)
-        if (updatedRecord) void updateGeneration(updatedRecord)
+        if (
+          updatedRecord &&
+          !updatedRecord.transient &&
+          updatedRecord.images.some((image) => image.storageId)
+        ) {
+          void updateGeneration(updatedRecord)
+        }
         return nextHistory
       })
     },
@@ -83,7 +94,9 @@ export function useGenerationHistory() {
   const toggleFavorite = useCallback(
     (id: string) => {
       const record = history.find((r) => r.id === id)
-      if (record) patchRecord(id, { favorite: !record.favorite })
+      if (record && !record.transient) {
+        patchRecord(id, { favorite: !record.favorite })
+      }
     },
     [history, patchRecord]
   )

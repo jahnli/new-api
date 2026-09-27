@@ -65,29 +65,41 @@ function unwrapApiData<T>(data: ApiEnvelope<T>, message: string): T {
 export async function storeImageStudioGeneration(
   payload: StoreImageStudioGenerationPayload,
   signal?: AbortSignal
-): Promise<ImageStudioGenerationRecord> {
+): Promise<ImageStudioGenerationRecord | null> {
   const res = await api.post(API_ENDPOINTS.IMAGE_STUDIO_GENERATIONS, payload, {
     signal,
   })
-  return unwrapApiData(
-    res.data as ApiEnvelope<ImageStudioGenerationRecord>,
+  const result = unwrapApiData(
+    res.data as ApiEnvelope<ImageStudioGenerationRecord | { persisted: false }>,
     'failed to store generated images'
   )
+  return 'persisted' in result ? null : result
 }
 
 export async function appendImageStudioGenerationImage(
   generationId: string,
   payload: AppendImageStudioGenerationImagePayload,
   signal?: AbortSignal
-): Promise<ImageStudioGenerationRecord> {
+): Promise<ImageStudioGenerationRecord | null> {
   const res = await api.post(
     `${API_ENDPOINTS.IMAGE_STUDIO_GENERATIONS}/${generationId}/images`,
     payload,
     { signal }
   )
-  return unwrapApiData(
-    res.data as ApiEnvelope<ImageStudioGenerationRecord>,
+  const result = unwrapApiData(
+    res.data as ApiEnvelope<ImageStudioGenerationRecord | { persisted: false }>,
     'failed to store generated image'
+  )
+  return 'persisted' in result ? null : result
+}
+
+export async function getImageStudioSetting(
+  signal?: AbortSignal
+): Promise<{ history_enabled: boolean }> {
+  const res = await api.get('/api/image-studio/setting', { signal })
+  return unwrapApiData(
+    res.data as ApiEnvelope<{ history_enabled: boolean }>,
+    'failed to load image history settings'
   )
 }
 

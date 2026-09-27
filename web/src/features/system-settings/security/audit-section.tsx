@@ -41,7 +41,6 @@ const createAuditSchema = (t: (key: string) => string) =>
         end_hour: z.number().int().min(0).max(23),
       }),
       imageStudioEnabled: z.boolean(),
-      autoSaveApiImageGeneration: z.boolean(),
       imageStudioDisplayHistoryLimit: z.number().int().min(1).max(1000),
       imageStudioStorageHistoryLimit: z.number().int().min(1).max(1000),
       requestContentEnabled: z.boolean(),
@@ -63,7 +62,6 @@ type OffHoursAuditSetting = {
 type AuditFormValues = {
   offHours: OffHoursAuditSetting
   imageStudioEnabled: boolean
-  autoSaveApiImageGeneration: boolean
   imageStudioDisplayHistoryLimit: number
   imageStudioStorageHistoryLimit: number
   requestContentEnabled: boolean
@@ -73,7 +71,6 @@ type AuditSectionProps = {
   defaultValues: {
     offHours: OffHoursAuditSetting
     imageStudioEnabled: boolean
-    autoSaveApiImageGeneration: boolean
     imageStudioDisplayHistoryLimit: number
     imageStudioStorageHistoryLimit: number
     requestContentEnabled: boolean
@@ -97,7 +94,6 @@ const buildFormDefaults = (
 ): AuditFormValues => ({
   offHours: { ...defaults.offHours },
   imageStudioEnabled: defaults.imageStudioEnabled,
-  autoSaveApiImageGeneration: defaults.autoSaveApiImageGeneration,
   imageStudioDisplayHistoryLimit: defaults.imageStudioDisplayHistoryLimit || 10,
   imageStudioStorageHistoryLimit: defaults.imageStudioStorageHistoryLimit || 10,
   requestContentEnabled: defaults.requestContentEnabled,
@@ -126,10 +122,6 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
       updateOption.mutateAsync({
         key: 'audit_setting.image_studio',
         value: values.imageStudioEnabled,
-      }),
-      updateOption.mutateAsync({
-        key: 'audit_setting.auto_save_api_image_generation',
-        value: values.autoSaveApiImageGeneration,
       }),
       updateOption.mutateAsync({
         key: 'audit_setting.image_studio_display_history_limit',
@@ -339,39 +331,11 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
                     >
                       <SettingsSwitchContent className='space-y-2'>
                         <FormLabel className='text-sm font-medium'>
-                          {t('Image audit')}
+                          {t('Enable image auditing')}
                         </FormLabel>
                         <FormDescription className='text-sm leading-relaxed'>
                           {t(
-                            'Audit image generation requests and generated content'
-                          )}
-                        </FormDescription>
-                      </SettingsSwitchContent>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </SettingsSwitchItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='autoSaveApiImageGeneration'
-                  render={({ field }) => (
-                    <SettingsSwitchItem
-                      data-audit-setting-card='auto-save-api-image'
-                      className='border-t px-5 py-5'
-                    >
-                      <SettingsSwitchContent className='space-y-2'>
-                        <FormLabel className='text-sm font-medium'>
-                          {t('Auto-save API image generations')}
-                        </FormLabel>
-                        <FormDescription className='text-sm leading-relaxed'>
-                          {t(
-                            'Also record images generated through the raw API (not just the Image Studio) into the image studio history. This downloads and stores each generated image, increasing storage usage.'
+                            'Save Image Studio and API images and generation history'
                           )}
                         </FormDescription>
                       </SettingsSwitchContent>
@@ -400,7 +364,7 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
                           </FormLabel>
                           <FormDescription className='text-sm leading-relaxed'>
                             {t(
-                              'Maximum number of recent image generations shown in Image Studio per user. Removing them from Image Studio does not delete stored records or images.'
+                              'Maximum history entries; removing entries does not delete stored records or images'
                             )}
                           </FormDescription>
                         </SettingsSwitchContent>
@@ -445,7 +409,7 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
                           </FormLabel>
                           <FormDescription className='text-sm leading-relaxed'>
                             {t(
-                              'Maximum number of image generations stored per user. Older records beyond this limit are permanently deleted along with their stored images.'
+                              'Generation history storage limit; exceeding it deletes older records and images'
                             )}
                           </FormDescription>
                         </SettingsSwitchContent>

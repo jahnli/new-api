@@ -68,8 +68,6 @@ const SECURITY_SECTIONS = [
         defaultValues={{
           offHours: settings['audit_setting.off_hours'],
           imageStudioEnabled: settings['audit_setting.image_studio'],
-          autoSaveApiImageGeneration:
-            settings['audit_setting.auto_save_api_image_generation'],
           imageStudioDisplayHistoryLimit:
             settings['audit_setting.image_studio_display_history_limit'],
           imageStudioStorageHistoryLimit:
