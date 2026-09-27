@@ -25,7 +25,10 @@ const (
 	NotificationUnknown = "unknown"
 )
 
-var ErrNotificationConflict = errors.New("notification is active or has no failed recipients")
+var (
+	ErrNotificationActive   = errors.New("notification is active")
+	ErrNotificationConflict = errors.New("notification is active or has no failed recipients")
+)
 
 type NotificationRecord struct {
 	ID       int    `json:"id" gorm:"primaryKey"`
@@ -326,6 +329,41 @@ func NotificationAttempts(recordID int) ([]NotificationAttempt, error) {
 		return cmp.Compare(a.Attempt, b.Attempt)
 	})
 	return attempts, nil
+}
+
+func DeleteNotifications(ids []int, viewerID int, admin bool) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var records []NotificationRecord
+		query := lockForUpdate(tx).Where("id IN ? AND kind = ?", ids, "record").Order("id asc")
+		if !admin {
+			query = query.Where("sender_id = ?", viewerID)
+		}
+		if err := query.Find(&records).Error; err != nil {
+			return err
+		}
+		if len(records) != len(ids) {
+			return gorm.ErrRecordNotFound
+		}
+		for _, record := range records {
+			if record.Status == NotificationQueued || record.Status == NotificationSending {
+				return ErrNotificationActive
+			}
+		}
+		if err := tx.Where("record_id IN ?", ids).Delete(&NotificationDelivery{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("kind = ? AND owner_id IN ?", "record", ids).Delete(&NotificationPayload{}).Error; err != nil {
+			return err
+		}
+		result := tx.Where("id IN ? AND kind = ?", ids, "record").Delete(&NotificationRecord{})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != int64(len(ids)) {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
 }
 
 // The caller must authorize access to the parent record before using this query.

@@ -5,17 +5,26 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { RefreshCw, Search } from 'lucide-react'
+import { RefreshCw, Search, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTablePage, useDataTable } from '@/components/data-table'
+import {
+  DataTablePage,
+  DataTableRowActionMenu,
+  useDataTable,
+} from '@/components/data-table'
 import { ErrorState } from '@/components/error-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -34,7 +43,12 @@ import { toIntlLocale } from '@/i18n/languages'
 import dayjs from '@/lib/dayjs'
 import { formatNumber } from '@/lib/format'
 
-import { getRecords, notificationKeys, retryRecords } from '../api'
+import {
+  deleteRecords,
+  getRecords,
+  notificationKeys,
+  retryRecords,
+} from '../api'
 import { notificationDate } from '../lib/message'
 import type {
   NotificationChannel,
@@ -50,6 +64,8 @@ const CHANNEL_LABEL_KEYS: Record<NotificationChannel, string> = {
   dingtalk: 'DingTalk',
   email: 'Email',
 }
+
+const MAX_BATCH_SIZE = 50
 
 export function NotificationHistory(props: {
   onClone: (message: NotificationMessage) => void
@@ -74,6 +90,7 @@ export function NotificationHistory(props: {
   const [selected, setSelected] = useState<number[]>([])
   const [detailId, setDetailId] = useState<number | null>(null)
   const [retryIds, setRetryIds] = useState<number[]>([])
+  const [deleteIds, setDeleteIds] = useState<number[]>([])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setFilters((current) => ({ ...current, page: 1, keyword }))
@@ -110,6 +127,19 @@ export function NotificationHistory(props: {
       if (failed.length < results.length) toast.success(t('Notification sent'))
     },
   })
+  const remove = useMutation({
+    mutationFn: deleteRecords,
+    onSuccess: (_, ids) => {
+      setDeleteIds([])
+      setSelected([])
+      setDetailId(null)
+      if (ids.length >= (query.data?.items.length ?? 0) && filters.page > 1) {
+        setFilters((current) => ({ ...current, page: current.page - 1 }))
+      }
+      void client.invalidateQueries({ queryKey: notificationKeys.all })
+      toast.success(t('Deleted successfully'))
+    },
+  })
   const updateFilter = (key: keyof RecordFilters, value: string | boolean) => {
     setFilters((current) => ({
       ...current,
@@ -124,14 +154,25 @@ export function NotificationHistory(props: {
       (record.is_test ? props.canTest : props.canSend),
     [props.canSend, props.canTest]
   )
-  const candidates = useMemo(
+  const selectableIds = useMemo(
+    () =>
+      (query.data?.items ?? [])
+        .filter((record) => !['queued', 'sending'].includes(record.status))
+        .map((record) => record.id),
+    [query.data?.items]
+  )
+  const selectionIds = useMemo(
+    () => selectableIds.slice(0, MAX_BATCH_SIZE),
+    [selectableIds]
+  )
+  const retryableIds = useMemo(
     () =>
       (query.data?.items ?? []).filter(retryable).map((record) => record.id),
     [query.data?.items, retryable]
   )
-  const selectedCandidates = useMemo(
-    () => selected.filter((id) => candidates.includes(id)),
-    [candidates, selected]
+  const selectedRetryIds = useMemo(
+    () => selected.filter((id) => retryableIds.includes(id)),
+    [retryableIds, selected]
   )
   const channels = [
     { value: '', label: t('All channels') },
@@ -160,21 +201,25 @@ export function NotificationHistory(props: {
         header: () => (
           <Checkbox
             aria-label={t('Select all')}
-            disabled={!candidates.length || query.isPlaceholderData}
+            disabled={!selectionIds.length || query.isPlaceholderData}
             checked={
-              candidates.length > 0 &&
-              selectedCandidates.length === candidates.length
+              selectionIds.length > 0 && selected.length === selectionIds.length
             }
             onCheckedChange={(checked) =>
-              setSelected(checked ? candidates : [])
+              setSelected(checked ? selectionIds : [])
             }
           />
         ),
         cell: ({ row }) => (
           <Checkbox
             aria-label={`${t('Select')} ${row.original.title}`}
-            checked={selectedCandidates.includes(row.original.id)}
-            disabled={!retryable(row.original) || query.isPlaceholderData}
+            checked={selected.includes(row.original.id)}
+            disabled={
+              !selectableIds.includes(row.original.id) ||
+              (selected.length >= MAX_BATCH_SIZE &&
+                !selected.includes(row.original.id)) ||
+              query.isPlaceholderData
+            }
             onCheckedChange={(checked) =>
               setSelected((current) =>
                 checked
@@ -184,6 +229,12 @@ export function NotificationHistory(props: {
             }
           />
         ),
+      },
+      {
+        id: 'time',
+        accessorKey: 'created_at',
+        header: t('Time'),
+        cell: ({ row }) => notificationDate(row.original.created_at, locale),
       },
       {
         id: 'title',
@@ -259,18 +310,50 @@ export function NotificationHistory(props: {
         ),
       },
       {
-        id: 'time',
-        accessorKey: 'created_at',
-        header: t('Time'),
-        cell: ({ row }) => notificationDate(row.original.created_at, locale),
+        id: 'actions',
+        size: 44,
+        enableSorting: false,
+        enableHiding: false,
+        header: () => <span className='sr-only'>{t('Actions')}</span>,
+        cell: ({ row }) => {
+          if (!selectableIds.includes(row.original.id)) return null
+          const canRetry = retryable(row.original)
+          return (
+            <DataTableRowActionMenu
+              ariaLabel={`${t('More actions')}: ${row.original.title}`}
+            >
+              {canRetry && (
+                <DropdownMenuItem
+                  onClick={() => setRetryIds([row.original.id])}
+                >
+                  {t('Retry')}
+                  <DropdownMenuShortcut>
+                    <RefreshCw className='size-4' />
+                  </DropdownMenuShortcut>
+                </DropdownMenuItem>
+              )}
+              {canRetry && <DropdownMenuSeparator />}
+              <DropdownMenuItem
+                className='text-destructive focus:text-destructive'
+                onClick={() => setDeleteIds([row.original.id])}
+              >
+                {t('Delete')}
+                <DropdownMenuShortcut>
+                  <Trash2 className='size-4' />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </DataTableRowActionMenu>
+          )
+        },
       },
     ],
     [
-      candidates,
       locale,
       query.isPlaceholderData,
       retryable,
-      selectedCandidates,
+      selectableIds,
+      selected,
+      selectionIds,
       props.canSend,
       t,
     ]
@@ -416,24 +499,46 @@ export function NotificationHistory(props: {
                   />
                   <Label htmlFor='include-tests'>{t('Include tests')}</Label>
                 </div>
-                <Button
-                  variant='secondary'
-                  size='sm'
-                  disabled={
-                    !selectedCandidates.length ||
-                    retry.isPending ||
-                    query.isPlaceholderData
-                  }
-                  onClick={() => setRetryIds(selectedCandidates)}
-                >
-                  <RefreshCw className='size-3.5' />
-                  {t('Retry failed recipients')}
-                  {selectedCandidates.length > 0 && (
-                    <Badge variant='outline'>
-                      {formatNumber(selectedCandidates.length, locale)}
-                    </Badge>
-                  )}
-                </Button>
+                <div className='flex items-center gap-2'>
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    disabled={
+                      !selectedRetryIds.length ||
+                      retry.isPending ||
+                      remove.isPending ||
+                      query.isPlaceholderData
+                    }
+                    onClick={() => setRetryIds(selectedRetryIds)}
+                  >
+                    <RefreshCw className='size-3.5' />
+                    {t('Retry')}
+                    {selectedRetryIds.length > 0 && (
+                      <Badge variant='outline'>
+                        {formatNumber(selectedRetryIds.length, locale)}
+                      </Badge>
+                    )}
+                  </Button>
+                  <Button
+                    variant='destructive'
+                    size='sm'
+                    disabled={
+                      !selected.length ||
+                      retry.isPending ||
+                      remove.isPending ||
+                      query.isPlaceholderData
+                    }
+                    onClick={() => setDeleteIds(selected)}
+                  >
+                    <Trash2 className='size-3.5' />
+                    {t('Delete')}
+                    {selected.length > 0 && (
+                      <Badge variant='outline'>
+                        {formatNumber(selected.length, locale)}
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           }
@@ -460,6 +565,21 @@ export function NotificationHistory(props: {
         confirmText={t('Retry')}
         isLoading={retry.isPending}
         handleConfirm={() => retry.mutate(retryIds)}
+      />
+      <ConfirmDialog
+        open={deleteIds.length > 0}
+        onOpenChange={(open) => {
+          if (!open) setDeleteIds([])
+        }}
+        title={t('Delete')}
+        desc={t(
+          'Are you sure you want to delete {{count}} notification record(s)? This action cannot be undone.',
+          { count: deleteIds.length }
+        )}
+        confirmText={t('Delete')}
+        destructive
+        isLoading={remove.isPending}
+        handleConfirm={() => remove.mutate(deleteIds)}
       />
     </div>
   )

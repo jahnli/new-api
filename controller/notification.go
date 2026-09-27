@@ -32,7 +32,7 @@ func notificationError(c *gin.Context, err error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		status, message = http.StatusNotFound, "notification not found"
 	}
-	if errors.Is(err, model.ErrNotificationConflict) {
+	if errors.Is(err, model.ErrNotificationActive) || errors.Is(err, model.ErrNotificationConflict) {
 		status, message = http.StatusConflict, err.Error()
 	}
 	var validationError *service.NotificationValidationError
@@ -203,6 +203,32 @@ func GetNotificationRecord(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"id": record.ID, "user_id": record.SenderID, "sender_name": record.Sender, "channel": record.Channel, "company_id": record.CompanyID, "title": record.Title, "is_test": record.IsTest, "status": record.Status, "total": record.Total, "success_count": record.SuccessCount, "failed_count": record.FailedCount, "unknown_count": record.UnknownCount, "created_at": record.CreatedAt, "updated_at": record.UpdatedAt, "message": record.Message, "deliveries": record.Deliveries, "attempts": attempts}})
+}
+
+func DeleteNotificationRecords(c *gin.Context) {
+	var request struct {
+		IDs []int `json:"ids"`
+	}
+	if !notificationBind(c, &request) {
+		return
+	}
+	if len(request.IDs) < 1 || len(request.IDs) > 50 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "select between 1 and 50 notification records"})
+		return
+	}
+	seen := make(map[int]bool, len(request.IDs))
+	for _, id := range request.IDs {
+		if id <= 0 || seen[id] {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid or duplicate notification IDs"})
+			return
+		}
+		seen[id] = true
+	}
+	if err := model.DeleteNotifications(request.IDs, c.GetInt("id"), notificationCanViewAll(c)); err != nil {
+		notificationError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": nil})
 }
 
 func RetryNotificationRecord(c *gin.Context) {

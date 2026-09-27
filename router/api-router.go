@@ -55,6 +55,7 @@ func SetApiRouter(router *gin.Engine) {
 			notificationRoute.POST("/test", middleware.UserCriticalRateLimit("notification-test"), controller.SendNotification)
 			notificationRoute.POST("/send", middleware.AdminAuth(), middleware.RequirePermission(authz.NotificationSend), middleware.UserCriticalRateLimit("notification-send"), controller.SendNotification)
 			notificationRoute.GET("/records", controller.ListNotificationRecords)
+			notificationRoute.DELETE("/records", controller.DeleteNotificationRecords)
 			notificationRoute.GET("/records/export", middleware.AdminAuth(), controller.ExportNotificationRecords)
 			notificationRoute.GET("/records/:id", controller.GetNotificationRecord)
 			notificationRoute.POST("/records/:id/retry", middleware.UserCriticalRateLimit("notification-retry"), controller.RetryNotificationRecord)

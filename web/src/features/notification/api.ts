@@ -143,6 +143,12 @@ export async function retryRecords(
   ).data
 }
 
+export async function deleteRecords(ids: number[]): Promise<void> {
+  requireServerSuccess(
+    (await api.delete(`${base}/records`, { data: { ids } })).data
+  )
+}
+
 export async function getLibrary(
   kind: LibraryKind,
   filters: LibraryFilters = { page: 1, page_size: 20 }

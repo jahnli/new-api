@@ -686,6 +686,7 @@
     "are also listed here. Remove them from Models to keep the `/v1/models` response user-friendly and hide vendor-specific names.": "也在此处列出。将它们从模型中移除，以保持 `/v1/models` 响应对用户友好并隐藏供应商特定的名称。",
     "Are you sure you want to delete": "您确定要删除吗",
     "Are you sure you want to delete {{count}} model(s)? This action cannot be undone.": "您确定要删除 {{count}} 个模型吗？此操作无法撤销。",
+    "Are you sure you want to delete {{count}} notification record(s)? This action cannot be undone.": "确定要删除 {{count}} 条通知记录吗？此操作无法撤销。",
     "Are you sure you want to delete all auto-disabled keys? This action cannot be undone.": "您确定要删除所有自动禁用的密钥吗？此操作无法撤销。",
     "Are you sure you want to delete channel \"{{name}}\"? This action cannot be undone.": "确定要删除渠道 \"{{name}}\" 吗？此操作无法撤销。",
     "Are you sure you want to delete deployment \"{{name}}\"? This action cannot be undone.": "确定要删除部署 \"{{name}}\" 吗？此操作不可撤销。",
