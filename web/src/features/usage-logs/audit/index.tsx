@@ -187,7 +187,7 @@ export function AuditLogs(
               >
                 <TabsTrigger value='general'>{t('General Audit')}</TabsTrigger>
                 <TabsTrigger value='off-hours'>
-                  {t('Off-Hours Requests')}
+                  {t('Unusual-hours auditing')}
                 </TabsTrigger>
                 {imageAuditEnabled && (
                   <TabsTrigger value='image-studio'>

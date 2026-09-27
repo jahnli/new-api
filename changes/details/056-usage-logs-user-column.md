@@ -1,6 +1,6 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-26（最后更新 09-26）
+**日期**: 2026-09-09 ~ 09-27（最后更新 09-27）
 
 ## 涉及文件
 
@@ -14,7 +14,7 @@
 - `controller/relay.go`、`router/api-router.go`、`model/option.go`、`model/main.go`、`common/constants.go` — 中继接入请求记录，注册模型、开关及仅超级管理员可访问的批量/通知路由。
 - `web/default/src/features/usage-logs/components/dialogs/request-content-dialog.tsx`、`request-messages-provider.tsx`、`api.ts`、`types.ts` — 请求内容弹框与按页批量加载；内容/参数各自独立滚动，展示用户资料、User-Agent，支持复制和违规通知；非超级管理员不发起查询。
 - `controller/security_audit.go`、`service/feishu_department.go`、`service/violation_notice_test.go` — 非工作时间违规通知按用户、实际时间范围和请求次数校验后发送飞书安全审计卡片。
-- `web/src/features/security-audit/` — 从审计日志打开通知入口，补充请求上下文、发送中禁用和成功/失败提示。
+- `web/src/features/security-audit/` — 将「非工作时间请求」标签统一为「异常时段审计」；从审计日志打开通知入口时补充请求上下文、发送中禁用和成功/失败提示。
 - `web/default/src/features/system-settings/security/`、`web/src/features/system-settings/security/` — 请求内容开关迁至安全审计，优化审计设置响应式布局及七语言文案。
 - `relay/common/relay_info.go`、`relay/common/client_app.go`、`service/log_info_generate.go` — 保存并写入原始 User-Agent，不做客户端名称映射。
 - `web/default/src/features/usage-logs/` — 普通日志筛选改为紧凑两排布局，移除令牌名称条件，角色可输入名称；修复管理员“仅自己”范围的用户资料显示。
@@ -62,9 +62,9 @@
 - `web/default/src/features/system-settings/security/index.tsx` — 安全审计设置补充与后端一致的关闭默认值
 - `web/default/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 测试覆盖请求内容记录开关在安全审计页面的展示和启用状态
 - `web/default/src/features/system-settings/types.ts` — 将 RecordRequestMessageEnabled 从 OperationsSettings 迁移到 SecuritySettings
-- `web/src/features/system-settings/security/audit-section.tsx` — 安全审计设置改为响应式卡片布局，统一功能说明、时间设置区域与开关层级；桌面端非工作时间审计与请求内容审计并排半宽，移动端单列。
+- `web/src/features/system-settings/security/audit-section.tsx` — 安全审计设置改为响应式卡片布局，并将请求内容留存、异常时段审计、图片审计与历史拆分为三个平级模块，避免误解请求内容仅在异常时段记录。
 - `web/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 补充安全审计卡片结构、半宽布局、时间区域及开关状态的测试断言。
-- `web/src/i18n/locales/*.json` — 补齐非工作时间审计和图片审计卡片说明的七语言翻译。
+- `web/src/i18n/locales/*.json` — 补齐请求内容留存、异常时段审计和图片审计卡片说明的七语言翻译。
 - `relay/common/relay_info.go` — RelayInfo 新增 ClientApp 字段，基础中继信息生成时保存原始 User-Agent
 - `relay/common/client_app.go` — 新增 DetectClientApp，返回请求携带的原始 User-Agent，不做客户端名称映射
 - `relay/common/client_app_test.go` — 覆盖 DetectClientApp 原始 User-Agent 返回、缺失头与 nil 安全场景
@@ -179,7 +179,7 @@
 
 ## 2026-09-11 安全审计整合至审计日志
 
-- `web/src/features/usage-logs/audit/index.tsx`、`api.ts` — 审计日志页新增常规审计、非工作时间请求和图片审计分类；仅超级管理员显示安全审计分类，切换分类时隔离各表分页状态，并按需加载安全审计界面。
+- `web/src/features/usage-logs/audit/index.tsx`、`api.ts` — 审计日志页提供常规审计、异常时段审计和图片审计分类；仅超级管理员显示安全审计分类，切换分类时隔离各表分页状态，并按需加载安全审计界面。
 - `web/src/features/security-audit/index.tsx` — 安全审计改为嵌入审计日志页面，复用统一分类导航与页面布局；保留日期、用户名筛选，审计开关关闭时展示配置引导。
 - `web/src/features/security-audit/components/image-audit-table.tsx`、`off-hours-table.tsx` — 图片审计和非工作时间审计的分页、筛选状态统一写入审计日志路由。
 - `web/src/routes/_authenticated/usage-logs/audit.tsx` — 审计日志路由接管安全审计分类、筛选和分页参数，非超级管理员直接访问该分类时跳转无权限页面。

@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Image01Icon, SecurityCheckIcon } from '@hugeicons/core-free-icons'
+import {
+  File01Icon,
+  Image01Icon,
+  SecurityCheckIcon,
+} from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
@@ -149,11 +153,60 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
           />
           <div className='space-y-6'>
             <section
-              aria-labelledby='request-audit-title'
+              aria-labelledby='request-content-retention-title'
               className='space-y-3'
             >
               <h3
-                id='request-audit-title'
+                id='request-content-retention-title'
+                className='flex items-center gap-2 text-base font-semibold'
+              >
+                <span className='bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg'>
+                  <HugeiconsIcon
+                    icon={File01Icon}
+                    className='size-4'
+                    strokeWidth={2}
+                    aria-hidden='true'
+                  />
+                </span>
+                <span>{t('Request content retention')}</span>
+              </h3>
+              <SettingsControlGroup className='bg-card space-y-0 p-0'>
+                <FormField
+                  control={form.control}
+                  name='requestContentEnabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem
+                      data-audit-setting-card='request-content'
+                      className='px-5 py-5'
+                    >
+                      <SettingsSwitchContent className='space-y-2'>
+                        <FormLabel className='text-sm font-medium'>
+                          {t('Record request content')}
+                        </FormLabel>
+                        <FormDescription className='text-sm leading-relaxed'>
+                          {t(
+                            'Store the user prompts and model parameters of each relay request for auditing. Keeping this on increases database writes and storage usage.'
+                          )}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+              </SettingsControlGroup>
+            </section>
+
+            <section
+              aria-labelledby='unusual-hours-audit-title'
+              className='space-y-3'
+            >
+              <h3
+                id='unusual-hours-audit-title'
                 className='flex items-center gap-2 text-base font-semibold'
               >
                 <span className='bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg'>
@@ -164,7 +217,7 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
                     aria-hidden='true'
                   />
                 </span>
-                <span>{t('Request auditing')}</span>
+                <span>{t('Unusual-hours auditing')}</span>
               </h3>
               <SettingsControlGroup className='bg-card space-y-0 p-0'>
                 <section
@@ -271,34 +324,6 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
                     />
                   </div>
                 </section>
-
-                <FormField
-                  control={form.control}
-                  name='requestContentEnabled'
-                  render={({ field }) => (
-                    <SettingsSwitchItem
-                      data-audit-setting-card='request-content'
-                      className='border-t px-5 py-5'
-                    >
-                      <SettingsSwitchContent className='space-y-2'>
-                        <FormLabel className='text-sm font-medium'>
-                          {t('Record request content')}
-                        </FormLabel>
-                        <FormDescription className='text-sm leading-relaxed'>
-                          {t(
-                            'Store the user prompts and model parameters of each relay request for auditing. Keeping this on increases database writes and storage usage.'
-                          )}
-                        </FormDescription>
-                      </SettingsSwitchContent>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </SettingsSwitchItem>
-                  )}
-                />
               </SettingsControlGroup>
             </section>
 

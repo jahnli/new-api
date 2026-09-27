@@ -7,7 +7,7 @@ import { createSectionRegistry } from '@/features/system-settings/utils/section-
 const SECURITY_AUDIT_SECTIONS = [
   {
     id: 'off-hours',
-    titleKey: 'Off-Hours Requests',
+    titleKey: 'Unusual-hours auditing',
     build: () => null, // Content is rendered directly in the page component
   },
   {

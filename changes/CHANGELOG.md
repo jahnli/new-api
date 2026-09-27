@@ -60,7 +60,7 @@
 | 053 | 2026-07-23 | 新增或编辑未设置定价的模型时，补全价格和缓存读取价格默认开启，并补充定价通道初始化测试 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/__tests__/pricing-initialization.test.ts` |
 | 054 | 2026-07-01 | 模型广场与模型定价编辑器默认分页大小从 20 改为 100 | `web/default/src/features/pricing/constants.ts`、`web/default/src/features/system-settings/models/model-ratio-visual-editor.tsx` |
 | 055 | 2026-09-23 | 模型广场与分组定价优化：新增分组 × 供应商倍率配置与统一计费优先级，分档价格表按当前用户或管理员筛选分组显示；定价响应加密；新增超级管理员「模型广场配置」入口（推荐模型支持自定义使用场景与拖拽排序）、自动循环的顶部推荐模型横滑区及模型卡片悬停边框 | [详情](details/055-pricing-square.md) |
-| 056 | 2026-09-26 | 使用日志与审计日志优化：完善用户信息、权限筛选、详情导出与 Token 统计，精简提示并保留复制和详情交互 | [详情](details/056-usage-logs-user-column.md) |
+| 056 | 2026-09-27 | 使用日志与审计设置优化：完善用户信息、权限筛选、详情导出与 Token 统计，并拆分安全审计配置模块 | [详情](details/056-usage-logs-user-column.md) |
 | 057 | 2026-09-02 | 数据看板筛选与统计优化：统一时间范围/粒度/用户名筛选与搜索重置，整合消耗分布与用户排行，quota_data 与图表统一按四类 Token 统计 | [详情](details/057-dashboard-filters.md) |
 | 058 | 2026-09-27 | 在线生图支持生成编辑与历史管理，统一图片审计及保存开关，关闭后临时展示结果并隐藏审计入口 | [详情](details/058-online-image-generation.md) |
 | 059 | 2026-07-04 | 排行榜 Token 可见性与热门模型 Tooltip 优化：所有 Token 数字仅超级管理员可见，热门模型悬停提示右侧显示连续排行编号，并更新 Token 排行相关 6 语言文案 | [详情](details/059-rankings-token-visibility.md) |
