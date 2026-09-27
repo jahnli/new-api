@@ -134,13 +134,13 @@ export function DeliverySettings(props: {
             </Button>
           ))}
         </div>
-        <div className='grid gap-5 md:grid-cols-2'>
+        <div className='grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,8fr)]'>
           {channel !== 'email' && (
             <FormField
               control={props.form.control}
               name='company_id'
               render={({ field }) => (
-                <FormItem className='md:col-span-2'>
+                <FormItem>
                   <div className='flex items-center gap-1'>
                     <FormLabel>{t('Company')}</FormLabel>
                     <TextTooltip
@@ -221,14 +221,12 @@ export function DeliverySettings(props: {
               )}
             />
           )}
-        </div>
-        <div>
           <FormField
             control={props.form.control}
             name='title'
             render={({ field }) => (
-              <FormItem>
-                <div className='flex items-center justify-between gap-2'>
+              <FormItem className={cn(channel === 'email' && 'md:col-span-2')}>
+                <div className='flex min-h-8 items-center justify-between gap-2'>
                   <FormLabel>{t('Title')}</FormLabel>
                   {!titleIcon && titleIconPicker}
                 </div>
