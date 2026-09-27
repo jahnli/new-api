@@ -31,6 +31,7 @@ import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/com
 import { LogUserCell } from '@/features/usage-logs/components/log-user-cell'
 import { useMediaQuery } from '@/hooks'
 import { toIntlLocale } from '@/i18n/languages'
+import dayjs from '@/lib/dayjs'
 import { formatNumber } from '@/lib/format'
 
 import { getRecords, notificationKeys, retryRecords } from '../api'
@@ -59,10 +60,15 @@ export function NotificationHistory(props: {
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const isMobile = useMediaQuery('(max-width: 640px)')
   const client = useQueryClient()
-  const [filters, setFilters] = useState<RecordFilters>({
-    page: 1,
-    page_size: 20,
-    include_tests: true,
+  const [filters, setFilters] = useState<RecordFilters>(() => {
+    const now = dayjs()
+    return {
+      page: 1,
+      page_size: 20,
+      from: now.startOf('month').toISOString(),
+      to: now.endOf('month').toISOString(),
+      include_tests: true,
+    }
   })
   const [keyword, setKeyword] = useState('')
   const [selected, setSelected] = useState<number[]>([])
@@ -392,11 +398,11 @@ export function NotificationHistory(props: {
                 <Button
                   variant='outline'
                   size='icon-sm'
-                  aria-label={t('Refresh')}
+                  aria-label={t('Search')}
                   onClick={() => void query.refetch()}
                   disabled={query.isFetching}
                 >
-                  <RefreshCw className='size-4' />
+                  <Search className='size-4' />
                 </Button>
               </div>
               <div className='mt-2 flex flex-wrap items-center justify-between gap-2'>

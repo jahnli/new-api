@@ -25,6 +25,11 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 type QuotaDetailsPopoverProps = {
@@ -37,9 +42,54 @@ type QuotaDetailsPopoverProps = {
   afterTrigger?: ReactNode
   className?: string
   triggerClassName?: string
+  interaction?: 'click' | 'hover'
 }
 
 export function QuotaDetailsPopover(props: QuotaDetailsPopoverProps) {
+  if (props.interaction === 'hover') {
+    return (
+      <Tooltip>
+        <div className={cn('w-full min-w-0', props.className)}>
+          <TooltipTrigger
+            render={
+              <Button
+                variant='ghost'
+                aria-label={props.triggerLabel}
+                className={cn(
+                  'h-auto w-full min-w-0 justify-start px-0 py-0.5 text-left font-normal hover:bg-transparent',
+                  props.triggerClassName
+                )}
+              />
+            }
+          >
+            {props.children}
+          </TooltipTrigger>
+          {props.afterTrigger}
+        </div>
+        <TooltipContent
+          align='start'
+          className='w-72 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-3 p-3'
+        >
+          <p className='text-sm font-medium'>{props.title}</p>
+          <dl className='grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm tabular-nums'>
+            {props.details.map((detail) => (
+              <Fragment key={detail.label}>
+                <dt className='text-background/70'>{detail.label}</dt>
+                <dd className='text-right break-all'>{detail.value}</dd>
+              </Fragment>
+            ))}
+          </dl>
+          {props.description && (
+            <p className='text-background/70 text-xs leading-relaxed'>
+              {props.description}
+            </p>
+          )}
+          {props.additionalContent}
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+
   return (
     <Popover>
       <div className={cn('w-full min-w-0', props.className)}>

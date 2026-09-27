@@ -37,6 +37,7 @@ export function SubscriptionQuotaDetailsPopover(props: {
       }
       className='w-auto'
       triggerClassName='text-muted-foreground size-5 shrink-0 justify-center p-0 hover:text-foreground'
+      interaction='hover'
     >
       <CircleQuestionMark
         className={cn('size-3.5 translate-y-px', props.iconClassName)}

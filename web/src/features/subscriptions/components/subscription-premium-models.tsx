@@ -35,9 +35,9 @@ export function SubscriptionPremiumModels() {
         <li key={modelName} className='max-w-full'>
           <Badge
             variant='secondary'
-            className='h-auto max-w-full py-1 text-left text-sm [overflow-wrap:anywhere] whitespace-normal'
+            className='h-auto max-w-full px-1.5 py-0.5 text-left text-xs leading-4 [overflow-wrap:anywhere] whitespace-normal'
           >
-            {modelName}
+            <span className='relative -top-px'>{modelName}</span>
           </Badge>
         </li>
       ))}
