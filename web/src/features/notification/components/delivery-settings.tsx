@@ -170,7 +170,7 @@ export function DeliverySettings(props: {
                         <SelectValue placeholder={t('Select a company')} />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent alignItemWithTrigger={false}>
                       <SelectGroup>
                         {companies.map((company) => (
                           <SelectItem key={company.value} value={company.value}>
