@@ -494,7 +494,7 @@ export async function exportDataOverview(params: ExportParams): Promise<void> {
     wb,
     mainWs,
     params.usage,
-    params.stats.cost_buckets
+    params.usage.cost_buckets
   )
 
   if (params.includeUserList) {
@@ -523,7 +523,7 @@ export async function exportDataOverview(params: ExportParams): Promise<void> {
         wb,
         ws,
         detail.usage,
-        detail.stats.cost_buckets
+        detail.usage.cost_buckets
       )
     }
   }

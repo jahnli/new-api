@@ -877,6 +877,10 @@ func GetDepartmentStats(req *DepartmentStatsRequest) (*model.DepartmentStat, err
 
 // SubDepartmentStatItem holds stats for one sub-department.
 type SubDepartmentStatItem struct {
+	UncachedInputTokens      int64   `json:"uncached_input_tokens"`
+	CacheReadTokens          int64   `json:"cache_read_tokens"`
+	CacheWriteTokens         int64   `json:"cache_write_tokens"`
+	CommonModel              string  `json:"common_model"`
 	DepartmentID             string  `json:"department_id"`
 	DepartmentName           string  `json:"department_name"`
 	RegisteredUsers          int64   `json:"registered_users"`
@@ -1157,6 +1161,7 @@ func findRegisteredUserIdsByOpenIDs(openIDs []string, registeredBefore int64) ([
 
 // UsageAnalysisResponse holds all usage analysis data returned in one response.
 type UsageAnalysisResponse struct {
+	CostBuckets           []model.CostBucket        `json:"cost_buckets,omitempty"`
 	ModelStats            []model.ModelStatRow      `json:"model_stats"`
 	ModelSeriesStats      []model.ModelStatRow      `json:"model_series_stats"`
 	DailyStats            []model.DailyStatRow      `json:"daily_stats"`
@@ -1719,10 +1724,15 @@ func GetDepartmentUsers(req *DepartmentUsersRequest) (*DepartmentUsersResponse, 
 
 // UserRankingItem holds a single user's ranking info for charts.
 type UserRankingItem struct {
-	Username    string  `json:"username"`
-	DisplayName string  `json:"display_name"`
-	TotalCost   float64 `json:"total_cost"`
-	TotalTokens int64   `json:"total_tokens"`
+	TotalRequests       int64   `json:"total_requests"`
+	UncachedInputTokens int64   `json:"uncached_input_tokens"`
+	CacheReadTokens     int64   `json:"cache_read_tokens"`
+	CacheWriteTokens    int64   `json:"cache_write_tokens"`
+	CommonModel         string  `json:"common_model"`
+	Username            string  `json:"username"`
+	DisplayName         string  `json:"display_name"`
+	TotalCost           float64 `json:"total_cost"`
+	TotalTokens         int64   `json:"total_tokens"`
 }
 
 // GetDepartmentUserRankings returns top 10 users by consumption for the given department and time range.

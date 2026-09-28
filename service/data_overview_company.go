@@ -998,20 +998,30 @@ func buildCompanyDepartmentStats(req *DepartmentStatsRequest, audience *overview
 	if err != nil {
 		return nil, err
 	}
-	stat.RegisteredUsers = int64(len(audience.registeredUserIDs))
-	stat.UnregisteredUsers = int64(audience.totalUsers) - stat.RegisteredUsers
-	if audience.forceRegisteredOnly || stat.UnregisteredUsers < 0 {
-		stat.UnregisteredUsers = 0
+	if err := populateCompanyCostBuckets(req, audience, stat, userStats); err != nil {
+		return nil, err
 	}
-	if userStats == nil {
-		userStats, err = loadOverviewUserStats(audience.registeredUserIDs, req.StartTimestamp, req.EndTimestamp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	applyCostBuckets(stat, userStats)
 	finalizeDepartmentStat(stat)
 	return stat, nil
+}
+
+// populateCompanyCostBuckets keeps the stats and usage-analysis endpoints on
+// the same audience, time range, currency conversion and bucket boundaries.
+func populateCompanyCostBuckets(req *DepartmentStatsRequest, audience *overviewAudience, stat *model.DepartmentStat, userStats *overviewUserStats) error {
+	if userStats == nil {
+		var err error
+		userStats, err = loadOverviewUserStats(audience.registeredUserIDs, req.StartTimestamp, req.EndTimestamp)
+		if err != nil {
+			return err
+		}
+	}
+	stat.RegisteredUsers = int64(len(audience.registeredUserIDs))
+	stat.UnregisteredUsers = max(0, int64(audience.totalUsers)-stat.RegisteredUsers)
+	if audience.forceRegisteredOnly {
+		stat.UnregisteredUsers = 0
+	}
+	applyCostBuckets(stat, userStats)
+	return nil
 }
 
 // applyCostBuckets groups every person in scope by how much they spent during
@@ -1145,10 +1155,25 @@ func getCompanyUsageAnalysis(req *DepartmentStatsRequest) (*UsageAnalysisRespons
 }
 
 func buildCompanyUsageAnalysis(req *DepartmentStatsRequest, audience *overviewAudience) (*UsageAnalysisResponse, error) {
-	if len(audience.registeredUserIDs) == 0 {
-		return &UsageAnalysisResponse{}, nil
+	usage := &UsageAnalysisResponse{}
+	costStat := &model.DepartmentStat{}
+	var group errgroup.Group
+	group.Go(func() error {
+		if len(audience.registeredUserIDs) == 0 {
+			return nil
+		}
+		var err error
+		usage, err = buildUsageAnalysisForUsers(audience.registeredUserIDs, req.StartTimestamp, req.EndTimestamp)
+		return err
+	})
+	group.Go(func() error {
+		return populateCompanyCostBuckets(req, audience, costStat, nil)
+	})
+	if err := group.Wait(); err != nil {
+		return nil, err
 	}
-	return buildUsageAnalysisForUsers(audience.registeredUserIDs, req.StartTimestamp, req.EndTimestamp)
+	usage.CostBuckets = costStat.CostBuckets
+	return usage, nil
 }
 
 func getCompanySubDepartmentStats(req *DepartmentStatsRequest) ([]SubDepartmentStatItem, error) {
@@ -1232,10 +1257,14 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 		}
 	}
 	type childAggregate struct {
-		totalTokens   int64
-		totalQuota    int64
-		totalRequests int64
-		activeUsers   int64
+		totalTokens         int64
+		totalQuota          int64
+		totalRequests       int64
+		activeUsers         int64
+		uncachedInputTokens int64
+		cacheReadTokens     int64
+		cacheWriteTokens    int64
+		modelQuotas         map[string]int64
 	}
 	aggregates := make([]childAggregate, len(children))
 	threshold := getActiveUserThreshold(req.StartTimestamp, req.EndTimestamp)
@@ -1251,11 +1280,28 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 		aggregates[index].totalTokens += row.TotalTokens
 		aggregates[index].totalQuota += row.TotalQuota
 		aggregates[index].totalRequests += row.TotalReqs
+		aggregates[index].uncachedInputTokens += row.UncachedInputTokens
+		aggregates[index].cacheReadTokens += row.CacheReadTokens
+		aggregates[index].cacheWriteTokens += row.CacheWriteTokens
 		if row.TotalReqs >= threshold.RequestCount || row.TotalTokens >= threshold.TokenCount {
 			aggregates[index].activeUsers++
 		}
 	}
 
+	modelRows, err := model.GetUserModelStatsBatch(allUserIDs, req.StartTimestamp, req.EndTimestamp)
+	if err != nil {
+		return nil, fmt.Errorf("get department model stats: %w", err)
+	}
+	for _, row := range modelRows {
+		index, ok := userToChild[row.UserID]
+		if !ok {
+			continue
+		}
+		if aggregates[index].modelQuotas == nil {
+			aggregates[index].modelQuotas = make(map[string]int64)
+		}
+		aggregates[index].modelQuotas[row.ModelName] += row.TotalQuota
+	}
 	result := make([]SubDepartmentStatItem, 0, len(children))
 	for index, child := range children {
 		if !visibleChildren[index] {
@@ -1274,7 +1320,20 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 			stat.UnregisteredUsers = 0
 		}
 		finalizeDepartmentStat(stat)
+		// Match the user table's common-model definition: highest total consumption.
+		commonModel := ""
+		var highestModelQuota int64
+		for name, quota := range aggregates[index].modelQuotas {
+			if commonModel == "" || quota > highestModelQuota || (quota == highestModelQuota && name < commonModel) {
+				commonModel = name
+				highestModelQuota = quota
+			}
+		}
 		result = append(result, SubDepartmentStatItem{
+			UncachedInputTokens:      aggregates[index].uncachedInputTokens,
+			CacheReadTokens:          aggregates[index].cacheReadTokens,
+			CacheWriteTokens:         aggregates[index].cacheWriteTokens,
+			CommonModel:              commonModel,
 			DepartmentID:             departmentNodeValue(req.CompanyID, child.ID),
 			DepartmentName:           child.Name,
 			RegisteredUsers:          stat.RegisteredUsers,
@@ -1551,19 +1610,40 @@ func buildCompanyDepartmentUserRankings(req *DepartmentUsersRequest, audience *o
 		exchangeRate = 1
 	}
 	result := make([]UserRankingItem, 0, 10)
+	userIDs := make([]int, 0, 10)
 	for _, row := range rows {
 		if row.TotalQuota <= 0 {
 			continue
 		}
 		userNames := names[row.UserID]
+		userIDs = append(userIDs, row.UserID)
 		result = append(result, UserRankingItem{
-			Username: userNames[0], DisplayName: userNames[1],
-			TotalCost:   float64(row.TotalQuota) / float64(quotaPerUnit) * exchangeRate,
-			TotalTokens: row.TotalTokens,
+			TotalRequests:       row.TotalReqs,
+			UncachedInputTokens: row.UncachedInputTokens,
+			CacheReadTokens:     row.CacheReadTokens,
+			CacheWriteTokens:    row.CacheWriteTokens,
+			Username:            userNames[0],
+			DisplayName:         userNames[1],
+			TotalCost:           float64(row.TotalQuota) / float64(quotaPerUnit) * exchangeRate,
+			TotalTokens:         row.TotalTokens,
 		})
 		if len(result) == 10 {
 			break
 		}
+	}
+	modelRows, err := model.GetUserModelStatsBatch(userIDs, req.StartTimestamp, req.EndTimestamp)
+	if err != nil {
+		return nil, fmt.Errorf("get ranking model stats: %w", err)
+	}
+	commonModels := make(map[int]model.UserModelStatRow, len(userIDs))
+	for _, row := range modelRows {
+		current, exists := commonModels[row.UserID]
+		if !exists || row.TotalQuota > current.TotalQuota || (row.TotalQuota == current.TotalQuota && row.ModelName < current.ModelName) {
+			commonModels[row.UserID] = row
+		}
+	}
+	for index, userID := range userIDs {
+		result[index].CommonModel = commonModels[userID].ModelName
 	}
 	return result, nil
 }

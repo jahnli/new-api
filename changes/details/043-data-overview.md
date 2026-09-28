@@ -1,6 +1,21 @@
 # 数据总览页增强与公司配置管理
 
-**日期**: 2026-06-25 ~ 2026-09-24（最后更新 2026-09-24）
+**日期**: 2026-06-25 ~ 2026-09-28（最后更新 2026-09-28）
+
+### 2026-09-28 使用分析独立加载与图表悬浮信息完善
+
+- `model/log.go` — 用户汇总与每日统计补充未缓存输入、缓存读取和缓存写入 Token 聚合字段，为部门、用户及趋势图提供缓存命中率数据。
+- `service/data_overview_company.go` — 使用分析独立查询费用分布人数，与模型趋势并行获取；和统计卡片复用同一套人员范围、时间筛选、人民币换算及分桶逻辑。部门与用户排行补充请求数、缓存 Token 和常用模型；常用模型按当前时间范围内消耗最高的模型确定，并以模型名称处理并列情况。
+- `service/feishu_department.go`、`web/src/features/data-overview/types.ts` — 使用分析响应新增 `cost_buckets`，同步补充部门、用户排行及每日统计的前后端字段。
+- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/components/sub-department-stats-dialog.tsx` — 使用分析直接消费自身接口返回的费用分布数据，主页面移除对 `/stats` 首次加载的等待，子部门弹窗同步解除数据依赖。
+- `web/src/features/data-overview/lib/consumption-tooltip.ts` — 复用图表现有悬浮配置，统一展示 Token、费用、每亿 Token 单价、请求数和缓存命中率，并按需展示常用模型；缓存命中率按缓存读取 Token 除以全部输入 Token 计算，缓存写入计入分母，缺失缓存字段时显示占位符。
+- `web/src/features/data-overview/components/sub-department-stats.tsx`、`web/src/features/data-overview/components/user-consumption-charts.tsx` — 各部门 Token 用量、部门消耗占比、用户消耗排行及用户消耗占比四图统一展示六项悬浮指标，占比图保留百分比。
+- `web/src/features/data-overview/components/usage-analysis.tsx` — 额度消耗趋势和 Token 用量趋势在数据点及整列悬浮时展示五项指标；费用分布人数图的纵轴、柱顶与两种悬浮提示补充“人”单位；模型系列调用分布与模型调用分布在悬浮提示末行展示请求数占比，标签和悬浮百分比均保留一位小数。
+- `web/src/features/data-overview/lib/usage-analysis-granularity.ts` — 日、周、月趋势按输入及缓存 Token 总量计算命中率，避免平均每日百分比；分组内存在缺失数据时保留未知状态。
+- `web/src/features/data-overview/lib/chart-to-image.ts`、`web/src/features/data-overview/lib/export-excel.ts` — 导出的费用分布图同步补充人数单位，并改用使用分析响应中的费用分布数据。
+- `web/src/i18n/locales/{zh-TW,fr,ja,ru,vi}.json` — 复核七种语言的图表标题、悬浮指标及人数单位，补齐五种语言中仍为英文的部门、用户排行与趋势图标题，并修正常用模型、请求数和 Token 文案；英文与简体中文复用现有完整翻译。
+
+本次验证：根目录执行 `go build ./...`，前端执行 `bun run typecheck`、`bun run build` 均成功；相关文件的 lint 无错误，格式检查与 `git diff --check` 通过。按项目约定未新增、修改或运行测试；因缺少数据库运行环境，SQLite、MySQL、PostgreSQL 三库兼容验证尚未完成，未实测加载耗时。
 
 ### 2026-09-24 模型系列单价趋势
 

@@ -22,10 +22,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toIntlLocale } from '@/i18n/languages'
+import { formatNumber } from '@/lib/format'
 import { calculateUnitPricePer100MTokens } from '@/lib/unit-price'
 import { useChartTheme } from '@/lib/use-chart-theme'
 import { VCHART_OPTION } from '@/lib/vchart'
 
+import { createConsumptionTooltip } from '../lib/consumption-tooltip'
 import {
   buildModelCallDistributionData,
   buildModelCostRankData,
@@ -47,7 +49,6 @@ import type {
 
 interface UsageAnalysisProps {
   data: UsageAnalysis
-  costBuckets?: CostBucket[]
 }
 
 export function UsageAnalysisSection(props: UsageAnalysisProps) {
@@ -59,7 +60,8 @@ export function UsageAnalysisSection(props: UsageAnalysisProps) {
   const hasModelSeriesData = modelSeriesStats.length > 0
   const hasDailyData =
     props.data.daily_stats && props.data.daily_stats.length > 0
-  const hasCostBuckets = props.costBuckets && props.costBuckets.length > 0
+  const costBuckets = props.data.cost_buckets ?? []
+  const hasCostBuckets = costBuckets.length > 0
 
   if (
     !hasModelData &&
@@ -84,10 +86,7 @@ export function UsageAnalysisSection(props: UsageAnalysisProps) {
       <CardContent className='p-0'>
         <div className='grid grid-cols-1 lg:grid-cols-2'>
           {hasCostBuckets && (
-            <CostBucketDistributionChart
-              data={props.costBuckets ?? []}
-              {...chartProps}
-            />
+            <CostBucketDistributionChart data={costBuckets} {...chartProps} />
           )}
           {hasModelSeriesData && (
             <ModelCallDistributionChart
@@ -425,32 +424,20 @@ function RequestTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
 // ── 2. Token 用量趋势 ──
 
 function TokenTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const [granularity, setGranularity] = useState<UsageTimeGranularity>('day')
   const title = t('Token Usage Trend')
 
   const spec = useMemo(() => {
     const values = aggregateDailyStats(props.data, granularity).map((item) => ({
-      date: item.date,
+      ...item,
+      name: formatUsageBucketLabel(item.date, granularity),
       value: item.total_tokens,
+      tokens: item.total_tokens,
       cost: item.total_quota * props.quotaToCnyRate,
     }))
-
-    const tooltipContent = [
-      {
-        key: () => 'Token',
-        value: (d: { value?: number }) => formatTokenValue(d.value ?? 0),
-      },
-      {
-        key: () => t('Cost'),
-        value: (d: { cost?: number }) => formatCost(d.cost ?? 0),
-      },
-      {
-        key: () => t('Unit Price'),
-        value: (d: { cost?: number; value?: number }) =>
-          formatUnitPrice(d.cost ?? 0, d.value ?? 0, t('100M Tokens')),
-      },
-    ]
+    const tooltip = createConsumptionTooltip(t, locale, formatCost, false)
 
     return {
       type: 'area' as const,
@@ -482,19 +469,11 @@ function TokenTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
         },
       ],
       tooltip: {
-        dimension: {
-          content: tooltipContent,
-        },
-        mark: {
-          title: {
-            value: (d: { date?: string }) =>
-              formatUsageBucketLabel(d.date ?? '', granularity),
-          },
-          content: tooltipContent,
-        },
+        dimension: tooltip,
+        mark: tooltip,
       },
     }
-  }, [granularity, props.data, props.quotaToCnyRate, t])
+  }, [granularity, props.data, props.quotaToCnyRate, t, locale])
 
   return (
     <ChartCard
@@ -709,7 +688,8 @@ function ModelCallDistributionChart(
     chartKeyPrefix: string
   }
 ) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
 
   const spec = useMemo(() => {
     const chartData = buildModelCallDistributionData(
@@ -760,7 +740,7 @@ function ModelCallDistributionChart(
               ? `${(
                   ((datum.value ?? 0) / chartData.totalRequests) *
                   100
-                ).toFixed(2)}%`
+                ).toFixed(1)}%`
               : ''
           return pct ? `${name} ${pct}` : name
         },
@@ -796,6 +776,21 @@ function ModelCallDistributionChart(
               value: (datum: { name?: string }) =>
                 formatModelCacheHitRate(modelStatsByName.get(datum.name ?? '')),
             },
+            {
+              key: () => t('Percentage'),
+              value: (datum: { value?: number }) =>
+                formatNumber(
+                  chartData.totalRequests > 0
+                    ? (datum.value ?? 0) / chartData.totalRequests
+                    : 0,
+                  locale,
+                  {
+                    style: 'percent',
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  }
+                ),
+            },
           ],
         },
       },
@@ -815,7 +810,7 @@ function ModelCallDistributionChart(
         autoPage: true,
       },
     }
-  }, [props.data, props.quotaToCnyRate, t])
+  }, [props.data, props.quotaToCnyRate, t, locale])
 
   if (!spec) return null
 
@@ -967,17 +962,20 @@ function ModelCostRankChart(
 // ── 6. 费用趋势 ──
 
 function CostTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const [granularity, setGranularity] = useState<UsageTimeGranularity>('day')
   const title = t('Quota Consumption Trend')
 
   const spec = useMemo(() => {
     const values = aggregateDailyStats(props.data, granularity).map((item) => ({
-      date: item.date,
+      ...item,
+      name: formatUsageBucketLabel(item.date, granularity),
       value: item.total_quota * props.quotaToCnyRate,
       tokens: item.total_tokens,
-      requests: item.total_requests,
+      cost: item.total_quota * props.quotaToCnyRate,
     }))
+    const tooltip = createConsumptionTooltip(t, locale, formatCost, false)
 
     return {
       type: 'area' as const,
@@ -1012,69 +1010,11 @@ function CostTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
         },
       ],
       tooltip: {
-        dimension: {
-          content: [
-            {
-              key: () => 'Token',
-              value: (datum: { tokens?: number }) =>
-                formatTokenValue(datum.tokens ?? 0),
-            },
-            {
-              key: () => t('Cost'),
-              value: (datum: { value?: number }) =>
-                formatCost(datum.value ?? 0),
-            },
-            {
-              key: () => t('Unit Price'),
-              value: (datum: { value?: number; tokens?: number }) =>
-                formatUnitPrice(
-                  datum.value ?? 0,
-                  datum.tokens ?? 0,
-                  t('100M Tokens')
-                ),
-            },
-            {
-              key: () => t('Requests'),
-              value: (datum: { requests?: number }) =>
-                `${formatLargeNumber(datum.requests ?? 0)} ${t('times')}`,
-            },
-          ],
-        },
-        mark: {
-          title: {
-            value: (datum: { date?: string }) =>
-              formatUsageBucketLabel(datum.date ?? '', granularity),
-          },
-          content: [
-            {
-              key: () => 'Token',
-              value: (datum: { tokens?: number }) =>
-                formatTokenValue(datum.tokens ?? 0),
-            },
-            {
-              key: () => t('Cost'),
-              value: (datum: { value?: number }) =>
-                formatCost(datum.value ?? 0),
-            },
-            {
-              key: () => t('Unit Price'),
-              value: (datum: { value?: number; tokens?: number }) =>
-                formatUnitPrice(
-                  datum.value ?? 0,
-                  datum.tokens ?? 0,
-                  t('100M Tokens')
-                ),
-            },
-            {
-              key: () => t('Requests'),
-              value: (datum: { requests?: number }) =>
-                `${formatLargeNumber(datum.requests ?? 0)} ${t('times')}`,
-            },
-          ],
-        },
+        dimension: tooltip,
+        mark: tooltip,
       },
     }
-  }, [granularity, props.data, props.quotaToCnyRate, t])
+  }, [granularity, props.data, props.quotaToCnyRate, t, locale])
 
   return (
     <ChartCard
@@ -1101,7 +1041,8 @@ function CostTrendChart(props: ChartBaseProps & { data: DailyStat[] }) {
 function CostBucketDistributionChart(
   props: ChartBaseProps & { data: CostBucket[] }
 ) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
 
   const spec = useMemo(() => {
     const chartData = buildCostBucketDistributionData(props.data, {
@@ -1112,6 +1053,20 @@ function CostBucketDistributionChart(
     })
 
     if (!chartData) return null
+
+    const countTooltip = {
+      title: { value: (datum: { range?: string }) => datum.range ?? '' },
+      content: [
+        {
+          key: () => t('Number of Users'),
+          value: (datum: { users?: number }) =>
+            t('{{count}} people', {
+              count: datum.users ?? 0,
+              replace: { count: formatNumber(datum.users ?? 0, locale) },
+            }),
+        },
+      ],
+    }
 
     return {
       type: 'bar' as const,
@@ -1134,10 +1089,17 @@ function CostBucketDistributionChart(
           orient: 'left',
           type: 'linear',
           label: {
-            formatMethod: (v: number) => {
-              if (v >= 1_0000) return `${(v / 1_0000).toFixed(1)}万`
-              return v.toFixed(0)
-            },
+            formatMethod: (v: number) =>
+              t('{{count}} people', {
+                count: v,
+                replace: {
+                  count: formatNumber(v, locale, {
+                    notation: v >= 10_000 ? 'compact' : 'standard',
+                    minimumFractionDigits: v >= 10_000 ? 1 : 0,
+                    maximumFractionDigits: v >= 10_000 ? 1 : 0,
+                  }),
+                },
+              }),
           },
         },
       ],
@@ -1153,25 +1115,24 @@ function CostBucketDistributionChart(
           fontSize: 11,
           fontWeight: 500,
         },
-        formatMethod: (value: number) => {
-          if (value >= 1_0000) return `${(value / 1_0000).toFixed(1)}万`
-          return value.toString()
-        },
+        formatMethod: (value: number) =>
+          t('{{count}} people', {
+            count: value,
+            replace: {
+              count: formatNumber(value, locale, {
+                notation: value >= 10_000 ? 'compact' : 'standard',
+                minimumFractionDigits: value >= 10_000 ? 1 : 0,
+                maximumFractionDigits: value >= 10_000 ? 1 : 0,
+              }),
+            },
+          }),
       },
       tooltip: {
-        mark: {
-          title: { value: (datum: { range?: string }) => datum.range ?? '' },
-          content: [
-            {
-              key: () => t('Number of Users'),
-              value: (datum: { users?: number }) =>
-                (datum.users ?? 0).toString(),
-            },
-          ],
-        },
+        mark: countTooltip,
+        dimension: countTooltip,
       },
     }
-  }, [props.data, t])
+  }, [props.data, t, locale])
 
   return (
     <ChartCard

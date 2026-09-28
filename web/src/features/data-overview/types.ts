@@ -35,6 +35,10 @@ export interface CompanySubtreeResponse {
 }
 
 export interface SubDepartmentStat {
+  uncached_input_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  common_model?: string
   department_id: string
   department_name: string
   registered_users: number
@@ -60,6 +64,9 @@ export interface ModelStat {
 }
 
 export interface DailyStat {
+  uncached_input_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
   date: string
   total_tokens: number
   total_quota: number
@@ -74,6 +81,7 @@ export interface ModelDailyStat {
 }
 
 export interface UsageAnalysis {
+  cost_buckets?: CostBucket[]
   model_stats: ModelStat[]
   model_series_stats?: ModelStat[]
   model_series_daily_stats?: ModelDailyStat[]
@@ -175,6 +183,11 @@ export interface DepartmentUsersResponse {
 }
 
 export interface UserRankingItem {
+  total_requests?: number
+  uncached_input_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  common_model?: string
   username: string
   display_name: string
   total_cost: number

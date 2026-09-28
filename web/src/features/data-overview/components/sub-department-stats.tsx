@@ -25,10 +25,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { toIntlLocale } from '@/i18n/languages'
 import { useChartTheme } from '@/lib/use-chart-theme'
 import { VCHART_OPTION } from '@/lib/vchart'
 
 import { getActiveUserRateClassName } from '../lib/active-user-rate'
+import { createConsumptionTooltip } from '../lib/consumption-tooltip'
 import type { SubDepartmentStat } from '../types'
 import { ActivityFormulaTooltip } from './activity-formula-tooltip'
 import { DepartmentLogsDialog } from './department-logs-dialog'
@@ -266,7 +268,8 @@ function useSubDepartmentColumns(
 }
 
 export function SubDepartmentStats(props: SubDepartmentStatsProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const { resolvedTheme, themeReady } = useChartTheme()
   const [statsDepartment, setStatsDepartment] =
     useState<SubDepartmentStat | null>(null)
@@ -298,26 +301,18 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
     [sortedData]
   )
 
-  const barSpec = useMemo(() => {
-    const tooltipContent = [
-      {
-        key: 'Token',
-        value: (d: { tokens?: number }) => formatTokens(d.tokens ?? 0),
-      },
-      {
-        key: t('Cost'),
-        value: (d: { cost?: number }) => {
-          const v = d.cost ?? 0
-          return v === 0 ? '¥0' : `¥${v.toFixed(2)}`
-        },
-      },
-    ]
+  const consumptionTooltip = useMemo(
+    () => createConsumptionTooltip(t, locale, formatCNY),
+    [t, locale]
+  )
 
+  const barSpec = useMemo(() => {
     return {
       type: 'bar' as const,
       data: [
         {
           values: sortedData.map((item) => ({
+            ...item,
             name: item.department_name,
             tokens: item.total_tokens,
             cost: item.total_amount_cny,
@@ -355,13 +350,13 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
         },
       ],
       tooltip: {
-        mark: { content: tooltipContent },
-        dimension: { content: tooltipContent },
+        mark: consumptionTooltip,
+        dimension: consumptionTooltip,
       },
       theme: resolvedTheme === 'dark' ? 'dark' : 'light',
       background: 'transparent',
     }
-  }, [sortedData, resolvedTheme, t])
+  }, [sortedData, resolvedTheme, consumptionTooltip])
 
   const pieSpec = useMemo(
     () => ({
@@ -371,6 +366,9 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
           values: sortedData
             .filter((i) => i.total_amount_cny > 0)
             .map((i) => ({
+              ...i,
+              tokens: i.total_tokens,
+              cost: i.total_amount_cny,
               name: i.department_name,
               value: i.total_amount_cny,
             })),
@@ -408,16 +406,15 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
       },
       tooltip: {
         mark: {
+          ...consumptionTooltip,
           content: [
+            ...consumptionTooltip.content,
             {
-              key: (d: { name?: string }) => d.name ?? '',
-              value: (d: { value?: number }) => {
-                const v = d.value ?? 0
-                const cost = v === 0 ? '¥0' : `¥${v.toFixed(2)}`
-                const pct =
-                  totalCost > 0 ? `${((v / totalCost) * 100).toFixed(1)}%` : ''
-                return pct ? `${cost} (${pct})` : cost
-              },
+              key: t('Percentage'),
+              value: (d: { value?: number }) =>
+                totalCost > 0
+                  ? `${(((d.value ?? 0) / totalCost) * 100).toFixed(1)}%`
+                  : '-',
             },
           ],
         },
@@ -438,7 +435,7 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
       theme: resolvedTheme === 'dark' ? 'dark' : 'light',
       background: 'transparent',
     }),
-    [sortedData, resolvedTheme, totalCost]
+    [sortedData, resolvedTheme, totalCost, t, consumptionTooltip]
   )
 
   if (props.data.length === 0) {

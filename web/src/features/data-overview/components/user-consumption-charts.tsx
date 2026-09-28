@@ -3,10 +3,11 @@ import { BarChart3, PieChart } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { calculateUnitPricePer100MTokens } from '@/lib/unit-price'
+import { toIntlLocale } from '@/i18n/languages'
 import { useChartTheme } from '@/lib/use-chart-theme'
 import { VCHART_OPTION } from '@/lib/vchart'
 
+import { createConsumptionTooltip } from '../lib/consumption-tooltip'
 import type { UserRankingItem } from '../types'
 
 interface UserConsumptionChartsProps {
@@ -18,23 +19,9 @@ function formatCost(value: number): string {
   return `¥${value.toFixed(2)}`
 }
 
-function formatTokens(tokens: number): string {
-  if (!tokens) return '0'
-  return `${(tokens / 1_0000_0000).toFixed(2)} 亿`
-}
-
-function formatUnitPrice(
-  cost: number,
-  tokens: number,
-  unitLabel: string
-): string {
-  if (tokens <= 0) return '-'
-  const pricePer100MTokens = calculateUnitPricePer100MTokens(cost, tokens)
-  return `¥${pricePer100MTokens.toFixed(2)}/${unitLabel}`
-}
-
 export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const { resolvedTheme, themeReady } = useChartTheme()
 
   const sortedData = useMemo(
@@ -47,33 +34,18 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
     [sortedData]
   )
 
+  const consumptionTooltip = useMemo(
+    () => createConsumptionTooltip(t, locale, formatCost),
+    [t, locale]
+  )
+
   const barSpec = useMemo(() => {
     const values = sortedData.map((item) => ({
+      ...item,
       name: item.display_name || item.username,
       cost: item.total_cost,
       tokens: item.total_tokens,
     }))
-
-    const markTooltip = {
-      title: {
-        value: (d: { name?: string }) => d.name ?? '',
-      },
-      content: [
-        {
-          key: () => t('Cost'),
-          value: (d: { cost?: number }) => formatCost(d.cost ?? 0),
-        },
-        {
-          key: 'Token',
-          value: (d: { tokens?: number }) => formatTokens(d.tokens ?? 0),
-        },
-        {
-          key: () => t('Unit Price'),
-          value: (d: { cost?: number; tokens?: number }) =>
-            formatUnitPrice(d.cost ?? 0, d.tokens ?? 0, t('100M Tokens')),
-        },
-      ],
-    }
 
     return {
       type: 'bar' as const,
@@ -106,8 +78,8 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
         },
       ],
       tooltip: {
-        dimension: markTooltip,
-        mark: markTooltip,
+        dimension: consumptionTooltip,
+        mark: consumptionTooltip,
       },
       animationAppear: {
         duration: 800,
@@ -116,12 +88,14 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
       theme: resolvedTheme === 'dark' ? 'dark' : 'light',
       background: 'transparent',
     }
-  }, [sortedData, resolvedTheme, t])
+  }, [sortedData, resolvedTheme, consumptionTooltip])
 
   const pieSpec = useMemo(() => {
     const values = sortedData
       .filter((i) => i.total_cost > 0)
       .map((i) => ({
+        ...i,
+        cost: i.total_cost,
         name: i.display_name || i.username,
         value: i.total_cost,
         tokens: i.total_tokens,
@@ -162,18 +136,9 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
       },
       tooltip: {
         mark: {
-          title: {
-            value: (d: { name?: string }) => d.name ?? '',
-          },
+          ...consumptionTooltip,
           content: [
-            {
-              key: () => t('Cost'),
-              value: (d: { value?: number }) => formatCost(d.value ?? 0),
-            },
-            {
-              key: () => t('Tokens Used'),
-              value: (d: { tokens?: number }) => formatTokens(d.tokens ?? 0),
-            },
+            ...consumptionTooltip.content,
             {
               key: () => t('Percentage'),
               value: (d: { value?: number }) => {
@@ -202,7 +167,7 @@ export function UserConsumptionCharts(props: UserConsumptionChartsProps) {
       theme: resolvedTheme === 'dark' ? 'dark' : 'light',
       background: 'transparent',
     }
-  }, [sortedData, resolvedTheme, totalCost, t])
+  }, [sortedData, resolvedTheme, totalCost, t, consumptionTooltip])
 
   if (sortedData.length === 0) {
     return null

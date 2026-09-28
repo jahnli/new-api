@@ -1,5 +1,8 @@
 import VChart, { type ISpec } from '@visactor/vchart'
-import { t } from 'i18next'
+import i18n, { t } from 'i18next'
+
+import { toIntlLocale } from '@/i18n/languages'
+import { formatNumber } from '@/lib/format'
 
 import type {
   CostBucket,
@@ -466,8 +469,17 @@ export function buildUserRankPieSpec(rankings: UserRankingItem[]): ISpec {
 }
 
 function fmtUserCount(count: number): string {
-  if (count >= 1_0000) return `${(count / 1_0000).toFixed(1)}万`
-  return count.toFixed(0)
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  return t('{{count}} people', {
+    count,
+    replace: {
+      count: formatNumber(count, locale, {
+        notation: count >= 10_000 ? 'compact' : 'standard',
+        minimumFractionDigits: count >= 10_000 ? 1 : 0,
+        maximumFractionDigits: count >= 10_000 ? 1 : 0,
+      }),
+    },
+  })
 }
 
 export function buildCostBucketDistributionSpec(

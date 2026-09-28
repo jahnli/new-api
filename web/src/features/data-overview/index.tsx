@@ -154,11 +154,6 @@ export function DataOverview() {
     rankingsFetching: rankingsQuery.isFetching,
     hasRankingsData: Boolean(rankingsQuery.data),
   })
-  // Cost buckets come from stats and occupy the first chart cell. Wait for
-  // their initial response so it cannot insert a cell ahead of visible charts.
-  const showUsageSkeleton =
-    loadingState.showUsageSkeleton ||
-    (Boolean(usageQuery.data?.data) && loadingState.showStatsSkeleton)
 
   const treeData = treeQuery.data?.data
   const baseTreeData = treeData?.tree_data ?? EMPTY_DEPARTMENT_TREE
@@ -426,13 +421,10 @@ export function DataOverview() {
             </Alert>
           )}
 
-          {showUsageSkeleton && <UsageAnalysisSkeleton />}
+          {loadingState.showUsageSkeleton && <UsageAnalysisSkeleton />}
 
-          {!showUsageSkeleton && usageQuery.data?.data && (
-            <UsageAnalysisSection
-              data={usageQuery.data.data}
-              costBuckets={statsQuery.data?.data.cost_buckets}
-            />
+          {usageQuery.data?.data && (
+            <UsageAnalysisSection data={usageQuery.data.data} />
           )}
         </FadeIn>
       </SectionPageLayout.Content>

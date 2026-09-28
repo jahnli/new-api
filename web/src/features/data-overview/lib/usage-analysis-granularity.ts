@@ -76,6 +76,18 @@ export function aggregateDailyStats(
       existing.total_tokens += item.total_tokens
       existing.total_quota += item.total_quota
       existing.total_requests += item.total_requests
+      // Sum token counts before calculating a weekly/monthly cache hit rate.
+      // Missing cache data must not be reported as a measured zero.
+      for (const field of [
+        'uncached_input_tokens',
+        'cache_read_tokens',
+        'cache_write_tokens',
+      ] as const) {
+        const previous = existing[field]
+        const current = item[field]
+        existing[field] =
+          previous == null || current == null ? undefined : previous + current
+      }
       continue
     }
 
@@ -84,6 +96,9 @@ export function aggregateDailyStats(
       total_tokens: item.total_tokens,
       total_quota: item.total_quota,
       total_requests: item.total_requests,
+      uncached_input_tokens: item.uncached_input_tokens,
+      cache_read_tokens: item.cache_read_tokens,
+      cache_write_tokens: item.cache_write_tokens,
     })
   }
 

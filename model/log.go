@@ -1085,10 +1085,13 @@ const quotaDataTotalTokensExpr = "COALESCE(SUM(uncached_input_tokens + uncached_
 
 // UserStatRow holds per-user aggregated log data, used by batch department queries.
 type UserStatRow struct {
-	UserID      int   `gorm:"column:user_id"`
-	TotalTokens int64 `gorm:"column:total_tokens"`
-	TotalQuota  int64 `gorm:"column:total_quota"`
-	TotalReqs   int64 `gorm:"column:total_reqs"`
+	UserID              int   `gorm:"column:user_id"`
+	TotalTokens         int64 `gorm:"column:total_tokens"`
+	TotalQuota          int64 `gorm:"column:total_quota"`
+	TotalReqs           int64 `gorm:"column:total_reqs"`
+	UncachedInputTokens int64 `gorm:"column:uncached_input_tokens"`
+	CacheReadTokens     int64 `gorm:"column:cache_read_tokens"`
+	CacheWriteTokens    int64 `gorm:"column:cache_write_tokens"`
 }
 
 // GetUserStatsBatch returns per-user aggregated stats for all given user IDs in one query.
@@ -1100,6 +1103,9 @@ func GetUserStatsBatch(userIds []int, startTimestamp, endTimestamp int64) ([]Use
 	tx := DB.Table("quota_data").
 		Select(`user_id,
 			`+quotaDataTotalTokensExpr+` as total_tokens,
+			COALESCE(SUM(uncached_input_tokens), 0) as uncached_input_tokens,
+			COALESCE(SUM(cache_read_tokens), 0) as cache_read_tokens,
+			COALESCE(SUM(cache_write_tokens), 0) as cache_write_tokens,
 			COALESCE(SUM(quota), 0) as total_quota,
 			COALESCE(SUM(count), 0) as total_reqs`).
 		Where("user_id IN ?", userIds)
@@ -1202,10 +1208,13 @@ func GetModelStats(userIds []int, startTimestamp, endTimestamp int64, limit int)
 
 // DailyStatRow holds per-day aggregated stats.
 type DailyStatRow struct {
-	Date        string `json:"date" gorm:"column:date"`
-	TotalTokens int64  `json:"total_tokens" gorm:"column:total_tokens"`
-	TotalQuota  int64  `json:"total_quota" gorm:"column:total_quota"`
-	TotalReqs   int64  `json:"total_requests" gorm:"column:total_reqs"`
+	UncachedInputTokens int64  `json:"uncached_input_tokens" gorm:"column:uncached_input_tokens"`
+	CacheReadTokens     int64  `json:"cache_read_tokens" gorm:"column:cache_read_tokens"`
+	CacheWriteTokens    int64  `json:"cache_write_tokens" gorm:"column:cache_write_tokens"`
+	Date                string `json:"date" gorm:"column:date"`
+	TotalTokens         int64  `json:"total_tokens" gorm:"column:total_tokens"`
+	TotalQuota          int64  `json:"total_quota" gorm:"column:total_quota"`
+	TotalReqs           int64  `json:"total_requests" gorm:"column:total_reqs"`
 }
 
 // GetDailyStats returns per-day aggregated stats for the given user IDs.
@@ -1225,6 +1234,9 @@ func GetDailyStats(userIds []int, startTimestamp, endTimestamp int64) ([]DailySt
 	tx := DB.Table("quota_data").
 		Select(dateExpr+` as date,
 			`+quotaDataTotalTokensExpr+` as total_tokens,
+			COALESCE(SUM(uncached_input_tokens), 0) as uncached_input_tokens,
+			COALESCE(SUM(cache_read_tokens), 0) as cache_read_tokens,
+			COALESCE(SUM(cache_write_tokens), 0) as cache_write_tokens,
 			COALESCE(SUM(quota), 0) as total_quota,
 			COALESCE(SUM(count), 0) as total_reqs`).
 		Where("user_id IN ?", userIds)
