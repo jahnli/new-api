@@ -27,13 +27,23 @@ function formatHour(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`
 }
 
-function getDefaultTimeRange(): {
+function getDefaultTimeRange(section: SecurityAuditSectionId): {
   startTime: dayjs.Dayjs
   endTime: dayjs.Dayjs
 } {
+  const now = dayjs()
+  if (section === 'off-hours') {
+    const weekday = now.day() === 0 ? 7 : now.day()
+    const startTime = now.subtract(weekday - 1, 'day').startOf('day')
+    return {
+      startTime,
+      endTime: startTime.add(6, 'day').endOf('day'),
+    }
+  }
+
   return {
-    startTime: dayjs().startOf('month'),
-    endTime: dayjs().endOf('month'),
+    startTime: now.startOf('month'),
+    endTime: now.endOf('month'),
   }
 }
 
@@ -52,7 +62,10 @@ export function SecurityAudit(props: { section: SecurityAuditSectionId }) {
   const auditSetting = settingQuery.data?.data
   const imageStudioEnabled = auditSetting?.image_studio !== false
   const offHoursEnabled = auditSetting?.off_hours.enabled !== false
-  const defaultTimeRange = useMemo(() => getDefaultTimeRange(), [])
+  const defaultTimeRange = useMemo(
+    () => getDefaultTimeRange(activeSection),
+    [activeSection]
+  )
   const startTimestamp = search.startTime ?? defaultTimeRange.startTime.unix()
   const endTimestamp = search.endTime ?? defaultTimeRange.endTime.unix()
 
@@ -98,7 +111,7 @@ export function SecurityAudit(props: { section: SecurityAuditSectionId }) {
   }, [navigate, startTimeInput, endTimeInput, usernameInput])
 
   const resetFilters = useCallback(() => {
-    const defaultTimeRange = getDefaultTimeRange()
+    const defaultTimeRange = getDefaultTimeRange(activeSection)
     setStartTimeInput(defaultTimeRange.startTime.toDate())
     setEndTimeInput(defaultTimeRange.endTime.toDate())
     setUsernameInput('')
@@ -115,7 +128,7 @@ export function SecurityAudit(props: { section: SecurityAuditSectionId }) {
         imageAuditPageSize: undefined,
       }),
     })
-  }, [navigate])
+  }, [activeSection, navigate])
 
   const auditDisabled =
     !settingQuery.isLoading &&
