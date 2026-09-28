@@ -58,9 +58,9 @@ function ModelBadgeContent(props: ModelBadgeProps & { copyable: boolean }) {
       showDot={!provider?.icon}
       autoColor={provider?.icon ? undefined : props.modelName}
       className={cn(
-        'border-border/60 bg-muted/30 h-6 max-w-none gap-1.5 rounded-md border px-2 [font-family:var(--font-body)]',
+        'border-border/60 bg-muted/30 h-[26px] max-w-none gap-1.5 rounded-md border px-2 py-px [font-family:var(--font-body)]',
         provider?.icon && 'text-foreground',
-        props.wrapText && 'h-auto min-h-6 max-w-full py-px whitespace-normal',
+        props.wrapText && 'h-auto min-h-[26px] max-w-full py-0.5 whitespace-normal',
         props.truncateText && 'max-w-full',
         props.className
       )}
@@ -75,10 +75,10 @@ function ModelBadgeContent(props: ModelBadgeProps & { copyable: boolean }) {
       >
         {provider?.icon && (
           <span
-            className='flex h-[18px] w-[18px] shrink-0 items-center justify-center'
+            className='flex size-4 shrink-0 items-center justify-center'
             aria-label={provider.label ?? provider.name}
           >
-            {getLobeIcon(provider.icon, 18)}
+            {getLobeIcon(provider.icon, 16)}
           </span>
         )}
         <TextTooltip
@@ -89,7 +89,7 @@ function ModelBadgeContent(props: ModelBadgeProps & { copyable: boolean }) {
             className={cn(
               props.wrapText
                 ? 'line-clamp-2 leading-5 [overflow-wrap:anywhere]'
-                : 'whitespace-nowrap',
+                : 'leading-normal whitespace-nowrap',
               props.truncateText && 'min-w-0 truncate'
             )}
           >
