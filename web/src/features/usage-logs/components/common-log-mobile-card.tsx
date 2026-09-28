@@ -302,7 +302,7 @@ export function CommonLogMobileCard<TData>(props: {
             Number.isFinite(groupRatio) &&
             props.cells.has('token_name') && (
               <div className='text-muted-foreground col-span-2 [overflow-wrap:anywhere]'>
-                {t('Group Ratio')}: {groupRatio}×
+                {t('Group Ratio')}: {groupRatio}x
               </div>
             )}
         </div>

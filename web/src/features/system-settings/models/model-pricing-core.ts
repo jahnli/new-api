@@ -388,7 +388,7 @@ export function pricingAdjustmentRows(
     rows.push({
       key: `adjustment-${index}`,
       label: formatBillingCondition(rule.condition, t) || rule.condition,
-      value: `× ${rule.multiplier}`,
+      value: `${rule.multiplier}x`,
       unit: 'none',
     })
   }

@@ -631,7 +631,6 @@ function userGroupColumn<T extends UserColumnRow>(
           <GroupBadge
             group={row.original.group}
             ratio={ratio}
-            ratioLabel={ratio == null ? undefined : `x${ratio}`}
             className="pr-0.5 text-[12px] [&>span]:text-[12px]"
             containerClassName="gap-0.5"
             ratioClassName="h-4 min-w-0 rounded-sm border-transparent bg-muted/70 px-1 text-[12px] text-muted-foreground [&>span]:text-[12px]"

@@ -62,7 +62,7 @@ export function SubscriptionSummary(props: {
         {props.planTitle && (
           <Badge
             variant='secondary'
-            className='bg-primary/10 text-primary h-auto max-w-36 border-0 px-3 py-1 text-sm'
+            className='bg-primary/10 dark:bg-secondary h-auto max-w-36 border-0 px-3 py-1 text-sm'
           >
             <span className='truncate'>{props.planTitle}</span>
           </Badge>
@@ -112,7 +112,7 @@ export function SubscriptionSummary(props: {
             </div>
             <Badge
               variant='secondary'
-              className='bg-primary/10 text-primary h-auto px-2 py-0.5 text-xs tabular-nums'
+              className='bg-primary/10 dark:bg-secondary h-auto px-2 py-0.5 text-xs tabular-nums'
             >
               {t('Share {{percent}}%', {
                 percent: formatNumber(
@@ -127,7 +127,7 @@ export function SubscriptionSummary(props: {
             className={`text-base font-semibold break-all tabular-nums ${premiumUsageColor}`}
           >
             {formatPremiumQuota(premiumUsed.toString())}
-            <span className='font-semibold text-[#152547]'>
+            <span className='dark:text-foreground font-semibold text-[#152547]'>
               {' / '}
               {formatPremiumQuota(premiumLimit.toString())}
             </span>

@@ -68,7 +68,7 @@ function formatGroupRatio(ratio: number | undefined): string | undefined {
   const formatted = Number.isInteger(ratio)
     ? ratio.toString()
     : ratio.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
-  return `x${formatted}`
+  return `${formatted}x`
 }
 
 function FilterChip(props: {

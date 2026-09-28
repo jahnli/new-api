@@ -369,8 +369,8 @@ export function RequestSimulation(props: RequestSimulationProps) {
                 {ruleRows.map((rule) => (
                   <li key={rule.key} className='text-xs break-words'>
                     <span>
-                      {t(rule.matched ? 'Matched' : 'Not matched')} · ×
-                      {rule.multiplier}
+                      {t(rule.matched ? 'Matched' : 'Not matched')} ·{' '}
+                      {rule.multiplier}x
                     </span>{' '}
                     <span>
                       {formatBillingCondition(rule.cond, t, i18n.language) ??
