@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
 import { StatusBadge } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   HoverCard,
@@ -41,6 +42,7 @@ interface ModelBadgeProps {
   responseModel?: LogOtherData['response_model']
   className?: string
   wrapText?: boolean
+  truncateText?: boolean
   onInspect?: () => void
 }
 
@@ -59,13 +61,16 @@ function ModelBadgeContent(props: ModelBadgeProps & { copyable: boolean }) {
         'border-border/60 bg-muted/30 h-6 max-w-none gap-1.5 rounded-md border px-2 [font-family:var(--font-body)]',
         provider?.icon && 'text-foreground',
         props.wrapText && 'h-auto min-h-6 max-w-full py-px whitespace-normal',
+        props.truncateText && 'max-w-full',
         props.className
       )}
     >
       <span
         className={cn(
           'flex items-center gap-1.5',
-          props.wrapText ? 'max-w-full min-w-0' : 'max-w-none'
+          props.wrapText || props.truncateText
+            ? 'max-w-full min-w-0'
+            : 'max-w-none'
         )}
       >
         {provider?.icon && (
@@ -76,15 +81,21 @@ function ModelBadgeContent(props: ModelBadgeProps & { copyable: boolean }) {
             {getLobeIcon(provider.icon, 18)}
           </span>
         )}
-        <span
-          className={
-            props.wrapText
-              ? 'line-clamp-2 leading-5 [overflow-wrap:anywhere]'
-              : 'whitespace-nowrap'
-          }
+        <TextTooltip
+          content={props.truncateText ? props.modelName : undefined}
+          onlyWhenOverflow
         >
-          {props.modelName}
-        </span>
+          <span
+            className={cn(
+              props.wrapText
+                ? 'line-clamp-2 leading-5 [overflow-wrap:anywhere]'
+                : 'whitespace-nowrap',
+              props.truncateText && 'min-w-0 truncate'
+            )}
+          >
+            {props.modelName}
+          </span>
+        </TextTooltip>
       </span>
     </StatusBadge>
   )

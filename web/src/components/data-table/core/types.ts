@@ -70,6 +70,8 @@ export type DataTableViewProps<TData> = {
   pinnedColumns?: DataTablePinnedColumn[]
   applyHeaderSize?: boolean
   fitContainer?: boolean
+  /** Stable column widths with horizontal scrolling below the total column size. */
+  fixedLayout?: boolean
   tableClassName?: string
   tableHeaderClassName?: string
   tableHeaderRowClassName?: string

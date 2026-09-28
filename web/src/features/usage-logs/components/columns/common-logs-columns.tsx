@@ -492,17 +492,18 @@ export function useCommonLogsColumns(
           const modelInfo = formatModelName(log)
 
           return (
-            <div className='flex w-fit flex-col gap-0.5'>
+            <div className='flex min-w-0 flex-col items-start gap-0.5'>
               <ModelBadge
                 modelName={modelInfo.name}
                 actualModel={modelInfo.actualModel}
                 responseModel={modelInfo.responseModel}
+                truncateText
               />
             </div>
           )
         },
         meta: { mobileTitle: true },
-        size: 220,
+        size: 190,
       },
       {
         accessorKey: 'use_time',
@@ -543,7 +544,7 @@ export function useCommonLogsColumns(
 
           return (
             <div className='flex flex-col gap-1'>
-              <div className='flex items-center gap-1.5'>
+              <div className='flex flex-wrap items-center gap-1.5'>
                 <StatusBadge
                   label={formatUseTime(useTime)}
                   variant={timeVariant as StatusBadgeProps['variant']}
@@ -657,7 +658,7 @@ export function useCommonLogsColumns(
                 {completionTokens.toLocaleString()}
               </span>
               {(cacheReadTokens > 0 || cacheWriteTokens > 0) && (
-                <div className='flex items-center gap-1 text-[11px]'>
+                <div className='flex flex-wrap items-center gap-1 text-[11px]'>
                   {cacheReadTokens > 0 && (
                     <span className='text-muted-foreground/60'>
                       {t('Cache')}↓ {cacheReadTokens.toLocaleString()}
@@ -740,7 +741,7 @@ export function useCommonLogsColumns(
               <TooltipTrigger
                 render={<div className='flex max-w-[120px] flex-col gap-0.5' />}
               >
-                <div className='relative inline-flex w-fit items-center gap-1'>
+                <div className='relative inline-flex w-fit max-w-full flex-wrap items-center gap-1'>
                   <StatusBadge
                     label={channelDisplay.id}
                     copyable={!demoMode}
@@ -871,21 +872,21 @@ export function useCommonLogsColumns(
           // Reserve the same width before and after request messages load.
           if (demoMode) {
             return (
-              <span className='text-muted-foreground block w-[190px] !font-normal'>
+              <span className='text-muted-foreground block w-[190px] max-w-full !font-normal'>
                 ***
               </span>
             )
           }
           if (!sensitiveVisible) {
             return (
-              <span className='text-muted-foreground/40 block w-[190px] !font-normal'>
+              <span className='text-muted-foreground/40 block w-[190px] max-w-full !font-normal'>
                 ••••
               </span>
             )
           }
           if (!requestMessage) {
             return (
-              <span className='text-muted-foreground/40 block w-[190px] !font-normal'>
+              <span className='text-muted-foreground/40 block w-[190px] max-w-full !font-normal'>
                 —
               </span>
             )
@@ -899,7 +900,7 @@ export function useCommonLogsColumns(
             <>
               <button
                 type='button'
-                className='group flex w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
+                className='group flex w-[190px] max-w-full min-w-0 items-center gap-1 text-left text-xs !font-normal'
                 onClick={() => setDialogOpen(true)}
                 aria-label={t('Click to view the full conversation')}
               >
@@ -1114,7 +1115,7 @@ export function useCommonLogsColumns(
             <>
               <button
                 type='button'
-                className='group flex max-w-[150px] items-center gap-1 text-left text-xs'
+                className='group flex w-full max-w-[150px] min-w-0 items-center gap-1 text-left text-xs'
                 onClick={() => setDialogOpen(true)}
                 aria-label={t('Click to view full details')}
               >

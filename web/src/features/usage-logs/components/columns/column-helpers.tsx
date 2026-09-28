@@ -208,7 +208,7 @@ export function createFailReasonColumn<T>(config: {
           <TextTooltip content={cellTitle}>
             <button
               type='button'
-              className='group flex max-w-[200px] items-center gap-1 text-left text-xs'
+              className='group flex w-full max-w-[200px] min-w-0 items-center gap-1 text-left text-xs'
               onClick={() => setDialogOpen(true)}
               aria-label={cellTitle}
             >

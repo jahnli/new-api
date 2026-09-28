@@ -83,12 +83,12 @@ export function LogUserCell(props: LogUserCellProps) {
   )
 
   if (demoMode) {
-    return <div className='w-[120px] truncate'>{primaryName}</div>
+    return <div className='w-[120px] max-w-full truncate'>{primaryName}</div>
   }
 
   if (!props.sensitiveVisible) {
     return (
-      <div className='flex min-w-0 items-center gap-2'>
+      <div className='flex w-[120px] max-w-full min-w-0 items-center gap-2'>
         <Avatar size='sm' className='shrink-0'>
           <AvatarFallback className='bg-muted text-muted-foreground text-xs font-semibold'>
             •
@@ -150,7 +150,7 @@ export function LogUserCell(props: LogUserCellProps) {
 
   return (
     <div
-      className='flex w-[120px] min-w-0 items-center gap-2'
+      className='flex w-[120px] max-w-full min-w-0 items-center gap-2'
       onMouseEnter={handleFetchUser}
     >
       {props.canFetchUserDetails ? (

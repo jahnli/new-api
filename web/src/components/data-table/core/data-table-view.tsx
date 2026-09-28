@@ -139,6 +139,7 @@ function SplitHeaderTableView<TData>({
       <div
         className={cn(
           'min-h-0 flex-1 overflow-auto',
+          props.fixedLayout && '[scrollbar-gutter:stable]',
           '**:data-[slot=table-header]:[--table-header-bg:var(--table-header)]',
           '**:data-[slot=table-header]:bg-(--table-header-bg)',
           props.splitHeaderScrollClassName,
@@ -228,11 +229,14 @@ function getTableSizing<TData>(props: DataTableViewProps<TData>): {
   colgroup?: React.ReactNode
   style?: React.CSSProperties
 } {
-  if (props.fitContainer) {
+  if (props.fitContainer || props.fixedLayout) {
     const columns = props.table.getVisibleLeafColumns()
     const totalSize = columns.reduce((sum, column) => sum + column.getSize(), 0)
     return {
-      style: { width: '100%', tableLayout: 'fixed' },
+      style: {
+        width: props.fitContainer ? '100%' : `max(100%, ${totalSize}px)`,
+        tableLayout: 'fixed',
+      },
       colgroup: (
         <colgroup>
           {columns.map((column) => (

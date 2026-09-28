@@ -228,7 +228,7 @@ export function useDrawingLogsColumns(
               <TextTooltip content={t('Click to view full prompt')}>
                 <button
                   type='button'
-                  className='group flex max-w-[220px] items-center text-left text-xs'
+                  className='group flex w-full max-w-[220px] min-w-0 items-center text-left text-xs'
                   onClick={() => setDialogOpen(true)}
                   aria-label={t('Click to view full prompt')}
                 >

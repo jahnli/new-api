@@ -200,6 +200,12 @@ export type DataTablePageProps<TData> = {
   fitContainer?: boolean
 
   /**
+   * Keep column widths independent of row content. Preserve the total column
+   * size with horizontal scrolling on narrow containers; fitContainer overrides this.
+   */
+  fixedLayout?: boolean
+
+  /**
    * Optional skeleton key prefix for stable React keys across re-renders.
    */
   skeletonKeyPrefix?: string
@@ -451,6 +457,7 @@ function renderMobile<TData>(
           renderRow={props.renderRow}
           applyHeaderSize={props.applyHeaderSize}
           fitContainer={props.fitContainer}
+          fixedLayout={props.fixedLayout}
           tableHeaderClassName={cn(
             '[background-color:var(--table-header)]',
             props.tableHeaderClassName
@@ -551,6 +558,7 @@ function renderDesktop<TData>(
       renderRow={props.renderRow}
       applyHeaderSize={props.applyHeaderSize}
       fitContainer={props.fitContainer}
+      fixedLayout={props.fixedLayout}
       splitHeader={fixedHeight}
       tableContainerClassName={fixedHeight ? 'h-full min-h-0' : undefined}
       tableHeaderClassName={cn(

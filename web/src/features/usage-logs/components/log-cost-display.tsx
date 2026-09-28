@@ -121,13 +121,13 @@ export function LogCostDisplay(props: LogCostDisplayProps) {
   }
 
   return (
-    <div className='inline-flex w-fit items-center gap-1.5'>
+    <div className='inline-flex w-fit max-w-full flex-wrap items-center gap-1.5'>
       <StatusBadge
         type='badge'
         variant='neutral'
         size='lg'
         copyable={false}
-        className='border-border/80 bg-muted/60 text-foreground rounded-md border font-semibold tabular-nums'
+        className='border-border/80 bg-muted/60 text-foreground h-auto min-h-6 rounded-md border py-0.5 font-semibold tabular-nums'
       >
         {source ? (
           <Tooltip>
@@ -151,7 +151,7 @@ export function LogCostDisplay(props: LogCostDisplayProps) {
             <TooltipContent>{source}</TooltipContent>
           </Tooltip>
         ) : null}
-        <span className='whitespace-nowrap'>
+        <span className='min-w-0 [overflow-wrap:anywhere] whitespace-normal'>
           <QuotaAmount quota={quota} masked={demoMode} />
         </span>
       </StatusBadge>
