@@ -104,9 +104,18 @@
 | 通用弹窗布局                     | `@/components/dialog`                                                                |
 | 删除、危险操作及普通确认         | `@/components/confirm-dialog`                                                        |
 | 复制按钮与剪贴板交互             | `@/components/copy-button`、`@/hooks/use-copy-to-clipboard`                          |
+| 普通文本提示、截断文本完整内容   | `@/components/text-tooltip`                                                          |
+| 字段说明与帮助信息图标           | `@/components/description-tooltip`                                                   |
 | 空状态、加载状态、错误状态       | `@/components/empty-state`、`@/components/loading-state`、`@/components/error-state` |
 | 表格、分页、工具栏及列表布局     | `@/components/data-table`，先读该目录的 `README.md` 和公开导出                       |
 | 按钮、输入、选择、提示等基础控件 | `@/components/ui/`，以 `components.json` 和本地实现为准                              |
+
+**Tooltip 与悬浮交互统一（强制）**
+
+- 普通文本提示和截断文本的完整内容展示必须优先使用 `@/components/text-tooltip`；仅在内容溢出时展示应使用其 `onlyWhenOverflow`，不得在业务组件中重复实现溢出检测、触发时序和通用样式。
+- 字段说明、帮助信息等信息图标必须优先使用 `@/components/description-tooltip`。额度明细等已有共享业务悬浮组件能够覆盖的场景，应直接复用对应业务组件。
+- 只有共享封装无法表达富内容、受控状态或特殊定位时，才可直接组合 `@/components/ui/tooltip` 的基础原语，并在变更说明中写明能力缺口。生产业务组件不得自行创建 `TooltipProvider`；Provider 由应用入口或共享边界统一管理，测试包装不受此限制。
+- 悬浮触发异步加载时，应复用已有延迟、加载态和请求去重能力，避免指针短暂经过就发起请求；关闭后不再需要的请求或延迟任务应及时取消，且不得因 hover 与 focus 重复触发同一请求。
 
 - 使用函数式组件与 Hooks，单一职责；组件 props 须有明确类型（接口或类型别名）。
 - **Props 使用**：组件 props 非必要不要解构，直接使用 `props.xxx` 访问属性，保持代码清晰（详见 [3.2 代码风格与类型](#32-代码风格与类型)）。
