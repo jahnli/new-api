@@ -51,6 +51,7 @@ func SetApiRouter(router *gin.Engine) {
 		notificationRoute.Use(middleware.UserAuth(), middleware.RequirePermission(authz.NotificationView), middleware.DisableCache())
 		{
 			notificationRoute.GET("/config", controller.GetNotificationConfig)
+			notificationRoute.GET("/messages/:id/images/:image", controller.GetNotificationImage)
 			notificationRoute.GET("/audience", middleware.AdminAuth(), middleware.RequirePermission(authz.NotificationSend), controller.GetNotificationAudience)
 			notificationRoute.POST("/test", middleware.UserCriticalRateLimit("notification-test"), controller.SendNotification)
 			notificationRoute.POST("/send", middleware.AdminAuth(), middleware.RequirePermission(authz.NotificationSend), middleware.UserCriticalRateLimit("notification-send"), controller.SendNotification)

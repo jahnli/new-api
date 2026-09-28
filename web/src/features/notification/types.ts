@@ -14,6 +14,7 @@ export interface NotificationImage {
   filename: string
   content_type: string
   data: string
+  url?: string
 }
 
 export interface NotificationMessage {

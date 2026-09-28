@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -16,7 +17,7 @@ type notificationImageUpload struct {
 	Data     []byte
 }
 
-func uploadFeishuNotificationImage(token string, image notificationImageUpload) (string, error) {
+func uploadFeishuNotificationImage(ctx context.Context, token string, image notificationImageUpload) (string, error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	if err := writer.WriteField("image_type", "message"); err != nil {
@@ -32,7 +33,7 @@ func uploadFeishuNotificationImage(token string, image notificationImageUpload) 
 	if err := writer.Close(); err != nil {
 		return "", err
 	}
-	req, err := http.NewRequest(http.MethodPost, feishuBaseURL+"/im/v1/images", &body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, feishuBaseURL+"/im/v1/images", &body)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +64,7 @@ func uploadFeishuNotificationImage(token string, image notificationImageUpload) 
 	return data.ImageKey, nil
 }
 
-func uploadDingTalkNotificationImage(token string, image notificationImageUpload) (string, error) {
+func uploadDingTalkNotificationImage(ctx context.Context, token string, image notificationImageUpload) (string, error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("media", image.Filename)
@@ -77,7 +78,7 @@ func uploadDingTalkNotificationImage(token string, image notificationImageUpload
 		return "", err
 	}
 	endpoint := dingTalkBaseURL + "/media/upload?access_token=" + url.QueryEscape(token) + "&type=image"
-	req, err := http.NewRequest(http.MethodPost, endpoint, &body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, &body)
 	if err != nil {
 		return "", err
 	}

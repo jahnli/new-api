@@ -80,8 +80,23 @@ export function Notifications() {
       message: NotificationMessage
       is_public: boolean
     }) => saveLibrary('templates', value),
-    onSuccess: (entry) => {
+    onSuccess: (entry, submitted) => {
       setSourceTemplate(entry)
+      // Replacing a template publishes a new snapshot. Keep the open editor's
+      // images usable after its previous snapshot is detached, without replacing
+      // any images added while this request was in flight.
+      const savedImages = new Map(
+        submitted.message.images.flatMap((image, index) =>
+          image.url ? [[image.url, entry.message.images[index]] as const] : []
+        )
+      )
+      form.setValue(
+        'images',
+        form.getValues('images').map((image) => {
+          const saved = image.url ? savedImages.get(image.url) : undefined
+          return saved ? { ...image, data: saved.data, url: undefined } : image
+        })
+      )
       setSaveOpen(false)
       void client.invalidateQueries({
         queryKey: notificationKeys.library('templates'),

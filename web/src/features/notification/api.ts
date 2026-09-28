@@ -25,6 +25,28 @@ interface Response<T> {
   data: T
 }
 const base = '/api/notification'
+
+export async function getNotificationImage(
+  url: string,
+  signal: AbortSignal
+): Promise<string> {
+  const response = await api.get<Blob>(url, {
+    responseType: 'blob',
+    signal,
+    disableDuplicate: true,
+  })
+  // TanStack Query owns cancellation and deduplication. Data URLs work with the
+  // existing sanitized Markdown renderer without broadening allowed URL schemes.
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => resolve(String(reader.result)), {
+      once: true,
+    })
+    reader.addEventListener('error', () => reject(reader.error), { once: true })
+    reader.readAsDataURL(response.data)
+  })
+}
+
 export const notificationKeys = {
   all: ['notification'] as const,
   config: ['notification', 'config'] as const,

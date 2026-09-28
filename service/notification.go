@@ -22,36 +22,22 @@ import (
 	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/notificationstore"
 	_ "golang.org/x/image/webp"
 )
 
-const notificationMaxImageBytes = 15 * 1024 * 1024
+const notificationMaxImageBytes = notificationstore.MaxImageBytes
 
 // Allow ten base64-encoded images plus message text and request metadata.
 const NotificationMaxBodyBytes = 10*((notificationMaxImageBytes+2)/3*4) + 2*1024*1024
 
-type NotificationImage struct {
-	ID          string `json:"id,omitempty"`
-	Filename    string `json:"filename"`
-	ContentType string `json:"content_type"`
-	Data        string `json:"data"`
-}
+type NotificationImage = dto.NotificationImage
 
 // NotificationMessage is shared with the platform sender. Retries load the
 // immutable title, content and recipients captured when the message was queued.
-type NotificationMessage struct {
-	Channel   string `json:"channel"`
-	CompanyID int    `json:"company_id"`
-	// Kept in frozen snapshots so old records retain their original targets on retry.
-	RecipientType string              `json:"recipient_type,omitempty"`
-	Recipients    []string            `json:"recipients"`
-	Title         string              `json:"title"`
-	TitleIcon     string              `json:"title_icon,omitempty"`
-	TitleTheme    string              `json:"title_theme,omitempty"`
-	Content       string              `json:"content"`
-	Images        []NotificationImage `json:"images"`
-}
+type NotificationMessage = dto.NotificationMessage
 
 var notificationPlatformIDPattern = regexp.MustCompile(`^[A-Za-z0-9_.:@=-]{1,320}$`)
 var notificationNativeMentionPattern = regexp.MustCompile(`(?i)<\s*at\b`)
@@ -329,7 +315,7 @@ func DeliverNotificationMessage(ctx context.Context, message NotificationMessage
 	record.Claim = "direct:" + hex.EncodeToString(random[:])
 	contentRunes := []rune(strings.Join(strings.Fields(message.Content), " "))
 	record.Summary = string(contentRunes[:min(len(contentRunes), 200)])
-	if err := model.CreateNotification(record, payload, message.Recipients); err != nil {
+	if err := model.CreateNotification(ctx, record, payload, message.Recipients); err != nil {
 		return nil, err
 	}
 	return CompleteDirectNotification(ctx, record, message)

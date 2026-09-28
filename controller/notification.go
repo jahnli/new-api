@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/csv"
 	"errors"
 	"io"
@@ -13,6 +15,8 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/notificationstore"
+	"github.com/QuantumNous/new-api/pkg/objectstorage"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/gin-gonic/gin"
@@ -29,6 +33,9 @@ func notificationCanViewAll(c *gin.Context) bool {
 
 func notificationError(c *gin.Context, err error) {
 	status, message := http.StatusInternalServerError, "notification operation failed"
+	if errors.Is(err, objectstorage.ErrNotConfigured) {
+		status, message = http.StatusServiceUnavailable, "notification storage requires IMAGE_STUDIO_S3_DSN"
+	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		status, message = http.StatusNotFound, "notification not found"
 	}
@@ -97,6 +104,10 @@ func SendNotification(c *gin.Context) {
 	}
 	var message service.NotificationMessage
 	if !notificationBind(c, &message) {
+		return
+	}
+	if err := resolveNotificationImages(c, &message); err != nil {
+		notificationError(c, err)
 		return
 	}
 	record, err := service.DeliverNotificationMessage(c.Request.Context(), message, c.GetInt("id"), c.GetString("username"), isTest)
@@ -192,10 +203,19 @@ func GetNotificationRecord(c *gin.Context) {
 	if !ok {
 		return
 	}
-	record, err := model.GetNotification(id, c.GetInt("id"), notificationCanViewAll(c), c.Query("include_message") != "false")
+	record, err := model.GetNotification(id, c.GetInt("id"), notificationCanViewAll(c), false)
 	if err != nil {
 		notificationError(c, err)
 		return
+	}
+	if c.Query("include_message") != "false" {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), time.Minute)
+		defer cancel()
+		record.Message, err = notificationstore.Read(ctx, record.StorageKey, record.ID, false)
+		if err != nil {
+			notificationError(c, err)
+			return
+		}
 	}
 	attempts, err := model.NotificationAttempts(id)
 	if err != nil {
@@ -388,6 +408,10 @@ func SaveNotificationMessage(c *gin.Context) {
 	if request.Message.Channel != "email" {
 		request.Message.Recipients = nil
 	}
+	if err := resolveNotificationImages(c, &request.Message); err != nil {
+		notificationError(c, err)
+		return
+	}
 	if err := service.PrepareNotificationMessage(&request.Message, 1000, false); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
 		return
@@ -406,12 +430,69 @@ func SaveNotificationMessage(c *gin.Context) {
 		notificationError(c, err)
 		return
 	}
-	if err := model.SaveNotificationMessage(&item, payload, c.GetInt("id"), notificationCanSend(c)); err != nil {
+	if err := model.SaveNotificationMessage(c.Request.Context(), &item, payload, c.GetInt("id"), notificationCanSend(c)); err != nil {
 		notificationError(c, err)
 		return
 	}
 	item.Message = payload
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": item})
+}
+
+// Stored images can be reused without returning their base64 bytes to the
+// browser. Never fetch a client-supplied URL: resolve an authorized local record
+// and require the filename to be present in its immutable manifest.
+func resolveNotificationImages(c *gin.Context, message *service.NotificationMessage) error {
+	if len(message.Images) > 10 {
+		return &service.NotificationValidationError{Err: errors.New("at most 10 images are allowed")}
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Minute)
+	defer cancel()
+	for i := range message.Images {
+		image := &message.Images[i]
+		if image.URL == "" {
+			continue
+		}
+		reference, valid := strings.CutPrefix(image.URL, "/api/notification/messages/")
+		parts := strings.Split(reference, "/")
+		if !valid || len(parts) != 3 || parts[1] != "images" || image.Data != "" {
+			return &service.NotificationValidationError{Err: errors.New("invalid notification image reference")}
+		}
+		id, err := strconv.Atoi(parts[0])
+		if err != nil || id <= 0 {
+			return &service.NotificationValidationError{Err: errors.New("invalid notification image reference")}
+		}
+		key, err := model.NotificationImageKey(id, c.GetInt("id"), notificationCanViewAll(c))
+		if err != nil {
+			return err
+		}
+		data, contentType, err := notificationstore.Image(ctx, key, parts[2])
+		if err != nil {
+			return err
+		}
+		image.Data, image.ContentType, image.URL = base64.StdEncoding.EncodeToString(data), contentType, ""
+	}
+	return nil
+}
+
+func GetNotificationImage(c *gin.Context) {
+	id, ok := notificationID(c)
+	if !ok {
+		return
+	}
+	key, err := model.NotificationImageKey(id, c.GetInt("id"), notificationCanViewAll(c))
+	if err != nil {
+		notificationError(c, err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), time.Minute)
+	defer cancel()
+	data, contentType, err := notificationstore.Image(ctx, key, c.Param("image"))
+	if err != nil {
+		notificationError(c, err)
+		return
+	}
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Data(http.StatusOK, contentType, data)
 }
 
 func DeleteNotificationSaved(c *gin.Context) {

@@ -186,7 +186,7 @@ func (sender notificationFeishuSender) Send(ctx context.Context, message Notific
 		extension := map[string]string{
 			"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp",
 		}[image.ContentType]
-		key, err := uploadFeishuNotificationImage(token, notificationImageUpload{Filename: filenameTitle + extension, Data: data})
+		key, err := uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: filenameTitle + extension, Data: data})
 		if err != nil {
 			return "", fmt.Errorf("飞书图片上传失败，请检查应用图片权限或图片格式")
 		}
@@ -318,7 +318,7 @@ func (sender notificationDingTalkSender) Send(ctx context.Context, message Notif
 		if err != nil {
 			return "", fmt.Errorf("图片数据无效")
 		}
-		mediaID, err := uploadDingTalkNotificationImage(token, notificationImageUpload{Filename: image.Filename, Data: data})
+		mediaID, err := uploadDingTalkNotificationImage(ctx, token, notificationImageUpload{Filename: image.Filename, Data: data})
 		if err != nil {
 			return "", fmt.Errorf("钉钉图片上传失败，请检查应用媒体权限或图片格式")
 		}
