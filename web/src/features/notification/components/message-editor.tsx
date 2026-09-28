@@ -42,8 +42,6 @@ interface Props {
   message: NotificationMessage
   onChange: (content: string, images?: NotificationImage[]) => void
   onProcessingChange: (processing: boolean) => void
-  onSend: () => void
-  disabled?: boolean
 }
 
 export function MessageEditor(props: Props) {
@@ -314,11 +312,10 @@ export function MessageEditor(props: Props) {
         if (urlDialog !== null) return
         if (!(event.ctrlKey || event.metaKey)) return
         const key = event.key.toLowerCase()
-        if (['b', 'i', 'k', 'enter'].includes(key)) event.preventDefault()
+        if (['b', 'i', 'k'].includes(key)) event.preventDefault()
         if (key === 'b') insert('**', '**')
         if (key === 'i') insert('*', '*')
         if (key === 'k') setUrlDialog('link')
-        if (key === 'enter' && !props.disabled && !uploading) props.onSend()
       }}
     >
       <div className='bg-muted/20 flex flex-wrap items-center gap-1 border-b p-2'>
@@ -540,7 +537,7 @@ export function MessageEditor(props: Props) {
           <span>
             {t('Up to 10 images, 15 MiB each. Drag, paste or upload images.')}
           </span>
-          <span>Ctrl / ⌘ + B · I · K · Enter</span>
+          <span>Ctrl / ⌘ + B · I · K</span>
         </div>
         {missingImages.length > 0 && (
           <p role='alert' className='text-destructive text-xs'>

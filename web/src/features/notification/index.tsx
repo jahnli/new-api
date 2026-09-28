@@ -288,8 +288,6 @@ export function Notifications() {
                           })
                         }}
                         onProcessingChange={setProcessingImages}
-                        onSend={() => beginSend(!config.data.can_send)}
-                        disabled={!canTest || pendingSend !== null}
                       />
                       {form.formState.errors.content && (
                         <p className='text-destructive text-sm' role='alert'>
