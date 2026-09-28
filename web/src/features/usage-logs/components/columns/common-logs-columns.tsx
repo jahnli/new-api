@@ -868,21 +868,26 @@ export function useCommonLogsColumns(
           const { sensitiveVisible } = useUsageLogsContext()
           const log = row.original
           const requestMessage = useRequestMessage(log.request_id)
+          // Reserve the same width before and after request messages load.
           if (demoMode) {
             return (
-              <span className='text-muted-foreground !font-normal'>***</span>
+              <span className='text-muted-foreground block w-[190px] !font-normal'>
+                ***
+              </span>
             )
           }
           if (!sensitiveVisible) {
             return (
-              <span className='text-muted-foreground/40 !font-normal'>
+              <span className='text-muted-foreground/40 block w-[190px] !font-normal'>
                 ••••
               </span>
             )
           }
           if (!requestMessage) {
             return (
-              <span className='text-muted-foreground/40 !font-normal'>—</span>
+              <span className='text-muted-foreground/40 block w-[190px] !font-normal'>
+                —
+              </span>
             )
           }
 
@@ -894,7 +899,7 @@ export function useCommonLogsColumns(
             <>
               <button
                 type='button'
-                className='group flex max-w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
+                className='group flex w-[190px] min-w-0 items-center gap-1 text-left text-xs !font-normal'
                 onClick={() => setDialogOpen(true)}
                 aria-label={t('Click to view the full conversation')}
               >
