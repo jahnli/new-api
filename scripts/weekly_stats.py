@@ -851,7 +851,24 @@ Top 5 费用的模型："""]
     return "\n".join(lines)
 
 
-def resolve_period(period: str) -> tuple[str, datetime, datetime]:
+def parse_report_datetime(value: str) -> datetime:
+    for date_format in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            parsed = datetime.strptime(value, date_format)
+            return parsed.replace(tzinfo=timezone(timedelta(hours=8)))
+        except ValueError:
+            continue
+    raise argparse.ArgumentTypeError("时间格式必须为 YYYY-MM-DD HH:MM[:SS]，并按北京时间填写")
+
+
+def resolve_period(
+    period: str,
+    custom_start: datetime | None = None,
+    custom_end: datetime | None = None,
+) -> tuple[str, datetime, datetime]:
+    if custom_start is not None and custom_end is not None:
+        return "自定义周期", custom_start, custom_end
+
     tz = timezone(timedelta(hours=8))
     now = datetime.now(tz)
     if period == "current":
@@ -861,7 +878,7 @@ def resolve_period(period: str) -> tuple[str, datetime, datetime]:
         monday = now - timedelta(days=now.weekday() + 7)
         label = "上周"
     start = monday.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=4, hours=18, minutes=30)
+    end = now if period == "current" else start + timedelta(days=4, hours=18, minutes=30)
     return label, start, end
 
 
@@ -871,14 +888,32 @@ def parse_args() -> argparse.Namespace:
         "--period",
         choices=("current", "last"),
         default="current",
-        help="统计周期：current 为本周，last 为上周；默认 current",
+        help="统计周期：current 为本周一至当前时间，last 为上周；默认 current",
+    )
+    parser.add_argument(
+        "--start",
+        type=parse_report_datetime,
+        help=(
+            "自定义统计开始时间（北京时间），须与 --end 同时提供并覆盖 --period，"
+            '格式："YYYY-MM-DD HH:MM[:SS]"'
+        ),
+    )
+    parser.add_argument(
+        "--end",
+        type=parse_report_datetime,
+        help='自定义统计结束时间（北京时间），格式："YYYY-MM-DD HH:MM[:SS]"',
     )
     parser.add_argument(
         "--send-feishu",
         action="store_true",
         help="将文字周报和消费柱状图发送到 FEISHU_WEBHOOK_URL 指定的飞书群机器人",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if (args.start is None) != (args.end is None):
+        parser.error("--start 和 --end 必须同时提供")
+    if args.start is not None and args.end <= args.start:
+        parser.error("--end 必须晚于 --start")
+    return args
 
 
 def post_feishu_webhook(payload: dict[str, Any]) -> None:
@@ -981,7 +1016,7 @@ def send_report_to_feishu(report: str, chart_path: Path) -> None:
 
 def main() -> int:
     args = parse_args()
-    label, start, end = resolve_period(args.period)
+    label, start, end = resolve_period(args.period, args.start, args.end)
     start_ts = int(start.timestamp())
     end_ts = int(end.timestamp())
     conn = psycopg2.connect(DEFAULT_DSN)
