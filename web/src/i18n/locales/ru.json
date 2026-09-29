@@ -6027,6 +6027,7 @@
     "SGLang status": "Состояние SGLang",
     "Share": "Доля",
     "Share {{percent}}%": "Доля {{percent}}%",
+    "Share of cache-read tokens in total input tokens": "Доля токенов, прочитанных из кэша, во всех входных токенах",
     "Share your link and earn rewards": "Поделитесь своей ссылкой и получайте вознаграждения",
     "Shared by standard and advanced models. Advanced models have an additional quota limit.": "Общая квота для стандартных и расширенных моделей. Для расширенных моделей действует дополнительный лимит.",
     "Shared configuration for all payment gateways": "Общая конфигурация для всех платежных шлюзов",

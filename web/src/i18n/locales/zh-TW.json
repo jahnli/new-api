@@ -6027,6 +6027,7 @@
     "SGLang status": "SGLang 狀態",
     "Share": "佔比",
     "Share {{percent}}%": "占比 {{percent}}%",
+    "Share of cache-read tokens in total input tokens": "快取讀取 Token 在總輸入 Token 中的佔比",
     "Share your link and earn rewards": "分享您的連結並賺取獎勵",
     "Shared by standard and advanced models. Advanced models have an additional quota limit.": "標準和高級模型共用，高級模型另有額度上限。",
     "Shared configuration for all payment gateways": "所有支付閘道的共享設定",

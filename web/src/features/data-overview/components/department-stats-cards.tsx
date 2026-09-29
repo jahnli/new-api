@@ -247,6 +247,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
     {
       title: t('Cache Hit Rate'),
       value: `${cacheHitRate.toFixed(1)}%`,
+      desc: t('Share of cache-read tokens in total input tokens'),
       valueClassName: 'text-success',
       icon: Gauge,
       iconTone: 'chart-1',

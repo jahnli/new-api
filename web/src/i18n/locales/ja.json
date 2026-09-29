@@ -6027,6 +6027,7 @@
     "SGLang status": "SGLang の状態",
     "Share": "シェア",
     "Share {{percent}}%": "割合 {{percent}}%",
+    "Share of cache-read tokens in total input tokens": "総入力トークンに占めるキャッシュ読み取りトークンの割合",
     "Share your link and earn rewards": "リンクを共有して報酬を獲得",
     "Shared by standard and advanced models. Advanced models have an additional quota limit.": "標準モデルと上位モデルで共有します。上位モデルには別途利用上限があります。",
     "Shared configuration for all payment gateways": "すべての決済ゲートウェイの共有設定",

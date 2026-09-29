@@ -6027,6 +6027,7 @@
     "SGLang status": "SGLang status",
     "Share": "Share",
     "Share {{percent}}%": "Share {{percent}}%",
+    "Share of cache-read tokens in total input tokens": "Share of cache-read tokens in total input tokens",
     "Share your link and earn rewards": "Share your link and earn rewards",
     "Shared by standard and advanced models. Advanced models have an additional quota limit.": "Shared by standard and advanced models. Advanced models have an additional quota limit.",
     "Shared configuration for all payment gateways": "Shared configuration for all payment gateways",

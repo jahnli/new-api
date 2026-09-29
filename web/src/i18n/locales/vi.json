@@ -6027,6 +6027,7 @@
     "SGLang status": "Trạng thái SGLang",
     "Share": "Tỉ lệ",
     "Share {{percent}}%": "Tỷ lệ {{percent}}%",
+    "Share of cache-read tokens in total input tokens": "Tỷ lệ token đọc từ bộ nhớ đệm trong tổng token đầu vào",
     "Share your link and earn rewards": "Chia sẻ liên kết của bạn và kiếm phần thưởng",
     "Shared by standard and advanced models. Advanced models have an additional quota limit.": "Dùng chung cho mô hình tiêu chuẩn và nâng cao. Mô hình nâng cao có thêm giới hạn hạn mức riêng.",
     "Shared configuration for all payment gateways": "Cấu hình chung cho tất cả các cổng thanh toán",
