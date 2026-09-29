@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 )
@@ -1249,6 +1250,18 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 			allUserIDs = append(allUserIDs, user.Id)
 		}
 	}
+	if operation_setting.ExternalModeEnabled {
+		representativeUsers := make([]*model.User, 0, len(children))
+		for index, data := range childData {
+			if !visibleChildren[index] || len(data.users) == 0 {
+				continue
+			}
+			representativeUsers = append(representativeUsers, data.users[0])
+		}
+		if err := model.LoadUserSales(representativeUsers); err != nil {
+			return nil, fmt.Errorf("load sub-department representative sales: %w", err)
+		}
+	}
 
 	if userStats == nil {
 		userStats, err = loadOverviewUserStats(allUserIDs, req.StartTimestamp, req.EndTimestamp)
@@ -1329,6 +1342,17 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 				highestModelQuota = quota
 			}
 		}
+		var group string
+		var groupRatio *float64
+		var salesUser *model.SalesUser
+		if operation_setting.ExternalModeEnabled && len(childData[index].users) > 0 {
+			group = childData[index].users[0].Group
+			if group != "" {
+				ratio := ratio_setting.GetGroupRatio(group)
+				groupRatio = &ratio
+			}
+			salesUser = childData[index].users[0].SalesUser
+		}
 		result = append(result, SubDepartmentStatItem{
 			UncachedInputTokens:      aggregates[index].uncachedInputTokens,
 			CacheReadTokens:          aggregates[index].cacheReadTokens,
@@ -1346,6 +1370,9 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 			ActiveUsers:              stat.ActiveUsers,
 			ActiveUserRate:           stat.ActiveUserRate,
 			AvgTokensPerActiveUserMT: stat.AvgTokensPerActiveUserMT,
+			Group:                    group,
+			GroupRatio:               groupRatio,
+			SalesUser:                salesUser,
 		})
 	}
 	return result, nil

@@ -59,10 +59,6 @@ export function useUsersColumns(
             {
               ...userNameColumn<User>(t, demoMode, {
                 getUser: (user) => user.sales_user,
-                getEmptyLabel: (user) =>
-                  user.sales_user_id
-                    ? t('Sales contact unavailable')
-                    : t('Unassigned'),
               }),
               accessorKey: undefined,
               id: 'sales',

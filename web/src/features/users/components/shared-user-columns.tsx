@@ -62,6 +62,7 @@ import {
 } from "../constants";
 import {
   type UserColumnRow,
+  type UserProfile,
   parseCustomFields,
   CUSTOM_FIELD_KEYS,
 } from "../types";
@@ -138,16 +139,27 @@ function userIdColumn<T extends UserColumnRow>(
   };
 }
 
+/**
+ * Identity cell for a user row. `opts.getUser` renders a related account
+ * (for example the row user's sales contact) instead of the row user itself;
+ * a missing related account falls back to a placeholder cell.
+ */
 export function userNameColumn<T extends UserColumnRow>(
   t: (key: string) => string,
   demoMode: boolean,
-  opts?: { usernameClassName?: string },
+  opts?: {
+    usernameClassName?: string;
+    getUser?: (row: T) => UserProfile | undefined;
+  },
 ): ColumnDef<T> {
   return {
     accessorKey: "username",
     header: t("Username"),
     cell: ({ row }) => {
-      const user = row.original as UserColumnRow;
+      const user = opts?.getUser ? opts.getUser(row.original) : row.original;
+      if (!user) {
+        return <span className="text-muted-foreground text-sm">-</span>;
+      }
       const username = user.username;
       const displayName = user.display_name;
       const remark = user.remark;

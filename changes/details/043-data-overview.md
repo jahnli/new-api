@@ -5,8 +5,11 @@
 ### 2026-09-29 子部门统计列按对外模式拆分
 
 - `web/src/features/data-overview/components/shared-sub-department-columns.tsx` — 抽取子部门统计列的共享单元格、格式化和排序交互，集中维护统计与日志操作。
-- `web/src/features/data-overview/hooks/use-internal-sub-department-columns.ts`、`web/src/features/data-overview/hooks/use-external-sub-department-columns.ts` — 分别提供关闭和开启对外模式时的列组合 hooks。
+- `web/src/features/data-overview/hooks/use-internal-sub-department-columns.ts`、`web/src/features/data-overview/hooks/use-external-sub-department-columns.tsx` — 分别提供关闭和开启对外模式时的列组合 hooks；对外模式额外展示带倍率的用户分组列和销售列。
 - `web/src/features/data-overview/components/sub-department-stats.tsx` — 根据对外模式状态选择对应列 hooks，保留原有数据排序、固定操作列和弹窗行为。
+- `service/data_overview_company.go`、`service/feishu_department.go`、`web/src/features/data-overview/types.ts` — 子部门统计按部门任意一个已注册员工补充分组、分组倍率和销售联系人信息，后端批量加载销售联系人并同步扩展响应类型。
+
+本次验证：根目录执行 `gofmt`、`go build ./...`，前端执行相关文件 `oxlint`、`oxfmt --check` 和 `bun run build` 均通过；`bun run typecheck` 仍受 `web/src/features/users/components/users-columns.tsx` 中既有的 `getUser` 类型错误阻塞。按项目约定未新增、修改或运行测试。
 
 ### 2026-09-28 使用分析独立加载与图表悬浮信息完善
 

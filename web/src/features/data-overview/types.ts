@@ -51,6 +51,23 @@ export interface SubDepartmentStat {
   active_users: number
   active_user_rate: number
   avg_tokens_per_active_user_mt: number
+  group?: string
+  group_ratio?: number
+  sales_user?: {
+    id: number
+    username: string
+    display_name: string
+    avatar_url?: string
+    role: number
+    email?: string
+    mobile?: string
+    job_number?: string
+    description?: string
+    background_image?: string
+    company?: string
+    gender?: number
+    open_id?: string
+  }
 }
 
 export interface ModelStat {

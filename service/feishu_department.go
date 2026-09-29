@@ -877,22 +877,25 @@ func GetDepartmentStats(req *DepartmentStatsRequest) (*model.DepartmentStat, err
 
 // SubDepartmentStatItem holds stats for one sub-department.
 type SubDepartmentStatItem struct {
-	UncachedInputTokens      int64   `json:"uncached_input_tokens"`
-	CacheReadTokens          int64   `json:"cache_read_tokens"`
-	CacheWriteTokens         int64   `json:"cache_write_tokens"`
-	CommonModel              string  `json:"common_model"`
-	DepartmentID             string  `json:"department_id"`
-	DepartmentName           string  `json:"department_name"`
-	RegisteredUsers          int64   `json:"registered_users"`
-	TotalUsers               int64   `json:"total_users"`
-	TotalQuota               int64   `json:"total_quota"`
-	TotalAmountCNY           float64 `json:"total_amount_cny"`
-	UnitPricePer100MTokens   float64 `json:"unit_price_per_100m_tokens"`
-	TotalTokens              int64   `json:"total_tokens"`
-	TotalRequests            int64   `json:"total_requests"`
-	ActiveUsers              int64   `json:"active_users"`
-	ActiveUserRate           float64 `json:"active_user_rate"`
-	AvgTokensPerActiveUserMT float64 `json:"avg_tokens_per_active_user_mt"`
+	UncachedInputTokens      int64            `json:"uncached_input_tokens"`
+	CacheReadTokens          int64            `json:"cache_read_tokens"`
+	CacheWriteTokens         int64            `json:"cache_write_tokens"`
+	CommonModel              string           `json:"common_model"`
+	DepartmentID             string           `json:"department_id"`
+	DepartmentName           string           `json:"department_name"`
+	RegisteredUsers          int64            `json:"registered_users"`
+	TotalUsers               int64            `json:"total_users"`
+	TotalQuota               int64            `json:"total_quota"`
+	TotalAmountCNY           float64          `json:"total_amount_cny"`
+	UnitPricePer100MTokens   float64          `json:"unit_price_per_100m_tokens"`
+	TotalTokens              int64            `json:"total_tokens"`
+	TotalRequests            int64            `json:"total_requests"`
+	ActiveUsers              int64            `json:"active_users"`
+	ActiveUserRate           float64          `json:"active_user_rate"`
+	AvgTokensPerActiveUserMT float64          `json:"avg_tokens_per_active_user_mt"`
+	Group                    string           `json:"group,omitempty"`
+	GroupRatio               *float64         `json:"group_ratio,omitempty"`
+	SalesUser                *model.SalesUser `json:"sales_user,omitempty"`
 }
 
 // GetSubDepartmentStats returns per-child-department statistics for the given parent department.
