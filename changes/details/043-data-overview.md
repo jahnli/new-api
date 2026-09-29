@@ -2,6 +2,15 @@
 
 **日期**: 2026-06-25 ~ 2026-09-29（最后更新 2026-09-29）
 
+### 2026-09-29 移除平均响应时间与错误率统计
+
+- `model/log.go` — 删除部门统计中的错误日志数、总耗时聚合及平均响应时间、错误率计算，响应不再返回 `total_errors`、`total_use_time`、`avg_use_time`、`error_rate`；统计不再为这两个指标查询 `logs`，原统计接口与日志明细接口保留。
+- `web/src/features/data-overview/components/department-stats-cards.tsx` — 移除平均响应时间和错误率展示，保留缓存命中率；桌面端沿用原两行五列布局，平均响应时间原位置留空，其他指标位置不变。
+- `web/src/features/data-overview/lib/export-excel.ts` — Excel 统计表同步移除平均响应时间和错误率。
+- `web/src/features/data-overview/types.ts` — 将四个旧统计字段标记为可选、已弃用，兼容旧数据类型；页面不再读取这些字段。
+
+验证：`go build ./...`、前端 `bun run typecheck`、`bun run build`、`bun run i18n:sync` 成功；涉及前端文件的 `oxlint`、`oxfmt --check` 通过。恢复原布局后再次执行类型、lint 和格式检查通过。按项目规范未新增、修改或运行测试；未实测查询耗时。
+
 ### 2026-09-29 成本中心归属与部门人员列表
 
 - `service/data_overview_company.go`、`service/feishu_department.go` — 部门人员列表保留原部门中的成本中心人员信息，但将其排除在原部门金额、Token、请求数、额度、常用模型、排行榜、日志和使用分析统计之外；成本中心部门继续按人员归属统计，并通过响应标记隐藏原部门统计操作。

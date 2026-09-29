@@ -117,10 +117,14 @@ export interface DepartmentStat {
   total_quota: number
   total_amount_cny: number
   total_requests: number
-  total_errors: number
-  total_use_time: number
-  avg_use_time: number
-  error_rate: number
+  /** @deprecated Legacy response field; no longer returned or displayed. */
+  total_errors?: number
+  /** @deprecated Legacy response field; no longer returned or displayed. */
+  total_use_time?: number
+  /** @deprecated Legacy response field; no longer returned or displayed. */
+  avg_use_time?: number
+  /** @deprecated Legacy response field; no longer returned or displayed. */
+  error_rate?: number
   unit_price_per_100m_tokens: number
   registered_users: number
   unregistered_users: number

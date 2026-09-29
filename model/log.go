@@ -1326,10 +1326,6 @@ type DepartmentStat struct {
 	TotalQuota                 int64      `json:"total_quota"`
 	TotalAmountCNY             float64    `json:"total_amount_cny"`
 	TotalRequests              int64      `json:"total_requests"`
-	TotalErrors                int64      `json:"total_errors"`
-	TotalUseTime               int64      `json:"total_use_time"`
-	AvgUseTime                 float64    `json:"avg_use_time"`
-	ErrorRate                  float64    `json:"error_rate"`
 	UnitPricePer100MTokens     float64    `json:"unit_price_per_100m_tokens"`
 	RegisteredUsers            int64      `json:"registered_users"`
 	UnregisteredUsers          int64      `json:"unregistered_users"`
@@ -1357,7 +1353,7 @@ type CostBucket struct {
 }
 
 // GetDepartmentStats aggregates statistics for a set of user IDs within a time range.
-// Main metrics (tokens, quota, requests) come from quota_data; error count and use_time come from logs.
+// Metrics come from quota_data without querying individual logs.
 func GetDepartmentStats(userIds []int, startTimestamp, endTimestamp int64, activeUserRequestThreshold, activeUserTokenThreshold int64, activeUserFormula [3]float64) (*DepartmentStat, error) {
 	if len(userIds) == 0 {
 		return &DepartmentStat{
@@ -1415,28 +1411,6 @@ func GetDepartmentStats(userIds []int, startTimestamp, endTimestamp int64, activ
 		return nil, errors.New("查询部门使用人数失败")
 	}
 
-	type errorResult struct {
-		TotalErrors  int64 `gorm:"column:total_errors"`
-		TotalUseTime int64 `gorm:"column:total_use_time"`
-	}
-
-	var er errorResult
-	logTx := LOG_DB.Table("logs").
-		Select(`COALESCE(SUM(CASE WHEN type = ? THEN 1 ELSE 0 END), 0) as total_errors,
-			COALESCE(SUM(use_time), 0) as total_use_time`, LogTypeError).
-		Where("type IN ?", []int{LogTypeConsume, LogTypeError}).
-		Where("user_id IN ?", userIds)
-
-	if startTimestamp != 0 {
-		logTx = logTx.Where("created_at >= ?", startTimestamp)
-	}
-	if endTimestamp != 0 {
-		logTx = logTx.Where("created_at <= ?", endTimestamp)
-	}
-	if err := logTx.Scan(&er).Error; err != nil {
-		return nil, errors.New("查询部门错误统计数据失败")
-	}
-
 	stat := &DepartmentStat{
 		TotalTokens:                qr.TotalTokens,
 		UncachedInputTokens:        qr.UncachedInputTokens,
@@ -1445,17 +1419,10 @@ func GetDepartmentStats(userIds []int, startTimestamp, endTimestamp int64, activ
 		CacheWriteTokens:           qr.CacheWriteTokens,
 		TotalQuota:                 qr.TotalQuota,
 		TotalRequests:              qr.TotalReqs,
-		TotalErrors:                er.TotalErrors,
-		TotalUseTime:               er.TotalUseTime,
 		ActiveUsers:                activeUsers,
 		ActiveUserRequestThreshold: activeUserRequestThreshold,
 		ActiveUserTokenThreshold:   activeUserTokenThreshold,
 		ActiveUserFormula:          activeUserFormula,
-	}
-
-	if qr.TotalReqs > 0 {
-		stat.ErrorRate = float64(er.TotalErrors) / float64(qr.TotalReqs) * 100
-		stat.AvgUseTime = float64(er.TotalUseTime) / float64(qr.TotalReqs)
 	}
 
 	return stat, nil

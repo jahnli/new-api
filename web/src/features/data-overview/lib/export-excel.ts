@@ -212,7 +212,6 @@ function addStatsTable(ws: ExcelJS.Worksheet, stat: DepartmentStat): void {
         : fmtCny(stat.unit_price_per_100m_tokens),
     ],
     [t('Total Requests'), fmtRequests(stat.total_requests)],
-    [t('Avg Response Time'), `${(stat.avg_use_time ?? 0).toFixed(1)}s`],
     [t('Registered Count'), (stat.registered_users ?? 0).toLocaleString()],
     [t('Unregistered Count'), (stat.unregistered_users ?? 0).toLocaleString()],
     [
@@ -227,7 +226,6 @@ function addStatsTable(ws: ExcelJS.Worksheet, stat: DepartmentStat): void {
       t('Tokens per Active User'),
       fmtTokens((stat.avg_tokens_per_active_user_mt ?? 0) * 1_000_000),
     ],
-    [t('Error Rate'), `${(stat.error_rate ?? 0).toFixed(1)}%`],
   ]
   rows.forEach(([label, value], i) => {
     const r = ws.addRow([label, value])

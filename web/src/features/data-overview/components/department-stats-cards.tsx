@@ -5,7 +5,6 @@ import {
   Gauge,
   Hash,
   Layers,
-  Timer,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -94,7 +93,6 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
   const highCostUserRate = stat.high_cost_user_rate ?? 0
   const highCostUserRateClassName = getActiveUserRateClassName(highCostUserRate)
 
-  const errorRate = stat.error_rate ?? 0
   const cacheReadTokens = stat.cache_read_tokens ?? 0
   const totalInputTokens =
     (stat.uncached_input_tokens ?? 0) +
@@ -104,7 +102,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
   const cacheHitRate =
     totalInputTokens > 0 ? (cacheReadTokens / totalInputTokens) * 100 : 0
 
-  const items: {
+  const items: ({
     title: string
     titleSuffix?: ReactNode
     value: ReactNode
@@ -114,7 +112,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
     valueClassName?: string
     tooltip?: ReactNode
     showTooltipIcon?: boolean
-  }[] = [
+  } | null)[] = [
     {
       title: t('Total Tokens'),
       value: formatTokens(stat.total_tokens),
@@ -157,13 +155,8 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       icon: Hash,
       iconTone: 'info',
     },
-    {
-      title: t('Avg Response Time'),
-      value: `${(stat.avg_use_time ?? 0).toFixed(1)}s`,
-      desc: t('Average response time'),
-      icon: Timer,
-      iconTone: 'chart-2',
-    },
+    // Keep the former response-time slot so the remaining metrics stay in place.
+    null,
     {
       title: t('Unregistered / Registered'),
       value: (
@@ -229,15 +222,9 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       tooltip: formatTokens(tokensPerActiveUser),
     },
     {
-      title: t('Error Rate / Cache Hit Rate'),
-      value: (
-        <>
-          <span className='text-destructive'>{errorRate.toFixed(1)}%</span>
-          <span className='text-muted-foreground'> / </span>
-          <span className='text-success'>{cacheHitRate.toFixed(1)}%</span>
-        </>
-      ),
-      desc: t('Request error rate and cache hit rate'),
+      title: t('Cache Hit Rate'),
+      value: `${cacheHitRate.toFixed(1)}%`,
+      valueClassName: 'text-success',
       icon: Gauge,
       iconTone: 'chart-1',
     },
@@ -247,6 +234,10 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
     <div className='overflow-hidden rounded-lg border'>
       <div className='divide-border/60 grid min-w-0 grid-cols-2 divide-x sm:grid-cols-3 lg:grid-cols-5'>
         {items.map((item) => {
+          if (item === null) {
+            return <div key='response-time-placeholder' aria-hidden='true' />
+          }
+
           const Icon = item.icon
           let renderedValue: ReactNode
 
