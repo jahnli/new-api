@@ -1,6 +1,12 @@
 # 数据总览页增强与公司配置管理
 
-**日期**: 2026-06-25 ~ 2026-09-28（最后更新 2026-09-28）
+**日期**: 2026-06-25 ~ 2026-09-29（最后更新 2026-09-29）
+
+### 2026-09-29 子部门统计列按对外模式拆分
+
+- `web/src/features/data-overview/components/shared-sub-department-columns.tsx` — 抽取子部门统计列的共享单元格、格式化和排序交互，集中维护统计与日志操作。
+- `web/src/features/data-overview/hooks/use-internal-sub-department-columns.ts`、`web/src/features/data-overview/hooks/use-external-sub-department-columns.ts` — 分别提供关闭和开启对外模式时的列组合 hooks。
+- `web/src/features/data-overview/components/sub-department-stats.tsx` — 根据对外模式状态选择对应列 hooks，保留原有数据排序、固定操作列和弹窗行为。
 
 ### 2026-09-28 使用分析独立加载与图表悬浮信息完善
 
