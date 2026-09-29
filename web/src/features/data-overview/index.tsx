@@ -208,14 +208,8 @@ export function DataOverview() {
     if (!treeData || selectedNode) return
 
     let initialNode: DeptTreeNode | null = null
-    const overviewNode = displayTreeData.find(
-      (node) => node.node_type === 'overview'
-    )
-    if (overviewNode && !isDepartmentNodeDisabled(overviewNode)) {
-      initialNode = overviewNode
-    }
     const firstLeaderId = treeData.leader_dept_ids[0]
-    if (!initialNode && firstLeaderId) {
+    if (firstLeaderId) {
       const leaderNode = findDepartmentNodeByValue(
         displayTreeData,
         firstLeaderId
@@ -225,7 +219,11 @@ export function DataOverview() {
       }
     }
     if (!initialNode) {
-      initialNode = findFirstSelectableNode(displayTreeData)
+      // Keep the original company/department fallback; overview is selected manually.
+      const companyTree = displayTreeData.flatMap((node) =>
+        node.node_type === 'overview' ? node.children : [node]
+      )
+      initialNode = findFirstSelectableNode(companyTree)
     }
     if (!initialNode) return
 
