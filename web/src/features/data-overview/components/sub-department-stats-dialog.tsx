@@ -22,6 +22,7 @@ interface SubDepartmentStatsDialogProps {
   onOpenChange: (open: boolean) => void
   department: SubDepartmentStat | null
   companyId: number
+  isOverview?: boolean
   startTimestamp: number
   endTimestamp: number
 }
@@ -72,7 +73,10 @@ export function SubDepartmentStatsDialog(props: SubDepartmentStatsDialogProps) {
       <DialogContent className='flex h-[85vh] max-h-[85vh] w-[min(1360px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col overflow-hidden sm:max-w-[calc(100vw-2rem)]'>
         <DialogHeader className='shrink-0'>
           <DialogTitle>
-            {t('Sub-department Statistics')} -{' '}
+            {props.isOverview
+              ? t('Company Statistics')
+              : t('Sub-department Statistics')}
+            {' - '}
             {props.department.department_name}
           </DialogTitle>
         </DialogHeader>

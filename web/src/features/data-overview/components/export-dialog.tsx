@@ -92,26 +92,30 @@ export function ExportDialog(props: ExportDialogProps) {
         props.queryParams
 
       const node = findNodeByValue(props.treeData, department_id)
-      const departmentName = node?.label ?? department_id
+      const departmentName =
+        node?.node_type === 'overview'
+          ? t('Overall')
+          : (node?.label ?? department_id)
 
       const subDepartmentDetails: SubDepartmentDetail[] = []
       if (includeSubDepts && props.subStats.length > 0) {
         for (const sub of props.subStats) {
+          const subCompanyId = sub.company_id ?? company_id
           const [statsRes, subStatsRes, usageRes] = await Promise.all([
             getDepartmentStats({
-              company_id,
+              company_id: subCompanyId,
               department_id: sub.department_id,
               start_timestamp,
               end_timestamp,
             }),
             getSubDepartmentStats({
-              company_id,
+              company_id: subCompanyId,
               department_id: sub.department_id,
               start_timestamp,
               end_timestamp,
             }),
             getUsageAnalysis({
-              company_id,
+              company_id: subCompanyId,
               department_id: sub.department_id,
               start_timestamp,
               end_timestamp,

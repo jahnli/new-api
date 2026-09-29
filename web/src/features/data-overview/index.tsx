@@ -162,9 +162,13 @@ export function DataOverview() {
   // whose departments were fetched on demand render their children.
   const displayTreeData = useMemo(() => {
     if (Object.keys(lazyCompanySubtrees).length === 0) return baseTreeData
-    return baseTreeData.map(
-      (companyNode) => lazyCompanySubtrees[companyNode.value] ?? companyNode
-    )
+    const merge = (node: DeptTreeNode): DeptTreeNode => ({
+      ...(lazyCompanySubtrees[node.value] ?? node),
+      children: (
+        lazyCompanySubtrees[node.value]?.children ?? node.children
+      ).map(merge),
+    })
+    return baseTreeData.map(merge)
   }, [baseTreeData, lazyCompanySubtrees])
 
   const handleLoadCompanyChildren = useCallback(
@@ -204,8 +208,14 @@ export function DataOverview() {
     if (!treeData || selectedNode) return
 
     let initialNode: DeptTreeNode | null = null
+    const overviewNode = displayTreeData.find(
+      (node) => node.node_type === 'overview'
+    )
+    if (overviewNode && !isDepartmentNodeDisabled(overviewNode)) {
+      initialNode = overviewNode
+    }
     const firstLeaderId = treeData.leader_dept_ids[0]
-    if (firstLeaderId) {
+    if (!initialNode && firstLeaderId) {
       const leaderNode = findDepartmentNodeByValue(
         displayTreeData,
         firstLeaderId
@@ -367,6 +377,10 @@ export function DataOverview() {
                 data={subStatsQuery.data.data}
                 companyId={queryParams.company_id}
                 activityFormula={statsQuery.data?.data.active_user_formula}
+                isOverview={
+                  queryParams.company_id === 0 &&
+                  queryParams.department_id === 'overview'
+                }
                 startTimestamp={queryParams.start_timestamp}
                 endTimestamp={queryParams.end_timestamp}
               />

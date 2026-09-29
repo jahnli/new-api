@@ -263,9 +263,14 @@ function buildMainSheet(wb: ExcelJS.Workbook, p: ExportParams): void {
   addStatsTable(ws, p.stats)
 
   if (p.subStats.length > 0) {
-    addSectionTitle(ws, t('Sub-department Statistics'), 9)
+    const isOverview = p.subStats.some((sub) => sub.company_id != null)
+    addSectionTitle(
+      ws,
+      isOverview ? t('Company Statistics') : t('Sub-department Statistics'),
+      9
+    )
     const hdr = ws.addRow([
-      t('Department'),
+      isOverview ? t('Company') : t('Department'),
       t('Registered Count'),
       t('Total Users'),
       t('Total Tokens'),

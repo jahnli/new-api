@@ -21,11 +21,28 @@ import (
 var ErrCompanyIDRequired = errors.New("company_id is required")
 var ErrCompanyAccessDenied = errors.New("company is disabled, missing, or not accessible")
 var ErrDepartmentAccessDenied = errors.New("department is not accessible")
+var ErrOverviewAccessDenied = errors.New("overview is only available to super administrators")
+
+const (
+	overviewCompanyID    = 0
+	overviewDepartmentID = "overview"
+)
 
 const (
 	companyDirectoryFetchConcurrency = 5
 	tokensPerHundredMillion          = 100_000_000
 )
+
+// IsGlobalOverviewScope identifies the virtual scope used by the super-admin
+// overview node. It is intentionally strict so company requests cannot be
+// accidentally widened by a zero company id.
+func IsGlobalOverviewScope(companyID int, departmentID string) bool {
+	return companyID == overviewCompanyID && departmentID == overviewDepartmentID
+}
+
+func isGlobalOverviewAuthorized(userRole int) bool {
+	return userRole >= common.RoleRootUser
+}
 
 // highCostThresholdCNY is the spend level above which a user is reported as a
 // high-cost user on the data overview cards.
@@ -44,6 +61,7 @@ var overviewAudienceSingleflight singleflight.Group
 
 type overviewAudience struct {
 	company             *model.Company
+	companyAudiences    []*overviewAudience
 	directory           *overviewDirectory
 	departmentID        string
 	departmentIDs       []string
@@ -185,6 +203,12 @@ func getCompanyDepartmentTree(userID int, userRole int) (*DepartmentTreeResponse
 		return nil, err
 	}
 	if len(companies) == 0 {
+		if isGlobalOverviewAuthorized(userRole) {
+			return &DepartmentTreeResponse{
+				TreeData:      []*DeptTreeNode{{Value: overviewDepartmentID, Label: "Overall", NodeType: "overview", Children: []*DeptTreeNode{}}},
+				LeaderDeptIDs: []string{},
+			}, nil
+		}
 		return &DepartmentTreeResponse{
 			TreeData:      []*DeptTreeNode{},
 			LeaderDeptIDs: []string{},
@@ -268,6 +292,14 @@ func getCompanyDepartmentTree(userID int, userRole int) (*DepartmentTreeResponse
 	for _, result := range results {
 		response.TreeData = append(response.TreeData, result.node)
 		response.LeaderDeptIDs = append(response.LeaderDeptIDs, result.leaderDeptIDs...)
+	}
+	if isGlobalOverviewAuthorized(userRole) {
+		response.TreeData = []*DeptTreeNode{{
+			Value:    overviewDepartmentID,
+			Label:    "Overall",
+			NodeType: "overview",
+			Children: response.TreeData,
+		}}
 	}
 	return response, nil
 }
@@ -436,6 +468,58 @@ func resolveCompanyOverviewAudience(companyID int, departmentValue string, userI
 		return nil, true, err
 	}
 	return value.(*overviewAudience), true, nil
+}
+
+func resolveGlobalOverviewAudience(userID int, userRole int, registeredBefore int64) (*overviewAudience, bool, error) {
+	if !isGlobalOverviewAuthorized(userRole) {
+		return nil, true, ErrOverviewAccessDenied
+	}
+	cacheKey := companyOverviewCacheKey(overviewCompanyID, "audience", fmt.Sprintf("%s:%d:%d:%d", overviewDepartmentID, userID, userRole, registeredBefore))
+	if cached, ok := loadCompanyOverviewCache(cacheKey); ok {
+		return cached.(*overviewAudience), true, nil
+	}
+	value, err, _ := overviewAudienceSingleflight.Do(cacheKey, func() (any, error) {
+		if cached, ok := loadCompanyOverviewCache(cacheKey); ok {
+			return cached.(*overviewAudience), nil
+		}
+		companies, err := model.ListEnabledCompanies()
+		if err != nil {
+			return nil, err
+		}
+		result := &overviewAudience{}
+		seenUsers := make(map[int]bool)
+		var unregisteredUsers int
+		for _, company := range companies {
+			audience, _, err := resolveCompanyOverviewAudience(company.Id, companyNodeValue(company.Id), userID, userRole, registeredBefore)
+			if err != nil {
+				return nil, err
+			}
+			result.companyAudiences = append(result.companyAudiences, audience)
+			unregisteredUsers += max(0, audience.totalUsers-len(audience.registeredUserIDs))
+			for _, user := range audience.users {
+				if user == nil || seenUsers[user.Id] {
+					continue
+				}
+				seenUsers[user.Id] = true
+				result.users = append(result.users, user)
+				result.registeredUserIDs = append(result.registeredUserIDs, user.Id)
+			}
+		}
+		result.totalUsers = len(result.registeredUserIDs) + unregisteredUsers
+		storeCompanyOverviewCache(cacheKey, result, overviewAudienceCacheTTL)
+		return result, nil
+	})
+	if err != nil {
+		return nil, true, err
+	}
+	return value.(*overviewAudience), true, nil
+}
+
+func resolveOverviewAudience(companyID int, departmentID string, userID int, userRole int, registeredBefore int64) (*overviewAudience, bool, error) {
+	if IsGlobalOverviewScope(companyID, departmentID) {
+		return resolveGlobalOverviewAudience(userID, userRole, registeredBefore)
+	}
+	return resolveCompanyOverviewAudience(companyID, departmentID, userID, userRole, registeredBefore)
 }
 
 func buildCompanyOverviewAudience(companyID int, departmentValue string, userID int, userRole int, registeredBefore int64) (*overviewAudience, error) {
@@ -804,6 +888,21 @@ func userIDsFromUsers(users []*model.User) []int {
 // to omit the company scope. Department leaders and BP roles stay bound to a company,
 // because their visibility is derived from that company's directory tree.
 func authorizeCompanyOverviewUser(companyID int, departmentID string, targetUserID int, requestUserID int, requestUserRole int) error {
+	if IsGlobalOverviewScope(companyID, departmentID) {
+		if !isGlobalOverviewAuthorized(requestUserRole) {
+			return ErrOverviewAccessDenied
+		}
+		audience, _, err := resolveGlobalOverviewAudience(requestUserID, requestUserRole, 0)
+		if err != nil {
+			return err
+		}
+		for _, userID := range audience.registeredUserIDs {
+			if userID == targetUserID {
+				return nil
+			}
+		}
+		return ErrDepartmentAccessDenied
+	}
 	if companyID <= 0 {
 		if requestUserRole >= common.RoleAdminUser {
 			return nil
@@ -867,7 +966,7 @@ type DepartmentOverviewResponse struct {
 }
 
 func GetDepartmentOverview(req *DepartmentOverviewRequest) (*DepartmentOverviewResponse, error) {
-	audience, _, err := resolveCompanyOverviewAudience(
+	audience, _, err := resolveOverviewAudience(
 		req.CompanyID,
 		req.DepartmentID,
 		req.RequestUserID,
@@ -935,7 +1034,11 @@ func GetDepartmentOverview(req *DepartmentOverviewRequest) (*DepartmentOverviewR
 			return sharedUserStatsErr
 		}
 		var taskErr error
-		subStats, taskErr = buildCompanySubDepartmentStats(statsReq, audience, sharedUserStats)
+		if IsGlobalOverviewScope(req.CompanyID, req.DepartmentID) {
+			subStats, taskErr = getCompanySubDepartmentStats(statsReq)
+		} else {
+			subStats, taskErr = buildCompanySubDepartmentStats(statsReq, audience, sharedUserStats)
+		}
 		return taskErr
 	})
 	group.Go(func() error {
@@ -975,7 +1078,7 @@ func GetDepartmentOverview(req *DepartmentOverviewRequest) (*DepartmentOverviewR
 }
 
 func getCompanyDepartmentStats(req *DepartmentStatsRequest) (*model.DepartmentStat, error) {
-	audience, _, err := resolveCompanyOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
+	audience, _, err := resolveOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -1115,7 +1218,7 @@ func finalizeDepartmentStat(stat *model.DepartmentStat) {
 }
 
 func getCompanyDepartmentLogs(req *DepartmentLogsRequest) (*common.PageInfo, error) {
-	audience, _, err := resolveCompanyOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
+	audience, _, err := resolveOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -1148,7 +1251,7 @@ func getCompanyDepartmentLogs(req *DepartmentLogsRequest) (*common.PageInfo, err
 }
 
 func getCompanyUsageAnalysis(req *DepartmentStatsRequest) (*UsageAnalysisResponse, error) {
-	audience, _, err := resolveCompanyOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
+	audience, _, err := resolveOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -1178,11 +1281,76 @@ func buildCompanyUsageAnalysis(req *DepartmentStatsRequest, audience *overviewAu
 }
 
 func getCompanySubDepartmentStats(req *DepartmentStatsRequest) ([]SubDepartmentStatItem, error) {
-	audience, _, err := resolveCompanyOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
+	if IsGlobalOverviewScope(req.CompanyID, req.DepartmentID) {
+		if !isGlobalOverviewAuthorized(req.RequestUserRole) {
+			return nil, ErrOverviewAccessDenied
+		}
+		companies, err := model.ListEnabledCompanies()
+		if err != nil {
+			return nil, err
+		}
+		result := make([]SubDepartmentStatItem, len(companies))
+		var group errgroup.Group
+		group.SetLimit(companyDirectoryFetchConcurrency)
+		for index, company := range companies {
+			group.Go(func() error {
+				audience, _, err := resolveCompanyOverviewAudience(company.Id, companyNodeValue(company.Id), req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
+				if err != nil {
+					return err
+				}
+				stat, err := buildCompanyDepartmentStats(reqForCompanyRoot(req, company.Id), audience, nil)
+				if err != nil {
+					return err
+				}
+				modelRows, err := model.GetUserModelStatsBatch(audience.registeredUserIDs, req.StartTimestamp, req.EndTimestamp)
+				if err != nil {
+					return err
+				}
+				modelQuotas := make(map[string]int64)
+				for _, row := range modelRows {
+					modelQuotas[row.ModelName] += row.TotalQuota
+				}
+				commonModel := ""
+				var highestModelQuota int64
+				for name, quota := range modelQuotas {
+					if commonModel == "" || quota > highestModelQuota || (quota == highestModelQuota && name < commonModel) {
+						commonModel = name
+						highestModelQuota = quota
+					}
+				}
+				name := company.Name
+				if company.Alias != "" {
+					name = company.Alias
+				}
+				result[index] = SubDepartmentStatItem{
+					CompanyID: company.Id, DepartmentID: companyNodeValue(company.Id), DepartmentName: name,
+					CommonModel:         commonModel,
+					UncachedInputTokens: stat.UncachedInputTokens, CacheReadTokens: stat.CacheReadTokens, CacheWriteTokens: stat.CacheWriteTokens,
+					RegisteredUsers: stat.RegisteredUsers, TotalUsers: stat.RegisteredUsers + stat.UnregisteredUsers,
+					TotalQuota: stat.TotalQuota, TotalAmountCNY: stat.TotalAmountCNY, UnitPricePer100MTokens: stat.UnitPricePer100MTokens,
+					TotalTokens: stat.TotalTokens, TotalRequests: stat.TotalRequests, ActiveUsers: stat.ActiveUsers,
+					ActiveUserRate: stat.ActiveUserRate, AvgTokensPerActiveUserMT: stat.AvgTokensPerActiveUserMT,
+				}
+				return nil
+			})
+		}
+		if err := group.Wait(); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+	audience, _, err := resolveOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
 	if err != nil {
 		return nil, err
 	}
 	return buildCompanySubDepartmentStats(req, audience, nil)
+}
+
+func reqForCompanyRoot(req *DepartmentStatsRequest, companyID int) *DepartmentStatsRequest {
+	copy := *req
+	copy.CompanyID = companyID
+	copy.DepartmentID = companyNodeValue(companyID)
+	return &copy
 }
 
 func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overviewAudience, userStats *overviewUserStats) ([]SubDepartmentStatItem, error) {
@@ -1379,7 +1547,7 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 }
 
 func getCompanyDepartmentUsers(req *DepartmentUsersRequest) (*DepartmentUsersResponse, error) {
-	audience, _, err := resolveCompanyOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
+	audience, _, err := resolveOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -1400,7 +1568,44 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 	}
 
 	items := make([]DepartmentUserItem, 0)
-	if audience.forceRegisteredOnly {
+	memberCompanyByUser := make(map[*model.User]*overviewAudience)
+	if audience.company == nil {
+		includeUnregistered := req.RegistrationStatus == departmentRegistrationStatusUnregistered ||
+			(req.RegistrationStatus != departmentRegistrationStatusRegistered && req.IncludeUnregistered)
+		seenUserIDs := make(map[int]bool)
+		for _, companyAudience := range audience.companyAudiences {
+			if companyAudience.forceRegisteredOnly {
+				for _, user := range companyAudience.users {
+					status := getDepartmentUserRegistrationStatus(user, req.EndTimestamp)
+					if seenUserIDs[user.Id] || (req.RegistrationStatus != "" && req.RegistrationStatus != status) ||
+						(status == departmentRegistrationStatusUnregistered && !includeUnregistered) {
+						continue
+					}
+					seenUserIDs[user.Id] = true
+					items = append(items, DepartmentUserItem{User: user, IsRegistered: status != departmentRegistrationStatusUnregistered, RegistrationStatus: status})
+				}
+				continue
+			}
+			memberOpenIDs := make([]string, 0, len(companyAudience.members))
+			memberDetails := make(map[string]feishuDeptMember, len(companyAudience.members))
+			for _, member := range companyAudience.members {
+				memberOpenIDs = append(memberOpenIDs, member.OpenID)
+				memberDetails[member.OpenID] = feishuDeptMember{OpenID: member.OpenID, Name: member.Name}
+			}
+			companyItems := mergeDepartmentUsersWithMembers(companyAudience.users, memberOpenIDs, memberDetails, req.EndTimestamp, includeUnregistered, req.RegistrationStatus)
+			for _, item := range companyItems {
+				if item.User != nil && item.User.Id > 0 {
+					if seenUserIDs[item.User.Id] {
+						continue
+					}
+					seenUserIDs[item.User.Id] = true
+				} else if item.User != nil {
+					memberCompanyByUser[item.User] = companyAudience
+				}
+				items = append(items, item)
+			}
+		}
+	} else if audience.forceRegisteredOnly {
 		for _, user := range audience.users {
 			registrationStatus := getDepartmentUserRegistrationStatus(user, req.EndTimestamp)
 			if req.RegistrationStatus != "" && req.RegistrationStatus != registrationStatus {
@@ -1467,7 +1672,17 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 		}
 		populateDepartmentUserStats(pageItems, pageRegisteredIDs, req.StartTimestamp, req.EndTimestamp, userStats)
 	}
-	if !audience.forceRegisteredOnly && audience.company != nil {
+	if audience.company == nil {
+		for _, companyAudience := range audience.companyAudiences {
+			companyPageItems := make([]DepartmentUserItem, 0)
+			for _, item := range pageItems {
+				if memberCompanyByUser[item.User] == companyAudience {
+					companyPageItems = append(companyPageItems, item)
+				}
+			}
+			enrichDepartmentUserPageDisplayNames(companyPageItems, companyAudience)
+		}
+	} else if !audience.forceRegisteredOnly {
 		enrichDepartmentUserPageDisplayNames(pageItems, audience)
 	}
 
@@ -1604,7 +1819,7 @@ func populateDepartmentUserStats(items []DepartmentUserItem, ids []int, startTim
 }
 
 func getCompanyDepartmentUserRankings(req *DepartmentUsersRequest) ([]UserRankingItem, error) {
-	audience, _, err := resolveCompanyOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
+	audience, _, err := resolveOverviewAudience(req.CompanyID, req.DepartmentID, req.RequestUserID, req.RequestUserRole, req.EndTimestamp)
 	if err != nil {
 		return nil, err
 	}

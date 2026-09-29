@@ -31,6 +31,7 @@ interface SubDepartmentStatsProps {
   activityFormula?: [number, number, number]
   startTimestamp: number
   endTimestamp: number
+  isOverview?: boolean
 }
 
 const SUB_DEPARTMENT_PINNED_COLUMNS = [
@@ -220,7 +221,9 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
       <CardHeader className='pb-3'>
         <CardTitle className='flex items-center gap-2 text-base'>
           <Building2 className='text-primary size-5' />
-          {t('Sub-department Statistics')}
+          {props.isOverview
+            ? t('Company Statistics')
+            : t('Sub-department Statistics')}
         </CardTitle>
       </CardHeader>
       <CardContent className='p-0'>
@@ -294,7 +297,8 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
           if (!open) setStatsDepartment(null)
         }}
         department={statsDepartment}
-        companyId={props.companyId}
+        companyId={statsDepartment?.company_id ?? props.companyId}
+        isOverview={props.isOverview}
         startTimestamp={props.startTimestamp}
         endTimestamp={props.endTimestamp}
       />
@@ -308,7 +312,7 @@ export function SubDepartmentStats(props: SubDepartmentStatsProps) {
         onOpenChange={(open) => {
           if (!open) setLogsDepartment(null)
         }}
-        companyId={props.companyId}
+        companyId={logsDepartment?.company_id ?? props.companyId}
         departmentId={logsDepartment?.department_id ?? null}
         departmentName={logsDepartment?.department_name ?? ''}
         initialStartTimestamp={props.startTimestamp}

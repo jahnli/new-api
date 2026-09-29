@@ -84,7 +84,7 @@ func GetDepartmentStats(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentCompanyID(c, req.CompanyID) {
+	if !validateDepartmentCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -115,7 +115,7 @@ func GetDepartmentOverview(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentCompanyID(c, req.CompanyID) {
+	if !validateDepartmentCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -146,7 +146,7 @@ func GetSubDepartmentStats(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentCompanyID(c, req.CompanyID) {
+	if !validateDepartmentCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -177,7 +177,7 @@ func GetUsageAnalysis(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentCompanyID(c, req.CompanyID) {
+	if !validateDepartmentCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -208,7 +208,7 @@ func GetDepartmentLogs(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentCompanyID(c, req.CompanyID) {
+	if !validateDepartmentCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -239,7 +239,7 @@ func GetDepartmentUserLogs(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentUserCompanyID(c, req.CompanyID) {
+	if !validateDepartmentUserCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -270,7 +270,7 @@ func GetDepartmentUsers(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentCompanyID(c, req.CompanyID) {
+	if !validateDepartmentCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -301,7 +301,7 @@ func GetUserUsageAnalysis(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentUserCompanyID(c, req.CompanyID) {
+	if !validateDepartmentUserCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -332,7 +332,7 @@ func GetDepartmentUserRankings(c *gin.Context) {
 		})
 		return
 	}
-	if !validateDepartmentCompanyID(c, req.CompanyID) {
+	if !validateDepartmentCompanyID(c, req.CompanyID, req.DepartmentID) {
 		return
 	}
 	req.RequestUserID = c.GetInt("id")
@@ -350,7 +350,14 @@ func GetDepartmentUserRankings(c *gin.Context) {
 	})
 }
 
-func validateDepartmentCompanyID(c *gin.Context, companyID int) bool {
+func validateDepartmentCompanyID(c *gin.Context, companyID int, departmentID string) bool {
+	if service.IsGlobalOverviewScope(companyID, departmentID) {
+		if c.GetInt("role") >= common.RoleRootUser {
+			return true
+		}
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": service.ErrOverviewAccessDenied.Error()})
+		return false
+	}
 	if companyID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
@@ -361,7 +368,14 @@ func validateDepartmentCompanyID(c *gin.Context, companyID int) bool {
 	return true
 }
 
-func validateDepartmentUserCompanyID(c *gin.Context, companyID int) bool {
+func validateDepartmentUserCompanyID(c *gin.Context, companyID int, departmentID string) bool {
+	if service.IsGlobalOverviewScope(companyID, departmentID) {
+		if c.GetInt("role") >= common.RoleRootUser {
+			return true
+		}
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": service.ErrOverviewAccessDenied.Error()})
+		return false
+	}
 	if companyID <= 0 {
 		userRole := c.GetInt("role")
 		if userRole >= common.RoleAdminUser {

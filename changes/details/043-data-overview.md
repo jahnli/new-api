@@ -2,6 +2,14 @@
 
 **日期**: 2026-06-25 ~ 2026-09-29（最后更新 2026-09-29）
 
+### 2026-09-29 超级管理员跨公司总览
+
+- `service/data_overview_company.go`、`service/feishu_department.go` — 在公司树上新增仅超级管理员可见的虚拟总览节点；按启用公司汇总统计、使用分析、日志、人员与排行，注册用户按 ID 去重，未注册人数按公司汇总；公司统计逐公司有限并发加载并携带公司 ID，支持钻取和导出。
+- `controller/department.go` — 总览范围在接口层校验超级管理员角色，其余公司、BP 和部门领导权限逻辑保持不变。
+- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/lib/department-selection.ts`、`web/src/features/data-overview/components/department-tree-select.tsx`、`web/src/features/data-overview/types.ts` — 支持选择总览、递归合并懒加载公司树和按公司导航。
+- `web/src/features/data-overview/components/sub-department-stats.tsx`、`web/src/features/data-overview/components/sub-department-stats-dialog.tsx`、`web/src/features/data-overview/components/export-dialog.tsx`、`web/src/features/data-overview/lib/export-excel.ts` — 总览下将子部门统计标题及导出表头改为公司统计，详情与导出使用对应公司范围。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐总览与公司统计的七语言文案。
+
 ### 2026-09-29 子部门统计列按对外模式拆分
 
 - `web/src/features/data-overview/components/shared-sub-department-columns.tsx` — 抽取子部门统计列的共享单元格、格式化和排序交互，集中维护统计与日志操作。

@@ -7,7 +7,11 @@ import type { DepartmentQueryParams, DeptTreeNode } from '../types'
 // directory-platform company roots while BP/leaders cannot. None-platform
 // companies stay selectable for all roles because they are leaf data scopes.
 export function isDepartmentNodeDisabled(node: DeptTreeNode): boolean {
-  return node.disabled || Boolean(node.error) || !node.company_id
+  return (
+    node.disabled ||
+    Boolean(node.error) ||
+    (node.node_type !== 'overview' && !node.company_id)
+  )
 }
 
 export function findDepartmentNodeByValue(
@@ -38,6 +42,14 @@ export function createDepartmentQueryParams(
   startTimestamp: number,
   endTimestamp: number
 ): DepartmentQueryParams {
+  if (node.node_type === 'overview') {
+    return {
+      company_id: 0,
+      department_id: node.value,
+      start_timestamp: startTimestamp,
+      end_timestamp: endTimestamp,
+    }
+  }
   if (!node.company_id) {
     throw new Error('Company department node is missing company_id')
   }

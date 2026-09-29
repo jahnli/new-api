@@ -877,6 +877,7 @@ func GetDepartmentStats(req *DepartmentStatsRequest) (*model.DepartmentStat, err
 
 // SubDepartmentStatItem holds stats for one sub-department.
 type SubDepartmentStatItem struct {
+	CompanyID                int              `json:"company_id,omitempty"`
 	UncachedInputTokens      int64            `json:"uncached_input_tokens"`
 	CacheReadTokens          int64            `json:"cache_read_tokens"`
 	CacheWriteTokens         int64            `json:"cache_write_tokens"`

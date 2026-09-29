@@ -5,7 +5,7 @@ export interface DeptTreeNode {
   loading?: boolean
   company_id?: number
   platform?: string
-  node_type?: 'company' | 'department' | string
+  node_type?: 'overview' | 'company' | 'department' | string
   department_id?: string
   error?: string
   children: DeptTreeNode[]
@@ -35,6 +35,7 @@ export interface CompanySubtreeResponse {
 }
 
 export interface SubDepartmentStat {
+  company_id?: number
   uncached_input_tokens?: number
   cache_read_tokens?: number
   cache_write_tokens?: number

@@ -68,8 +68,10 @@ export function DepartmentTreeSelect(props: DepartmentTreeSelectProps) {
     if (!props.value) return null
     const path = findNodePath(props.treeData, props.value)
     if (path.length === 0) return null
-    return path.map((n) => n.label).join(' / ')
-  }, [props.value, props.treeData])
+    return path
+      .map((n) => (n.node_type === 'overview' ? t('Overall') : n.label))
+      .join(' / ')
+  }, [props.value, props.treeData, t])
 
   const handleHover = useCallback(
     (node: DeptTreeNode, depth: number) => {
@@ -137,8 +139,8 @@ export function DepartmentTreeSelect(props: DepartmentTreeSelectProps) {
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []
-    return flatSearch(props.treeData, searchQuery.toLowerCase())
-  }, [props.treeData, searchQuery])
+    return flatSearch(props.treeData, searchQuery.toLowerCase(), t('Overall'))
+  }, [props.treeData, searchQuery, t])
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -312,7 +314,9 @@ function CascaderColumn(props: CascaderColumnProps) {
               }}
             >
               <span className='min-w-0 flex-1'>
-                <span className='block truncate'>{node.label}</span>
+                <span className='block truncate'>
+                  {node.node_type === 'overview' ? t('Overall') : node.label}
+                </span>
                 {errorText && (
                   <span className='mt-0.5 flex items-start gap-1 text-[11px] leading-tight'>
                     <AlertCircle className='mt-px size-3 shrink-0' />
@@ -398,7 +402,9 @@ function SearchResultList(props: SearchResultListProps) {
                       isSelected && 'text-primary font-medium'
                     )}
                   >
-                    {item.node.label}
+                    {item.node.node_type === 'overview'
+                      ? t('Overall')
+                      : item.node.label}
                   </span>
                   {isSelected && (
                     <Check className='text-primary size-3.5 shrink-0' />
@@ -466,16 +472,20 @@ function findNodeByValueDeep(
 function flatSearch(
   nodes: DeptTreeNode[],
   query: string,
+  overviewLabel: string,
   ancestors: string[] = []
 ): { node: DeptTreeNode; breadcrumb: string }[] {
   const results: { node: DeptTreeNode; breadcrumb: string }[] = []
   for (const node of nodes) {
-    const currentPath = [...ancestors, node.label]
-    if (node.label.toLowerCase().includes(query)) {
+    const label = node.node_type === 'overview' ? overviewLabel : node.label
+    const currentPath = [...ancestors, label]
+    if (label.toLowerCase().includes(query)) {
       results.push({ node, breadcrumb: ancestors.join(' / ') })
     }
     if (node.children.length > 0) {
-      results.push(...flatSearch(node.children, query, currentPath))
+      results.push(
+        ...flatSearch(node.children, query, overviewLabel, currentPath)
+      )
     }
   }
   return results
