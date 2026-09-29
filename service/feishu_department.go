@@ -1571,6 +1571,7 @@ type DepartmentUserItem struct {
 	CommonModel            string  `json:"common_model"`
 	IsRegistered           bool    `json:"is_registered"`
 	RegistrationStatus     string  `json:"registration_status"`
+	UsageExcluded          bool    `json:"usage_excluded,omitempty"`
 	SubQuotaUsed           int64   `json:"sub_quota_used"`
 	SubQuotaTotal          int64   `json:"sub_quota_total"`
 }

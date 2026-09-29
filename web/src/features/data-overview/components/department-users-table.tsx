@@ -23,10 +23,12 @@ import {
   useDataTable,
   type DataTablePinnedColumn,
 } from '@/components/data-table'
+import { LongText } from '@/components/long-text'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSharedUserColumns } from '@/features/users/components/shared-user-columns'
+import { useExternalMode } from '@/hooks/use-external-mode'
 
 import { getDepartmentUsers } from '../api'
 import {
@@ -95,8 +97,32 @@ function getSingleColumnFilter(
   return String(filterValue[0])
 }
 
+function getCostCenterName(rawValue?: string): string | undefined {
+  if (!rawValue) return undefined
+
+  try {
+    const value: unknown = JSON.parse(rawValue)
+    if (!Array.isArray(value) || value.length === 0) return undefined
+
+    const costCenter = value[0]
+    if (
+      typeof costCenter !== 'object' ||
+      costCenter === null ||
+      !('name' in costCenter) ||
+      typeof costCenter.name !== 'string'
+    ) {
+      return undefined
+    }
+
+    return costCenter.name || undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
   const { t } = useTranslation()
+  const externalMode = useExternalMode()
   const companyId = props.companyId
   const departmentId = props.departmentId
   const startTimestamp = props.startTimestamp
@@ -181,6 +207,25 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
     [t]
   )
 
+  const costCenterColumn = useMemo<ColumnDef<DepartmentUser>>(
+    () => ({
+      id: 'cost_center',
+      header: t('Cost Center'),
+      cell: ({ row }) => {
+        const name = getCostCenterName(row.original.cost_center)
+        if (!name) {
+          return <span className='text-muted-foreground text-sm'>-</span>
+        }
+
+        return <LongText className='w-[180px]'>{name}</LongText>
+      },
+      enableSorting: false,
+      size: 180,
+      meta: { mobileHidden: true },
+    }),
+    [t]
+  )
+
   const columns = useMemo<ColumnDef<DepartmentUser>[]>(() => {
     // 共享列里的「状态」列与上方合并后的状态列表达同一件事（被禁用即显示为已禁用），
     // 这里丢弃共享列，只保留带服务端筛选的合并列。共享列没有显式 id，需要按
@@ -207,6 +252,10 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
       registrationStatusColumn
     )
 
+    if (!externalMode) {
+      nextColumns.push(costCenterColumn)
+    }
+
     return [
       ...nextColumns,
       {
@@ -216,7 +265,10 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
         enableSorting: false,
         meta: { pinned: 'right' as const },
         cell: ({ row }) => {
-          if (!isDepartmentUserRegistered(row.original)) {
+          if (
+            !isDepartmentUserRegistered(row.original) ||
+            row.original.usage_excluded
+          ) {
             return <span className='text-muted-foreground text-sm'>-</span>
           }
 
@@ -234,7 +286,7 @@ export function DepartmentUsersTable(props: DepartmentUsersTableProps) {
         },
       },
     ]
-  }, [baseColumns, registrationStatusColumn, t])
+  }, [baseColumns, costCenterColumn, externalMode, registrationStatusColumn, t])
 
   const sortParam = sorting[0]
   const sortBy = sortParam ? (DEPT_COLUMN_SORT_MAP[sortParam.id] ?? '') : ''

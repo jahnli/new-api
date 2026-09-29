@@ -2,6 +2,11 @@
 
 **日期**: 2026-06-25 ~ 2026-09-29（最后更新 2026-09-29）
 
+### 2026-09-29 成本中心归属与部门人员列表
+
+- `service/data_overview_company.go`、`service/feishu_department.go` — 部门人员列表保留原部门中的成本中心人员信息，但将其排除在原部门金额、Token、请求数、额度、常用模型、排行榜、日志和使用分析统计之外；成本中心部门继续按人员归属统计，并通过响应标记隐藏原部门统计操作。
+- `web/src/features/data-overview/components/department-users-table.tsx`、`web/src/features/data-overview/types.ts` — 对外模式关闭时在分组列右侧新增成本中心列；原部门被排除统计的人员显示为空消费数据并隐藏统计入口，新增成本中心和统计排除字段类型。
+
 ### 2026-09-29 超级管理员跨公司总览
 
 - `service/data_overview_company.go`、`service/feishu_department.go` — 在公司树上新增仅超级管理员可见的虚拟总览节点；按启用公司汇总统计、使用分析、日志、人员与排行，注册用户按 ID 去重，未注册人数按公司汇总；公司统计逐公司有限并发加载并携带公司 ID，支持钻取和导出。

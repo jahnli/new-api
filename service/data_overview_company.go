@@ -777,7 +777,7 @@ func matchOverviewDepartmentMembers(company *model.Company, members []overviewMe
 		if seenMemberOpenIDs[user.OpenId] {
 			continue
 		}
-		if _, _, hasCostCenter := costCenterDepartment(user); hasCostCenter {
+		if _, hasCostCenter, _ := costCenterDepartment(user); hasCostCenter {
 			continue
 		}
 		departmentID := user.GetPrimaryDepartmentID()
@@ -1632,6 +1632,48 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 		items = mergeDepartmentUsersWithMembers(audience.users, memberOpenIDs, memberDetails, req.EndTimestamp, includeUnregistered, req.RegistrationStatus)
 	}
 
+	// Directory membership remains visible even when consumption is attributed
+	// to another cost center. Keep these rows out of the shared audience so
+	// summaries, rankings, logs and usage analysis retain cost-center attribution.
+	directoryOnlyCount := 0
+	if audience.company != nil && !audience.forceRegisteredOnly && len(audience.departmentIDs) > 0 {
+		companyUsers, err := queryOverviewUsers(audience.company.Name, nil, req.EndTimestamp)
+		if err != nil {
+			return nil, err
+		}
+		for _, user := range companyUsers {
+			// The shared audience may briefly predate an edited cost center.
+			// Do not duplicate a row while that audience cache expires.
+			if slices.Contains(audience.registeredUserIDs, user.Id) {
+				continue
+			}
+			costCenterDepartmentID, costCenterCompanyID, hasCostCenter := user.GetCostCenter()
+			if !hasCostCenter || !slices.Contains(audience.departmentIDs, user.GetPrimaryDepartmentID()) {
+				continue
+			}
+			if costCenterCompanyID == audience.company.Id && slices.Contains(audience.departmentIDs, costCenterDepartmentID) {
+				continue
+			}
+			directoryOnlyCount++
+			registrationStatus := getDepartmentUserRegistrationStatus(user, req.EndTimestamp)
+			if req.RegistrationStatus != "" && req.RegistrationStatus != registrationStatus {
+				continue
+			}
+			// Clear account-wide counters only on the response copy, never on
+			// a cached user or the stored account.
+			displayUser := *user
+			displayUser.Quota = 0
+			displayUser.UsedQuota = 0
+			displayUser.RequestCount = 0
+			items = append(items, DepartmentUserItem{
+				User:               &displayUser,
+				IsRegistered:       true,
+				RegistrationStatus: registrationStatus,
+				UsageExcluded:      true,
+			})
+		}
+	}
+
 	// Role is filtered after the audience is materialized because the two
 	// branches above build the candidate set differently. Unregistered members
 	// carry the zero role, so any concrete role filter drops them too.
@@ -1645,7 +1687,7 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 	// slicing. Unregistered display names are still page-local only.
 	registeredIDsForSort := make([]int, 0, len(items))
 	for _, item := range items {
-		if item.User != nil && item.User.Id > 0 && item.IsRegistered {
+		if item.User != nil && item.User.Id > 0 && item.IsRegistered && !item.UsageExcluded {
 			registeredIDsForSort = append(registeredIDsForSort, item.User.Id)
 		}
 	}
@@ -1666,7 +1708,7 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 	if !common.IsComputedSortColumn(req.SortBy) && req.SortBy != "" {
 		pageRegisteredIDs := make([]int, 0, len(pageItems))
 		for _, item := range pageItems {
-			if item.User != nil && item.User.Id > 0 && item.IsRegistered {
+			if item.User != nil && item.User.Id > 0 && item.IsRegistered && !item.UsageExcluded {
 				pageRegisteredIDs = append(pageRegisteredIDs, item.User.Id)
 			}
 		}
@@ -1687,6 +1729,7 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 	}
 
 	registered, unregistered := departmentUserRegistrationCounts(audience.users, audience.totalUsers, req.EndTimestamp)
+	registered += int64(directoryOnlyCount)
 	if audience.forceRegisteredOnly {
 		registered = int64(len(audience.users))
 		unregistered = 0
@@ -1696,7 +1739,7 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 		Total:             int64(len(items)),
 		Page:              page,
 		Size:              pageSize,
-		TotalUsers:        int64(audience.totalUsers),
+		TotalUsers:        int64(audience.totalUsers + directoryOnlyCount),
 		RegisteredUsers:   registered,
 		UnregisteredUsers: unregistered,
 	}, nil
@@ -1792,6 +1835,9 @@ func populateDepartmentUserStats(items []DepartmentUserItem, ids []int, startTim
 		exchangeRate = 1
 	}
 	for index := range items {
+		if items[index].UsageExcluded {
+			continue
+		}
 		userID := items[index].User.Id
 		var stat model.UserStatRow
 		hasStat := false

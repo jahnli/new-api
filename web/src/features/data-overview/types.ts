@@ -168,9 +168,11 @@ export interface DepartmentUser {
   total_requests: number
   is_registered?: boolean
   registration_status?: DepartmentRegistrationStatus
+  usage_excluded?: boolean
   common_model?: string
   request_count: number
   group: string
+  cost_center?: string
   status: number
   role: number
   created_at?: number
