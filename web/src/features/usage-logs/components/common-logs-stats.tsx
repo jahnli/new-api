@@ -122,6 +122,24 @@ export function CommonLogsStats() {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format((stats?.total_tokens ?? 0) / 100_000_000)} ${t('100M')}`
+  let averagePricePerMillionTokens = '-'
+  if (!sensitiveVisible) {
+    averagePricePerMillionTokens = '••••'
+  } else if ((stats?.total_tokens ?? 0) > 0) {
+    const { config } = getCurrencyDisplay()
+    const averagePriceUSD =
+      ((stats?.quota ?? 0) * 1_000_000) /
+      config.quotaPerUnit /
+      (stats?.total_tokens ?? 0)
+    averagePricePerMillionTokens = formatBillingCurrencyFromUSD(
+      averagePriceUSD,
+      {
+        fixedFractionDigits: 2,
+        abbreviate: false,
+        locale,
+      }
+    )
+  }
   const tokenTooltipLoading = tokenTooltipActive && tokenStats.isFetching
   const tokenTooltipOpen =
     tokenTooltipActive && tokenStats.isSuccess && !tokenStats.isFetching
@@ -140,24 +158,6 @@ export function CommonLogsStats() {
 
   let tokenDetails: ReactNode = null
   if (tokenStats.data) {
-    let averagePricePerMillionTokens = '-'
-    if (!sensitiveVisible) {
-      averagePricePerMillionTokens = '••••'
-    } else if (tokenStats.data.total_tokens > 0) {
-      const { config } = getCurrencyDisplay()
-      const averagePriceUSD =
-        ((stats?.quota ?? 0) * 1_000_000) /
-        config.quotaPerUnit /
-        tokenStats.data.total_tokens
-      averagePricePerMillionTokens = formatBillingCurrencyFromUSD(
-        averagePriceUSD,
-        {
-          fixedFractionDigits: 2,
-          abbreviate: false,
-          locale,
-        }
-      )
-    }
     tokenDetails = (
       <TokenBreakdownTooltipContent
         totalTokens={tokenStats.data.total_tokens}
@@ -165,7 +165,6 @@ export function CommonLogsStats() {
         outputTokens={tokenStats.data.uncached_output_tokens ?? 0}
         cacheReadTokens={tokenStats.data.cache_read_tokens ?? 0}
         cacheWriteTokens={tokenStats.data.cache_write_tokens ?? 0}
-        averagePricePerMillionTokens={averagePricePerMillionTokens}
       />
     )
   }
@@ -177,6 +176,7 @@ export function CommonLogsStats() {
         <Skeleton className='h-7 w-[100px] rounded-md' />
         <Skeleton className='h-7 w-[120px] rounded-md' />
         <Skeleton className='h-7 w-[150px] rounded-md' />
+        <Skeleton className='h-7 w-[100px] rounded-md' />
       </div>
     )
   }
@@ -234,6 +234,11 @@ export function CommonLogsStats() {
         />
         <TooltipContent>{tokenDetails}</TooltipContent>
       </Tooltip>
+      <StatBadge
+        label={t('Unit Price')}
+        value={averagePricePerMillionTokens}
+        accent='bg-amber-500/70'
+      />
     </div>
   )
 }

@@ -8,7 +8,6 @@ export function TokenBreakdownTooltipContent(props: {
   outputTokens: number
   cacheReadTokens: number
   cacheWriteTokens: number
-  averagePricePerMillionTokens?: string
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -31,14 +30,6 @@ export function TokenBreakdownTooltipContent(props: {
           {formatter.format(props.totalTokens / 100_000_000)} {t('100M')}
         </span>
       </div>
-      {props.averagePricePerMillionTokens && (
-        <div className='flex items-baseline justify-between gap-4'>
-          <span>{t('Unit Price')}</span>
-          <span className='font-semibold'>
-            {props.averagePricePerMillionTokens}
-          </span>
-        </div>
-      )}
       <div className='border-border/40 space-y-2.5 border-t pt-2.5'>
         {rows.map((row) => (
           <div
