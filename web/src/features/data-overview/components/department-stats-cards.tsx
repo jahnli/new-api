@@ -92,6 +92,19 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
   const activeUserRateClassName = getActiveUserRateClassName(activeUserRate)
   const highCostUserRate = stat.high_cost_user_rate ?? 0
   const highCostUserRateClassName = getActiveUserRateClassName(highCostUserRate)
+  const veryHighCostThresholdCNY = 800
+  const veryHighCostUsers =
+    stat.cost_buckets?.find(
+      (bucket) =>
+        bucket.min_amount_cny === veryHighCostThresholdCNY &&
+        bucket.max_amount_cny === 0
+    )?.users ?? 0
+  const totalUsers =
+    (stat.registered_users ?? 0) + (stat.unregistered_users ?? 0)
+  const veryHighCostUserRate =
+    totalUsers > 0 ? (veryHighCostUsers / totalUsers) * 100 : 0
+  const veryHighCostUserRateClassName =
+    getActiveUserRateClassName(veryHighCostUserRate)
 
   const cacheReadTokens = stat.cache_read_tokens ?? 0
   const totalInputTokens =
@@ -102,7 +115,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
   const cacheHitRate =
     totalInputTokens > 0 ? (cacheReadTokens / totalInputTokens) * 100 : 0
 
-  const items: ({
+  const items: {
     title: string
     titleSuffix?: ReactNode
     value: ReactNode
@@ -112,7 +125,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
     valueClassName?: string
     tooltip?: ReactNode
     showTooltipIcon?: boolean
-  } | null)[] = [
+  }[] = [
     {
       title: t('Total Tokens'),
       value: formatTokens(stat.total_tokens),
@@ -155,8 +168,14 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       icon: Hash,
       iconTone: 'info',
     },
-    // Keep the former response-time slot so the remaining metrics stay in place.
-    null,
+    {
+      title: t('Tokens per Active User'),
+      value: formatTokens(tokensPerActiveUser),
+      desc: t('Based on active users only'),
+      icon: Layers,
+      iconTone: 'chart-4',
+      tooltip: formatTokens(tokensPerActiveUser),
+    },
     {
       title: t('Unregistered / Registered'),
       value: (
@@ -214,12 +233,16 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       valueClassName: highCostUserRateClassName,
     },
     {
-      title: t('Tokens per Active User'),
-      value: formatTokens(tokensPerActiveUser),
-      desc: t('Based on active users only'),
-      icon: Layers,
-      iconTone: 'chart-4',
-      tooltip: formatTokens(tokensPerActiveUser),
+      title: t('Cost >{{amount}} Users / Share', {
+        amount: veryHighCostThresholdCNY,
+      }),
+      value: `${veryHighCostUsers.toLocaleString()} / ${veryHighCostUserRate.toFixed(1)}%`,
+      desc: t('Users spending more than ¥{{amount}}', {
+        amount: veryHighCostThresholdCNY,
+      }),
+      icon: DollarSign,
+      iconTone: 'destructive',
+      valueClassName: veryHighCostUserRateClassName,
     },
     {
       title: t('Cache Hit Rate'),
@@ -234,10 +257,6 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
     <div className='overflow-hidden rounded-lg border'>
       <div className='divide-border/60 grid min-w-0 grid-cols-2 divide-x sm:grid-cols-3 lg:grid-cols-5'>
         {items.map((item) => {
-          if (item === null) {
-            return <div key='response-time-placeholder' aria-hidden='true' />
-          }
-
           const Icon = item.icon
           let renderedValue: ReactNode
 
