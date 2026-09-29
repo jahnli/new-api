@@ -29,3 +29,16 @@
 - `model/usedata_flow.go` — 分流响应的 use_group 增加空值省略标记，清空后不再序列化该字段
 - `web/src/features/dashboard/components/flow/flow-charts.tsx` — 按对外模式和角色移除分组展示与选择入口，隔离查询缓存并处理模式切换后的列和筛选状态
 - `web/src/features/system-settings/hooks/use-update-option.ts` — 保存对外模式开关后失效状态查询并清理持久化状态缓存
+
+## 2026-09-28 销售绑定与资料展示
+
+对外模式下用户管理新增销售归属：用户可绑定一名 `role=2` 销售，列表显示销售列，编辑弹窗支持搜索、绑定、更换和解绑；服务端校验销售角色、限制对外模式下的修改并记录审计。销售资料批量返回头像、基本资料和手机号，列表复用用户头像及资料悬浮卡片。
+
+### 涉及文件
+
+- `model/user.go`、`model/user_sales.go` — `users` 表新增 `sales_user_id` 字段与索引，批量加载销售资料并提供销售候选查询。
+- `controller/user.go`、`controller/user_sales.go`、`router/api-router.go` — 增加销售查询接口、绑定校验、解绑处理和销售变更审计。
+- `web/src/features/users/api.ts`、`web/src/features/users/types.ts`、`web/src/features/users/lib/user-form.ts` — 补充销售查询、表单和资料类型。
+- `web/src/features/users/components/users-columns.tsx`、`web/src/features/users/components/users-mutate-drawer.tsx` — 对外模式显示销售列，编辑弹窗支持销售选择。
+- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/user-profile-hover-card.tsx` — 复用用户头像列和资料悬浮卡片展示销售资料，包含手机号字段。
+- `i18n/keys.go`、`i18n/locales/{en,zh-CN,zh-TW}.yaml`、`web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补充销售绑定、未分配和失效销售相关文案。

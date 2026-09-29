@@ -63,6 +63,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { DepartmentTreeSelect } from '@/features/data-overview/components/department-tree-select'
+import { useExternalMode } from '@/hooks/use-external-mode'
 import {
   ADMIN_PERMISSION_ACTIONS,
   ADMIN_PERMISSION_RESOURCES,
@@ -85,6 +86,7 @@ import {
   getGroupsWithRatios,
   getPermissionCatalog,
   getAdminFullDepartmentTree,
+  getSalesUsers,
 } from '../api'
 import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import {
@@ -114,6 +116,7 @@ export function UsersMutateDrawer({
 }: UsersMutateDrawerProps) {
   const { t } = useTranslation()
   const isUpdate = !!currentRow
+  const externalMode = useExternalMode()
   const { triggerRefresh } = useUsers()
   const currentUser = useAuthStore((s) => s.auth.user)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -139,6 +142,32 @@ export function UsersMutateDrawer({
     resolver: zodResolver(userFormSchema),
     defaultValues: USER_FORM_DEFAULT_VALUES,
   })
+
+  const salesQuery = useQuery({
+    queryKey: ['user-sales-options'],
+    queryFn: getSalesUsers,
+    enabled: open && isUpdate && externalMode,
+  })
+  const selectedSalesID = form.watch('sales_user_id')
+  const salesOptions: { value: string; label: string; disabled?: boolean }[] = [
+    { value: '0', label: t('Unassigned') },
+    ...(salesQuery.data ?? []).map((sales) => ({
+      value: String(sales.id),
+      label: sales.display_name
+        ? `${sales.display_name} (${sales.username})`
+        : sales.username,
+    })),
+  ]
+  if (
+    selectedSalesID &&
+    !salesOptions.some((option) => option.value === String(selectedSalesID))
+  ) {
+    salesOptions.push({
+      value: String(selectedSalesID),
+      label: `${t('Sales contact unavailable')} (#${selectedSalesID})`,
+      disabled: true,
+    })
+  }
 
   // Load existing data when updating
   useEffect(() => {
@@ -198,6 +227,13 @@ export function UsersMutateDrawer({
         currentRow?.id,
         permissionCatalog
       )
+      if (
+        isUpdate &&
+        externalMode &&
+        form.getFieldState('sales_user_id').isDirty
+      ) {
+        payload.sales_user_id = data.sales_user_id ?? 0
+      }
       const result = isUpdate
         ? await updateUser(payload as typeof payload & { id: number })
         : await createUser(payload)
@@ -461,6 +497,46 @@ export function UsersMutateDrawer({
               </SideDrawerSection>
 
               {/* Group & Quota Settings (Update only) */}
+              {isUpdate && externalMode && (
+                <SideDrawerSection>
+                  <FormField
+                    control={form.control}
+                    name='sales_user_id'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Assign sales contact')}</FormLabel>
+                        <FormControl>
+                          <Combobox
+                            options={salesOptions}
+                            value={String(field.value ?? 0)}
+                            onValueChange={(value) =>
+                              field.onChange(Number(value ?? 0))
+                            }
+                            onBlur={field.onBlur}
+                            disabled={
+                              salesQuery.isPending ||
+                              salesQuery.isError ||
+                              field.value === undefined
+                            }
+                            placeholder={t('Select a sales contact')}
+                            className='w-full'
+                          />
+                        </FormControl>
+                        {salesQuery.isError && (
+                          <Button
+                            type='button'
+                            variant='outline'
+                            onClick={() => void salesQuery.refetch()}
+                          >
+                            {t('Retry')}
+                          </Button>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SideDrawerSection>
+              )}
               {isUpdate && (
                 <SideDrawerSection>
                   <h3 className='text-sm font-medium'>{t('Group & Quota')}</h3>

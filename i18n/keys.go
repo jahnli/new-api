@@ -1,6 +1,7 @@
 package i18n
 
 const MsgTaskPluginUnknownMetaField = "task_plugin.unknown_meta_field"
+const MsgInvalidSalesUser = "user.invalid_sales_user"
 
 // Message keys for i18n translations
 // Use these constants instead of hardcoded strings

@@ -14,6 +14,12 @@ export type UserStatus = z.infer<typeof userStatusSchema>
 export const userRoleSchema = z.number()
 export type UserRole = z.infer<typeof userRoleSchema>
 
+export interface SalesUser {
+  id: number
+  username: string
+  display_name: string
+}
+
 export const userSchema = z.object({
   id: z.number(),
   username: z.string(),
@@ -35,6 +41,24 @@ export const userSchema = z.object({
   group: z.string(),
   status: userStatusSchema,
   role: userRoleSchema,
+  sales_user_id: z.number().optional(),
+  sales_user: z
+    .object({
+      id: z.number(),
+      username: z.string(),
+      display_name: z.string(),
+      avatar_url: z.string().optional(),
+      role: z.number(),
+      email: z.string().optional(),
+      mobile: z.string().optional(),
+      job_number: z.string().optional(),
+      description: z.string().optional(),
+      background_image: z.string().optional(),
+      company: z.string().optional(),
+      gender: z.number().optional(),
+      open_id: z.string().optional(),
+    })
+    .optional(),
   overview_dept_ids: z.array(z.string()).optional(),
   created_at: z.number().optional(),
   updated_at: z.number().optional(),
@@ -124,6 +148,7 @@ export interface SearchUsersParams {
 }
 
 export interface UserFormData {
+  sales_user_id?: number
   username: string
   display_name: string
   password?: string
@@ -198,6 +223,28 @@ export interface UserColumnRow {
 // ============================================================================
 // Custom Field Helpers
 // ============================================================================
+
+export type UserProfile = Pick<
+  UserColumnRow,
+  | 'id'
+  | 'username'
+  | 'display_name'
+  | 'role'
+  | 'email'
+  | 'avatar_url'
+  | 'remark'
+  | 'department_name'
+  | 'custom_field_values'
+  | 'join_date'
+  | 'job_number'
+  | 'job_title'
+  | 'description'
+  | 'background_image'
+  | 'mobile'
+  | 'open_id'
+  | 'gender'
+  | 'company'
+>
 
 export const CUSTOM_FIELD_KEYS = {
   JOB_LEVEL: 'C-7434714811573665793',

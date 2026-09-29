@@ -34,6 +34,7 @@ export const userFormSchema = z.object({
   display_name: z.string().optional(),
   password: z.string().optional(),
   role: z.number().optional(),
+  sales_user_id: z.number().int().min(0).optional(),
   overview_dept_ids: z.array(z.string()).optional(),
   cost_center: z
     .object({
@@ -157,6 +158,7 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
     display_name: user.display_name,
     password: '',
     role: user.role,
+    sales_user_id: user.sales_user_id ?? 0,
     overview_dept_ids: user.overview_dept_ids ?? [],
     cost_center: parseStoredCostCenter(user.cost_center),
     quota_dollars: quotaUnitsToDollars(user.quota),

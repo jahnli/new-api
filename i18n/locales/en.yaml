@@ -1,4 +1,5 @@
 # English translations
+user.invalid_sales_user: "Select an existing sales user (role = 2) or clear the assignment"
 
 # Task plugin messages
 task_plugin.unknown_meta_field: 'Plugin metadata contains an unknown field "{{.Field}}". If this plugin was downloaded from the official marketplace, it may require a newer version of new-api. Try updating new-api and installing the plugin again.'

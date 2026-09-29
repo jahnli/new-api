@@ -93,6 +93,8 @@ type User struct {
 	OriginalPassword     string                     `json:"original_password" gorm:"-:all"`
 	DisplayName          string                     `json:"display_name" gorm:"index" validate:"max=20"`
 	Role                 int                        `json:"role" gorm:"type:int;default:1"`
+	SalesUserID          int                        `json:"sales_user_id" gorm:"column:sales_user_id;default:0;not null;index"`
+	SalesUser            *SalesUser                 `json:"sales_user,omitempty" gorm:"-:all"`
 	OverviewDeptIDs      []string                   `json:"overview_dept_ids" gorm:"type:text;serializer:json;column:overview_dept_ids;default:'[]'"`
 	Status               int                        `json:"status" gorm:"type:int;default:1"`
 	Email                string                     `json:"email" gorm:"index" validate:"max=50"`
@@ -556,6 +558,9 @@ func GetAllUsers(pageInfo *common.PageInfo, sortOptions ...UserSortOptions) (use
 		return nil, 0, UserStatusCounts{}, err
 	}
 
+	if err := LoadUserSales(users); err != nil {
+		return nil, 0, UserStatusCounts{}, err
+	}
 	return users, total, statusCounts, nil
 }
 
@@ -613,6 +618,9 @@ func SearchUsers(keyword string, group string, company string, role *int, status
 		return nil, 0, UserStatusCounts{}, err
 	}
 
+	if err := LoadUserSales(users); err != nil {
+		return nil, 0, UserStatusCounts{}, err
+	}
 	return users, total, statusCounts, nil
 }
 
@@ -898,7 +906,7 @@ func (user *User) UpdateWithTx(tx *gorm.DB, updatePassword bool) error {
 			return err
 		}
 	}
-	if err = tx.Model(&current).Omit("quota", "used_quota", "request_count", "auth_version", "access_token", "subscription_premium_percent").Updates(newUser).Error; err != nil {
+	if err = tx.Model(&current).Omit("quota", "used_quota", "request_count", "auth_version", "access_token", "subscription_premium_percent", "sales_user_id").Updates(newUser).Error; err != nil {
 		return err
 	}
 	return tx.First(user, user.Id).Error

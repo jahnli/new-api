@@ -18,13 +18,13 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { USER_ROLE, USER_ROLES } from '../constants'
 import {
-  type UserColumnRow,
+  type UserProfile,
   parseCustomFields,
   CUSTOM_FIELD_KEYS,
 } from '../types'
 
 interface UserProfileHoverCardProps {
-  user: UserColumnRow
+  user: UserProfile
   children: React.ReactNode
 }
 

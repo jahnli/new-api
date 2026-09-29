@@ -1,4 +1,5 @@
 # Chinese (Simplified) translations
+user.invalid_sales_user: "请选择存在且角色为销售（role = 2）的用户，或解除绑定"
 # 中文（简体）翻译文件
 
 # Task plugin messages

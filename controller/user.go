@@ -660,6 +660,10 @@ func GetUser(c *gin.Context) {
 		return
 	}
 	user.AdminPermissions = authz.Capabilities(user.Id, user.Role)
+	if err := model.LoadUserSales([]*model.User{user}); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -846,8 +850,12 @@ func GetUserModels(c *gin.Context) {
 }
 
 func UpdateUser(c *gin.Context) {
-	var updatedUser model.User
-	err := common.DecodeJson(c.Request.Body, &updatedUser)
+	var request struct {
+		model.User
+		SalesUserID *int `json:"sales_user_id"`
+	}
+	err := common.DecodeJson(c.Request.Body, &request)
+	updatedUser := request.User
 	if err != nil || updatedUser.Id == 0 {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
@@ -896,16 +904,43 @@ func UpdateUser(c *gin.Context) {
 	if originUser.DepartmentName == "" && selectedCostCenter != nil {
 		updatedUser.DepartmentName = selectedCostCenter.Name
 	}
+	if request.SalesUserID != nil && !operation_setting.ExternalModeEnabled {
+		common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
+		return
+	}
+	if request.SalesUserID != nil && *request.SalesUserID < 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidSalesUser)
+		return
+	}
+	invalidSalesUser := errors.New("invalid sales user")
 	updatePassword := updatedUser.Password != ""
 	authzTouched := false
 	if err := model.DB.Transaction(func(tx *gorm.DB) error {
+		if request.SalesUserID != nil && *request.SalesUserID > 0 {
+			var count int64
+			if err := tx.Model(&model.User{}).Where("id = ? AND role = ?", *request.SalesUserID, common.RoleBUBP).Count(&count).Error; err != nil {
+				return err
+			}
+			if count == 0 || (*request.SalesUserID == updatedUser.Id && updatedUser.Role != common.RoleBUBP) {
+				return invalidSalesUser
+			}
+		}
 		if err := updatedUser.EditWithTx(tx, updatePassword); err != nil {
 			return err
+		}
+		if request.SalesUserID != nil {
+			if err := tx.Model(&model.User{}).Where("id = ?", updatedUser.Id).Update("sales_user_id", *request.SalesUserID).Error; err != nil {
+				return err
+			}
 		}
 		touched, err := updateAdminPermissionsForUserInTx(c, tx, updatedUser.Id, updatedUser.Role, updatedUser.AdminPermissions)
 		authzTouched = touched
 		return err
 	}); err != nil {
+		if errors.Is(err, invalidSalesUser) {
+			common.ApiErrorI18n(c, i18n.MsgInvalidSalesUser)
+			return
+		}
 		common.ApiError(c, err)
 		return
 	}
@@ -925,10 +960,15 @@ func UpdateUser(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	recordManageAuditFor(c, updatedUser.Id, "user.update", map[string]any{
+	auditParams := map[string]any{
 		"username": originUser.Username,
 		"id":       updatedUser.Id,
-	})
+	}
+	if request.SalesUserID != nil {
+		auditParams["sales_user_id"] = *request.SalesUserID
+		auditParams["previous_sales_user_id"] = originUser.SalesUserID
+	}
+	recordManageAuditFor(c, updatedUser.Id, "user.update", auditParams)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

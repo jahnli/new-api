@@ -6,6 +6,7 @@ import { requireServerSuccess } from '@/lib/server-error-message'
 
 import type {
   User,
+  SalesUser,
   GetUsersParams,
   GetUsersResponse,
   SearchUsersParams,
@@ -74,6 +75,12 @@ export async function searchUsers(
 export async function getUserCompanies(): Promise<ApiResponse<string[]>> {
   const res = await api.get('/api/user/companies')
   return res.data
+}
+
+export async function getSalesUsers(): Promise<SalesUser[]> {
+  const res = await api.get<ApiResponse<SalesUser[]>>('/api/user/sales')
+  requireServerSuccess(res.data)
+  return res.data.data ?? []
 }
 
 /**
