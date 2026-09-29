@@ -453,7 +453,7 @@ export function useCommonLogsColumns(
           return value.includes(String(row.original.type))
         },
         enableHiding: false,
-        size: 155,
+        size: 145,
       },
     ]
 
@@ -461,6 +461,7 @@ export function useCommonLogsColumns(
       columns.push({
         id: 'user',
         header: t('User'),
+        size: 140,
         accessorFn: (row) => row.username,
         cell: function UserCell({ row }) {
           const { sensitiveVisible } = useUsageLogsContext()
@@ -674,6 +675,7 @@ export function useCommonLogsColumns(
             </div>
           )
         },
+        size: 165,
       },
 
       {
