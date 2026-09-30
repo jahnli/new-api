@@ -38,7 +38,7 @@ export function DeploymentsTable() {
   const queryClient = useQueryClient()
   const isMobile = useMediaQuery('(max-width: 640px)')
 
-  // URL state (use dedicated keys so it won't collide with metadata table)
+  // Filters use dedicated URL keys; pagination stays in memory.
   const {
     globalFilter,
     onGlobalFilterChange,
@@ -51,9 +51,7 @@ export function DeploymentsTable() {
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: {
-      pageKey: 'dPage',
-      pageSizeKey: 'dPageSize',
-      pageSizeStorageKey: 'page-size:deployments',
+      mode: 'memory',
       defaultPage: 1,
       defaultPageSize: isMobile ? 8 : 10,
     },

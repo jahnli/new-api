@@ -61,9 +61,7 @@ export function VendorsTable() {
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: {
-      pageKey: 'vPage',
-      pageSizeKey: 'vPageSize',
-      pageSizeStorageKey: 'page-size:vendors',
+      mode: 'memory',
       defaultPageSize: 20,
     },
     globalFilter: { enabled: true, key: 'vFilter' },
@@ -166,7 +164,7 @@ export function VendorsTable() {
             void navigate({
               to: '/models/$section',
               params: { section: 'metadata' },
-              search: { vendor: [String(row.original.id)], page: 1 },
+              search: { vendor: [String(row.original.id)] },
             })
           }
         >

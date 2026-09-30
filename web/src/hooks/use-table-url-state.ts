@@ -40,6 +40,7 @@ type UseTableUrlStateParams = {
   search: SearchRecord
   navigate: NavigateFn
   pagination?: {
+    mode?: 'url' | 'memory'
     pageKey?: string
     pageSizeKey?: string
     pageSizeStorageKey?: string
@@ -104,6 +105,13 @@ export function useTableUrlState(
     paginationCfg?.pageSizeStorageKey ?? DEFAULT_PAGE_SIZE_STORAGE_KEY
   const defaultPage = paginationCfg?.defaultPage ?? 1
   const defaultPageSize = paginationCfg?.defaultPageSize ?? 20
+  const memoryPagination = paginationCfg?.mode === 'memory'
+  const [localPagination, setLocalPagination] = useState<PaginationState>(
+    () => ({
+      pageIndex: Math.max(0, defaultPage - 1),
+      pageSize: defaultPageSize,
+    })
+  )
 
   const globalFilterKey = globalFilterCfg?.key ?? ('filter' as string)
   const globalFilterEnabled = globalFilterCfg?.enabled ?? true
@@ -141,6 +149,7 @@ export function useTableUrlState(
   }, [search])
 
   const pagination: PaginationState = useMemo(() => {
+    if (memoryPagination) return localPagination
     const rawPage = (search as SearchRecord)[pageKey]
     const rawPageSize = (search as SearchRecord)[pageSizeKey]
     const pageNum = typeof rawPage === 'number' ? rawPage : defaultPage
@@ -150,6 +159,8 @@ export function useTableUrlState(
         : (getStoredPageSize(pageSizeStorageKey) ?? defaultPageSize)
     return { pageIndex: Math.max(0, pageNum - 1), pageSize: pageSizeNum }
   }, [
+    memoryPagination,
+    localPagination,
     search,
     pageKey,
     pageSizeKey,
@@ -159,6 +170,10 @@ export function useTableUrlState(
   ])
 
   const onPaginationChange: OnChangeFn<PaginationState> = (updater) => {
+    if (memoryPagination) {
+      setLocalPagination(updater)
+      return
+    }
     const next = typeof updater === 'function' ? updater(pagination) : updater
     const nextPage = next.pageIndex + 1
     const nextPageSize = next.pageSize
@@ -189,10 +204,16 @@ export function useTableUrlState(
               : updater
           const value = trimGlobal ? next.trim() : next
           setGlobalFilter(value)
+          if (memoryPagination) {
+            setLocalPagination((previous) => ({
+              ...previous,
+              pageIndex: Math.max(0, defaultPage - 1),
+            }))
+          }
           navigate({
             search: (prev) => ({
               ...(prev as SearchRecord),
-              [pageKey]: undefined,
+              ...(memoryPagination ? {} : { [pageKey]: undefined }),
               [globalFilterKey]: value ? value : undefined,
             }),
           })
@@ -203,6 +224,12 @@ export function useTableUrlState(
     const next =
       typeof updater === 'function' ? updater(columnFilters) : updater
     setColumnFilters(next)
+    if (memoryPagination) {
+      setLocalPagination((previous) => ({
+        ...previous,
+        pageIndex: Math.max(0, defaultPage - 1),
+      }))
+    }
 
     const patch: Record<string, unknown> = {}
 
@@ -223,7 +250,7 @@ export function useTableUrlState(
     navigate({
       search: (prev) => ({
         ...(prev as SearchRecord),
-        [pageKey]: undefined,
+        ...(memoryPagination ? {} : { [pageKey]: undefined }),
         ...patch,
       }),
     })
@@ -233,6 +260,15 @@ export function useTableUrlState(
     pageCount: number,
     opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
   ) => {
+    if (memoryPagination) {
+      if (pageCount > 0 && pagination.pageIndex >= pageCount) {
+        setLocalPagination((previous) => ({
+          ...previous,
+          pageIndex: opts.resetTo === 'last' ? pageCount - 1 : 0,
+        }))
+      }
+      return
+    }
     const currentPage = (search as SearchRecord)[pageKey]
     const pageNum = typeof currentPage === 'number' ? currentPage : defaultPage
     if (pageCount > 0 && pageNum > pageCount) {

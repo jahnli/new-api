@@ -80,7 +80,7 @@ export function ChannelsTable() {
   // Table state
   const [sorting, setSorting] = useState<SortingState>([])
 
-  // URL state management
+  // Filters use the URL; pagination stays in memory.
   const {
     globalFilter,
     onGlobalFilterChange,
@@ -93,9 +93,9 @@ export function ChannelsTable() {
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: {
-      pageSizeStorageKey: 'page-size:channels',
+      mode: 'memory',
       defaultPage: 1,
-      defaultPageSize: isMobile ? 10 : 50,
+      defaultPageSize: 50,
     },
     globalFilter: { enabled: true, key: 'filter' },
     columnFilters: [

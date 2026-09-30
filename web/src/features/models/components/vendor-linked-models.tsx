@@ -173,7 +173,7 @@ export function VendorLinkedModels({
               void navigate({
                 to: '/models/$section',
                 params: { section: 'metadata' },
-                search: { vendor: [String(vendor.id)], page: 1 },
+                search: { vendor: [String(vendor.id)] },
               })
             })
           }}

@@ -43,7 +43,7 @@ export function ModelsTable() {
   const { selectedVendor } = useModels()
   const isMobile = useMediaQuery('(max-width: 640px)')
 
-  // URL state management
+  // Filters use the URL; pagination stays in memory.
   const {
     globalFilter,
     onGlobalFilterChange,
@@ -56,7 +56,7 @@ export function ModelsTable() {
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: {
-      pageSizeStorageKey: 'page-size:models',
+      mode: 'memory',
       defaultPage: 1,
       defaultPageSize: isMobile ? 10 : DEFAULT_PAGE_SIZE,
     },
