@@ -43,14 +43,17 @@ export function AuditLogViewer(props: {
   scope: 'all' | 'self'
   accessOnly?: boolean
   currentTokenRef?: string
+  // The token scope the viewer opens with and returns to on reset.
+  defaultTokenScope?: 'all' | 'current'
   onAccessDenied?: () => Promise<void>
   search?: AuditSearchState
   navigate?: NavigateFn
 }) {
   const { t } = useTranslation()
   const userId = useAuthStore((state) => state.auth.user?.id)
+  const defaultTokenScope = props.defaultTokenScope ?? 'all'
   const [localSearch, setLocalSearch] = useState<AuditSearchState>({})
-  const [tokenScope, setTokenScope] = useState('all')
+  const [tokenScope, setTokenScope] = useState<string>(defaultTokenScope)
   const localNavigate = useCallback<NavigateFn>((options) => {
     setLocalSearch((previous) => {
       if (options.search === true) return previous
@@ -172,7 +175,7 @@ export function AuditLogViewer(props: {
   )
 
   const reset = useCallback(() => {
-    setTokenScope('all')
+    setTokenScope(defaultTokenScope)
     navigate({
       search: (previous) => ({
         ...previous,
@@ -186,7 +189,7 @@ export function AuditLogViewer(props: {
         auditRequestId: undefined,
       }),
     })
-  }, [navigate])
+  }, [defaultTokenScope, navigate])
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
@@ -213,6 +216,7 @@ export function AuditLogViewer(props: {
               scope={props.scope}
               accessOnly={props.accessOnly}
               tokenScope={tokenScope}
+              defaultTokenScope={defaultTokenScope}
               currentTokenRef={props.currentTokenRef}
               onTokenScopeChange={(value) => {
                 setTokenScope(value)

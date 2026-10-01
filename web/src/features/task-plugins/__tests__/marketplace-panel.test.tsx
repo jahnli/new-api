@@ -81,6 +81,10 @@ function renderPanel(): QueryClient {
   return queryClient
 }
 
+function requestedUrls(fetchMock: ReturnType<typeof vi.fn>): string[] {
+  return fetchMock.mock.calls.map(([input]) => String(input))
+}
+
 function installIndexFetchMock() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input)
@@ -118,8 +122,8 @@ describe('MarketplacePanel source switch', () => {
       'aria-pressed',
       'true'
     )
-    expect(fetchMock).toHaveBeenCalledWith(DEFAULT_MARKETPLACE_INDEX_URL)
-    expect(fetchMock).not.toHaveBeenCalledWith(GITHUB_MARKETPLACE_INDEX_URL)
+    expect(requestedUrls(fetchMock)).toContain(DEFAULT_MARKETPLACE_INDEX_URL)
+    expect(requestedUrls(fetchMock)).not.toContain(GITHUB_MARKETPLACE_INDEX_URL)
   })
 
   test('loads GitHub only after the administrator switches to it', async () => {
@@ -128,7 +132,7 @@ describe('MarketplacePanel source switch', () => {
     renderPanel()
     await screen.findByRole('heading', { name: 'Official Plugins' })
 
-    expect(fetchMock).not.toHaveBeenCalledWith(GITHUB_MARKETPLACE_INDEX_URL)
+    expect(requestedUrls(fetchMock)).not.toContain(GITHUB_MARKETPLACE_INDEX_URL)
 
     await user.click(screen.getByRole('button', { name: 'GitHub' }))
 
@@ -142,7 +146,7 @@ describe('MarketplacePanel source switch', () => {
       'aria-pressed',
       'true'
     )
-    expect(fetchMock).toHaveBeenCalledWith(GITHUB_MARKETPLACE_INDEX_URL)
+    expect(requestedUrls(fetchMock)).toContain(GITHUB_MARKETPLACE_INDEX_URL)
   })
 
   test('does not request GitHub automatically when the official source fails', async () => {
@@ -159,7 +163,28 @@ describe('MarketplacePanel source switch', () => {
     expect(
       await screen.findByText('Could not load this source')
     ).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledWith(DEFAULT_MARKETPLACE_INDEX_URL)
-    expect(fetchMock).not.toHaveBeenCalledWith(GITHUB_MARKETPLACE_INDEX_URL)
+    expect(requestedUrls(fetchMock)).toContain(DEFAULT_MARKETPLACE_INDEX_URL)
+    expect(requestedUrls(fetchMock)).not.toContain(GITHUB_MARKETPLACE_INDEX_URL)
+  })
+
+  test('revalidates the index instead of reusing a stale browser-cached copy', async () => {
+    const staleIndex: MarketplaceIndex = { ...officialIndex, name: 'Stale' }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const revalidated = ['no-cache', 'no-store', 'reload'].includes(
+          init?.cache ?? 'default'
+        )
+        return new Response(
+          JSON.stringify(revalidated ? officialIndex : staleIndex),
+          { status: 200 }
+        )
+      })
+    )
+    renderPanel()
+
+    expect(
+      await screen.findByRole('heading', { name: officialIndex.name })
+    ).toBeInTheDocument()
   })
 })

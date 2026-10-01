@@ -13,7 +13,7 @@ DO NOT send optional commentary
 - **数据库**: 主库 SQLite、MySQL、PostgreSQL（三者必须同时支持）；独立配置的日志库还支持 ClickHouse
 - **缓存**: Redis (go-redis) + 内存缓存
 - **认证**: 浏览器会话、API Token 与个人访问令牌、JWT、WebAuthn/Passkeys、TOTP、OAuth/OIDC（当前保留 OIDC、微信）；`service/authz/` 中的 Casbin 授权
-- **扩展**: 由 Sobek 执行的 JavaScript 任务插件；Electron 桌面壳
+- **扩展**: 由 moejs 执行的 JavaScript 任务插件；Electron 桌面壳
 - **前端包管理器**: Bun（优先于 npm/yarn/pnpm）
 
 ## 架构
