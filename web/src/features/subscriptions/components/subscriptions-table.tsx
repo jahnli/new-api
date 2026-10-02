@@ -9,7 +9,7 @@ import { getAdminPlans } from '../api'
 import { useSubscriptionsColumns } from './subscriptions-columns'
 import { useSubscriptions } from './subscriptions-provider'
 
-export function SubscriptionsTable() {
+export function SubscriptionsTable(props: { active: boolean }) {
   const { t } = useTranslation()
   const columns = useSubscriptionsColumns()
   const { refreshTrigger } = useSubscriptions()
@@ -42,6 +42,7 @@ export function SubscriptionsTable() {
         'Click "Create Plan" to create your first subscription plan'
       )}
       skeletonKeyPrefix='subscriptions-skeleton'
+      showPagination={props.active}
       applyHeaderSize
     />
   )

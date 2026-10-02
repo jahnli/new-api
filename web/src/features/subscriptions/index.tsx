@@ -27,19 +27,25 @@ function SubscriptionsContent() {
           {t('Subscription Management')}
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
-          {activeTab === 'plans' ? (
-            <div className='flex items-center gap-2'>
-              <Alert variant='default' className='hidden px-3 py-2 sm:flex'>
-                <Info className='h-4 w-4' />
-                <AlertDescription className='text-xs'>
-                  {t(
-                    'Stripe/Creem requires creating products on the third-party platform and entering the ID'
-                  )}
-                </AlertDescription>
-              </Alert>
-              <SubscriptionsPrimaryButtons />
-            </div>
-          ) : null}
+          <div
+            inert={activeTab !== 'plans'}
+            aria-hidden={activeTab !== 'plans'}
+            className={
+              activeTab === 'plans'
+                ? 'flex items-center gap-2'
+                : 'invisible flex items-center gap-2'
+            }
+          >
+            <Alert variant='default' className='hidden px-3 py-2 sm:flex'>
+              <Info className='h-4 w-4' />
+              <AlertDescription className='text-xs'>
+                {t(
+                  'Stripe/Creem requires creating products on the third-party platform and entering the ID'
+                )}
+              </AlertDescription>
+            </Alert>
+            <SubscriptionsPrimaryButtons />
+          </div>
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           <Tabs
@@ -53,7 +59,11 @@ function SubscriptionsContent() {
                 {t('Quota policy')}
               </TabsTrigger>
             </TabsList>
-            <TabsContent value='plans' className='flex min-h-0 flex-col gap-4'>
+            <TabsContent
+              value='plans'
+              keepMounted
+              className='flex min-h-0 flex-col gap-4 data-hidden:hidden'
+            >
               {!complianceConfirmed ? (
                 <Alert variant='destructive' className='shrink-0'>
                   <AlertDescription>
@@ -64,12 +74,13 @@ function SubscriptionsContent() {
                 </Alert>
               ) : null}
               <div className='min-h-0 flex-1'>
-                <SubscriptionsTable />
+                <SubscriptionsTable active={activeTab === 'plans'} />
               </div>
             </TabsContent>
             <TabsContent
               value='quota-policy'
-              className='min-h-0 overflow-y-auto'
+              keepMounted
+              className='min-h-0 overflow-y-auto data-hidden:hidden'
             >
               <PremiumPolicySettings />
             </TabsContent>
