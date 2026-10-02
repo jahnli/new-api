@@ -2168,6 +2168,7 @@
     "Drawing task polling": "绘图任务轮询",
     "Drawing task records": "绘图任务记录",
     "Drop a JavaScript plugin file here": "将 JavaScript 插件文件拖放到此处",
+    "Drop images to insert": "松开即可插入图片",
     "Dry run result": "干跑结果",
     "Duplicate": "重复",
     "Duplicate group names: {{names}}": "存在重复的分组名称：{{names}}",

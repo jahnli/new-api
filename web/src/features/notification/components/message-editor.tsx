@@ -52,6 +52,7 @@ export function MessageEditor(props: Props) {
     end: props.message.content.length,
   })
   const fileInput = useRef<HTMLInputElement>(null)
+  const dragDepth = useRef(0)
   const processing = useRef(false)
   const mounted = useRef(true)
   useEffect(() => {
@@ -61,6 +62,7 @@ export function MessageEditor(props: Props) {
     }
   }, [])
   const [uploading, setUploading] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
   const [urlDialog, setUrlDialog] = useState<'link' | 'image' | null>(null)
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
@@ -391,7 +393,36 @@ export function MessageEditor(props: Props) {
           className='min-h-[420px]'
         >
           <ResizablePanel id='editor' minSize='25%'>
-            <div className='flex h-full min-h-[320px] flex-col'>
+            <div
+              className='relative flex h-full min-h-[420px] flex-col'
+              onDragEnter={(event) => {
+                if (!event.dataTransfer.types.includes('Files')) return
+                event.preventDefault()
+                if (processing.current) return
+                dragDepth.current += 1
+                setDragActive(true)
+              }}
+              onDragLeave={() => {
+                dragDepth.current = Math.max(0, dragDepth.current - 1)
+                if (dragDepth.current === 0) setDragActive(false)
+              }}
+              onDragOver={(event) => {
+                if (!event.dataTransfer.types.includes('Files')) return
+                event.preventDefault()
+                event.dataTransfer.dropEffect = processing.current
+                  ? 'none'
+                  : 'copy'
+              }}
+              onDrop={(event) => {
+                if (!event.dataTransfer.types.includes('Files')) return
+                event.preventDefault()
+                event.stopPropagation()
+                dragDepth.current = 0
+                setDragActive(false)
+                if (processing.current) return
+                void addImages([...event.dataTransfer.files])
+              }}
+            >
               <div className='text-muted-foreground px-4 pt-3 text-xs font-medium'>
                 Markdown
               </div>
@@ -419,27 +450,7 @@ export function MessageEditor(props: Props) {
                 }}
                 onChange={(event) => props.onChange(event.target.value)}
                 placeholder={t('Write your message.')}
-                className='min-h-[350px] flex-1 resize-none rounded-none border-0 bg-transparent p-4 font-mono text-sm shadow-none focus-visible:ring-0'
-                onDragOver={(event) => {
-                  if (!event.dataTransfer.types.includes('Files')) return
-                  event.preventDefault()
-                  const blocked =
-                    processing.current ||
-                    event.currentTarget.matches(':disabled')
-                  event.dataTransfer.dropEffect = blocked ? 'none' : 'copy'
-                }}
-                onDrop={(event) => {
-                  if (!event.dataTransfer.types.includes('Files')) return
-                  event.preventDefault()
-                  event.stopPropagation()
-                  if (
-                    processing.current ||
-                    event.currentTarget.matches(':disabled')
-                  ) {
-                    return
-                  }
-                  void addImages([...event.dataTransfer.files])
-                }}
+                className='max-h-none min-h-[350px] flex-1 resize-none rounded-none border-0 bg-transparent p-4 font-mono text-sm shadow-none focus-visible:ring-0'
                 onPaste={(event) => {
                   const files = [...event.clipboardData.files].filter((file) =>
                     file.type.startsWith('image/')
@@ -450,6 +461,19 @@ export function MessageEditor(props: Props) {
                   }
                 }}
               />
+              {dragActive && !uploading && (
+                <div
+                  role='status'
+                  className='border-primary bg-background/90 pointer-events-none absolute inset-2 z-10 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-4 text-center'
+                >
+                  <div className='bg-primary/10 text-primary flex size-12 items-center justify-center rounded-full'>
+                    <ImagePlus className='size-6' aria-hidden='true' />
+                  </div>
+                  <p className='text-primary text-sm font-medium'>
+                    {t('Drop images to insert')}
+                  </p>
+                </div>
+              )}
             </div>
           </ResizablePanel>
           {preview && (
