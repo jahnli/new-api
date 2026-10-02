@@ -25,7 +25,6 @@ import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
-import { Switch } from '@/components/ui/switch'
 import { hasPermission } from '@/lib/admin-permissions'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -61,7 +60,6 @@ export function Notifications() {
     kind?: LibraryKind
   } | null>(null)
   const [saveName, setSaveName] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
   const [sourceTemplate, setSourceTemplate] =
     useState<SavedNotification | null>(null)
   const form = useForm<NotificationMessage>({
@@ -78,7 +76,6 @@ export function Notifications() {
       id?: number
       name: string
       message: NotificationMessage
-      is_public: boolean
     }) => saveLibrary('templates', value),
     onSuccess: (entry, submitted) => {
       setSourceTemplate(entry)
@@ -166,21 +163,17 @@ export function Notifications() {
   const openSave = () => {
     setSaveOpen(true)
     setSaveName((sourceTemplate?.name || message.title || '').slice(0, 128))
-    setIsPublic(Boolean(config.data?.can_send && sourceTemplate?.is_public))
   }
 
   const save = () => {
     const value = structuredClone(form.getValues())
     const canUpdate =
       sourceTemplate &&
-      (sourceTemplate.is_public
-        ? config.data?.can_send
-        : sourceTemplate.user_id === user?.id)
+      (config.data?.can_send || sourceTemplate.user_id === user?.id)
     templateMutation.mutate({
       id: canUpdate ? sourceTemplate.id : undefined,
       name: saveName.trim(),
       message: value,
-      is_public: Boolean(config.data?.can_send && isPublic),
     })
   }
 
@@ -390,7 +383,6 @@ export function Notifications() {
               form.reset(structuredClone(EMPTY_MESSAGE))
               setSourceTemplate(null)
               setSaveName('')
-              setIsPublic(false)
               setRevision((value) => value + 1)
               setPendingSend(null)
             }}
@@ -437,18 +429,6 @@ export function Notifications() {
                 onChange={(event) => setSaveName(event.target.value)}
               />
             </div>
-            {config.data?.can_send && (
-              <div className='flex items-center justify-between'>
-                <Label htmlFor='notification-public'>
-                  {t('Public template')}
-                </Label>
-                <Switch
-                  id='notification-public'
-                  checked={isPublic}
-                  onCheckedChange={setIsPublic}
-                />
-              </div>
-            )}
           </div>
         </Dialog>
       </SectionPageLayout.Content>

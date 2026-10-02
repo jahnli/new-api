@@ -95,7 +95,7 @@ type NotificationSavedMessage struct {
 	Name       string          `json:"name" gorm:"size:128"`
 	Channel    string          `json:"channel" gorm:"size:16"`
 	Summary    string          `json:"summary" gorm:"type:text"`
-	IsPublic   bool            `json:"is_public"`
+	IsPublic   bool            `json:"-"` // Legacy column; templates are always shared.
 	StorageKey string          `json:"-" gorm:"size:128;index"`
 	CreatedAt  time.Time       `json:"created_at"`
 	UpdatedAt  time.Time       `json:"updated_at"`
@@ -571,24 +571,18 @@ func FinishDirectNotification(id int, claim string) error {
 	})
 }
 
-func ListNotificationSaved(kind string, userID, page, pageSize int, keyword, scope string) ([]NotificationSavedMessage, int64, error) {
+// The final argument is retained for existing callers; template scope is ignored.
+func ListNotificationSaved(kind string, userID, page, pageSize int, keyword, _ string) ([]NotificationSavedMessage, int64, error) {
 	if kind != "template" && kind != "draft" {
 		return nil, 0, errors.New("unsupported notification library kind")
 	}
 	items := make([]NotificationSavedMessage, 0)
 	query := DB.Where("kind = ?", kind)
-	if kind == "template" {
-		query = query.Where("owner_id = ? OR is_public = ?", userID, true)
-	} else {
+	if kind == "draft" {
 		query = query.Where("owner_id = ?", userID)
 	}
 	if keyword != "" {
 		query = query.Where("name LIKE ? OR summary LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
-	}
-	if scope == "public" {
-		query = query.Where("is_public = ?", true)
-	} else if scope == "personal" {
-		query = query.Where("is_public = ? AND owner_id = ?", false, userID)
 	}
 	var total int64
 	if err := query.Model(&NotificationSavedMessage{}).Count(&total).Error; err != nil {
@@ -606,9 +600,7 @@ func GetNotificationSaved(id int, kind string, userID int) (*NotificationSavedMe
 	}
 	var item NotificationSavedMessage
 	query := DB.Where("id = ? AND kind = ?", id, kind)
-	if kind == "template" {
-		query = query.Where("owner_id = ? OR is_public = ?", userID, true)
-	} else {
+	if kind == "draft" {
 		query = query.Where("owner_id = ?", userID)
 	}
 	if err := query.First(&item).Error; err != nil {
@@ -632,10 +624,8 @@ func SaveNotificationMessage(ctx context.Context, item *NotificationSavedMessage
 	// predicate is checked again under lock when committing the replacement.
 	if item.ID != 0 {
 		query := DB.WithContext(ctx).Where("id = ? AND kind = ?", item.ID, item.Kind)
-		if admin && item.Kind == "template" {
-			query = query.Where("owner_id = ? OR is_public = ?", userID, true)
-		} else {
-			query = query.Where("owner_id = ? AND is_public = ?", userID, false)
+		if !admin || item.Kind != "template" {
+			query = query.Where("owner_id = ?", userID)
 		}
 		var existing NotificationSavedMessage
 		if err := query.First(&existing).Error; err != nil {
@@ -657,17 +647,15 @@ func SaveNotificationMessage(ctx context.Context, item *NotificationSavedMessage
 		} else {
 			var existing NotificationSavedMessage
 			query := lockForUpdate(tx).Where("id = ? AND kind = ?", item.ID, item.Kind)
-			if admin && item.Kind == "template" {
-				query = query.Where("owner_id = ? OR is_public = ?", userID, true)
-			} else {
-				query = query.Where("owner_id = ? AND is_public = ?", userID, false)
+			if !admin || item.Kind != "template" {
+				query = query.Where("owner_id = ?", userID)
 			}
 			if err := query.First(&existing).Error; err != nil {
 				return err
 			}
 			item.OwnerID, item.CreatedAt = existing.OwnerID, existing.CreatedAt
 			oldKey = existing.StorageKey
-			if err := tx.Model(&existing).Updates(map[string]any{"name": item.Name, "is_public": item.IsPublic, "channel": item.Channel, "summary": item.Summary, "storage_key": item.StorageKey}).Error; err != nil {
+			if err := tx.Model(&existing).Updates(map[string]any{"name": item.Name, "channel": item.Channel, "summary": item.Summary, "storage_key": item.StorageKey}).Error; err != nil {
 				return err
 			}
 			item.UpdatedAt = existing.UpdatedAt
@@ -682,10 +670,8 @@ func DeleteNotificationSaved(id int, kind string, userID int, admin bool) error 
 	}
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		query := tx.Where("id = ? AND kind = ?", id, kind)
-		if admin && kind == "template" {
-			query = query.Where("owner_id = ? OR is_public = ?", userID, true)
-		} else {
-			query = query.Where("owner_id = ? AND is_public = ?", userID, false)
+		if !admin || kind != "template" {
+			query = query.Where("owner_id = ?", userID)
 		}
 		result := query.Model(&NotificationSavedMessage{}).Updates(map[string]any{"kind": notificationStorageCleanup, "claim": "", "lease_until": 0})
 		if result.Error != nil {

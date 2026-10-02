@@ -78,7 +78,6 @@ export interface SavedNotification {
   name: string
   message: NotificationMessage
   updated_at: number | string
-  is_public?: boolean
   user_id?: number
 }
 
@@ -111,7 +110,6 @@ export interface LibraryFilters {
   page: number
   page_size: number
   keyword?: string
-  scope?: 'all' | 'personal' | 'public'
 }
 
 export const EMPTY_MESSAGE: NotificationMessage = {

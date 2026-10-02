@@ -366,7 +366,7 @@ func ListNotificationSaved(c *gin.Context) {
 	if !ok {
 		return
 	}
-	items, total, err := model.ListNotificationSaved("template", c.GetInt("id"), filter.Page, filter.PageSize, filter.Keyword, c.Query("scope"))
+	items, total, err := model.ListNotificationSaved("template", c.GetInt("id"), filter.Page, filter.PageSize, filter.Keyword, "")
 	if err != nil {
 		notificationError(c, err)
 		return
@@ -389,9 +389,8 @@ func GetNotificationSaved(c *gin.Context) {
 
 func SaveNotificationMessage(c *gin.Context) {
 	var request struct {
-		Name     string                      `json:"name"`
-		Message  service.NotificationMessage `json:"message"`
-		IsPublic bool                        `json:"is_public"`
+		Name    string                      `json:"name"`
+		Message service.NotificationMessage `json:"message"`
 	}
 	if !notificationBind(c, &request) {
 		return
@@ -399,10 +398,6 @@ func SaveNotificationMessage(c *gin.Context) {
 	request.Name = strings.TrimSpace(request.Name)
 	if request.Name == "" || utf8.RuneCountInString(request.Name) > 128 {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "name must contain between 1 and 128 characters"})
-		return
-	}
-	if request.IsPublic && !notificationCanSend(c) {
-		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "only administrators may publish templates"})
 		return
 	}
 	if request.Message.Channel != "email" {
@@ -417,7 +412,7 @@ func SaveNotificationMessage(c *gin.Context) {
 		return
 	}
 	contentRunes := []rune(strings.Join(strings.Fields(request.Message.Content), " "))
-	item := model.NotificationSavedMessage{Kind: "template", Name: request.Name, IsPublic: request.IsPublic, Channel: request.Message.Channel, Summary: string(contentRunes[:min(len(contentRunes), 200)])}
+	item := model.NotificationSavedMessage{Kind: "template", Name: request.Name, Channel: request.Message.Channel, Summary: string(contentRunes[:min(len(contentRunes), 200)])}
 	if c.Param("id") != "" {
 		id, ok := notificationID(c)
 		if !ok {

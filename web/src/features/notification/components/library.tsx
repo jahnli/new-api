@@ -1,20 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileText, Pencil, Plus, Trash2 } from 'lucide-react'
+import { FileText, Pencil, Plus, Trash2, WandSparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { StaticDataTable } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
-import { Switch } from '@/components/ui/switch'
 import { toIntlLocale } from '@/i18n/languages'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -26,13 +24,15 @@ import {
   notificationKeys,
   saveLibrary,
 } from '../api'
-import { notificationDate } from '../lib/message'
+import { formatNotificationTitle, notificationDate } from '../lib/message'
 import type {
   LibraryFilters,
   LibraryKind,
   SavedNotification,
   SavedNotificationSummary,
 } from '../types'
+import { MessageContent } from './message-content'
+import { MessageEditor } from './message-editor'
 
 export function NotificationLibrary(props: {
   kind: LibraryKind
@@ -48,15 +48,24 @@ export function NotificationLibrary(props: {
     page: 1,
     page_size: 20,
     keyword: '',
-    scope: 'all',
   })
   const [editing, setEditing] = useState<SavedNotification | null>(null)
+  const [processingImages, setProcessingImages] = useState(false)
+  const [previewId, setPreviewId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<SavedNotificationSummary | null>(
     null
   )
   const query = useQuery({
     queryKey: notificationKeys.libraryPage(props.kind, filters),
     queryFn: () => getLibrary(props.kind, filters),
+  })
+  const preview = useQuery({
+    queryKey: [...notificationKeys.library(props.kind), 'preview', previewId],
+    queryFn: () => {
+      if (previewId === null) throw new Error('No template selected')
+      return getLibraryEntry(props.kind, previewId)
+    },
+    enabled: previewId !== null,
   })
   useEffect(() => {
     const timeout = window.setTimeout(
@@ -83,11 +92,7 @@ export function NotificationLibrary(props: {
     },
   })
   const update = useMutation({
-    mutationFn: (entry: SavedNotification) =>
-      saveLibrary(props.kind, {
-        ...entry,
-        is_public: Boolean(config.data?.can_send && entry.is_public),
-      }),
+    mutationFn: (entry: SavedNotification) => saveLibrary(props.kind, entry),
     onSuccess: () => {
       setEditing(null)
       void client.invalidateQueries({
@@ -139,42 +144,70 @@ export function NotificationLibrary(props: {
           description={t('Save a message to keep it here for next time.')}
         />
       )}
-      <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-        {items.map((entry) => {
-          const canEdit = entry.is_public
-            ? config.data?.can_send
-            : entry.user_id === userId
-          return (
-            <Card
-              key={entry.id}
-              className='gap-0 overflow-hidden shadow-none transition-shadow hover:shadow-md'
-            >
-              <CardContent className='space-y-4 pt-5'>
-                <div className='flex items-center gap-2'>
-                  <div className='bg-primary/10 text-primary rounded-lg p-2'>
-                    <FileText className='size-4' />
-                  </div>
-                  <Badge variant='outline'>{entry.channel}</Badge>
-                </div>
-                <div>
-                  <h3 className='truncate font-semibold'>{entry.name}</h3>
-                  <p className='text-muted-foreground mt-2 line-clamp-3 min-h-15 text-sm'>
-                    {entry.summary}
-                  </p>
-                </div>
-                <p className='text-muted-foreground text-xs'>
-                  {notificationDate(entry.updated_at, locale)}
-                </p>
-                <div className='flex items-center gap-1 border-t pt-3'>
+      {query.isSuccess && items.length > 0 && (
+        <StaticDataTable
+          data={items}
+          getRowKey={(entry) => entry.id}
+          tableClassName='min-w-[960px] table-fixed'
+          columns={[
+            {
+              id: 'name',
+              header: t('Name'),
+              className: 'w-[250px]',
+              cellClassName: 'max-w-[250px] font-medium',
+              cell: (entry) => entry.name,
+            },
+            {
+              id: 'summary',
+              header: t('Content'),
+              cellClassName: 'text-muted-foreground',
+              cell: (entry) => (
+                <Button
+                  variant='ghost'
+                  className='hover:text-foreground h-auto w-full min-w-0 justify-start px-0 py-1 text-left font-normal'
+                  aria-label={`${t('Preview')}: ${entry.name}`}
+                  onClick={() => setPreviewId(entry.id)}
+                >
+                  <span className='truncate'>{entry.summary || '—'}</span>
+                </Button>
+              ),
+            },
+            {
+              id: 'channel',
+              header: t('Channel'),
+              className: 'w-[120px] px-[18px]',
+              cellClassName: 'px-[18px]',
+              cell: (entry) =>
+                ({
+                  feishu: t('Feishu'),
+                  dingtalk: t('DingTalk'),
+                  email: t('Email'),
+                })[entry.channel],
+            },
+            {
+              id: 'updated_at',
+              header: t('Updated At'),
+              className: 'w-[210px] px-[18px] whitespace-nowrap',
+              cellClassName: 'px-[18px] whitespace-nowrap',
+              cell: (entry) => notificationDate(entry.updated_at, locale),
+            },
+            {
+              id: 'actions',
+              header: t('Actions'),
+              className: 'w-[190px] px-[18px] whitespace-nowrap',
+              cellClassName: 'px-[18px]',
+              cell: (entry) => (
+                <div className='flex items-center gap-1'>
                   <Button
-                    variant='outline'
-                    size='sm'
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label={t('Use template')}
                     disabled={load.isPending}
                     onClick={() => load.mutate({ id: entry.id, edit: false })}
                   >
-                    {t('Use template')}
+                    <WandSparkles className='size-4' aria-hidden='true' />
                   </Button>
-                  {canEdit && (
+                  {(config.data?.can_send || entry.user_id === userId) && (
                     <>
                       <Button
                         variant='ghost'
@@ -185,25 +218,25 @@ export function NotificationLibrary(props: {
                           load.mutate({ id: entry.id, edit: true })
                         }
                       >
-                        <Pencil className='size-4' />
+                        <Pencil className='size-4' aria-hidden='true' />
                       </Button>
                       <Button
                         variant='ghost'
                         size='icon-sm'
                         aria-label={t('Delete')}
-                        className='text-muted-foreground hover:text-destructive ml-auto'
+                        className='text-muted-foreground hover:text-destructive'
                         onClick={() => setDeleting(entry)}
                       >
-                        <Trash2 className='size-4' />
+                        <Trash2 className='size-4' aria-hidden='true' />
                       </Button>
                     </>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+              ),
+            },
+          ]}
+        />
+      )}
       <div className='flex justify-end gap-2'>
         <Button
           variant='outline'
@@ -226,14 +259,44 @@ export function NotificationLibrary(props: {
         </Button>
       </div>
       <Dialog
+        open={previewId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPreviewId(null)
+        }}
+        title={t('Preview')}
+        description={preview.data?.name}
+        contentClassName='sm:max-w-4xl'
+        contentHeight='min(70vh, 720px)'
+      >
+        {preview.isPending && (
+          <div className='flex justify-center p-16'>
+            <Spinner />
+          </div>
+        )}
+        {preview.isError && (
+          <ErrorState onRetry={() => void preview.refetch()} />
+        )}
+        {preview.isSuccess && (
+          <div className='space-y-4'>
+            <h3 className='text-lg font-semibold break-words'>
+              {formatNotificationTitle(preview.data.message)}
+            </h3>
+            <MessageContent message={preview.data.message} />
+          </div>
+        )}
+      </Dialog>
+      <Dialog
         open={editing !== null}
         onOpenChange={(open) => {
-          if (!open) setEditing(null)
+          if (!open && !processingImages && !update.isPending) setEditing(null)
         }}
         title={t('Edit')}
+        contentClassName='sm:max-w-6xl'
         footer={
           <Button
-            disabled={!editing?.name.trim() || update.isPending}
+            disabled={
+              !editing?.name.trim() || processingImages || update.isPending
+            }
             onClick={() => {
               if (editing) update.mutate(editing)
             }}
@@ -243,7 +306,7 @@ export function NotificationLibrary(props: {
         }
       >
         {editing && (
-          <div className='space-y-5'>
+          <fieldset disabled={update.isPending} className='min-w-0 space-y-5'>
             <div className='space-y-2'>
               <Label htmlFor='library-name'>{t('Name')}</Label>
               <Input
@@ -255,28 +318,25 @@ export function NotificationLibrary(props: {
                 }
               />
             </div>
-            {config.data?.can_send && (
-              <div className='flex items-center justify-between'>
-                <Label htmlFor='library-public'>{t('Public template')}</Label>
-                <Switch
-                  id='library-public'
-                  checked={editing.is_public ?? false}
-                  onCheckedChange={(checked) =>
-                    setEditing({ ...editing, is_public: checked })
+            <MessageEditor
+              key={editing.id}
+              message={editing.message}
+              onChange={(content, images) => {
+                setEditing((current) => {
+                  if (!current) return current
+                  return {
+                    ...current,
+                    message: {
+                      ...current.message,
+                      content,
+                      images: images ?? current.message.images,
+                    },
                   }
-                />
-              </div>
-            )}
-            <Button
-              variant='outline'
-              onClick={() => {
-                props.onLoad(editing, props.kind)
-                setEditing(null)
+                })
               }}
-            >
-              {t('Edit content')}
-            </Button>
-          </div>
+              onProcessingChange={setProcessingImages}
+            />
+          </fieldset>
         )}
       </Dialog>
       <ConfirmDialog

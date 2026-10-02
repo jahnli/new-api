@@ -200,7 +200,6 @@ export async function saveLibrary(
     id?: number
     name: string
     message: NotificationMessage
-    is_public?: boolean
   }
 ): Promise<SavedNotification> {
   const url = `${base}/${kind}${value.id ? `/${value.id}` : ''}`
@@ -211,7 +210,6 @@ export async function saveLibrary(
       recipients:
         value.message.channel === 'email' ? value.message.recipients : [],
     },
-    is_public: value.is_public ?? false,
   }
   const response = value.id
     ? await api.put<Response<SavedNotification>>(url, body)

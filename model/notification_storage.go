@@ -50,7 +50,7 @@ func commitNotificationSnapshot(tx *gorm.DB, stage *NotificationRecord, oldKey s
 }
 
 // NotificationImageKey authorizes both records and saved messages using the
-// same ownership/public-template rules as their detail endpoints.
+// same shared-template and record/draft ownership rules as their detail endpoints.
 func NotificationImageKey(id, viewerID int, admin bool) (string, error) {
 	var record NotificationRecord
 	if err := DB.Where("id = ? AND kind IN ?", id, []string{"record", "template", "draft"}).First(&record).Error; err != nil {
@@ -60,7 +60,7 @@ func NotificationImageKey(id, viewerID int, admin bool) (string, error) {
 	if record.Kind == "record" {
 		allowed = admin || record.SenderID == viewerID
 	}
-	if record.Kind == "template" && record.IsPublic {
+	if record.Kind == "template" {
 		allowed = true
 	}
 	if !allowed {
