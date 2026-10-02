@@ -294,6 +294,7 @@ export function NotificationLibrary(props: {
         contentClassName='sm:max-w-6xl'
         footer={
           <Button
+            aria-busy={update.isPending}
             disabled={
               !editing?.name.trim() || processingImages || update.isPending
             }
@@ -301,6 +302,7 @@ export function NotificationLibrary(props: {
               if (editing) update.mutate(editing)
             }}
           >
+            {update.isPending && <Spinner aria-hidden='true' />}
             {t('Save')}
           </Button>
         }
@@ -308,7 +310,7 @@ export function NotificationLibrary(props: {
         {editing && (
           <fieldset disabled={update.isPending} className='min-w-0 space-y-5'>
             <div className='space-y-2'>
-              <Label htmlFor='library-name'>{t('Name')}</Label>
+              <Label htmlFor='library-name'>{t('Template name')}</Label>
               <Input
                 id='library-name'
                 value={editing.name}
@@ -316,6 +318,25 @@ export function NotificationLibrary(props: {
                 onChange={(event) =>
                   setEditing({ ...editing, name: event.target.value })
                 }
+              />
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='library-title'>{t('Notification title')}</Label>
+              <Input
+                id='library-title'
+                value={editing.message.title}
+                maxLength={200}
+                placeholder={t('Give your message a clear title')}
+                onChange={(event) => {
+                  const title = event.target.value
+                  setEditing((current) => {
+                    if (!current) return current
+                    return {
+                      ...current,
+                      message: { ...current.message, title },
+                    }
+                  })
+                }}
               />
             </div>
             <MessageEditor
