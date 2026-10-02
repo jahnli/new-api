@@ -403,11 +403,12 @@ func SaveNotificationMessage(c *gin.Context) {
 	if request.Message.Channel != "email" {
 		request.Message.Recipients = nil
 	}
-	if err := resolveNotificationImages(c, &request.Message); err != nil {
+	copies := make(map[string]notificationstore.ImageCopy)
+	if err := resolveNotificationImages(c, &request.Message, copies); err != nil {
 		notificationError(c, err)
 		return
 	}
-	if err := service.PrepareNotificationMessage(&request.Message, 1000, false); err != nil {
+	if err := service.PrepareNotificationMessage(&request.Message, 1000, false, copies); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
 		return
 	}
@@ -425,7 +426,18 @@ func SaveNotificationMessage(c *gin.Context) {
 		notificationError(c, err)
 		return
 	}
-	if err := model.SaveNotificationMessage(c.Request.Context(), &item, payload, c.GetInt("id"), notificationCanSend(c)); err != nil {
+	if err := model.SaveNotificationMessage(c.Request.Context(), &item, payload, c.GetInt("id"), notificationCanSend(c), copies); err != nil {
+		notificationError(c, err)
+		return
+	}
+	for i := range request.Message.Images {
+		image := &request.Message.Images[i]
+		if source, ok := copies[image.URL]; ok {
+			image.URL = source.URL(item.ID)
+		}
+	}
+	payload, err = common.Marshal(request.Message)
+	if err != nil {
 		notificationError(c, err)
 		return
 	}
@@ -436,12 +448,13 @@ func SaveNotificationMessage(c *gin.Context) {
 // Stored images can be reused without returning their base64 bytes to the
 // browser. Never fetch a client-supplied URL: resolve an authorized local record
 // and require the filename to be present in its immutable manifest.
-func resolveNotificationImages(c *gin.Context, message *service.NotificationMessage) error {
+func resolveNotificationImages(c *gin.Context, message *service.NotificationMessage, copies ...map[string]notificationstore.ImageCopy) error {
 	if len(message.Images) > 10 {
 		return &service.NotificationValidationError{Err: errors.New("at most 10 images are allowed")}
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Minute)
 	defer cancel()
+	manifests := make(map[string]map[string]notificationstore.ImageCopy)
 	for i := range message.Images {
 		image := &message.Images[i]
 		if image.URL == "" {
@@ -459,6 +472,22 @@ func resolveNotificationImages(c *gin.Context, message *service.NotificationMess
 		key, err := model.NotificationImageKey(id, c.GetInt("id"), notificationCanViewAll(c))
 		if err != nil {
 			return err
+		}
+		if len(copies) > 0 {
+			images, cached := manifests[key]
+			if !cached {
+				images, err = notificationstore.ResolveImageCopies(ctx, key)
+				if err != nil {
+					return err
+				}
+				manifests[key] = images
+			}
+			source, found := images[parts[2]]
+			if !found || !source.Matches(*image) {
+				return &service.NotificationValidationError{Err: errors.New("invalid notification image reference")}
+			}
+			copies[0][image.URL] = source
+			continue
 		}
 		data, contentType, err := notificationstore.Image(ctx, key, parts[2])
 		if err != nil {

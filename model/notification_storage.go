@@ -17,14 +17,14 @@ const notificationStorageCleanup = "storage_cleanup"
 // Pending uploads and deferred deletions use internal rows in the existing
 // messages table. This durable ledger avoids a third table and never scans or
 // deletes directories belonging to another database sharing the bucket.
-func stageNotificationSnapshot(ctx context.Context, db *gorm.DB, payload []byte) (*NotificationRecord, error) {
+func stageNotificationSnapshot(ctx context.Context, db *gorm.DB, payload []byte, copies ...map[string]notificationstore.ImageCopy) (*NotificationRecord, error) {
 	stage := &NotificationRecord{Kind: notificationStoragePending, StorageKey: notificationstore.NewKey()}
 	if err := db.WithContext(ctx).Create(stage).Error; err != nil {
 		return nil, err
 	}
 	uploadCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	if err := notificationstore.Write(uploadCtx, stage.StorageKey, payload); err != nil {
+	if err := notificationstore.Write(uploadCtx, stage.StorageKey, payload, copies...); err != nil {
 		return nil, err
 	}
 	return stage, nil

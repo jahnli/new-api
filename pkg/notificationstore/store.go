@@ -33,6 +33,40 @@ type storedImage struct {
 	SHA256     string `json:"sha256"`
 }
 
+// ImageCopy is a validated image from an immutable snapshot. Callers must
+// authorize the source record before resolving its manifest.
+type ImageCopy struct {
+	key        string
+	image      storedImage
+	objectName string
+}
+
+func (source ImageCopy) Matches(image dto.NotificationImage) bool {
+	return source.key != "" && image.URL != "" && image.Data == "" && image.ContentType == source.image.ContentType
+}
+
+func (source ImageCopy) URL(recordID int) string {
+	return fmt.Sprintf("/api/notification/messages/%d/images/%s", recordID, source.objectName)
+}
+
+// ResolveImageCopies reads one manifest for all images in a source snapshot;
+// image bytes stay in object storage.
+func ResolveImageCopies(ctx context.Context, key string) (map[string]ImageCopy, error) {
+	storage, err := objectstorage.FromEnv()
+	if err != nil {
+		return nil, err
+	}
+	_, images, err := readManifest(ctx, storage, key)
+	if err != nil {
+		return nil, err
+	}
+	copies := make(map[string]ImageCopy, len(images))
+	for _, image := range images {
+		copies[image.ObjectName] = ImageCopy{key: key, image: image, objectName: uuid.NewString() + path.Ext(image.ObjectName)}
+	}
+	return copies, nil
+}
+
 // Use the server's local timezone (TZ=Asia/Shanghai in docker-compose). The
 // timestamp records submission/save time, before uploading or contacting a
 // provider. All recipients of a notification share this single snapshot.
@@ -64,7 +98,7 @@ func validKey(key string) bool {
 
 // Write uploads images first and publishes the manifest last. The caller must
 // durably register key before this call so interrupted uploads can be collected.
-func Write(ctx context.Context, key string, payload []byte) error {
+func Write(ctx context.Context, key string, payload []byte, copies ...map[string]ImageCopy) error {
 	if !validKey(key) {
 		return errors.New("invalid notification storage key")
 	}
@@ -88,6 +122,19 @@ func Write(ctx context.Context, key string, payload []byte) error {
 	}
 	stored := make([]storedImage, 0, len(images))
 	for _, image := range images {
+		if image.URL != "" && len(copies) > 0 {
+			source, ok := copies[0][image.URL]
+			if !ok || !source.Matches(image) {
+				return errors.New("invalid notification image reference")
+			}
+			name := source.objectName
+			if err := storage.Copy(ctx, path.Dir(source.key)+"/"+source.image.ObjectName, path.Dir(key)+"/"+name); err != nil {
+				return err
+			}
+			image.URL = ""
+			stored = append(stored, storedImage{NotificationImage: image, ObjectName: name, Size: source.image.Size, SHA256: source.image.SHA256})
+			continue
+		}
 		if image.URL != "" || len(image.Data) > base64.StdEncoding.EncodedLen(MaxImageBytes) {
 			return errors.New("invalid notification image data")
 		}

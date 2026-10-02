@@ -616,7 +616,7 @@ func GetNotificationSaved(id int, kind string, userID int) (*NotificationSavedMe
 	return &item, nil
 }
 
-func SaveNotificationMessage(ctx context.Context, item *NotificationSavedMessage, payload []byte, userID int, admin bool) error {
+func SaveNotificationMessage(ctx context.Context, item *NotificationSavedMessage, payload []byte, userID int, admin bool, copies ...map[string]notificationstore.ImageCopy) error {
 	if item.Kind != "template" && item.Kind != "draft" {
 		return errors.New("unsupported notification library kind")
 	}
@@ -632,7 +632,7 @@ func SaveNotificationMessage(ctx context.Context, item *NotificationSavedMessage
 			return err
 		}
 	}
-	stage, err := stageNotificationSnapshot(ctx, DB, payload)
+	stage, err := stageNotificationSnapshot(ctx, DB, payload, copies...)
 	if err != nil {
 		return err
 	}

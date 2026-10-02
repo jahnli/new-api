@@ -50,7 +50,7 @@ func (err *NotificationValidationError) Unwrap() error { return err.Err }
 
 // PrepareNotificationMessage allows incomplete templates but applies the same
 // size and attachment rules to every persisted message.
-func PrepareNotificationMessage(message *NotificationMessage, maxRecipients int, sending bool) error {
+func PrepareNotificationMessage(message *NotificationMessage, maxRecipients int, sending bool, copies ...map[string]notificationstore.ImageCopy) error {
 	if len(message.Content) > 128*1024 || len(message.Title) > 8192 {
 		return errors.New("notification title or content exceeds the allowed length")
 	}
@@ -160,6 +160,14 @@ func PrepareNotificationMessage(message *NotificationMessage, maxRecipients int,
 		}
 		if attachment.Filename == "" || len(attachment.Filename) > 255 || strings.ContainsAny(attachment.Filename, "/\\\r\n\x00") {
 			return errors.New("invalid image filename")
+		}
+		// Saving can reuse a previously validated image through an authorized
+		// immutable manifest. Sending still validates the actual image bytes.
+		if !sending && attachment.URL != "" && len(copies) > 0 {
+			if source, ok := copies[0][attachment.URL]; ok && source.Matches(attachment) {
+				continue
+			}
+			return errors.New("invalid notification image reference")
 		}
 		if len(attachment.Data) > base64.StdEncoding.EncodedLen(notificationMaxImageBytes) {
 			return errors.New("each image must not exceed 15 MiB")

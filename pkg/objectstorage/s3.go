@@ -88,6 +88,16 @@ func (storage *Storage) Put(ctx context.Context, key string, data []byte, conten
 	return err
 }
 
+// Copy keeps image bytes inside the bucket while creating an independent
+// object that can outlive cleanup of the source snapshot.
+func (storage *Storage) Copy(ctx context.Context, sourceKey, key string) error {
+	_, err := storage.Client.CopyObject(ctx,
+		minio.CopyDestOptions{Bucket: storage.Bucket, Object: key},
+		minio.CopySrcOptions{Bucket: storage.Bucket, Object: sourceKey},
+	)
+	return err
+}
+
 func (storage *Storage) Open(ctx context.Context, key string) (*Object, error) {
 	object, err := storage.Client.GetObject(ctx, storage.Bucket, key, minio.GetObjectOptions{})
 	if err != nil {

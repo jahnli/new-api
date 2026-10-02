@@ -91,7 +91,7 @@ export function Notifications() {
         'images',
         form.getValues('images').map((image) => {
           const saved = image.url ? savedImages.get(image.url) : undefined
-          return saved ? { ...image, data: saved.data, url: undefined } : image
+          return saved ? { ...image, data: saved.data, url: saved.url } : image
         })
       )
       setSaveOpen(false)
