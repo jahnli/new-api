@@ -409,7 +409,6 @@ func downloadImageStudioURL(ctx context.Context, src string) ([]byte, string, er
 
 func newImageStudioHTTPClient() *http.Client {
 	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
 		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 			host, port, err := net.SplitHostPort(address)
 			if err != nil {
