@@ -1,6 +1,6 @@
 # 订阅管理增强：公司范围订阅、分类额度调整与高级模型限额
 
-**日期**: 2026-09-25
+**日期**: 2026-10-02
 
 ## 涉及文件
 
@@ -101,6 +101,13 @@
 - 七种语言补充“可用额度”和“新额度上限”的简短文案，使用翻译脚本写入并执行 `bun run i18n:sync`。
 
 本次实现过程中执行 `bun run typecheck`、对修改过的 TSX 文件执行 `bunx --no-install oxlint -c .oxlintrc.json <文件路径>` 与 `bunx --no-install oxfmt --check <文件路径>`，均通过；`git diff --check` 通过。未新增、修改或运行测试，最终箭头切换效果尚未在浏览器中复核。
+
+## 2026-10-02 订阅套餐与额度策略标签页
+
+- `web/src/features/subscriptions/index.tsx` — 订阅管理拆分为「订阅套餐 / 额度策略」两个标签页，复用模型管理相同的分段标签样式；套餐列表及合规提示保留在订阅套餐页，额度策略页支持独立滚动。
+- `web/src/features/subscriptions/components/subscriptions-primary-buttons.tsx` — 移除高级模型额度设置弹框入口，新增套餐按钮仅在订阅套餐页显示。
+- `web/src/features/subscriptions/components/premium-policy-dialog.tsx` — 全局配置由弹框改为页内表单，分成「额度规则」与「适用模型」两张卡片；保留启停限制、默认比例、模型多选、刷新及不可用模型回显，明确比例占订阅总额度及高级用量同时消耗总额度；保存成功后更新策略缓存与版本并刷新相关查询，沿用现有接口和并发校验。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐标签页、分区标题、比例标签及模型适用说明的七种语言翻译。
 
 ## 自 CHANGELOG 说明列迁入
 
