@@ -307,11 +307,6 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           : 'hover:border-foreground/20'
       )}
     >
-      {props.model.is_recommended && showRecommendationBadge && (
-        <div className='pointer-events-none absolute top-0 right-[2px] z-10 flex max-w-[calc(100%-1.5rem)] -translate-y-1/2'>
-          <ModelRecommendationBadge prominent />
-        </div>
-      )}
       <CardHeader className='flex flex-row items-start gap-3'>
         <div
           aria-hidden
@@ -337,18 +332,32 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
             </TextTooltip>
           )}
         </div>
-        {props.model.is_recommended && (
+        {props.model.is_recommended && !showRecommendationBadge && (
           <ModelRecommendationScenarios
             scenarios={props.model.recommendation_scenarios}
             className='mt-0 max-w-[40%] shrink-0 justify-end [&>span]:max-w-full [&>span]:break-words'
           />
         )}
-        <CopyButton
-          value={props.model.model_name}
-          tooltip={t('Copy model name')}
-          className='size-7 shrink-0'
-          iconClassName='size-3.5'
-        />
+        <div className='flex max-w-[55%] shrink-0 items-center gap-[10px]'>
+          {props.model.is_recommended && showRecommendationBadge && (
+            <ModelRecommendationBadge
+              prominent
+              className='min-w-0 shrink px-2.5 text-[13px]'
+              label={[
+                t('Recommended'),
+                ...(props.model.recommendation_scenarios ?? [])
+                  .filter((scenario) => scenario.trim())
+                  .map((scenario) => t(scenario)),
+              ].join(' · ')}
+            />
+          )}
+          <CopyButton
+            value={props.model.model_name}
+            tooltip={t('Copy model name')}
+            className='size-7 shrink-0'
+            iconClassName='size-3.5'
+          />
+        </div>
       </CardHeader>
       <CardContent className='flex flex-1 flex-col gap-3'>
         {(showDescription || tags.length > 0) && (

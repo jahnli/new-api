@@ -27,11 +27,8 @@
     z-index: -1;
     border-radius: inherit;
     pointer-events: none;
-    box-shadow:
-      0 0 0 2px rgb(245 158 11 / 15%),
-      0 0 12px 3px rgb(245 158 11 / 40%);
+    box-shadow: 0 0 12px 3px rgb(245 158 11 / 40%);
     opacity: calc(0.15 + var(--model-recommendation-pulse) * 0.85);
-    transform: scale(calc(1 + var(--model-recommendation-pulse) * 0.04));
   }
 
   .model-recommendation-breathe {
