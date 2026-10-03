@@ -189,13 +189,13 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                   )}
                 >
                   {label && (
-                    <span className='text-muted-foreground text-xs break-words whitespace-normal'>
+                    <span className='text-muted-foreground text-[13px] break-words whitespace-normal'>
                       {label}
                     </span>
                   )}
-                  <span className='flex flex-wrap items-baseline gap-x-1 font-mono text-sm font-semibold tabular-nums'>
+                  <span className='flex flex-wrap items-baseline gap-x-1 font-mono text-[15px] font-semibold tabular-nums'>
                     <span>{displayedPrice}</span>
-                    <span className='text-muted-foreground text-xs font-normal whitespace-nowrap'>
+                    <span className='text-muted-foreground text-[13px] font-normal whitespace-nowrap'>
                       {' '}
                       / {unitLabel}
                     </span>
@@ -255,8 +255,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     ]
     priceSummary = prices.map((price) => (
       <div key={price.type} className='flex min-w-0 flex-col gap-1'>
-        <span className='text-muted-foreground text-xs'>{price.label}</span>
-        <span className='font-mono text-sm font-semibold tabular-nums'>
+        <span className='text-muted-foreground text-[13px]'>{price.label}</span>
+        <span className='font-mono text-[15px] font-semibold tabular-nums'>
           {props.maskPrices
             ? DEMO_MODE_MASK
             : formatPrice(
@@ -268,7 +268,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 usdExchangeRate,
                 props.selectedGroup
               )}
-          <span className='text-muted-foreground text-xs font-normal'>
+          <span className='text-muted-foreground text-[13px] font-normal'>
             {' '}
             / {tokenUnitLabel}
           </span>
@@ -278,7 +278,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   } else {
     priceSummary = (
       <div className='col-span-full flex min-w-0 flex-col gap-1'>
-        <span className='font-mono text-sm font-semibold tabular-nums'>
+        <span className='font-mono text-[15px] font-semibold tabular-nums'>
           {props.maskPrices
             ? DEMO_MODE_MASK
             : formatRequestPrice(
@@ -288,7 +288,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 usdExchangeRate,
                 props.selectedGroup
               )}
-          <span className='text-muted-foreground text-xs font-normal'>
+          <span className='text-muted-foreground text-[13px] font-normal'>
             {' '}
             / {t('request')}
           </span>
@@ -307,7 +307,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           : 'hover:border-foreground/20'
       )}
     >
-      <CardHeader className='flex flex-row items-start gap-3'>
+      <CardHeader className='grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5'>
         <div
           aria-hidden
           className='bg-muted/50 flex size-10 shrink-0 items-center justify-center rounded-lg'
@@ -332,32 +332,12 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
             </TextTooltip>
           )}
         </div>
-        {props.model.is_recommended && !showRecommendationBadge && (
-          <ModelRecommendationScenarios
-            scenarios={props.model.recommendation_scenarios}
-            className='mt-0 max-w-[40%] shrink-0 justify-end [&>span]:max-w-full [&>span]:break-words'
-          />
-        )}
-        <div className='flex max-w-[55%] shrink-0 items-center gap-[10px]'>
-          {props.model.is_recommended && showRecommendationBadge && (
-            <ModelRecommendationBadge
-              prominent
-              className='min-w-0 shrink gap-1 px-2 text-xs [&>svg]:size-3.5'
-              label={[
-                t('Recommended'),
-                ...(props.model.recommendation_scenarios ?? [])
-                  .filter((scenario) => scenario.trim())
-                  .map((scenario) => t(scenario)),
-              ].join(' · ')}
-            />
-          )}
-          <CopyButton
-            value={props.model.model_name}
-            tooltip={t('Copy model name')}
-            className='size-7 shrink-0'
-            iconClassName='size-3.5'
-          />
-        </div>
+        <CopyButton
+          value={props.model.model_name}
+          tooltip={t('Copy model name')}
+          className='size-7 shrink-0'
+          iconClassName='size-3.5'
+        />
       </CardHeader>
       <CardContent className='flex flex-1 flex-col gap-3 py-2 sm:py-2'>
         {(showDescription || tags.length > 0) && (
@@ -393,7 +373,31 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           aria-label={t('Pricing')}
           className='mt-auto flex min-w-0 flex-col gap-1.5'
         >
-          <ModelBillingModeBadge model={props.model} appearance='caption' />
+          <div className='flex min-w-0 items-center justify-between gap-3'>
+            <ModelBillingModeBadge
+              model={props.model}
+              appearance='caption'
+              className='shrink-0 text-[13px]'
+            />
+            {props.model.is_recommended && !showRecommendationBadge && (
+              <ModelRecommendationScenarios
+                scenarios={props.model.recommendation_scenarios}
+                className='mt-0 flex-1 justify-end [&>span]:max-w-full [&>span]:break-words'
+              />
+            )}
+            {props.model.is_recommended && showRecommendationBadge && (
+              <ModelRecommendationBadge
+                prominent
+                className='min-w-0 shrink gap-1 px-2 text-xs [&>svg]:size-3.5'
+                label={[
+                  t('Recommended'),
+                  ...(props.model.recommendation_scenarios ?? [])
+                    .filter((scenario) => scenario.trim())
+                    .map((scenario) => t(scenario)),
+                ].join(' · ')}
+              />
+            )}
+          </div>
           {dynamicSummary?.providerCount && (
             <span className='text-muted-foreground text-xs break-words'>
               {t('{{count}} providers', {
@@ -410,7 +414,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
         {(displayGroup || endpoints.length > 0) && (
           <dl
             className={cn(
-              'grid min-w-0 grid-cols-2 gap-3 text-xs',
+              'grid min-w-0 grid-cols-2 gap-3 text-[13px]',
               (!displayGroup || endpoints.length === 0) && 'grid-cols-1'
             )}
           >

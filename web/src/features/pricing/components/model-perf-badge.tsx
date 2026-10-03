@@ -81,14 +81,14 @@ export const ModelPerfBadge = memo(function ModelPerfBadge(
         props.className
       )}
     >
-      <dl className='flex min-w-0 items-start gap-5 text-xs tabular-nums'>
+      <dl className='flex min-w-0 items-start gap-5 text-[13px] tabular-nums'>
         <div className='w-24 shrink-0'>
           <TextTooltip
             content={t(
               'Success rate excludes business rejections and includes the current partial hour.'
             )}
           >
-            <dt className='text-muted-foreground flex items-center justify-between gap-1 text-[11px] leading-4'>
+            <dt className='text-muted-foreground flex items-center justify-between gap-1 text-xs leading-4'>
               <span>{t('Status')}</span>
               <span className='font-mono'>
                 {hasSuccessRate ? `${successRate.toFixed(2)}%` : '—'}
@@ -130,7 +130,7 @@ export const ModelPerfBadge = memo(function ModelPerfBadge(
         </div>
         <TextTooltip content={t('Average latency')}>
           <div className='shrink-0'>
-            <dt className='text-muted-foreground text-[11px] leading-4'>
+            <dt className='text-muted-foreground text-xs leading-4'>
               {t('Latency short')}
             </dt>
             <dd className='mt-1 font-mono whitespace-nowrap'>
@@ -140,7 +140,7 @@ export const ModelPerfBadge = memo(function ModelPerfBadge(
         </TextTooltip>
         <TextTooltip content={t('Throughput')}>
           <div className='shrink-0'>
-            <dt className='text-muted-foreground text-[11px] leading-4'>
+            <dt className='text-muted-foreground text-xs leading-4'>
               {t('Throughput short')}
             </dt>
             <dd className='mt-1 font-mono whitespace-nowrap'>

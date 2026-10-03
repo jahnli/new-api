@@ -107,20 +107,41 @@ export function ModelSquareSettingsForm(props: ModelSquareConfigData) {
               {t('Enable model recommendations')}
             </FieldLabel>
           </Field>
-          <SettingsPageFormActions
-            inline
-            isSaving={mutation.isPending}
-            isSaveDisabled={!isDirty}
-            isResetDisabled={!isDirty}
-            saveLabel='Save changes'
-            savingLabel='Saving...'
-            resetLabel='Reset changes'
-            onSave={() => void submit()}
-            onReset={() => {
-              form.reset()
-              mutation.reset()
-            }}
-          />
+          <div className='ml-auto flex flex-wrap items-center justify-end gap-2'>
+            <Button
+              type='button'
+              size='sm'
+              variant='outline'
+              disabled={
+                mutation.isPending ||
+                models.length === 0 ||
+                entries.fields.length >= 100
+              }
+              onClick={() =>
+                entries.append({
+                  model_name: '',
+                  scenarios: [],
+                  enabled: true,
+                })
+              }
+            >
+              {t('Add recommendation')}
+            </Button>
+            <SettingsPageFormActions
+              inline
+              isSaving={mutation.isPending}
+              isSaveDisabled={!isDirty}
+              isResetDisabled={!isDirty}
+              saveLabel='Save changes'
+              savingLabel='Saving...'
+              resetLabel='Reset changes'
+              onSave={() => void submit()}
+              onReset={() => {
+                form.reset()
+                mutation.reset()
+              }}
+            />
+          </div>
         </div>
         <Reorder.Group
           axis='y'
@@ -158,26 +179,6 @@ export function ModelSquareSettingsForm(props: ModelSquareConfigData) {
             {t('Failed to save model square settings')}
           </p>
         )}
-        <div className='flex flex-wrap items-center gap-3'>
-          <Button
-            type='button'
-            variant='outline'
-            disabled={
-              mutation.isPending ||
-              models.length === 0 ||
-              entries.fields.length >= 100
-            }
-            onClick={() =>
-              entries.append({
-                model_name: '',
-                scenarios: [],
-                enabled: true,
-              })
-            }
-          >
-            {t('Add recommendation')}
-          </Button>
-        </div>
       </form>
     </FormProvider>
   )
