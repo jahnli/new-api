@@ -359,7 +359,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           />
         </div>
       </CardHeader>
-      <CardContent className='flex flex-1 flex-col gap-3'>
+      <CardContent className='flex flex-1 flex-col gap-3 py-2 sm:py-2'>
         {(showDescription || tags.length > 0) && (
           <div className='flex min-w-0 flex-col gap-1.5'>
             {showDescription && (
@@ -403,7 +403,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 ` · ${t('Not configured for some providers')}`}
             </span>
           )}
-          <div className='grid grid-cols-[repeat(auto-fit,minmax(88px,1fr))] gap-x-3 gap-y-2'>
+          <div className='grid grid-cols-[repeat(auto-fit,minmax(88px,1fr))] gap-x-3 gap-y-2 py-2'>
             {priceSummary}
           </div>
         </div>
