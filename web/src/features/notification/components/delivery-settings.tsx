@@ -26,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -38,6 +37,7 @@ import type {
   NotificationConfig,
   NotificationMessage,
 } from '../types'
+import { EmailRecipientsInput } from './email-recipients-input'
 import { TitleIconPicker } from './title-icon-picker'
 
 export function DeliverySettings(props: {
@@ -198,11 +198,13 @@ export function DeliverySettings(props: {
                     </Badge>
                   </FormLabel>
                   <FormControl>
-                    <Textarea
+                    <EmailRecipientsInput
                       key={channel}
+                      ref={field.ref}
+                      name={field.name}
                       defaultValue={field.value.join('\n')}
-                      onChange={(event) =>
-                        field.onChange(splitRecipients(event.target.value))
+                      onValueChange={(value) =>
+                        field.onChange(splitRecipients(value))
                       }
                       onBlur={field.onBlur}
                       className='min-h-20 font-mono text-sm'
