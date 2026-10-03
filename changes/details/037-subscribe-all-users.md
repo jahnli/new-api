@@ -1,6 +1,10 @@
 # 订阅管理增强：公司范围订阅、分类额度调整与高级模型限额
 
-**日期**: 2026-10-02
+**日期**: 2026-10-04
+
+## 2026-10-04 额度策略卡片样式统一
+
+- `web/src/features/subscriptions/components/premium-policy-dialog.tsx` — 「额度规则」与「适用模型」卡片改为淡色实体边框并关闭默认 ring；设置 `data-card-hover='false'`，避免页内配置表单随悬停浮起。
 
 ## 涉及文件
 

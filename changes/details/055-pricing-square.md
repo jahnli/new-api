@@ -1,6 +1,18 @@
 # 模型广场优化
 
-**日期**: 2026-09-05 ~ 09-23
+**日期**: 2026-09-05 ~ 2026-10-04
+
+## 2026-10-04 推荐配置与卡片布局优化
+
+以下为当前卡片布局，替代下文历史记录中的右上角推荐标记位置。
+
+- `web/src/features/pricing/components/model-card.tsx` — 空描述不再显示占位文案；标题行采用图标、模型名称与复制按钮三列布局，推荐标记合并场景文字后移至计费方式同一行右侧，顶部横滑区仅在该处展示场景标签；内容区上下内边距统一为 8px，价格网格增加上下 8px 间距。计费方式、价格标签与单位、分组和端点由 12px 增至 13px，价格数字由 14px 增至 15px；推荐徽章保持 12px 字号、8px 左右内边距、14px 星标及 4px 图文间距。
+- `web/src/features/pricing/components/model-perf-badge.tsx` — 状态、成功率、延迟和吞吐标题由 11px 增至 12px，延迟与吞吐数值由 12px 增至 13px。
+- `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 支持透传布局类名，让场景标签在计费方式右侧对齐并允许长内容换行。
+- `web/src/styles/model-recommendation.css` — 推荐微光保留阴影与呼吸透明度，移除额外外圈和缩放，减少边缘视觉膨胀。
+- `web/src/features/model-square-settings/components/settings-form.tsx` — 「添加推荐」从列表底部移至顶部操作区，放在「重置修改」左侧，按钮尺寸与重置、保存统一。
+- `web/src/features/model-square-settings/types.ts` — 推荐场景预设增加「均衡之选」。
+- `web/src/i18n/static-keys.ts`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 登记并补齐新增场景的七语言文案，同时调整综合推荐场景用语，简体中文显示为「综合优选」。
 
 ## 涉及文件
 

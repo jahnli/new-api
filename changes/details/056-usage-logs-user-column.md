@@ -1,6 +1,11 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 09-27（最后更新 09-27）
+**日期**: 2026-09-09 ~ 2026-10-04（最后更新 2026-10-04）
+
+## 2026-10-04 筛选布局与统计数字优化
+
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 日期范围控件占满所在列，微调主筛选网格的时间、模型和类型列宽，使第一排筛选控件分配更紧凑。
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — RPM、TPM 复用 `formatNumber`，按当前界面语言格式化数字，提高大数值的可读性。
 
 ## 涉及文件
 

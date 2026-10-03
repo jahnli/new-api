@@ -1,6 +1,12 @@
 # 企业通知对象存储与并发发送
 
-**日期**: 2026-09-28
+**日期**: 2026-09-28 ~ 2026-10-04
+
+## 2026-10-04 邮箱收件人域名补全
+
+- `web/src/features/notification/components/email-recipients-input.tsx` — 新增邮箱收件人输入组件，输入 `@` 后按已输入后缀筛选 `qq.com`、`163.com`、`gmail.com` 候选；支持键盘选择和点击补全，补全后保留或追加分隔符并恢复光标，候选浮层跟随输入光标定位。
+- `web/src/features/notification/components/delivery-settings.tsx` — 邮箱收件人字段接入补全组件，保留多收件人拆分及表单引用、失焦处理。
+- `web/src/components/ui/popover.tsx` — `PopoverContent` 增加 `anchor` 属性并传入定位器，供收件人候选浮层锚定光标位置。
 
 ## 功能说明
 

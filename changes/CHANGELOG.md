@@ -41,7 +41,7 @@
 | 034 | 2026-06-23 | 用户头像下拉菜单增强：头像旁显示用户名、角色标签前加图标（👑🏅🧑‍💼）、下拉菜单改为悬停触发、移除分组显示 | [详情](details/034-profile-dropdown-enhance.md) |
 | 035 | 2026-09-18 | 移除概览页常见问答面板，不再展示飞书文档跳转入口 | [详情](details/035-faq-panel-redesign.md) |
 | 036 | 2026-06-24 | 系统公告弹窗宽度由 26rem 加大到 36rem | `web/default/src/components/notification-popover.tsx` |
-| 037 | 2026-10-02 | 订阅管理增强：支持公司范围订阅、分类额度调整与高级模型限额，优化管理弹框和额度变化预览，完善结算及不足提示；页面拆分为订阅套餐与额度策略标签页，高级模型配置改为页内分区展示 | [详情](details/037-subscribe-all-users.md) |
+| 037 | 2026-10-04 | 订阅管理增强：支持公司范围订阅、分类额度调整与高级模型限额，优化管理弹框和额度变化预览，完善结算及不足提示；页面拆分为订阅套餐与额度策略标签页，高级模型配置改为页内分区展示；额度策略卡片统一淡边框并关闭悬停浮起 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
 | 039 | 2026-09-26 | 用户管理与共享交互增强：完善统计筛选、成本中心、分组联动与跨页选择，统一悬停提示并精简重复说明 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |
@@ -59,8 +59,8 @@
 | 052 | 2026-07-01 | 全站进度条分阶段变色统一：阈值统一为 50%/80%（绿→橙→红），涉及概览订阅、用户表格、数据总览；修复子部门统计 formatCNY 传入 undefined 导致崩溃 | [详情](details/052-progress-bar-color-unify.md) |
 | 053 | 2026-07-23 | 新增或编辑未设置定价的模型时，补全价格和缓存读取价格默认开启，并补充定价通道初始化测试 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/__tests__/pricing-initialization.test.ts` |
 | 054 | 2026-07-01 | 模型广场与模型定价编辑器默认分页大小从 20 改为 100 | `web/default/src/features/pricing/constants.ts`、`web/default/src/features/system-settings/models/model-ratio-visual-editor.tsx` |
-| 055 | 2026-09-23 | 模型广场与分组定价优化：新增分组 × 供应商倍率配置与统一计费优先级，分档价格表按当前用户或管理员筛选分组显示；定价响应加密；新增超级管理员「模型广场配置」入口（推荐模型支持自定义使用场景与拖拽排序）、自动循环的顶部推荐模型横滑区及模型卡片悬停边框 | [详情](details/055-pricing-square.md) |
-| 056 | 2026-09-27 | 使用日志与审计设置优化：完善用户信息、权限筛选、详情导出与 Token 统计，并拆分安全审计配置模块 | [详情](details/056-usage-logs-user-column.md) |
+| 055 | 2026-10-04 | 模型广场与分组定价优化：新增分组 × 供应商倍率配置与统一计费优先级，分档价格表按当前用户或管理员筛选分组显示；定价响应加密；新增超级管理员推荐配置与自动循环横滑区；推荐标签移至计费方式右侧，精简空描述、缩小内边距并放大价格及性能文字，优化微光效果；新增「均衡之选」场景，「添加推荐」移至重置左侧 | [详情](details/055-pricing-square.md) |
+| 056 | 2026-10-04 | 使用日志与审计设置优化：完善用户信息、权限筛选、详情导出与 Token 统计，并拆分安全审计配置模块；微调主筛选列宽与日期控件宽度，RPM/TPM 复用语言相关数字格式化 | [详情](details/056-usage-logs-user-column.md) |
 | 057 | 2026-09-02 | 数据看板筛选与统计优化：统一时间范围/粒度/用户名筛选与搜索重置，整合消耗分布与用户排行，quota_data 与图表统一按四类 Token 统计 | [详情](details/057-dashboard-filters.md) |
 | 058 | 2026-09-27 | 在线生图支持生成编辑与历史管理，统一图片审计及保存开关，关闭后临时展示结果并隐藏审计入口 | [详情](details/058-online-image-generation.md) |
 | 059 | 2026-07-04 | 排行榜 Token 可见性与热门模型 Tooltip 优化：所有 Token 数字仅超级管理员可见，热门模型悬停提示右侧显示连续排行编号，并更新 Token 排行相关 6 语言文案 | [详情](details/059-rankings-token-visibility.md) |
@@ -81,6 +81,6 @@
 | 076 | 2026-09-10 | 前端开发规范移除测试章节及测试强制要求：新增功能、缺陷修复或 UI 行为变更不再强制同步新增或更新测试，提交前不再要求运行受影响测试 | `web/AGENTS.md` |
 | 077 | 2026-09-22 | 彻底移除前端系统更新功能：顶栏与系统设置不再提供版本检查入口，并清理发布查询、状态管理及相关多语言文案 | [详情](details/077-remove-system-update.md) |
 | 078 | 2026-09-19 | 渠道创建与编辑统一采用居中弹框，并优化头部状态、供应商与连接操作布局 | [详情](details/078-channel-mutate-dialog.md) |
-| 079 | 2026-09-28 | 企业通知存储与发送优化：正文和图片改存 S3，保留两张业务表；按提交时间组织对象，删除记录时立即清理文件并支持失败补偿；正式发送、测试与重试统一最多 10 人并发 | [详情](details/079-notification-storage-concurrency.md) |
+| 079 | 2026-10-04 | 企业通知存储与发送优化：正文和图片改存 S3，保留两张业务表；按提交时间组织对象，删除记录时立即清理文件并支持失败补偿；正式发送、测试与重试统一最多 10 人并发；邮箱收件人输入支持常用域名补全与键盘选择，候选浮层跟随光标定位 | [详情](details/079-notification-storage-concurrency.md) |
 | 080 | 2026-09-19 | 模型管理的新增、补充资料、编辑与定价操作统一改为居中弹框 | [详情](details/080-model-mutate-dialog.md) |
 | 081 | 2026-09-22 | 移除用户签到功能：删除每日签到与随机额度奖励、个人资料签到日历、后台签到配置及相关接口和数据模型 | [详情](details/081-remove-checkin.md) |
