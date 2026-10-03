@@ -871,6 +871,7 @@ export const STATIC_I18N_KEYS = [
 
   // Model square preset scenarios (rendered through t(value) at runtime).
   'General recommendations',
+  'Balanced choice',
   'Image generation',
   'Self-hosted models',
   // Access token permission catalog labels and descriptions (served by the backend).
