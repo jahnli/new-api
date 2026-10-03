@@ -342,7 +342,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           {props.model.is_recommended && showRecommendationBadge && (
             <ModelRecommendationBadge
               prominent
-              className='min-w-0 shrink px-2.5 text-[13px]'
+              className='min-w-0 shrink gap-1 px-2 text-xs [&>svg]:size-3.5'
               label={[
                 t('Recommended'),
                 ...(props.model.recommendation_scenarios ?? [])
