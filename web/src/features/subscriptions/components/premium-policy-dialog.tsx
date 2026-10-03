@@ -114,7 +114,10 @@ function PremiumPolicyForm(props: {
         save.mutate({ ...props.policy, ...value })
       )}
     >
-      <Card>
+      <Card
+        data-card-hover='false'
+        className='border-foreground/10 border ring-0'
+      >
         <CardHeader>
           <CardTitle>
             <h3>{t('Quota rules')}</h3>
@@ -167,7 +170,10 @@ function PremiumPolicyForm(props: {
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card
+        data-card-hover='false'
+        className='border-foreground/10 border ring-0'
+      >
         <CardHeader>
           <CardTitle>
             <h3>{t('Applicable models')}</h3>
