@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 type ModelRecommendationScenariosProps = {
   scenarios?: string[]
   compact?: boolean
+  className?: string
 }
 
 export function ModelRecommendationScenarios(
@@ -25,7 +26,8 @@ export function ModelRecommendationScenarios(
       aria-label={t('Scenario')}
       className={cn(
         'flex min-w-0 flex-wrap items-center gap-1.5',
-        props.compact ? 'mt-1.5' : 'mt-3 gap-2'
+        props.compact ? 'mt-1.5' : 'mt-3 gap-2',
+        props.className
       )}
     >
       {scenarios.map((scenario) => (

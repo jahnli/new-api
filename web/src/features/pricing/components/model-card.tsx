@@ -80,7 +80,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const usdExchangeRate = props.usdExchangeRate ?? 1
   const showRechargePrice = props.showRechargePrice ?? false
   const showRecommendationBadge = props.showRecommendationBadge ?? true
-  const showDescription = props.showDescription ?? true
+  const description = props.model.description?.trim()
+  const showDescription = (props.showDescription ?? true) && !!description
   const showGroups = props.showGroups ?? true
   const showEndpoints = props.showEndpoints ?? true
   const isTokenBased = isTokenBasedModel(props.model)
@@ -307,7 +308,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
       )}
     >
       {props.model.is_recommended && showRecommendationBadge && (
-        <div className='pointer-events-none absolute top-0 right-3 z-10 flex max-w-[calc(100%-1.5rem)] -translate-y-1/2'>
+        <div className='pointer-events-none absolute top-0 right-[2px] z-10 flex max-w-[calc(100%-1.5rem)] -translate-y-1/2'>
           <ModelRecommendationBadge prominent />
         </div>
       )}
@@ -336,10 +337,16 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
             </TextTooltip>
           )}
         </div>
+        {props.model.is_recommended && (
+          <ModelRecommendationScenarios
+            scenarios={props.model.recommendation_scenarios}
+            className='mt-0 max-w-[40%] shrink-0 justify-end [&>span]:max-w-full [&>span]:break-words'
+          />
+        )}
         <CopyButton
           value={props.model.model_name}
           tooltip={t('Copy model name')}
-          className='size-7'
+          className='size-7 shrink-0'
           iconClassName='size-3.5'
         />
       </CardHeader>
@@ -348,7 +355,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           <div className='flex min-w-0 flex-col gap-1.5'>
             {showDescription && (
               <p className='text-muted-foreground line-clamp-2 text-[13px] leading-5 break-words'>
-                {props.model.description || t('No description available.')}
+                {description}
               </p>
             )}
             {tags.length > 0 && (
@@ -371,11 +378,6 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
               </div>
             )}
           </div>
-        )}
-        {props.model.is_recommended && (
-          <ModelRecommendationScenarios
-            scenarios={props.model.recommendation_scenarios}
-          />
         )}
         <div
           role='group'
