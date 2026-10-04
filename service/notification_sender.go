@@ -81,7 +81,10 @@ func (notificationEmailSender) Send(ctx context.Context, message NotificationMes
 	body.WriteString(`<div style="font-family:system-ui,sans-serif;line-height:1.7;color:#182230;max-width:720px;margin:auto;padding:24px"><h1 style="font-size:24px">`)
 	body.WriteString(html.EscapeString(message.Title))
 	body.WriteString("</h1>")
-	body.Write(rendered.Bytes())
+	// Raw HTML is disabled above, so these tags only come from Markdown images.
+	// Use inline styles because email clients do not inherit the web preview CSS.
+	const imageStyle = "max-width:100%;height:auto;border-radius:8px"
+	body.WriteString(strings.ReplaceAll(rendered.String(), "<img ", `<img style="`+imageStyle+`" `))
 	attachments := make([]common.EmailAttachment, 0, len(message.Images))
 	for i, image := range message.Images {
 		if image.ID != "" && !slices.ContainsFunc(references, func(reference notificationImageReference) bool { return reference.ID == image.ID }) {
@@ -99,7 +102,7 @@ func (notificationEmailSender) Send(ctx context.Context, message NotificationMes
 			Filename: image.Filename, ContentType: image.ContentType, Data: data, ContentID: cid,
 		})
 		if image.ID == "" {
-			fmt.Fprintf(&body, `<p><img src="cid:%s" alt="%s" style="max-width:100%%;height:auto;border-radius:8px"></p>`, cid, html.EscapeString(image.Filename))
+			fmt.Fprintf(&body, `<p><img src="cid:%s" alt="%s" style="%s"></p>`, cid, html.EscapeString(image.Filename), imageStyle)
 		}
 	}
 	body.WriteString("</div>")
