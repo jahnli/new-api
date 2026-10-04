@@ -78,9 +78,7 @@ func (notificationEmailSender) Send(ctx context.Context, message NotificationMes
 		return "", fmt.Errorf("邮件 Markdown 渲染失败")
 	}
 	var body strings.Builder
-	body.WriteString(`<div style="font-family:system-ui,sans-serif;line-height:1.7;color:#182230;max-width:720px;margin:auto;padding:24px"><h1 style="font-size:24px">`)
-	body.WriteString(html.EscapeString(message.Title))
-	body.WriteString("</h1>")
+	body.WriteString(`<div style="font-family:system-ui,sans-serif;line-height:1.7;color:#182230;max-width:720px;margin:auto;padding:24px">`)
 	// Raw HTML is disabled above, so these tags only come from Markdown images.
 	// Use inline styles because email clients do not inherit the web preview CSS.
 	const imageStyle = "max-width:100%;height:auto;border-radius:8px"
