@@ -28,6 +28,7 @@ import {
 } from "../lib/message";
 import { NOTIFICATION_TITLE_THEME_CLASSES } from "../lib/title-theme";
 import type { NotificationMessage } from "../types";
+import { EmailRecipientsInput } from "./email-recipients-input";
 import { MessageContent } from "./message-content";
 
 const FEISHU_TEST_RECIPIENTS = [
@@ -270,7 +271,7 @@ export function SendDialog(props: {
                   {formatNumber(20, locale)}
                 </Badge>
               </div>
-              {props.message.channel === "feishu" ? (
+              {props.message.channel === "feishu" && (
                 <MultiSelect
                   id="notification-test-recipients"
                   options={FEISHU_TEST_RECIPIENT_OPTIONS}
@@ -287,7 +288,31 @@ export function SendDialog(props: {
                     setRecipientError("");
                   }}
                 />
-              ) : (
+              )}
+              {props.message.channel === "email" && (
+                <EmailRecipientsInput
+                  id="notification-test-recipients"
+                  defaultValue={testRecipients}
+                  onValueChange={(value) => {
+                    setTestRecipients(value);
+                    setRecipientError("");
+                  }}
+                  disabled={mutation.isPending}
+                  aria-label={testLabel}
+                  aria-invalid={Boolean(recipientError)}
+                  aria-describedby={
+                    recipientError
+                      ? "notification-test-help notification-recipient-error"
+                      : "notification-test-help"
+                  }
+                  className="bg-background min-h-40 resize-y font-mono text-sm"
+                  placeholder={t(
+                    "Enter test recipients, separated by commas or new lines.",
+                  )}
+                />
+              )}
+              {props.message.channel !== "feishu" &&
+                props.message.channel !== "email" && (
                 <Textarea
                   id="notification-test-recipients"
                   value={testRecipients}
