@@ -87,7 +87,7 @@ export function SubscriptionQuotaBreakdown(props: {
               <span className="text-muted-foreground text-sm">
                 {t("Remaining subscription quota")}
               </span>
-              <span className="w-full text-2xl font-semibold tracking-tight break-all tabular-nums">
+              <span className="w-full text-[22px] leading-[var(--text-2xl--line-height)] font-semibold tracking-tight break-all tabular-nums">
                 {formattedRemaining}
               </span>
             </div>
