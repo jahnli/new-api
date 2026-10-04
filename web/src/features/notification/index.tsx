@@ -126,7 +126,7 @@ export function Notifications() {
       return
     }
     void form.handleSubmit((value) => {
-      if (!test && value.channel === 'email') {
+      if (value.channel === 'email') {
         if (value.recipients.length === 0) {
           form.setError('recipients', {
             message: t('Please enter at least one recipient'),
@@ -140,6 +140,12 @@ export function Notifications() {
         ) {
           form.setError('recipients', {
             message: t('Please enter valid email addresses'),
+          })
+          return
+        }
+        if (test && value.recipients.length > 20) {
+          form.setError('recipients', {
+            message: t('Test sends support up to 20 recipients.'),
           })
           return
         }

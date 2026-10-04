@@ -28,7 +28,6 @@ import {
 } from '../lib/message'
 import { NOTIFICATION_TITLE_THEME_CLASSES } from '../lib/title-theme'
 import type { NotificationMessage } from '../types'
-import { EmailRecipientsInput } from './email-recipients-input'
 import { MessageContent } from './message-content'
 
 const FEISHU_TEST_RECIPIENTS = [
@@ -53,8 +52,12 @@ export function SendDialog(props: {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const client = useQueryClient()
+  const emailTest = props.test && props.message.channel === 'email'
+  const editableTestRecipients = props.test && !emailTest
   const [testRecipients, setTestRecipients] = useState('')
-  const testRecipientIDs = splitRecipients(testRecipients)
+  const testRecipientIDs = emailTest
+    ? props.message.recipients
+    : splitRecipients(testRecipients)
   const [recipientError, setRecipientError] = useState('')
   const allUsers = !props.test && props.message.channel !== 'email'
   const audience = useQuery({
@@ -129,6 +132,7 @@ export function SendDialog(props: {
   return (
     <ConfirmDialog
       open
+      closeOnOutsideClick={props.test}
       onOpenChange={(open) => {
         if (!open && !mutation.isPending) props.onClose()
       }}
@@ -136,12 +140,21 @@ export function SendDialog(props: {
         props.test ? (
           <span className='flex flex-wrap items-center gap-3'>
             <span>{t('Test notification')}</span>
-            <Label
-              htmlFor='notification-test-recipients'
-              className='text-muted-foreground select-text'
-            >
-              {testLabel}
-            </Label>
+            {editableTestRecipients && (
+              <Label
+                htmlFor='notification-test-recipients'
+                className='text-muted-foreground select-text'
+              >
+                {testLabel}
+              </Label>
+            )}
+            {emailTest && (
+              <Badge variant='secondary'>
+                {channelLabels.email} ·{' '}
+                {formatNumber(testRecipientIDs.length, locale)} /{' '}
+                {formatNumber(20, locale)}
+              </Badge>
+            )}
           </span>
         ) : (
           t('Confirm official send')
@@ -203,18 +216,20 @@ export function SendDialog(props: {
       }
     >
       <div
-        className={
-          props.test
+        className={cn(
+          editableTestRecipients
             ? 'min-h-0 min-w-0 flex-1 space-y-4 overflow-auto overscroll-contain md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:grid-rows-[minmax(0,1fr)] md:gap-4 md:space-y-0 md:overflow-hidden'
-            : 'min-h-0 min-w-0 flex-1 space-y-4 overflow-auto overscroll-contain'
-        }
+            : 'min-h-0 min-w-0 flex-1 space-y-4 overflow-auto overscroll-contain',
+          emailTest && 'flex flex-col gap-4 space-y-0'
+        )}
       >
         <div
-          className={
+          className={cn(
             props.test
               ? 'min-h-0 min-w-0 space-y-4 md:overflow-auto md:overscroll-contain'
-              : 'space-y-4'
-          }
+              : 'space-y-4',
+            emailTest && !recipientError && 'hidden'
+          )}
         >
           {!props.test && (
             <div className='flex gap-2'>
@@ -230,7 +245,7 @@ export function SendDialog(props: {
               )}
             </div>
           )}
-          {props.test && (
+          {editableTestRecipients && (
             <div className='border-primary/15 bg-primary/5 space-y-3 rounded-xl border p-4'>
               <div className='flex items-center justify-between gap-3'>
                 {props.message.channel === 'feishu' && (
@@ -294,28 +309,6 @@ export function SendDialog(props: {
                     )
                     setRecipientError('')
                   }}
-                />
-              )}
-              {props.message.channel === 'email' && (
-                <EmailRecipientsInput
-                  id='notification-test-recipients'
-                  defaultValue={testRecipients}
-                  onValueChange={(value) => {
-                    setTestRecipients(value)
-                    setRecipientError('')
-                  }}
-                  disabled={mutation.isPending}
-                  aria-label={testLabel}
-                  aria-invalid={Boolean(recipientError)}
-                  aria-describedby={
-                    recipientError
-                      ? 'notification-test-help notification-recipient-error'
-                      : 'notification-test-help'
-                  }
-                  className='bg-background min-h-40 resize-y font-mono text-sm'
-                  placeholder={t(
-                    'Enter test recipients, separated by commas or new lines.'
-                  )}
                 />
               )}
               {props.message.channel !== 'feishu' &&
@@ -431,11 +424,12 @@ export function SendDialog(props: {
           )}
         </div>
         <div
-          className={
+          className={cn(
             props.test
               ? 'min-w-0 rounded-lg border p-4 [overflow-wrap:anywhere] md:min-h-0 md:overflow-auto md:overscroll-contain [&_img]:max-w-full'
-              : 'min-w-0 rounded-lg border p-4 [overflow-wrap:anywhere] [&_img]:max-w-full'
-          }
+              : 'min-w-0 rounded-lg border p-4 [overflow-wrap:anywhere] [&_img]:max-w-full',
+            emailTest && 'min-h-0 flex-1 overflow-auto overscroll-contain'
+          )}
         >
           <h3
             className={cn(

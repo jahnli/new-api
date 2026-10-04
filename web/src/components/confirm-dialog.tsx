@@ -42,6 +42,7 @@ type ConfirmDialogProps = {
   destructive?: boolean
   handleConfirm: () => void
   isLoading?: boolean
+  closeOnOutsideClick?: boolean
   className?: string
   children?: React.ReactNode
 }
@@ -57,13 +58,21 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     cancelBtnText,
     destructive,
     isLoading,
+    closeOnOutsideClick = false,
     disabled = false,
     handleConfirm,
     ...actions
   } = props
   return (
     <AlertDialog {...actions}>
-      <AlertDialogContent className={cn(className)}>
+      <AlertDialogContent
+        className={cn(className)}
+        onBackdropClick={
+          closeOnOutsideClick && !isLoading
+            ? () => props.onOpenChange(false)
+            : undefined
+        }
+      >
         <AlertDialogHeader className='text-start'>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {desc && (
