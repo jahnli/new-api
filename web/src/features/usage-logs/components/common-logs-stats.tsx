@@ -49,7 +49,7 @@ function StatBadge(props: {
 export function CommonLogsStats() {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
-  const { isAdminView: isAdmin } = useLogsViewScope()
+  const { isAdminView: isAdmin, isRootView } = useLogsViewScope()
   const searchParams = route.useSearch({
     select: (search) => ({
       startTime: search.startTime,
@@ -175,8 +175,12 @@ export function CommonLogsStats() {
         <Skeleton className='h-7 w-[150px] rounded-md' />
         <Skeleton className='h-7 w-[100px] rounded-md' />
         <Skeleton className='h-7 w-[120px] rounded-md' />
-        <Skeleton className='h-7 w-[150px] rounded-md' />
-        <Skeleton className='h-7 w-[100px] rounded-md' />
+        {isRootView && (
+          <>
+            <Skeleton className='h-7 w-[150px] rounded-md' />
+            <Skeleton className='h-7 w-[100px] rounded-md' />
+          </>
+        )}
       </div>
     )
   }
@@ -202,43 +206,47 @@ export function CommonLogsStats() {
         value={formatNumber(stats?.tpm || 0, locale)}
         accent='bg-slate-400/70'
       />
-      <Tooltip
-        open={tokenTooltipOpen}
-        onOpenChange={(open) => {
-          setTokenTooltipActive(open)
-          if (open && tokenStats.isError) void tokenStats.refetch()
-        }}
-      >
-        <StatBadge
-          label={t('Tokens')}
-          value={tokenValue}
-          accent='bg-emerald-500/70'
-          suffix={
-            <TooltipTrigger
-              render={
-                <button
-                  type='button'
-                  className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
-                  aria-label={t('View details')}
-                  aria-busy={tokenTooltipLoading}
-                />
+      {isRootView && (
+        <>
+          <Tooltip
+            open={tokenTooltipOpen}
+            onOpenChange={(open) => {
+              setTokenTooltipActive(open)
+              if (open && tokenStats.isError) void tokenStats.refetch()
+            }}
+          >
+            <StatBadge
+              label={t('Tokens')}
+              value={tokenValue}
+              accent='bg-emerald-500/70'
+              suffix={
+                <TooltipTrigger
+                  render={
+                    <button
+                      type='button'
+                      className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
+                      aria-label={t('View details')}
+                      aria-busy={tokenTooltipLoading}
+                    />
+                  }
+                >
+                  {tokenTooltipLoading && tokenTooltipLoadingVisible ? (
+                    <Loader2 className='size-3 animate-spin sm:size-3.5' />
+                  ) : (
+                    <CircleAlert className='size-3 sm:size-3.5' />
+                  )}
+                </TooltipTrigger>
               }
-            >
-              {tokenTooltipLoading && tokenTooltipLoadingVisible ? (
-                <Loader2 className='size-3 animate-spin sm:size-3.5' />
-              ) : (
-                <CircleAlert className='size-3 sm:size-3.5' />
-              )}
-            </TooltipTrigger>
-          }
-        />
-        <TooltipContent>{tokenDetails}</TooltipContent>
-      </Tooltip>
-      <StatBadge
-        label={t('Unit Price')}
-        value={averagePricePerMillionTokens}
-        accent='bg-amber-500/70'
-      />
+            />
+            <TooltipContent>{tokenDetails}</TooltipContent>
+          </Tooltip>
+          <StatBadge
+            label={t('Unit Price')}
+            value={averagePricePerMillionTokens}
+            accent='bg-amber-500/70'
+          />
+        </>
+      )}
     </div>
   )
 }
