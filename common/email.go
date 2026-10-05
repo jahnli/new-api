@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"mime/multipart"
 	"mime/quotedprintable"
@@ -94,28 +95,105 @@ func newSMTPClient(addr string) (*smtp.Client, error) {
 }
 
 func SendEmail(subject string, receiver string, content string) error {
-	mail, err := buildHTMLMessage(subject, receiver, content, nil)
-	if err != nil {
-		return err
-	}
-	return sendSMTPMessage(receiver, mail)
+	return SendEmailWithContext(context.Background(), subject, receiver, content)
+}
+
+func SendEmailWithContext(ctx context.Context, subject, receiver, content string) error {
+	_, err := SendNotificationEmail(ctx, subject, receiver, content, nil)
+	return err
 }
 
 // SendNotificationEmail returns the actual MIME Message-ID after SMTP accepts
 // DATA. Its deadline covers dialing, TLS, authentication and message transfer.
-func SendNotificationEmail(ctx context.Context, subject, receiver, content string, attachments []EmailAttachment) (string, error) {
-	message, err := buildHTMLMessage(subject, receiver, content, attachments)
+func SendNotificationEmail(ctx context.Context, subject, receiver, content string, attachments []EmailAttachment) (id string, resultErr error) {
+	// Every send is bounded, including legacy callers. This also gives audit
+	// recovery a reliable deadline for abandoned in-flight records.
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+	started := time.Now()
+	metadata, _ := ctx.Value(smtpAuditContextKey{}).(SMTPAuditMetadata)
+	if metadata.Purpose == "" {
+		metadata.Purpose = "unclassified"
+	}
+	from := SMTPFrom
+	if from == "" {
+		from = SMTPAccount
+	}
+	recipients := strings.Split(receiver, ";")
+	for i := range recipients {
+		recipients[i] = strings.TrimSpace(recipients[i])
+		if address, err := mail.ParseAddress(recipients[i]); err == nil {
+			recipients[i] = address.Address
+		}
+	}
+	deadline, _ := ctx.Deadline()
+	trace := &smtpAuditTrace{events: make([]smtpAuditEvent, 0, 16), record: SMTPAuditRecord{
+		AttemptID: NewRequestId(), StartedAt: started.Unix(), DeadlineAt: deadline.Unix(),
+		Status: "sending", Stage: "build", Purpose: SMTPAuditText(metadata.Purpose, 64),
+		Subject: SMTPAuditText(subject, 512), Recipient: SMTPAuditText(strings.Join(recipients, ";"), 16000), Sender: SMTPAuditText(from, 320),
+		UserID: metadata.UserID, ActorID: metadata.ActorID, RequestID: SMTPAuditText(metadata.RequestID, 64),
+		NotificationID: metadata.NotificationID, DeliveryID: metadata.DeliveryID, Attempt: max(1, metadata.Attempt),
+		IsTest: metadata.IsTest, Server: SMTPAuditText(SMTPServer, 255), Port: SMTPPort,
+		TLSMode: "plain", AuthEnabled: shouldAuthenticateSMTP(), InsecureSkipVerify: SMTPInsecureSkipVerify,
+		AttachmentCount: len(attachments), InstanceID: SMTPAuditText(NodeName, 255),
+	}}
+	if SMTPSSLEnabled || (SMTPPort == 465 && !SMTPStartTLSEnabled) {
+		trace.record.TLSMode = "implicit_tls"
+	} else if SMTPStartTLSEnabled {
+		trace.record.TLSMode = "starttls"
+	}
+	for _, attachment := range attachments {
+		trace.record.AttachmentBytes += len(attachment.Data)
+	}
+	ctx = context.WithValue(ctx, smtpTraceContextKey{}, trace)
+	trace.persist()
+	completed := false
+	defer func() {
+		trace.record.FinishedAt = time.Now().Unix()
+		trace.record.DurationMS = time.Since(started).Milliseconds()
+		switch {
+		case trace.record.Status == "accepted":
+			trace.record.Error = ""
+			trace.record.SMTPCode = 250
+			if !completed {
+				trace.record.Warning = "sender_interrupted_after_acceptance"
+			}
+		case !completed:
+			trace.record.Status, trace.record.Error = "unknown", "sender_interrupted"
+		case resultErr == nil:
+			trace.record.Status = "accepted"
+			trace.record.SMTPCode = 250 // net/smtp requires 250 after DATA.
+		case errors.Is(resultErr, ErrSMTPDeliveryUnknown):
+			trace.record.Status = "unknown"
+		default:
+			trace.record.Status = "failed"
+		}
+		trace.persist()
+	}()
+	var message []byte
+	err := smtpAuditStep(ctx, "build", func() error {
+		var err error
+		message, err = buildHTMLMessage(subject, receiver, content, attachments)
+		return err
+	})
+	completed = true
 	if err != nil {
 		return "", err
 	}
+	trace.record.MessageBytes = len(message)
 	parsed, err := mail.ReadMessage(bytes.NewReader(message))
 	if err != nil {
+		trace.record.Error = "invalid_message"
 		return "", err
 	}
-	id := parsed.Header.Get("Message-ID")
+	id = parsed.Header.Get("Message-ID")
+	trace.record.MessageID = SMTPAuditText(id, 512)
+	completed = false
 	if err := sendSMTPMessageContext(ctx, receiver, message); err != nil {
+		completed = true
 		return "", err
 	}
+	completed = true
 	return id, nil
 }
 
@@ -124,12 +202,12 @@ func buildHTMLMessage(subject string, receiver string, content string, attachmen
 	if from == "" { // for compatibility
 		from = SMTPAccount
 	}
+	if SMTPServer == "" && SMTPAccount == "" {
+		return nil, fmt.Errorf("SMTP 服务器未配置")
+	}
 	id, err := generateMessageID(from)
 	if err != nil {
 		return nil, err
-	}
-	if SMTPServer == "" && SMTPAccount == "" {
-		return nil, fmt.Errorf("SMTP 服务器未配置")
 	}
 	if strings.ContainsAny(subject, "\r\n") || strings.ContainsAny(receiver, "\r\n") || strings.ContainsAny(SystemName, "\r\n") {
 		return nil, fmt.Errorf("invalid email header")
@@ -231,38 +309,49 @@ func sendSMTPMessageContext(ctx context.Context, receiver string, mail []byte) e
 		from = SMTPAccount
 	}
 	auth := getSMTPAuth()
-	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
+	addr := net.JoinHostPort(SMTPServer, fmt.Sprint(SMTPPort))
 	to := strings.Split(receiver, ";")
 	var err error
-	// Existing callers retain their SMTP behavior; notification workers supply
-	// a deadline and must be able to release a blocked SMTP connection.
+	// The shared public send entry supplies a deadline for all callers.
 	client, err := newSMTPClientWithContext(ctx, addr)
 	if err != nil {
 		return err
 	}
 	defer client.Close()
+	trace, _ := ctx.Value(smtpTraceContextKey{}).(*smtpAuditTrace)
+	if state, ok := client.TLSConnectionState(); ok && trace != nil {
+		trace.record.TLSVersion = tls.VersionName(state.Version)
+		trace.record.TLSCipher = tls.CipherSuiteName(state.CipherSuite)
+	}
 	if shouldAuthenticateSMTP() {
-		if err = client.Auth(auth); err != nil {
+		if err = smtpAuditStep(ctx, "auth", func() error { return client.Auth(auth) }); err != nil {
 			return err
 		}
 	}
-	if err = client.Mail(from); err != nil {
+	if err = smtpAuditStep(ctx, "mail_from", func() error { return client.Mail(from) }); err != nil {
 		return err
 	}
-	for _, receiver := range to {
-		if err = client.Rcpt(strings.TrimSpace(receiver)); err != nil {
+	for i, receiver := range to {
+		if err = smtpAuditStep(ctx, fmt.Sprintf("rcpt_to_%d", i+1), func() error { return client.Rcpt(strings.TrimSpace(receiver)) }); err != nil {
 			return err
 		}
 	}
-	w, err := client.Data()
-	if err != nil {
+	var w io.WriteCloser
+	if err = smtpAuditStep(ctx, "data", func() error {
+		var err error
+		w, err = client.Data()
+		return err
+	}); err != nil {
 		return err
 	}
-	_, err = w.Write(mail)
+	err = smtpAuditStep(ctx, "write", func() error {
+		_, err := w.Write(mail)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrSMTPDeliveryUnknown, err)
 	}
-	err = w.Close()
+	err = smtpAuditStep(ctx, "accept", w.Close)
 	if err != nil {
 		var rejected *textproto.Error
 		if errors.As(err, &rejected) {
@@ -270,9 +359,16 @@ func sendSMTPMessageContext(ctx context.Context, receiver string, mail []byte) e
 		}
 		return fmt.Errorf("%w: %v", ErrSMTPDeliveryUnknown, err)
 	}
-	err = client.Quit()
+	if trace != nil {
+		trace.record.Status = "accepted"
+	}
+	err = smtpAuditStep(ctx, "quit", client.Quit)
 	if err != nil {
-		SysError(fmt.Sprintf("failed to send email to %s: %v", receiver, err))
+		if trace != nil {
+			trace.record.Warning = "quit_failed_after_acceptance"
+			trace.record.Error = ""
+		}
+		SysError("SMTP QUIT failed after message acceptance")
 	}
 	// DATA was already accepted by the SMTP server. A QUIT failure does not
 	// mean delivery failed and must not encourage callers to resend the mail.
@@ -283,12 +379,17 @@ func newSMTPClientWithContext(ctx context.Context, addr string) (*smtp.Client, e
 	if ctx.Done() == nil {
 		return newSMTPClient(addr)
 	}
-	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+	var conn net.Conn
+	err := smtpAuditStep(ctx, "connect", func() error {
+		var err error
+		conn, err = (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
 	if deadline, ok := ctx.Deadline(); ok {
-		if err := conn.SetDeadline(deadline); err != nil {
+		if err := smtpAuditStep(ctx, "deadline", func() error { return conn.SetDeadline(deadline) }); err != nil {
 			_ = conn.Close()
 			return nil, err
 		}
@@ -298,23 +399,29 @@ func newSMTPClientWithContext(ctx context.Context, addr string) (*smtp.Client, e
 	var transport net.Conn = wrapped
 	if SMTPSSLEnabled || (SMTPPort == 465 && !SMTPStartTLSEnabled) {
 		tlsConn := tls.Client(wrapped, smtpTLSConfig())
-		if err := tlsConn.HandshakeContext(ctx); err != nil {
+		if err := smtpAuditStep(ctx, "tls", func() error { return tlsConn.HandshakeContext(ctx) }); err != nil {
 			_ = wrapped.Close()
 			return nil, err
 		}
 		transport = tlsConn
 	}
-	client, err := smtp.NewClient(transport, SMTPServer)
+	var client *smtp.Client
+	err = smtpAuditStep(ctx, "greeting", func() error {
+		var err error
+		client, err = smtp.NewClient(transport, SMTPServer)
+		return err
+	})
 	if err != nil {
 		_ = transport.Close()
 		return nil, err
 	}
 	if SMTPStartTLSEnabled && !SMTPSSLEnabled {
-		if supported, _ := client.Extension("STARTTLS"); !supported {
-			_ = client.Close()
-			return nil, fmt.Errorf("SMTP server does not support STARTTLS")
-		}
-		if err := client.StartTLS(smtpTLSConfig()); err != nil {
+		if err := smtpAuditStep(ctx, "starttls", func() error {
+			if supported, _ := client.Extension("STARTTLS"); !supported {
+				return fmt.Errorf("SMTP server does not support STARTTLS")
+			}
+			return client.StartTLS(smtpTLSConfig())
+		}); err != nil {
 			_ = client.Close()
 			return nil, err
 		}

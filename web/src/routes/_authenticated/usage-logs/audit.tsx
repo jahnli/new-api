@@ -25,7 +25,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 const auditSearchSchema = z.object({
   section: z
-    .enum(['off-hours', 'image-studio', 'general'])
+    .enum(['off-hours', 'image-studio', 'general', 'smtp'])
     .optional()
     .catch('general'),
   offHoursPage: z.number().optional().catch(1),

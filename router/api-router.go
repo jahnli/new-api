@@ -48,6 +48,12 @@ func SetApiRouter(router *gin.Engine) {
 			perfMetricsRoute.GET("", controller.GetPerfMetrics)
 		}
 		apiRouter.GET("/rankings", middleware.HeaderNavModuleAuth("rankings"), controller.GetRankings)
+		smtpAuditRoute := apiRouter.Group("/smtp_audit")
+		smtpAuditRoute.Use(middleware.DisableCache(), middleware.RootAuth())
+		{
+			smtpAuditRoute.GET("", controller.ListSMTPAudits)
+			smtpAuditRoute.GET("/:id", controller.GetSMTPAudit)
+		}
 		apiRouter.GET("/image-studio/assets/*path", controller.GetImageStudioImage)
 		notificationRoute := apiRouter.Group("/notification")
 		notificationRoute.Use(middleware.UserAuth(), middleware.RequirePermission(authz.NotificationView), middleware.DisableCache())

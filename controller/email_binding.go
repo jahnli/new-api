@@ -46,7 +46,7 @@ func EmailBindStart(c *gin.Context) {
 	if authorization == nil {
 		return
 	}
-	data, err := service.StartEmailBinding(identity, authorization, email)
+	data, err := service.StartEmailBinding(identity, authorization, email, common.SMTPAuditMetadata{RequestID: c.GetString(common.RequestIdKey)})
 	if err != nil {
 		writeSecurityOperationError(c, err)
 		return
@@ -70,7 +70,7 @@ func EmailBindResend(c *gin.Context) {
 		writeSecurityOperationError(c, model.ErrAuthFlowInvalid)
 		return
 	}
-	data, err := service.ResendAccountEmailBinding(identity, request.FlowToken)
+	data, err := service.ResendAccountEmailBinding(identity, request.FlowToken, common.SMTPAuditMetadata{RequestID: c.GetString(common.RequestIdKey)})
 	if err != nil {
 		writeSecurityOperationError(c, err)
 		return
@@ -100,8 +100,9 @@ func EmailBind(c *gin.Context) {
 		return
 	}
 	succeeded = true
-	notificationFailed = service.NotifyAccountSecurityChange(state.CurrentEmail, "Email address changed") != nil
-	if err := service.NotifyAccountSecurityChange(state.Email, "Email address confirmed"); err != nil {
+	audit := common.SMTPAuditMetadata{UserID: identity.UserID, ActorID: identity.UserID, RequestID: c.GetString(common.RequestIdKey)}
+	notificationFailed = service.NotifyAccountSecurityChange(state.CurrentEmail, "Email address changed", audit) != nil
+	if err := service.NotifyAccountSecurityChange(state.Email, "Email address confirmed", audit); err != nil {
 		notificationFailed = true
 	}
 	if err := model.PublishUserAuthCache(identity.UserID); err != nil {

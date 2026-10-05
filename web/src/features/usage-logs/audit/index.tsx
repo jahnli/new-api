@@ -43,6 +43,8 @@ const SecurityAudit = lazy(() =>
   }))
 )
 
+const SMTPAuditPanel = lazy(() => import('./smtp'))
+
 export function AuditLogs(
   props: {
     search?: AuditSearchState
@@ -166,6 +168,7 @@ export function AuditLogs(
                 if (
                   value !== 'off-hours' &&
                   value !== 'image-studio' &&
+                  value !== 'smtp' &&
                   value !== 'general'
                 ) {
                   return
@@ -194,6 +197,7 @@ export function AuditLogs(
                     {t('Image Audit')}
                   </TabsTrigger>
                 )}
+                <TabsTrigger value='smtp'>{t('SMTP Audit')}</TabsTrigger>
               </TabsList>
             </Tabs>
           )}
@@ -214,7 +218,11 @@ export function AuditLogs(
             </div>
           ) : (
             <Suspense fallback={<LoadingState className='min-h-0 flex-1' />}>
-              <SecurityAudit section={section} />
+              {section === 'smtp' ? (
+                <SMTPAuditPanel />
+              ) : (
+                <SecurityAudit section={section} />
+              )}
             </Suspense>
           )}
         </div>

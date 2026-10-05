@@ -132,7 +132,13 @@ func deliverNotificationRecipients(ctx context.Context, record *model.Notificati
 					remaining--
 					active++
 					workers.Go(func() {
-						results <- sendNotificationRecipient(sendCtx, message, delivery)
+						requestID, _ := sendCtx.Value(common.RequestIdKey).(string)
+						ctx := common.WithSMTPAudit(sendCtx, common.SMTPAuditMetadata{
+							Purpose: "notification", ActorID: record.SenderID, RequestID: requestID,
+							NotificationID: record.ID, DeliveryID: delivery.ID,
+							Attempt: delivery.Attempts, IsTest: record.IsTest,
+						})
+						results <- sendNotificationRecipient(ctx, message, delivery)
 					})
 					continue
 				}

@@ -135,6 +135,7 @@ func StartSystemTaskRunner() {
 
 			var lastScheduler time.Time
 			var lastStaleLockCleanup time.Time
+			var lastSMTPAuditMaintenance time.Time
 			runPass := func() {
 				// The scheduler/stale-lock pass is throttled independently of the
 				// claim pass: wakeups (e.g. a manual log cleanup) should claim
@@ -149,6 +150,12 @@ func StartSystemTaskRunner() {
 				if now.Sub(lastScheduler) >= systemTaskSchedulerInterval {
 					lastScheduler = now
 					runSystemTaskScheduler()
+				}
+				if now.Sub(lastSMTPAuditMaintenance) >= time.Minute {
+					lastSMTPAuditMaintenance = now
+					if err := model.MaintainSMTPAudits(context.Background()); err != nil {
+						common.SysError("SMTP audit maintenance failed; it will be retried")
+					}
 				}
 				runSystemTaskClaimPass(runnerID)
 			}

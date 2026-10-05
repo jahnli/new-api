@@ -218,6 +218,7 @@ func InitDB() (err error) {
 			if err := EnsureLegacyAccessTokenRetireAt(common.GetTimestamp()); err != nil {
 				common.SysError("initialize legacy access token deadline: " + err.Error())
 			}
+			common.RegisterSMTPAuditRecorder(RecordSMTPAudit)
 			return nil
 		}
 		if common.UsingMainDatabase(common.DatabaseTypeMySQL) {
@@ -225,6 +226,9 @@ func InitDB() (err error) {
 		}
 		common.SysLog("database migration started")
 		err = migrateDB()
+		if err == nil {
+			common.RegisterSMTPAuditRecorder(RecordSMTPAudit)
+		}
 		return err
 	} else {
 		common.FatalLog(err)
@@ -389,6 +393,7 @@ func migrateDB() error {
 		&Company{},
 		&NotificationRecord{},
 		&NotificationDelivery{},
+		&SMTPAudit{},
 		&UserAccessToken{},
 	)
 	if err != nil {

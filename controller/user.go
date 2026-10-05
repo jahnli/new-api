@@ -1179,7 +1179,9 @@ func UpdateSelf(c *gin.Context) {
 			return
 		}
 		succeeded = true
-		notificationFailed = service.NotifyAccountSecurityChange(current.Email, "Password updated") != nil
+		notificationFailed = service.NotifyAccountSecurityChange(current.Email, "Password updated", common.SMTPAuditMetadata{
+			UserID: current.Id, ActorID: identity.UserID, RequestID: c.GetString(common.RequestIdKey),
+		}) != nil
 		if err := model.PublishUserAuthCache(cleanUser.Id); err != nil {
 			writeSecurityOperationError(c, err)
 			return

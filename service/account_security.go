@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"html"
 
@@ -31,11 +32,17 @@ func UnbindAccountOAuth(identity AuthIdentity, providerID int) error {
 
 // NotifyAccountSecurityChange never includes credentials or tokens. The caller
 // records delivery failure independently from the already-committed change.
-func NotifyAccountSecurityChange(email, event string) error {
+func NotifyAccountSecurityChange(email, event string, metadata ...common.SMTPAuditMetadata) error {
 	if email == "" {
 		return nil
 	}
 	subject := common.SystemName + " — Account security notification"
 	content := fmt.Sprintf("<p>Your account security settings have changed: %s.</p><p>If you did not make this change, open your account security settings, revoke other login sessions, and contact your administrator.</p>", html.EscapeString(event))
-	return common.SendEmail(subject, email, content)
+	var audit common.SMTPAuditMetadata
+	if len(metadata) > 0 {
+		audit = metadata[0]
+	}
+	audit.Purpose = "account_security"
+	ctx := common.WithSMTPAudit(context.Background(), audit)
+	return common.SendEmailWithContext(ctx, subject, email, content)
 }
