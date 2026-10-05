@@ -145,19 +145,21 @@ export function AuditLogs(
     <SectionPageLayout fixedContent>
       <SectionPageLayout.Title>{t('Audit Logs')}</SectionPageLayout.Title>
       <SectionPageLayout.Actions>
-        {isGeneralAudit && canReadAll && !accessRevoked && (
-          <Tabs
-            value={scope}
-            onValueChange={(value) =>
-              setScope(value === 'all' ? 'all' : 'self')
-            }
-          >
-            <TabsList aria-label={t('View scope')}>
-              <TabsTrigger value='all'>{t('All')}</TabsTrigger>
-              <TabsTrigger value='self'>{t('Only Mine')}</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
+        <div className='flex min-h-8 items-center'>
+          {isGeneralAudit && canReadAll && !accessRevoked && (
+            <Tabs
+              value={scope}
+              onValueChange={(value) =>
+                setScope(value === 'all' ? 'all' : 'self')
+              }
+            >
+              <TabsList aria-label={t('View scope')}>
+                <TabsTrigger value='all'>{t('All')}</TabsTrigger>
+                <TabsTrigger value='self'>{t('Only Mine')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         <div className='flex h-full min-h-0 flex-col gap-3'>
