@@ -50,7 +50,8 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
-import { formatQuota } from '@/lib/format'
+import { toIntlLocale } from '@/i18n/languages'
+import { formatNumber, formatQuota } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import {
@@ -69,6 +70,7 @@ import type {
   SubscriptionQuotaType,
   UserSubscriptionRecord,
 } from '../../types'
+import { SubscriptionQuotaAdjustmentPreview } from '../subscription-quota-adjustment-preview'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -139,14 +141,15 @@ function SubscriptionStatusBadge(props: {
 }
 
 export function UserSubscriptionsDialog(props: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [plans, setPlans] = useState<PlanRecord[]>([])
   const [subs, setSubs] = useState<UserSubscriptionRecord[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
-  const [quotaAdjustmentAmount, setQuotaAdjustmentAmount] = useState('500')
+  const [quotaAdjustmentAmount, setQuotaAdjustmentAmount] = useState('')
   const [quotaType, setQuotaType] = useState<SubscriptionQuotaType>('total')
   const [confirming, setConfirming] = useState(false)
   const confirmInFlightRef = useRef(false)
@@ -162,9 +165,9 @@ export function UserSubscriptionsDialog(props: Props) {
   } | null>(null)
 
   const quotaTypeItems = [
+    { value: 'total' as const, label: t('Total Quota') },
     { value: 'basic' as const, label: t('Standard model quota') },
     { value: 'premium' as const, label: t('Premium model quota') },
-    { value: 'total' as const, label: t('Total Quota') },
   ]
   const selectedSubscription = subs.find(
     (record) => record.subscription.id === confirmAction?.subId
@@ -549,28 +552,13 @@ export function UserSubscriptionsDialog(props: Props) {
                   const isActive = sub.status === 'active' && !isExpired
 
                   return (
-                    <DataTableRowActionMenu ariaLabel={t('Actions')}>
-                      <DropdownMenuItem
+                    <div className='flex items-center justify-end gap-2'>
+                      <Button
+                        variant='outline'
+                        size='sm'
                         disabled={!isActive}
                         onClick={() => {
-                          setAdvanceResetTime(true)
-                          setResetAction({
-                            planId: sub.plan_id,
-                            planTitle:
-                              planTitleMap.get(sub.plan_id) ||
-                              `#${sub.plan_id}`,
-                          })
-                        }}
-                      >
-                        {t('Reset quota')}
-                        <DropdownMenuShortcut>
-                          <RotateCcw size={16} />
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={!isActive}
-                        onClick={() => {
-                          setQuotaAdjustmentAmount('500')
+                          setQuotaAdjustmentAmount('')
                           setQuotaType('total')
                           setConfirmAction({
                             type: 'increase',
@@ -578,15 +566,15 @@ export function UserSubscriptionsDialog(props: Props) {
                           })
                         }}
                       >
+                        <Plus className='size-4' aria-hidden='true' />
                         {t('Increase')}
-                        <DropdownMenuShortcut>
-                          <Plus size={16} />
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        size='sm'
                         disabled={!isActive || sub.amount_total <= 0}
                         onClick={() => {
-                          setQuotaAdjustmentAmount('500')
+                          setQuotaAdjustmentAmount('')
                           setQuotaType('total')
                           setConfirmAction({
                             type: 'decrease',
@@ -594,41 +582,58 @@ export function UserSubscriptionsDialog(props: Props) {
                           })
                         }}
                       >
+                        <Minus className='size-4' aria-hidden='true' />
                         {t('Decrease')}
-                        <DropdownMenuShortcut>
-                          <Minus size={16} />
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        disabled={!isActive}
-                        onClick={() =>
-                          setConfirmAction({
-                            type: 'invalidate',
-                            subId: sub.id,
-                          })
-                        }
-                      >
-                        {t('Invalidate')}
-                        <DropdownMenuShortcut>
-                          <Ban size={16} />
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant='destructive'
-                        onClick={() =>
-                          setConfirmAction({
-                            type: 'delete',
-                            subId: sub.id,
-                          })
-                        }
-                      >
-                        {t('Delete')}
-                        <DropdownMenuShortcut>
-                          <Trash2 size={16} />
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
-                    </DataTableRowActionMenu>
+                      </Button>
+                      <DataTableRowActionMenu ariaLabel={t('Actions')}>
+                        <DropdownMenuItem
+                          disabled={!isActive}
+                          onClick={() => {
+                            setAdvanceResetTime(true)
+                            setResetAction({
+                              planId: sub.plan_id,
+                              planTitle:
+                                planTitleMap.get(sub.plan_id) ||
+                                `#${sub.plan_id}`,
+                            })
+                          }}
+                        >
+                          {t('Reset quota')}
+                          <DropdownMenuShortcut>
+                            <RotateCcw size={16} />
+                          </DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={!isActive}
+                          onClick={() =>
+                            setConfirmAction({
+                              type: 'invalidate',
+                              subId: sub.id,
+                            })
+                          }
+                        >
+                          {t('Invalidate')}
+                          <DropdownMenuShortcut>
+                            <Ban size={16} />
+                          </DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant='destructive'
+                          onClick={() =>
+                            setConfirmAction({
+                              type: 'delete',
+                              subId: sub.id,
+                            })
+                          }
+                        >
+                          {t('Delete')}
+                          <DropdownMenuShortcut>
+                            <Trash2 size={16} />
+                          </DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                      </DataTableRowActionMenu>
+                    </div>
                   )
                 },
               },
@@ -646,71 +651,146 @@ export function UserSubscriptionsDialog(props: Props) {
             }
           }}
           title={confirmTitle}
+          closeOnOutsideClick={
+            confirmAction.type === 'increase' ||
+            confirmAction.type === 'decrease'
+          }
+          className={
+            confirmAction.type === 'increase' ||
+            confirmAction.type === 'decrease'
+              ? 'min-h-[min(32rem,calc(100dvh-2rem))] grid-rows-[auto_1fr_auto] gap-6 data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-2xl'
+              : undefined
+          }
           desc={confirmDesc}
           handleConfirm={handleConfirmAction}
           destructive={confirmAction.type === 'delete'}
           confirmText={confirmText}
           isLoading={confirming}
+          disabled={
+            (confirmAction.type === 'increase' ||
+              confirmAction.type === 'decrease') &&
+            (!Number.isFinite(Number(quotaAdjustmentAmount)) ||
+              Number(quotaAdjustmentAmount) <= 0)
+          }
         >
           {confirmAction.type === 'increase' ||
           confirmAction.type === 'decrease' ? (
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor='subscription-quota-type'>
-                  {t('Quota type')}
-                </FieldLabel>
-                <Select
-                  items={quotaTypeItems}
-                  value={quotaType}
-                  onValueChange={(value) =>
-                    value !== null && setQuotaType(value)
-                  }
-                  disabled={confirming}
-                >
-                  <SelectTrigger
-                    id='subscription-quota-type'
-                    className='w-full'
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    {quotaTypeItems.map((item) => (
-                      <SelectItem
-                        key={item.value}
-                        value={item.value}
-                        disabled={
-                          item.value !== 'total' && !targetedQuotaEnabled
-                        }
+            <FieldGroup className='gap-6 self-start'>
+              <div className='bg-muted/50 space-y-2 rounded-lg border p-4'>
+                <div className='font-medium'>
+                  {selectedSubscription &&
+                    (planTitleMap.get(
+                      selectedSubscription.subscription.plan_id
+                    ) ||
+                      `#${selectedSubscription.subscription.plan_id}`)}
+                </div>
+                <div className='flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm'>
+                  <div className='flex items-center gap-3'>
+                    <span className='text-muted-foreground'>
+                      {t('Current quota')}
+                    </span>
+                    <span className='font-semibold tabular-nums'>
+                      {(selectedSubscription?.subscription.amount_total || 0) >
+                      0
+                        ? formatQuota(
+                            selectedSubscription?.subscription.amount_total || 0
+                          )
+                        : t('Unlimited')}
+                    </span>
+                  </div>
+                  {selectedSubscription?.premium_quota?.enabled && (
+                    <div className='flex flex-wrap items-center gap-3'>
+                      <span className='text-muted-foreground'>
+                        {t('Premium percentage')}
+                      </span>
+                      <div className='flex items-center gap-2'>
+                        <Badge variant='secondary'>
+                          {selectedSubscription.premium_quota.percent_source ===
+                          'user'
+                            ? t('User override')
+                            : t('System default')}
+                        </Badge>
+                        <span className='font-semibold tabular-nums'>
+                          {formatNumber(
+                            selectedSubscription.premium_quota
+                              .effective_percent,
+                            locale
+                          )}
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div
+                className={
+                  targetedQuotaEnabled
+                    ? 'grid gap-4 sm:grid-cols-2'
+                    : 'grid gap-4'
+                }
+              >
+                {targetedQuotaEnabled ? (
+                  <Field>
+                    <FieldLabel htmlFor='subscription-quota-type'>
+                      {t('Quota type')}
+                    </FieldLabel>
+                    <Select
+                      items={quotaTypeItems}
+                      value={quotaType}
+                      onValueChange={(value) =>
+                        value !== null && setQuotaType(value)
+                      }
+                      disabled={confirming}
+                    >
+                      <SelectTrigger
+                        id='subscription-quota-type'
+                        className='w-full'
                       >
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {quotaType !== 'total' && (
-                  <p className='text-muted-foreground text-xs'>
-                    {t(
-                      'The adjusted percentage becomes a user override and remains after quota resets.'
-                    )}
-                  </p>
-                )}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor='subscription-quota-adjustment-amount'>
-                  {t('Amount (CNY)')}
-                </FieldLabel>
-                <Input
-                  id='subscription-quota-adjustment-amount'
-                  type='number'
-                  min='0'
-                  step='1'
-                  value={quotaAdjustmentAmount}
-                  disabled={confirming}
-                  onChange={(event) =>
-                    setQuotaAdjustmentAmount(event.target.value)
-                  }
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent alignItemWithTrigger={false}>
+                        {quotaTypeItems.map((item) => (
+                          <SelectItem
+                            key={item.value}
+                            value={item.value}
+                            disabled={
+                              item.value !== 'total' && !targetedQuotaEnabled
+                            }
+                          >
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                ) : null}
+                <Field>
+                  <FieldLabel htmlFor='subscription-quota-adjustment-amount'>
+                    {t('Amount (CNY)')}
+                  </FieldLabel>
+                  <Input
+                    id='subscription-quota-adjustment-amount'
+                    type='number'
+                    autoFocus
+                    min='0'
+                    step='1'
+                    value={quotaAdjustmentAmount}
+                    disabled={confirming}
+                    onChange={(event) =>
+                      setQuotaAdjustmentAmount(event.target.value)
+                    }
+                  />
+                </Field>
+              </div>
+              {selectedSubscription && (
+                <SubscriptionQuotaAdjustmentPreview
+                  record={selectedSubscription}
+                  amount={quotaAdjustmentAmount}
+                  quotaType={quotaType}
+                  decrease={confirmAction.type === 'decrease'}
                 />
-              </Field>
+              )}
             </FieldGroup>
           ) : null}
         </ConfirmDialog>
