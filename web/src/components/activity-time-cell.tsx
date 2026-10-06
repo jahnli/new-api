@@ -156,7 +156,10 @@ export function ActivityTimeCell(props: {
         props.textClassName ?? 'text-xs',
         props.layout === 'columns'
           ? 'grid-flow-col grid-cols-2 grid-rows-[auto_1fr] items-start gap-x-3'
-          : 'grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2'
+          : 'grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2',
+        props.layout !== 'columns' &&
+          props.format === 'absolute' &&
+          'grid-cols-[auto_minmax(max-content,1fr)]'
       )}
     >
       {entries.map((entry) => (
