@@ -684,7 +684,7 @@ export function useCommonLogsColumns(
               </PopoverTrigger>
               <PopoverContent
                 side="top"
-                className="bg-foreground text-background w-fit rounded-md px-3 py-1.5 text-xs [&>[data-slot=token-breakdown]]:w-[14rem]"
+                className="bg-foreground text-background w-fit rounded-md px-3 py-1.5 text-xs [&>[data-slot=token-breakdown]]:w-[12rem]"
               >
                 <TokenBreakdownTooltipContent
                   unit="count"
