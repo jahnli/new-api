@@ -107,11 +107,6 @@ export function LogsFilterToolbar<TData>(props: LogsFilterToolbarProps<TData>) {
       )}
     >
       {advancedOpen ? t('Collapse') : t('Expand')}
-      {activeAdvancedCount > 0 && (
-        <Badge className='ml-0.5 size-5 justify-center p-0 text-[10px]'>
-          {activeAdvancedCount}
-        </Badge>
-      )}
       <ChevronDown
         className={cn(
           'size-3.5 transition-transform duration-200',
