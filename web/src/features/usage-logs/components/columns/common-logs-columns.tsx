@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from "@tanstack/react-table";
 import { CircleAlert, GitBranch, KeyRound, Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { StatusBadge, type StatusBadgeProps } from "@/components/status-badge";
@@ -637,7 +637,23 @@ export function useCommonLogsColumns(
       {
         accessorKey: "prompt_tokens",
         header: t("Tokens", { context: "usage" }),
-        cell: ({ row }) => {
+        cell: function TokenCell({ row }) {
+          const [open, setOpen] = useState(false);
+          const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+            undefined,
+          );
+
+          const cancelClose = () => {
+            clearTimeout(closeTimer.current);
+            closeTimer.current = undefined;
+          };
+          const scheduleClose = () => {
+            cancelClose();
+            closeTimer.current = setTimeout(() => setOpen(false), 150);
+          };
+
+          useEffect(() => () => clearTimeout(closeTimer.current), []);
+
           const log = row.original;
           if (!isDisplayableLogType(log.type)) return null;
 
@@ -658,8 +674,18 @@ export function useCommonLogsColumns(
             : other?.cache_creation_tokens || 0;
 
           return (
-            <Popover>
-              <PopoverTrigger className="focus-visible:outline-ring flex cursor-pointer flex-col gap-0.5 rounded-sm text-left focus-visible:outline-2">
+            <Popover
+              open={open}
+              onOpenChange={(nextOpen) => {
+                cancelClose();
+                setOpen(nextOpen);
+              }}
+            >
+              <PopoverTrigger
+                onMouseEnter={cancelClose}
+                onMouseLeave={scheduleClose}
+                className="focus-visible:outline-ring flex cursor-pointer flex-col gap-0.5 rounded-sm text-left focus-visible:outline-2"
+              >
                 <span className="font-mono text-xs font-medium tabular-nums">
                   {formatNumber(promptTokens, locale)} /{" "}
                   {formatNumber(completionTokens, locale)}
@@ -684,6 +710,8 @@ export function useCommonLogsColumns(
               </PopoverTrigger>
               <PopoverContent
                 side="top"
+                onMouseEnter={cancelClose}
+                onMouseLeave={scheduleClose}
                 className="bg-foreground text-background w-fit rounded-md px-3 py-1.5 text-xs [&>[data-slot=token-breakdown]]:w-[12rem]"
               >
                 <TokenBreakdownTooltipContent

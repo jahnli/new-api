@@ -1,6 +1,25 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-10-04（最后更新 2026-10-04）
+**日期**: 2026-09-09 ~ 2026-10-06（最后更新 2026-10-06）
+
+## 2026-10-06 Token 明细交互与统计可见性
+
+- `web/src/components/token-breakdown-tooltip-content.tsx` — 总量改为可选，分类明细支持原始数量或亿 Token 单位，供单条日志与汇总复用。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 单条日志点击 Token 数值显示输入、输出、缓存读取与缓存写入明细，提示框宽度调整为 12rem；鼠标在当前 Token 内容与提示框之间移动时保持显示，离开两者后延迟 150 毫秒关闭，组件卸载时清理定时器。
+- `web/src/features/usage-logs/components/usage-logs-table.tsx` — Token 缓存等次要文字统一为 12px，与主数值区分层次。
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 汇总、明细入口和综合单价仅在超级管理员日志视图展示，加载骨架同步按权限裁剪。
+
+## 2026-10-05 SMTP 发送审计
+
+- `common/email.go`、`common/smtp_audit.go` — 邮件发送统一接入请求上下文与最长 90 秒超时，记录发送用途、关联用户与通知、SMTP 阶段耗时、TLS 信息及接受、失败或结果不确定状态；仅记录安全错误分类，不保存正文、验证码、凭据或原始 SMTP 错误响应。
+- `model/smtp_audit.go`、`model/main.go` — 在主库注册独立 SMTP 审计表，按发送尝试保存初始与最终状态，支持分页、状态、用途、收件人、用户、请求 ID、时间与测试标记筛选。
+- `controller/smtp_audit.go`、`router/api-router.go`、`middleware/access_token_routes.go` — 新增仅超级管理员可访问的列表与详情接口；列表脱敏邮箱并省略阶段事件，详情提供完整诊断时间线。
+- `controller/custom_oauth.go`、`controller/email_binding.go`、`controller/misc.go`、`controller/oauth.go`、`controller/user.go`、`controller/wechat.go` — 相关邮件发送传递请求上下文及发送用途、用户和操作者等审计关联信息。
+- `service/account_security.go`、`service/email_binding.go`、`service/notification_worker.go`、`service/user_notify.go` — 账户安全、邮箱绑定、企业通知和用户提醒邮件接入审计元数据，企业通知关联投递记录、发送次数及测试标记。
+- `service/system_task.go` — 每分钟维护 SMTP 审计，将超过发送截止时间及宽限期的未完成记录标为结果不确定；按 `SMTP_AUDIT_RETENTION_DAYS` 清理历史记录，默认保留 90 天。
+- `web/src/features/usage-logs/audit/api.ts`、`index.tsx`、`web/src/routes/_authenticated/usage-logs/audit.tsx` — 审计日志新增仅超级管理员可见的 SMTP 分类和独立分页筛选参数，分类页按需加载；统一顶部操作区域的最小高度。
+- `web/src/features/usage-logs/audit/smtp/api.ts`、`index.tsx`、`filter-bar.tsx`、`details-dialog.tsx`、`labels.ts` — 新增 SMTP 审计列表、筛选与发送详情界面，展示状态、用途及诊断信息。
+- `web/src/i18n/locales/en.json`、`zh.json`、`zh-TW.json`、`fr.json`、`ja.json`、`ru.json`、`vi.json` — 补充 SMTP 审计界面的七语言文案。
 
 ## 2026-10-04 筛选布局与统计数字优化
 

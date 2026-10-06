@@ -1,6 +1,13 @@
 # 企业通知对象存储与并发发送
 
-**日期**: 2026-09-28 ~ 2026-10-04
+**日期**: 2026-09-28 ~ 2026-10-06
+
+## 2026-10-06 补记邮箱测试与邮件展示优化
+
+- `web/src/features/notification/components/send-dialog.tsx` — 邮箱测试使用编辑器中填写的收件人，展示邮箱渠道和人数，不再提供飞书或钉钉 ID 输入；正文预览独立滚动。测试确认框支持点击外部空白关闭，发送期间禁止关闭。
+- `web/src/features/notification/index.tsx` — 邮箱正式发送与测试均校验收件人存在且邮箱合法，邮箱测试最多允许 20 个收件人。
+- `service/notification_sender.go` — 邮件正文移除重复插入的标题，标题保留在邮件主题中；Markdown 图片与附加图片统一使用内联宽度、等比高度及圆角样式，避免超出邮件内容区。
+- `web/src/components/confirm-dialog.tsx`、`web/src/components/ui/alert-dialog.tsx` — 共享确认弹框新增可选的点击遮罩关闭能力，默认仍保持原行为，加载时不允许点击遮罩关闭。
 
 ## 2026-10-04 邮箱收件人域名补全
 
