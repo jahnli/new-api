@@ -2,6 +2,10 @@
 
 **日期**: 2026-09-09 ~ 2026-10-06（最后更新 2026-10-06）
 
+## 2026-10-06 高级筛选入口精简
+
+- `web/src/features/usage-logs/components/logs-filter-toolbar.tsx` — 移除展开/收起按钮旁的已启用高级筛选数量徽章，保留展开、收起及筛选行为。
+
 ## 2026-10-06 Token 明细交互与统计可见性
 
 - `web/src/components/token-breakdown-tooltip-content.tsx` — 总量改为可选，分类明细支持原始数量或亿 Token 单位，供单条日志与汇总复用。
