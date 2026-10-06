@@ -245,7 +245,8 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
         fixedLayout
         tableClassName={cn(
           '[&_[data-slot=table]_td]:whitespace-normal [&_[data-slot=table]_td]:[overflow-wrap:anywhere]',
-          '[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
+          '[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]',
+          '[&_[data-slot=table]_td_[data-table-text=secondary]]:text-[12px] [&_[data-slot=table]_td_[data-table-text=secondary]_*]:text-[12px]'
         )}
         mobile={
           <UsageLogsMobileList
