@@ -250,7 +250,7 @@ export function Dashboard() {
         start={draftModelFilters.start_timestamp}
         end={draftModelFilters.end_timestamp}
         onChange={handleDashboardTimeRangeChange}
-        className='h-8 w-[320px] max-w-[320px] shrink-0'
+        className='h-8 w-full shrink-0 sm:w-max'
       />
       {isSuperAdmin && (
         <Input
@@ -345,9 +345,9 @@ export function Dashboard() {
       <SectionPageLayout.Title>{t(meta.titleKey)}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <div className='space-y-3 sm:space-y-4'>
-          <div className='flex items-center justify-between gap-1.5 sm:gap-2'>
+          <div className='flex items-center justify-between gap-1.5 sm:items-start sm:gap-2'>
             {sectionActions != null && (
-              <div className='flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto sm:gap-2'>
+              <div className='flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto sm:flex-wrap sm:gap-2 sm:overflow-visible'>
                 {sectionActions}
               </div>
             )}

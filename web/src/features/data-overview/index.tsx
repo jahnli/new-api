@@ -279,7 +279,7 @@ export function DataOverview() {
             start={dateRange.start}
             end={dateRange.end}
             onChange={setDateRange}
-            className='max-w-[302px]'
+            className='sm:w-max'
           />
           {selectedNode && (
             <div className='ml-auto flex items-center gap-2'>
