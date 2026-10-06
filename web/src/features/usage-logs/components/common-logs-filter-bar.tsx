@@ -488,7 +488,7 @@ export function CommonLogsFilterBar<TData>(
   const dateRangeFilter = (
     <LogsFilterField>
       <CompactDateTimeRangePicker
-        className='sm:w-[calc(100%)]'
+        className='sm:w-max'
         start={filters.startTime}
         end={filters.endTime}
         onChange={({ start, end }) => {
@@ -702,7 +702,7 @@ export function CommonLogsFilterBar<TData>(
           )}
         </>
       }
-      primaryFiltersClassName='sm:grid-cols-[minmax(calc(17rem-8px),calc((100%-2rem)*1.7/5.7-22px))_minmax(calc(8rem+10px),calc((100%-2rem)/5.7+10px))_minmax(calc(8rem-10px),calc((100%-2rem)/5.7-10px))_repeat(2,minmax(8rem,1fr))]'
+      primaryFiltersClassName='sm:grid-cols-[max-content_minmax(calc(8rem+10px),calc((100%-2rem)/5.7+10px))_minmax(calc(8rem-10px),calc((100%-2rem)/5.7-10px))_repeat(2,minmax(8rem,1fr))]'
       primaryFilters={
         <>
           {dateRangeFilter}
