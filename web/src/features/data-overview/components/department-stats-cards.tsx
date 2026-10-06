@@ -114,6 +114,14 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
   // 与 API 周报口径一致：缓存写入属于未命中，同样计入分母。
   const cacheHitRate =
     totalInputTokens > 0 ? (cacheReadTokens / totalInputTokens) * 100 : 0
+  let cacheHitRateClassName = 'text-red-500'
+  if (totalInputTokens <= 0) {
+    cacheHitRateClassName = 'text-muted-foreground'
+  } else if (cacheHitRate >= 85) {
+    cacheHitRateClassName = 'text-emerald-500'
+  } else if (cacheHitRate >= 50) {
+    cacheHitRateClassName = 'text-amber-500'
+  }
 
   const items: {
     title: string
@@ -248,7 +256,7 @@ export function DepartmentStatsCards(props: { stat: DepartmentStat }) {
       title: t('Cache Hit Rate'),
       value: `${cacheHitRate.toFixed(1)}%`,
       desc: t('Share of cache-read tokens in total input tokens'),
-      valueClassName: 'text-success',
+      valueClassName: cacheHitRateClassName,
       icon: Gauge,
       iconTone: 'chart-1',
     },
