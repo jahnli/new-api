@@ -13,6 +13,8 @@ description: 通过 1Panel API 部署 ai-gateway，支持更换镜像标签、�
 - 用户指定值优先；缺少镜像标签时询问，不默认用 `latest`。
 - 部署请求授权一次更新，无需重复确认；强制拉取和重建支持同标签。查询或编辑技能时不部署。
 - 使用 API；镜像构建交给 `docker-publish`，不自动提交或推送代码。
+- 不执行独立预检。进入部署阶段后，直接在请求进程中读取凭据、查询修改编排所需的配置并提交更新；由 `release` 串联时，Docker 发布成功且镜像核实后才开始这些操作。
+- 直接使用内联终端命令发送 API 请求，不创建临时脚本、包装脚本或额外实现文件。凭据、签名、Compose、env 和请求体仅保留于进程内存，不写入临时文件。
 
 ## 凭据与鉴权
 
@@ -30,9 +32,9 @@ Content-Type: application/json; charset=utf-8
 
 本面板已验证 MD5：`hex(md5('1panel' + API-Key + timestamp))`。目标版本支持时优先 HMAC-SHA256：`hex(hmac_sha256(API-Key, '1panel:' + timestamp))`，以 [官方文档](https://1panel.cn/docs/v2/dev_manual/api_manual/) 为准。鉴权失败检查 API 开关、白名单、时钟和算法，不降低安全设置或循环猜测。
 
-## 1. 查询配置
+## 1. 读取部署配置
 
-以下接口均为 POST，路径相对 `/api/v2`；要求 HTTP 成功且响应 `code == 200`。
+以下查询用于取得更新所需的原配置和容器信息，不另设预检或重复查询阶段。接口均为 POST，路径相对 `/api/v2`；要求 HTTP 成功且响应 `code == 200`。
 
 ```text
 /containers/compose/search
@@ -73,6 +75,7 @@ POST /containers/compose/update
 
 - 用 JSON 序列化器生成请求体；PowerShell 发送 UTF-8 字节，响应从 `RawContentStream` 按 UTF-8 解码。
 - 多文件编排须核实 `detailPath`，不能把逗号拼接的路径当单文件。保留 `env`、其他服务和卷。
+- 读取配置后直接提交更新；仅当期间发生中断或有并发修改迹象时重新读取，发现配置变化则停止，避免覆盖其他操作。
 - 请求接受不代表部署成功；超时或结果不明先查任务及容器，不重复提交。
 
 ## 3. 等待任务
