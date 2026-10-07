@@ -771,8 +771,8 @@ export function useChannelsColumns(
             </div>
           )
         },
-        size: 260,
-        minSize: 200,
+        size: 220,
+        minSize: 140,
       },
 
       // Type column
@@ -1203,7 +1203,7 @@ export function useChannelsColumns(
             </Tooltip>
           )
         },
-        size: 120,
+        size: 75,
         enableSorting: false,
       },
 
