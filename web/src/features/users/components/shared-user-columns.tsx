@@ -296,7 +296,7 @@ function userQuotaColumn<T extends UserColumnRow>(
               className={cn("h-1.5", getQuotaProgressColor(usedPercentage))}
             />
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent className="px-4 py-2.5">
             <div className={metricTooltipGridClassName}>
               <span className="opacity-70">{t("Used")}</span>
               <span className="text-right">{formattedUsedQuota}</span>
