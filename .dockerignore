@@ -3,6 +3,7 @@
 *.md
 .vscode
 .gitignore
+.1panel.local.json
 Makefile
 docs
 .eslintcache
