@@ -20,7 +20,6 @@ description: 通过 1Panel API 部署 ai-gateway，支持更换镜像标签、�
 
 - 在请求进程内读取根目录 `.1panel.local.json` 的非空字符串 `apiKey`。文件无效时停止；文件不存在时回退到 `ONEPANEL_API_KEY`、当前会话凭据。
 - 缺少凭据时提示填写本地文件，并在面板启用 API、配置客户端 IP 白名单。
-- 凭据文件须被 Git 和 Docker 忽略。密钥不写入命令或脚本，不展示凭据文件、签名、完整响应、日志、Compose 或 `.env`；只输出非敏感字段和脱敏错误。
 - 每次请求使用新的 Unix 秒级时间戳和以下请求头：
 
 ```text
