@@ -7,8 +7,8 @@ description: 从 .1panel.local.json 读取所选系统的地址和凭据，通�
 
 ## 配置来源与目标选择
 
-- 多系统使用根目录 `.1panel.local.json` 的 `targets.internal`（对内）和 `targets.external`（对外），每个目标独立配置 `baseUrl`、`apiKey`、`node` 和 `statusUrl`，可选 `host` 用于复用主机地址。`baseUrl` 包含 `/api/v2`，`statusUrl` 是该系统的应用状态接口地址，`node` 默认 `local`。URL 支持完整地址或 `{host}` 占位符，按下文规则在内存中解析后使用。
-- 面板 API 地址和应用状态地址仅从所选目标配置读取，不在技能中固定主机或端口，不从面板地址推算应用地址。
+- 多系统使用根目录 `.1panel.local.json` 的 `targets.internal`（对内）和 `targets.external`（对外），每个目标独立配置 `baseUrl`、`apiKey`、`node`、`statusUrl` 和 `accessUrl`，可选 `host` 用于复用主机地址。`baseUrl` 包含 `/api/v2`，`statusUrl` 是该系统的应用状态接口地址，`accessUrl` 是该系统供使用者访问的完整入口地址，`node` 默认 `local`。`baseUrl`、`statusUrl` 支持完整地址或 `{host}` 占位符，按下文规则在内存中解析后使用；`accessUrl` 只接受完整地址。
+- 面板 API 地址、应用状态地址和应用访问地址分别仅从所选目标的 `baseUrl`、`statusUrl` 和 `accessUrl` 读取，不在技能中固定主机或端口，也不在它们之间互相推算。
 - 每次独立调用本技能执行部署时，必须使用 AskQuestion 提供单选项，标签严格为“仅对内”“仅对外”“同时发布”，等待用户选择后执行。不要求用户填写 `target`，不通过参数、自然语言目标或 `defaultTarget` 跳过选择。三个选项在内部映射为 `internal`、`external`、`both`。由 `release` 串联调用时，复用该次发布中用户已通过选择项作出的选择，不再次询问。查询在多系统模式下未指定目标时提供“仅对内”“仅对外”“同时查询”三个选项。
 - 未知目标或目标配置不完整时停止，不猜测、不切换到另一系统。文件无 `targets` 时停止并提示按目标结构补齐配置。
 - 编排和容器：`ai-gateway`；镜像：`jahnlis/ai-gateway`。
@@ -28,9 +28,9 @@ description: 从 .1panel.local.json 读取所选系统的地址和凭据，通�
 
 ## 凭据与鉴权
 
-- 在请求进程内读取根目录 `.1panel.local.json`，仅读取选定目标的非空字符串 `apiKey`、`baseUrl` 和 `statusUrl`，以及解析占位符所需的 `host`。先按下述规则解析地址，再校验为有效的 HTTP(S) URL。`node` 未提供时用 `local`，提供时须为非空字符串。所有请求、任务轮询和核验固定使用同一目标解析后的地址、Key 和节点。
-- `baseUrl` 或 `statusUrl` 含 `{host}` 时，使用该目标的非空字符串 `host` 做字面替换（PowerShell：`$url.Replace('{host}', $target.host)`），不执行表达式或环境变量展开。`host` 只能是主机名、IPv4 或带方括号的 IPv6，不得包含协议、端口、路径、用户信息、空白或占位符；`{host}` 只能用于 URL 的主机部分。替换后仍有花括号、主机不合法或 URL 不合法时停止，不发送请求。完整 URL 无需 `host`，保留其原值；不从 `baseUrl` 推算 `statusUrl`。双系统配置校验、API 调用和最终地址展示均使用解析后的 URL。
-- 例如同一目标配置 `"host": "192.0.2.10"`、`"baseUrl": "http://{host}:8080/api/v2"`、`"statusUrl": "http://{host}:3002/api/status"`，主机地址只需填写一次。JSON 本身不会展开 `{host}`，请求命令必须先执行上述替换。
+- 在请求进程内读取根目录 `.1panel.local.json`，仅读取选定目标的非空字符串 `apiKey`、`baseUrl` 和 `statusUrl`（用于鉴权、请求与核验）、`accessUrl`（用于报告应用访问地址），以及解析占位符所需的 `host`。先按下述规则解析地址，再校验为有效的 HTTP(S) URL。`node` 未提供时用 `local`，提供时须为非空字符串。所有请求、任务轮询和核验固定使用同一目标解析后的地址、Key 和节点。`apiKey`、`baseUrl`、`statusUrl` 缺失时停止；`accessUrl` 缺失、非字符串或不是合法 HTTP(S) URL 时不阻断部署，仅在最终报告中注明应用访问地址未核实。
+- `baseUrl` 或 `statusUrl` 含 `{host}` 时，使用该目标的非空字符串 `host` 做字面替换（PowerShell：`$url.Replace('{host}', $target.host)`），不执行表达式或环境变量展开。`host` 只能是主机名、IPv4 或带方括号的 IPv6，不得包含协议、端口、路径、用户信息、空白或占位符；`{host}` 只能用于 URL 的主机部分。替换后仍有花括号、主机不合法或 URL 不合法时停止，不发送请求。完整 URL 无需 `host`，保留其原值；不从 `baseUrl` 推算 `statusUrl`；`accessUrl` 不参与占位符替换，直接使用其原值。双系统配置校验、API 调用和最终地址展示均使用解析后的 URL。
+- 例如同一目标配置 `"host": "192.0.2.10"`、`"baseUrl": "http://{host}:8080/api/v2"`、`"statusUrl": "http://{host}:3002/api/status"`、`"accessUrl": "https://gateway.example.com/"`，主机地址只需填写一次。JSON 本身不会展开 `{host}`，请求命令必须先执行上述替换；`accessUrl` 已是完整地址，直接使用。
 - 文件不存在、无效或所选目标缺少必需字段时停止并提示补齐配置，不回退到顶层 `apiKey`、环境变量、会话凭据或其他目标；不得输出 Key 或签名。
 - 缺少凭据时提示填写本地文件，并在面板启用 API、配置客户端 IP 白名单。
 - 每次请求使用新的 Unix 秒级时间戳和以下请求头：
@@ -118,7 +118,7 @@ POST /logs/tasks/read
 
 失败时报告现状和脱敏错误，不自动改配置或回滚。回滚须有用户授权，并核实原镜像 ID/digest 和数据库迁移兼容性。
 
-最终简要报告所选系统及面板 API 地址、目标镜像、任务结果/ID、容器短 ID、运行/健康状态、应用 HTTP 结果及版本；未执行更新时注明仅查询。
+最终简要报告所选系统及面板 API 地址、目标镜像、任务结果/ID、容器短 ID、运行/健康状态、应用 HTTP 结果及版本、应用访问地址（取所选目标的 `accessUrl`，缺失或非法时注明未核实）；未执行更新时注明仅查询。
 
 ## 调用示例
 

@@ -10,7 +10,7 @@ description: 串联 Docker 镜像发布和 1Panel 部署，镜像发布成功后
 - 创建、编辑或解释本技能时不执行发布。用户调用 `/release` 或明确要求执行全自动发布，即授权一次 Docker 发布及其成功后的 1Panel 更新、强制拉取和重建，无需阶段间再次确认。
 - 执行前完整读取 [docker-publish](../docker-publish/SKILL.md) 和 [1panel-deploy](../1panel-deploy/SKILL.md)，按各自的接口、鉴权、运行定位及核验规则执行；本技能负责串联阶段和汇总结果。
 - 默认发布仓库 `jahnli/new-api` 的 `docker-publish.yml`，部署 `local` 节点的 `ai-gateway` 编排和容器，目标镜像仓库为 `jahnlis/ai-gateway`。用户指定值优先。
-- 1Panel 地址、凭据和节点统一从根目录 `.1panel.local.json` 的所选目标读取：对内为 `targets.internal`，对外为 `targets.external`。面板 API 使用 `baseUrl`，应用状态接口使用 `statusUrl`；两者支持使用 `{host}` 复用该目标的 `host`，必须先按 1Panel 技能的字面替换及校验规则在内存中解析，所有请求与地址展示使用解析后的 URL。技能不固定主机或端口，配置缺失时按 1Panel 技能停止并提示补齐。
+- 1Panel 地址、凭据和节点统一从根目录 `.1panel.local.json` 的所选目标读取：对内为 `targets.internal`，对外为 `targets.external`。面板 API 使用 `baseUrl`，应用状态接口使用 `statusUrl`，应用访问地址使用 `accessUrl`；`baseUrl`、`statusUrl` 支持使用 `{host}` 复用该目标的 `host`，必须先按 1Panel 技能的字面替换及校验规则在内存中解析，所有请求与地址展示使用解析后的 URL，`accessUrl` 已是完整地址、直接使用。技能不固定主机或端口；`baseUrl`、`apiKey`、`statusUrl` 缺失时按 1Panel 技能停止并提示补齐，`accessUrl` 缺失或非法时在报告中注明访问地址未核实，不阻断发布。
 - ref 使用用户指定的远端分支或标签，否则查询远端默认分支；reason 使用用户原文，否则为 `Manual Docker Publish via agent`。仅发布远端代码，不自动提交、推送或创建标签。
 - Docker 阶段产出的实际版本标签自动传给 1Panel，不再询问标签，不使用 `latest`，不从本地版本、SHA 或运行日期推算。
 - 每次调用执行发布时，在触发 Docker 工作流前必须使用 AskQuestion 提供单选项，标签严格为“仅对内”“仅对外”“同时发布”，等待用户选择后执行。不要求用户填写 `target`，不通过参数、自然语言目标或 `defaultTarget` 跳过选择。三个选项在内部映射为 `internal`、`external`、`both`；该次发布中只选择一次，后续 1Panel 阶段复用选择。
@@ -30,7 +30,7 @@ description: 串联 Docker 镜像发布和 1Panel 部署，镜像发布成功后
 ## 2. 自动更新 1Panel
 
 1. 将上一步核实的完整版本镜像和已选系统传给 1Panel 技能：在请求进程中读取凭据，查询更新所需的编排和容器信息。缺少凭据或目标不明确时报告“Docker 发布成功，1Panel 部署阻塞”。选择两个时，按该技能的双系统配置校验和执行顺序，对每套分别执行本节第 2–5 步及第 3 节核验；任一套失败或结果不明时停止后续更新，报告已完成和未执行的系统，不自动回滚。
-2. 记录所选系统、原镜像、容器 ID、镜像 ID、运行状态和访问地址；原 Compose 和 env 仅保留于内存。使用选定目标的 `baseUrl`、`statusUrl` 和 `node`，访问地址按实际配置确认，无法确认时注明未核实，不从面板地址推算。简述所选系统、面板 API 地址、目标镜像及重建可能造成的短暂中断，按 1Panel 技能仅修改目标服务的镜像，保留其余服务、卷、env 和 Unicode 内容。读取后直接提交，不重复查询；期间发生中断或有并发修改迹象时，按 1Panel 技能重新读取并处理配置变化。
+2. 记录所选系统、原镜像、容器 ID、镜像 ID、运行状态和访问地址；原 Compose 和 env 仅保留于内存。使用选定目标的 `baseUrl`、`statusUrl`、`accessUrl` 和 `node`，访问地址取 `accessUrl`，缺失或非法时注明未核实，不从面板地址推算。简述所选系统、面板 API 地址、目标镜像及重建可能造成的短暂中断，按 1Panel 技能仅修改目标服务的镜像，保留其余服务、卷、env 和 Unicode 内容。读取后直接提交，不重复查询；期间发生中断或有并发修改迹象时，按 1Panel 技能重新读取并处理配置变化。
 3. 生成唯一 `taskID`，提交一次编排更新，`forcePull: true`；本技能调用包含强制拉取和重建，即使当前标签相同也执行。
 4. 轮询同一任务，最多等待 10 分钟；必须确认任务 `Success`、镜像拉取成功、容器 `Recreated` 和 `Started`。
 5. 请求超时或结果不明时先查询已提交任务及容器，不重复提交。失败时报告现状，不自动重跑或回滚。
@@ -58,7 +58,7 @@ Docker：结果；远端 ref；提交 SHA；完整版本镜像
 1Panel：结果；所选系统；节点与编排；任务 ID
 容器：新短 ID；运行状态；健康状态；重启次数
 应用：状态接口 HTTP 结果、success 和实际版本；版本核对结果
-访问地址：已确认的应用地址
+访问地址：所选系统的 accessUrl（缺失或非法时写未核实）
 状态接口：已确认的状态接口地址
 面板 API：本次实际使用的 API 地址（非登录入口）
 ```
