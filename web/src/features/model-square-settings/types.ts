@@ -6,6 +6,7 @@
 export const MODEL_SQUARE_SCENARIO_PRESETS = [
   'General recommendations',
   'Balanced choice',
+  'Flagship models',
   'Image generation',
   'Self-hosted models',
 ] as const
