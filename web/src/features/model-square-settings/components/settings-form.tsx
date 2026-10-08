@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
@@ -85,11 +86,11 @@ export function ModelSquareSettingsForm(props: ModelSquareConfigData) {
       <form
         noValidate
         onSubmit={submit}
-        className='w-full space-y-6'
+        className='@container/recommendations w-full space-y-3 pb-2'
         aria-label={t('Model Square Settings')}
         aria-busy={mutation.isPending}
       >
-        <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
+        <div className='bg-background sticky top-0 z-20 flex flex-wrap items-center gap-x-4 gap-y-3 border-b py-3'>
           <Field orientation='horizontal' className='h-8 w-auto shrink-0'>
             <Controller
               control={form.control}
@@ -143,29 +144,42 @@ export function ModelSquareSettingsForm(props: ModelSquareConfigData) {
             />
           </div>
         </div>
-        <Reorder.Group
-          axis='y'
-          values={entries.fields.map((field) => field.id)}
-          onReorder={handleReorder}
-          className='flex w-full flex-col gap-4'
-        >
-          {entries.fields.map((entry, index) => (
-            <RecommendationFields
-              key={entry.id}
-              fieldId={entry.id}
-              index={index}
-              models={models}
-              disabled={mutation.isPending}
-              onMove={(direction) => moveEntry(index, direction)}
-              onRemove={() => entries.remove(index)}
+        <div className='rounded-xl border'>
+          <div
+            aria-hidden='true'
+            className='bg-muted/40 text-muted-foreground hidden grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1.4fr)_6rem_6rem] gap-4 rounded-t-xl border-b px-4 py-2.5 text-xs font-medium @3xl/recommendations:grid'
+          >
+            <span>#</span>
+            <span>{t('Model')}</span>
+            <span>{t('Usage scenarios')}</span>
+            <span className='text-center'>{t('Status')}</span>
+            <span className='text-center'>{t('Actions')}</span>
+          </div>
+          <Reorder.Group
+            axis='y'
+            values={entries.fields.map((field) => field.id)}
+            onReorder={handleReorder}
+            className='flex w-full flex-col [&>li:first-child]:rounded-t-xl @3xl/recommendations:[&>li:first-child]:rounded-t-none [&>li:last-child]:rounded-b-xl'
+          >
+            {entries.fields.map((entry, index) => (
+              <RecommendationFields
+                key={entry.id}
+                fieldId={entry.id}
+                index={index}
+                models={models}
+                disabled={mutation.isPending}
+                onMove={(direction) => moveEntry(index, direction)}
+                onRemove={() => entries.remove(index)}
+              />
+            ))}
+          </Reorder.Group>
+          {entries.fields.length === 0 && (
+            <EmptyState
+              title={t('No recommendations configured')}
+              className='min-h-48'
             />
-          ))}
-        </Reorder.Group>
-        {entries.fields.length === 0 && (
-          <p className='text-muted-foreground text-sm'>
-            {t('No recommendations configured')}
-          </p>
-        )}
+          )}
+        </div>
         {models.length === 0 && (
           <p className='text-muted-foreground text-sm'>
             {t(

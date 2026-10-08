@@ -26,6 +26,8 @@ import {
   FieldSet,
 } from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
+import { toIntlLocale } from '@/i18n/languages'
+import { formatNumber } from '@/lib/format'
 
 import type { ModelSquareFormValues } from '../lib/schema'
 import { MODEL_SQUARE_SCENARIO_PRESETS } from '../types'
@@ -41,7 +43,8 @@ type RecommendationFieldsProps = {
 }
 
 export function RecommendationFields(props: RecommendationFieldsProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const form = useFormContext<ModelSquareFormValues>()
   const dragControls = useDragControls()
   const prefix = `recommendations.${props.index}` as const
@@ -81,49 +84,54 @@ export function RecommendationFields(props: RecommendationFieldsProps) {
       value={props.fieldId}
       dragListener={false}
       dragControls={dragControls}
-      className='min-w-0'
+      className='bg-background relative min-w-0 border-b last:border-b-0'
+      whileDrag={{ zIndex: 10 }}
     >
       <FieldSet
-        className='flex min-w-0 flex-row flex-wrap items-center gap-5 rounded-lg border p-4'
+        className='focus-within:bg-muted/30 hover:bg-muted/20 min-w-0 gap-0 p-3 transition-colors @3xl/recommendations:px-4'
         disabled={props.disabled}
       >
-        <FieldLegend className='mb-0 flex shrink-0 items-center gap-1.5'>
-          <Badge
-            aria-hidden='true'
-            className='bg-primary/10 text-primary size-5 rounded-full px-0 text-[11px] font-semibold tabular-nums'
-          >
-            {props.index + 1}
-          </Badge>
-          <span className='sr-only'>
-            {t('Recommendation {{number}}', { number: props.index + 1 })}
-          </span>
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon-sm'
-            className='text-muted-foreground -ml-0.5 cursor-grab touch-none active:cursor-grabbing'
-            disabled={props.disabled}
-            aria-label={t('Drag {{group}} to reorder', {
-              group: t('Recommendation {{number}}', {
-                number: props.index + 1,
-              }),
-            })}
-            onPointerDown={handleDragStart}
-            onKeyDown={handleDragKeyDown}
-          >
-            <HugeiconsIcon
-              icon={Drag01Icon}
-              strokeWidth={2}
-              aria-hidden='true'
-            />
-          </Button>
+        <FieldLegend className='sr-only'>
+          {t('Recommendation {{number}}', { number: props.index + 1 })}
         </FieldLegend>
-        <FieldGroup className='flex min-w-0 flex-1 flex-row flex-wrap items-end gap-6'>
+        <FieldGroup className='grid min-w-0 grid-cols-[1fr_auto_auto] items-start gap-3 @3xl/recommendations:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1.4fr)_6rem_6rem] @3xl/recommendations:gap-4'>
+          <div className='flex h-8 items-center gap-1'>
+            <Badge
+              aria-hidden='true'
+              variant='secondary'
+              className='min-w-5 rounded-md px-1 text-xs font-medium tabular-nums'
+            >
+              {formatNumber(props.index + 1, locale)}
+            </Badge>
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon-sm'
+              className='text-muted-foreground -ml-0.5 cursor-grab touch-none active:cursor-grabbing'
+              disabled={props.disabled}
+              aria-label={t('Drag {{group}} to reorder', {
+                group: t('Recommendation {{number}}', {
+                  number: props.index + 1,
+                }),
+              })}
+              onPointerDown={handleDragStart}
+              onKeyDown={handleDragKeyDown}
+            >
+              <HugeiconsIcon
+                icon={Drag01Icon}
+                strokeWidth={2}
+                aria-hidden='true'
+              />
+            </Button>
+          </div>
           <Field
-            className='min-w-0 basis-80'
+            className='col-span-3 min-w-0 @3xl/recommendations:col-span-1'
             data-invalid={Boolean(errors?.model_name)}
           >
-            <FieldLabel htmlFor={`${prefix}.model_name`}>
+            <FieldLabel
+              htmlFor={`${prefix}.model_name`}
+              className='@3xl/recommendations:sr-only'
+            >
               {t('Model')}
             </FieldLabel>
             <Controller
@@ -179,10 +187,13 @@ export function RecommendationFields(props: RecommendationFieldsProps) {
             />
           </Field>
           <Field
-            className='max-w-2xl min-w-0 flex-1 basis-64'
+            className='col-span-3 min-w-0 @3xl/recommendations:col-span-1'
             data-invalid={Boolean(errors?.scenarios)}
           >
-            <FieldLabel htmlFor={`${prefix}.scenarios`}>
+            <FieldLabel
+              htmlFor={`${prefix}.scenarios`}
+              className='@3xl/recommendations:sr-only'
+            >
               {t('Usage scenarios')}
             </FieldLabel>
             <Controller
@@ -208,7 +219,10 @@ export function RecommendationFields(props: RecommendationFieldsProps) {
               errors={[errors?.scenarios]}
             />
           </Field>
-          <Field orientation='horizontal' className='ml-8 h-8 w-auto shrink-0'>
+          <Field
+            orientation='horizontal'
+            className='col-start-2 row-start-1 h-8 w-auto justify-center @3xl/recommendations:col-start-4'
+          >
             <Controller
               control={form.control}
               name={`${prefix}.enabled`}
@@ -221,14 +235,18 @@ export function RecommendationFields(props: RecommendationFieldsProps) {
                 />
               )}
             />
-            <FieldLabel htmlFor={`${prefix}.enabled`}>
+            <FieldLabel
+              htmlFor={`${prefix}.enabled`}
+              className='whitespace-nowrap @3xl/recommendations:sr-only'
+            >
               {t('Enabled')}
             </FieldLabel>
           </Field>
           <Button
             type='button'
-            variant='outline'
-            className='ml-4 shrink-0'
+            variant='ghost'
+            size='sm'
+            className='text-destructive hover:bg-destructive/10 hover:text-destructive col-start-3 row-start-1 justify-self-center @3xl/recommendations:col-start-5'
             onClick={props.onRemove}
             disabled={props.disabled}
             aria-label={t('Remove recommendation {{number}}', {
