@@ -32,9 +32,13 @@ import {
 import { useMediaQuery } from '@/hooks'
 import { useExternalMode } from '@/hooks/use-external-mode'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
-import { createServerError } from '@/lib/server-error-message'
+import {
+  createServerError,
+  requireServerSuccess,
+} from '@/lib/server-error-message'
 
 import {
+  getGroups,
   getGroupsWithRatios,
   getUserCompanies,
   getUsers,
@@ -117,7 +121,7 @@ export function UsersTable() {
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' },
-      { columnId: 'group', searchKey: 'group', type: 'string' },
+      { columnId: 'group', searchKey: 'group', type: 'array' },
       { columnId: 'company', searchKey: 'company', type: 'array' },
     ],
   })
@@ -130,12 +134,19 @@ export function UsersTable() {
       | string[]
       | undefined) ?? []
   const groupFilter =
-    (columnFilters.find((filter) => filter.id === 'group')?.value as string) ??
-    ''
+    (columnFilters.find((filter) => filter.id === 'group')?.value as
+      | string[]
+      | undefined) ?? []
   const companyFilter =
     (columnFilters.find((filter) => filter.id === 'company')?.value as
       | string[]
       | undefined) ?? []
+
+  const { data: groupsData } = useQuery({
+    queryKey: ['groups'],
+    queryFn: async () => requireServerSuccess(await getGroups()),
+    staleTime: 5 * 60 * 1000,
+  })
 
   const { data: companiesResponse } = useQuery({
     queryKey: ['user-companies'],
@@ -174,7 +185,7 @@ export function UsersTable() {
       const hasColumnFilter =
         statusFilter.length > 0 ||
         roleFilter.length > 0 ||
-        Boolean(groupFilter) ||
+        groupFilter.length > 0 ||
         companyFilter.length > 0
       const params = {
         p: pagination.pageIndex + 1,
@@ -190,7 +201,7 @@ export function UsersTable() {
               keyword: globalFilter,
               status: statusFilter[0] ?? '',
               role: roleFilter[0] ?? '',
-              group: groupFilter,
+              group: groupFilter[0] ?? '',
               company: companyFilter[0] ?? '',
             })
           : await getUsers(params)
@@ -275,6 +286,15 @@ export function UsersTable() {
             columnId: 'role',
             title: t('Role'),
             options: getUserRoleOptions(t),
+            singleSelect: true,
+          },
+          {
+            columnId: 'group',
+            title: t('User Group'),
+            options: (groupsData?.data ?? []).map((group) => ({
+              label: group,
+              value: group,
+            })),
             singleSelect: true,
           },
           {

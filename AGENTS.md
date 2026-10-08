@@ -8,7 +8,7 @@ DO NOT send optional commentary
 
 ## 技术栈
 
-- **后端**: Go 1.25.1（以各模块 `go.mod` 为准）、Gin Web 框架、GORM v2 ORM
+- **后端**: Go 1.26（根模块与 `tokenkit/`）、Go 1.25.1（`relaykit/`）（以各模块 `go.mod` 为准）、Gin Web 框架、GORM v2 ORM
 - **前端**: React 19、TypeScript、Rsbuild 2、TanStack Router/Query/Table、Zustand、Base UI、Tailwind CSS 4
 - **数据库**: 主库 SQLite、MySQL、PostgreSQL（三者必须同时支持）；独立配置的日志库还支持 ClickHouse
 - **缓存**: Redis (go-redis) + 内存缓存
@@ -42,6 +42,7 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 
 - Go 网关在 `router/`、`middleware/`、`controller/`、`service/`、`model/`、`relay/` 中承担管理 API、上游中继、计费与后台任务。
 - `relaykit/` 是独立的 Go 模块，只承载协议 DTO 与协议转换；传输、认证、数据库访问与计费逻辑保留在宿主模块中。
+- `tokenkit/` 是独立的 Go 模块，负责文本与图片的 Token 计数与估算；请求解析、文件加载与计费逻辑保留在宿主模块中。
 - JavaScript 任务插件位于 `plugins/tasks/`，经 `pkg/jsplugin/` 执行，并与宿主任务轮询与结算集成。
 - `web/` 是 React 前端（详见 `web/AGENTS.md`）；`electron/` 是桌面壳。
 
@@ -78,7 +79,6 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - 安全控制必须在服务端执行。落实凭据存储与传输、防账户枚举与暴力破解、CSRF 与重放防护、令牌/挑战的过期及必要时的一次性使用、协议验证、会话轮换与失效、敏感账户变更重新认证等适用要求。前端检查不能替代服务端执行，恢复或替代登录路径不得绕过必要的认证强度。
 - 认证审计不得记录密码、验证码、恢复码、私钥或可用的会话/认证令牌。应保留足够的非秘密上下文，以调查认证失败和敏感账户变更。
 
-
 ### 后端规则
 
 **现代 Go 约定：** 对新增或修改的 Go 代码（包括测试与 `relaykit/`）适用以下约定，前提是不改变行为并能提升可读性。以相关模块 `go.mod` 中声明的 Go 版本作为兼容基线。
@@ -97,10 +97,10 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - 只有在确认当前 JSON 编码器输出不变的前提下，才移除非指针结构体字段上无效的 `omitempty` 标签。不得在样式清理中改变字段类型或省略行为；可选的中继标量字段仍须遵守下文的指针规则。
 - 完成上述改动后，对修改过的 Go 文件执行 `gofmt` 并移除未使用的 import。
 
-**RelayKit 模块独立性：** `relaykit/` Go 模块必须始终能够独立构建。
+**RelayKit / tokenkit 模块独立性：** `relaykit/` 与 `tokenkit/` Go 模块必须始终能够独立构建。
 
-- `relaykit/` 下的代码不得导入或依赖根 `new-api` 模块中的包，也不得依赖仅存在于根模块的配置、生成文件或 workspace 连接。
-- 任何影响 `relaykit/` 或其公共 API 的变更，都必须执行 `cd relaykit && GOWORK=off go build ./...` 验证；仅根模块构建成功并不足够。
+- `relaykit/` 与 `tokenkit/` 下的代码不得导入或依赖根 `new-api` 模块中的包，也不得依赖仅存在于根模块的配置、生成文件或 workspace 连接；`tokenkit/` 还不得依赖 `relaykit/`。
+- 任何影响 `relaykit/`、`tokenkit/` 或其公共 API 的变更，都必须在该模块内执行 `GOWORK=off go build ./...` 验证；仅根模块构建成功并不足够。
 
 **JSON 包：** 所有 JSON 序列化/反序列化操作必须使用 `common/json.go` 中的封装函数：
 
