@@ -17,7 +17,7 @@ import { SubscriptionsTable } from './components/subscriptions-table'
 
 function SubscriptionsContent() {
   const { t } = useTranslation()
-  const { complianceConfirmed } = useSubscriptions()
+  const { complianceConfirmed, complianceStatusLoading } = useSubscriptions()
   const [activeTab, setActiveTab] = useState('plans')
 
   return (
@@ -64,7 +64,7 @@ function SubscriptionsContent() {
               keepMounted
               className='flex min-h-0 flex-col gap-4 data-hidden:hidden'
             >
-              {!complianceConfirmed ? (
+              {!complianceStatusLoading && !complianceConfirmed ? (
                 <Alert variant='destructive' className='shrink-0'>
                   <AlertDescription>
                     {t(

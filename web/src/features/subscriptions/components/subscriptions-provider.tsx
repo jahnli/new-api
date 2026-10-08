@@ -18,6 +18,7 @@ type SubscriptionsContextType = {
   refreshTrigger: number
   triggerRefresh: () => void
   complianceConfirmed: boolean
+  complianceStatusLoading: boolean
 }
 
 const SubscriptionsContext =
@@ -31,7 +32,7 @@ export function SubscriptionsProvider({
   const [open, setOpen] = useDialogState<SubscriptionsDialogType>(null)
   const [currentRow, setCurrentRow] = useState<PlanRecord | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const { data } = useSystemOptions()
+  const { data, isPending } = useSystemOptions()
   const complianceOptions = getOptionValue(data?.data, {
     'payment_setting.compliance_confirmed': false,
     'payment_setting.compliance_terms_version': '',
@@ -53,6 +54,7 @@ export function SubscriptionsProvider({
         refreshTrigger,
         triggerRefresh,
         complianceConfirmed,
+        complianceStatusLoading: isPending,
       }}
     >
       {children}
