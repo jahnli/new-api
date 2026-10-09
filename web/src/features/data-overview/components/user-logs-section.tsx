@@ -103,7 +103,11 @@ function LogsSection(props: LogsSectionProps) {
     showChannelColumn: isSuperAdmin,
     canViewChannelDetails: isSuperAdmin,
     canViewGroupRatio: isSuperAdmin,
-  })
+  }).map((column) =>
+    'accessorKey' in column && column.accessorKey === 'quota'
+      ? { ...column, size: 120 }
+      : column
+  )
   const [pagination, setPagination] = usePagination()
 
   const { data, isLoading, isFetching } = useQuery({
