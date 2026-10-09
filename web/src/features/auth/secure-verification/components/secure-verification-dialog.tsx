@@ -170,17 +170,20 @@ export function SecureVerificationDialog(props: SecureVerificationDialogProps) {
             </div>
           ) : (
             <Tabs value={input.method} onValueChange={selectMethod}>
-              <TabsList>
-                {ready.requirements.methods.map((option) => (
-                  <TabsTrigger
-                    key={option.method}
-                    value={option.method}
-                    disabled={!option.available || verifying}
-                  >
-                    {t(methodLabels[option.method])}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              {ready.requirements.methods.filter((option) => option.available)
+                .length > 1 && (
+                <TabsList>
+                  {ready.requirements.methods.map((option) => (
+                    <TabsTrigger
+                      key={option.method}
+                      value={option.method}
+                      disabled={!option.available || verifying}
+                    >
+                      {t(methodLabels[option.method])}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              )}
               <TabsContent value='password' className='space-y-2'>
                 <Label htmlFor={inputId}>{t('Password')}</Label>
                 <Input
