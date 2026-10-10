@@ -28,6 +28,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { resolveModelProvider } from '@/lib/model-provider'
 import { cn } from '@/lib/utils'
@@ -103,6 +104,7 @@ function ModelBadgeContent(props: ModelBadgeProps & { copyable: boolean }) {
 
 export function ModelBadge(props: ModelBadgeProps) {
   const { t } = useTranslation()
+  const { copyToClipboard } = useCopyToClipboard()
   const mismatch = isResponseModelMismatch(props.responseModel)
   const responseModelLabel =
     mismatch && props.responseModel
@@ -189,7 +191,12 @@ export function ModelBadge(props: ModelBadgeProps) {
           <Button
             variant='ghost'
             aria-label={modelLabel}
-            className='h-auto max-w-full min-w-0 flex-wrap justify-start gap-1 p-0 font-normal'
+            // The hover card already reveals the model mapping, so a click
+            // keeps the same copy behaviour as the plain (icon-less) badge.
+            onClick={() => {
+              copyToClipboard(props.modelName)
+            }}
+            className='h-auto max-w-full min-w-0 cursor-copy flex-wrap justify-start gap-1 p-0 font-normal'
           />
         }
       >
