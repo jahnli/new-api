@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""将 A 站的模型基础定价单向同步到 B 站（Python 3.10+）。
+"""将 A 站的模型基础定价和模型广场推荐单向同步到 B 站（Python 3.10+）。
 
-先填写下方 SOURCE_DB / TARGET_DB；两站应使用相同代码及任务插件版本。
+源数据库读取 SQL_DSN，目标数据库读取 TARGET_SQL_DSN。
+自动加载仓库根目录 .env，已有环境变量优先；两站应使用相同代码及任务插件版本。
     python scripts/sync_model_prices.py          # 只读预览
     python scripts/sync_model_prices.py --apply  # 备份后执行
 
 MySQL:      python -m pip install PyMySQL
 PostgreSQL: python -m pip install "psycopg[binary]"
+加载 .env:  python -m pip install python-dotenv
+PostgreSQL DSN: postgresql://user:password@host:5432/dbname?sslmode=require
+MySQL DSN: user:password@tcp(host:3306)/dbname?parseTime=true&charset=utf8mb4
+MySQL 支持 tcp 连接；未支持的 DSN 参数会明确报错，不会静默忽略。
 
 同步完整价格映射：B 站独有的模型价格覆盖项也会被移除，回退到程序默认值。
+推荐配置完整覆盖，包括总开关、模型列表及顺序、场景、理由和各项启用状态。
+A 站未保存推荐配置时，按应用默认值关闭推荐并清空 B 站推荐列表。
+仅同步推荐配置，不创建模型或渠道；目标站不可用的模型不会展示为推荐。
 不修改分组倍率、工具附加费、用户、渠道、余额或日志。QuotaPerUnit 只比较不修改。
 缺失的数据库行不等于空映射：若 A 缺失而 B 存在，先在 A 后台保存模型定价，
 让应用将内置默认值落库后重试；脚本不会猜测内置默认值或删除整个配置行。
 表达式按原文复制，不代替应用的编译和插件兼容性检查；源站价格应已通过后台校验。
 
-执行前暂停两站后台价格编辑。事务提交后各服务实例仍需等待配置刷新
+执行前暂停两站后台价格和推荐配置编辑。事务提交后各服务实例仍需等待配置刷新
 （默认约 60 秒，以 SYNC_FREQUENCY 为准）；数据库验证不代表内存已刷新。
 备份保留原始配置字符串及待写入内容，不含数据库密码，不自动删除。
-连接信息按要求直接写在本文件中，填入真实密码后的文件请仅在本地保存。
+不输出 DSN 或密码，也不将其写入备份。
 """
 
 from __future__ import annotations
@@ -27,34 +35,17 @@ import argparse
 import json
 import math
 import os
+import re
+import ssl
 import sys
 from contextlib import ExitStack, closing
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlsplit
 
-
-# ======================== 只需修改此处 ========================
-SOURCE_DB = {
-    "driver": "postgres",  # mysql / postgres
-    "host": "xxxxx",
-    "port": 5432,  # PostgreSQL 通常为 5432
-    "database": "xxxxx",
-    "user": "xxxxx",
-    "password": "xxxxx",
-}
-
-TARGET_DB = {
-    "driver": "postgres",
-    "host": "xxxxx",
-    "port": 5432,
-    "database": "xxxxx",
-    "user": "xxxxx",
-    "password": "xxxxx",
-}
 
 BACKUP_DIR = Path.home() / ".new-api-pricing-backups"
-# ============================================================
 
 # 与 model/model_pricing_config.go 的 modelPricingOptionKeys 保持一致。
 PRICE_KEYS = (
@@ -63,39 +54,109 @@ PRICE_KEYS = (
     "billing_setting.billing_expr", "billing_setting.billing_mode",
     "billing_setting.plugin_billing_expr",
 )
-READ_KEYS = (*PRICE_KEYS, "QuotaPerUnit")
+RECOMMENDATION_KEY = "ModelSquareConfig"
+SYNC_KEYS = (*PRICE_KEYS, RECOMMENDATION_KEY)
+READ_KEYS = (*SYNC_KEYS, "QuotaPerUnit")
 
 
 class SyncError(Exception):
     """可以直接展示、且不包含连接凭据的操作错误。"""
 
 
-def connect_database(config: dict, label: str):
-    driver = config["driver"]
-    if driver not in ("mysql", "postgres"):
-        raise SyncError(f"{label} driver 仅支持 mysql / postgres。")
-    for key in ("host", "database", "user", "password"):
-        if str(config[key]).startswith(("SOURCE_", "TARGET_")):
-            raise SyncError(f"请先填写 {label} 的 {key}。")
-    if driver == "mysql":
+def database_config(env_name: str) -> dict:
+    dsn = os.environ.get(env_name, "").strip()
+    if not dsn:
+        raise SyncError(f"请在环境变量或仓库根目录 .env 中设置 {env_name}。")
+    if dsn.startswith(("postgres://", "postgresql://")):
+        try:
+            from psycopg.conninfo import conninfo_to_dict
+        except ImportError:
+            raise SyncError('请先执行：python -m pip install "psycopg[binary]"') from None
+        try:
+            params = conninfo_to_dict(dsn)
+        except Exception:
+            raise SyncError(f"{env_name} 不是有效的 PostgreSQL DSN。") from None
+        return {
+            "driver": "postgres", "dsn": dsn,
+            "host": params.get("host", ""), "port": params.get("port", "5432"),
+            "database": params.get("dbname", ""),
+        }
+    # Go MySQL DSN 的密码不做 URL 解码，并且允许包含 @、/、?。
+    credentials, separator, address = dsn.rpartition("@tcp(")
+    endpoint, closing_separator, database = address.partition(")/")
+    if not separator or not closing_separator:
+        raise SyncError(
+            f"{env_name} 仅支持 PostgreSQL URL 或 user:password@tcp(host:port)/dbname 格式。"
+        )
+    user, _, password = credentials.partition(":")
+    database_name, _, query = database.partition("?")
+    if not user or not database_name:
+        raise SyncError(f"{env_name} 必须明确指定 MySQL 用户和数据库名。")
+    try:
+        parsed = urlsplit("//" + endpoint)
+        host, port = parsed.hostname, parsed.port or 3306
+        if not host or parsed.username or parsed.path or parsed.query or parsed.fragment:
+            raise ValueError()
+        params = dict(parse_qsl(query, keep_blank_values=True, strict_parsing=True))
+    except ValueError:
+        raise SyncError(f"{env_name} 的 MySQL 地址或查询参数无效。") from None
+    supported = {"charset", "parseTime", "loc", "tls", "timeout", "readTimeout", "writeTimeout"}
+    if params.keys() - supported:
+        raise SyncError(
+            f"{env_name} 含脚本尚不支持的 MySQL DSN 参数；"
+            "支持 charset、parseTime、loc、tls、timeout、readTimeout、writeTimeout。"
+        )
+    kwargs = {
+        "host": host, "port": port, "database": unquote(database_name),
+        "user": user, "password": password, "charset": params.get("charset", "utf8mb4"),
+        "connect_timeout": 15, "read_timeout": 30, "write_timeout": 30,
+    }
+    # 本脚本只读写字符串，Go 驱动的日期解析与时区选项不参与此操作。
+    for key, argument in (
+        ("timeout", "connect_timeout"), ("readTimeout", "read_timeout"),
+        ("writeTimeout", "write_timeout"),
+    ):
+        if key not in params:
+            continue
+        match = re.fullmatch(r"(\d+(?:\.\d+)?)(ms|s|m)", params[key])
+        if not match:
+            raise SyncError(f"{env_name} 的 {key} 需为正数加 ms、s 或 m。")
+        seconds = float(match[1]) * {"ms": 0.001, "s": 1, "m": 60}[match[2]]
+        if (
+            not math.isfinite(seconds) or seconds <= 0
+            or (key == "timeout" and seconds > 31536000)
+        ):
+            raise SyncError(f"{env_name} 的 {key} 超出驱动支持范围。")
+        kwargs[argument] = seconds
+    tls = params.get("tls", "false").lower()
+    if tls == "true":
+        kwargs["ssl"] = ssl.create_default_context()
+    elif tls == "skip-verify":
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        kwargs["ssl"] = context
+    elif tls != "false":
+        raise SyncError(f"{env_name} 的 tls 仅支持 true、false、skip-verify。")
+    return {
+        "driver": "mysql", "dsn": dsn, "host": host, "port": port,
+        "database": kwargs["database"], "kwargs": kwargs,
+    }
+
+
+def connect_database(config: dict):
+    if config["driver"] == "mysql":
         try:
             import pymysql
         except ImportError:
             raise SyncError("请先执行：python -m pip install PyMySQL") from None
-        return pymysql.connect(
-            host=config["host"], port=config["port"], database=config["database"],
-            user=config["user"], password=config["password"], charset="utf8mb4",
-            connect_timeout=15, read_timeout=30, write_timeout=30,
-            autocommit=True,
-        )
+        return pymysql.connect(**config["kwargs"], autocommit=True)
     try:
         import psycopg
     except ImportError:
         raise SyncError('请先执行：python -m pip install "psycopg[binary]"') from None
     return psycopg.connect(
-        host=config["host"], port=config["port"], dbname=config["database"],
-        user=config["user"], password=config["password"], connect_timeout=15,
-        autocommit=True,
+        config["dsn"], connect_timeout=15, autocommit=True, prepare_threshold=None,
     )
 
 
@@ -153,7 +214,7 @@ def unique_json_object(pairs: list) -> dict:
     result = {}
     for key, value in pairs:
         if key in result:
-            raise SyncError("价格 JSON 存在重复字段，已停止。")
+            raise SyncError("配置 JSON 存在重复字段，已停止。")
         result[key] = value
     return result
 
@@ -190,18 +251,86 @@ def parse_prices(rows: dict[str, str]) -> dict[str, dict]:
     return result
 
 
+def parse_recommendations(raw: str | None) -> dict:
+    """检查推荐配置结构，保留原始顺序和文案；缺失行采用应用默认值。"""
+    if raw is None:
+        return {"enabled": False, "recommendations": []}
+    if len(raw.encode("utf-8")) > 256 * 1024:
+        raise SyncError("ModelSquareConfig 超过 256 KiB。")
+    try:
+        config = json.loads(raw, object_pairs_hook=unique_json_object)
+    except ValueError:
+        raise SyncError("ModelSquareConfig 不是有效的 JSON。") from None
+    if not isinstance(config, dict) or type(config.get("enabled")) is not bool:
+        raise SyncError("ModelSquareConfig 必须包含布尔值 enabled。")
+    recommendations = config.get("recommendations")
+    if not isinstance(recommendations, list) or len(recommendations) > 100:
+        raise SyncError("ModelSquareConfig.recommendations 必须是最多 100 项的数组。")
+    legacy_scenarios = {
+        "general": "General recommendations", "coding": "Coding",
+        "chat": "Daily chat", "writing": "Writing", "image": "Image generation",
+    }
+    names = set()
+    for index, item in enumerate(recommendations, start=1):
+        if not isinstance(item, dict) or type(item.get("enabled")) is not bool:
+            raise SyncError(f"推荐第 {index} 项必须是对象并包含布尔值 enabled。")
+        name = item.get("model_name")
+        reason = item.get("reason", "")
+        if not isinstance(name, str) or not 1 <= len(name.strip()) <= 128:
+            raise SyncError(f"推荐第 {index} 项模型名必须为 1～128 个字符。")
+        if name.strip() in names:
+            raise SyncError(f"推荐第 {index} 项模型名重复。")
+        names.add(name.strip())
+        if not isinstance(reason, str) or len(reason.strip()) > 300:
+            raise SyncError(f"推荐第 {index} 项理由必须为不超过 300 个字符的字符串。")
+        scenarios = item.get("scenarios")
+        # 兼容服务端接受的旧版单场景格式。
+        if scenarios is None and isinstance(item.get("scenario"), str):
+            scenarios = [item["scenario"]]
+        if not isinstance(scenarios, list) or len(scenarios) > 10:
+            raise SyncError(f"推荐第 {index} 项 scenarios 必须是最多 10 项的数组。")
+        seen_scenarios = set()
+        for scenario in scenarios:
+            if not isinstance(scenario, str):
+                raise SyncError(f"推荐第 {index} 项场景必须是字符串。")
+            scenario = legacy_scenarios.get(scenario.strip().lower(), scenario.strip())
+            if not 1 <= len(scenario) <= 40 or scenario in seen_scenarios:
+                raise SyncError(f"推荐第 {index} 项场景为空、超过 40 个字符或重复。")
+            seen_scenarios.add(scenario)
+    return config
+
+
 def sync_prices(apply: bool, backup_dir: Path):
-    if SOURCE_DB == TARGET_DB:
+    env_file = Path(__file__).resolve().parents[1] / ".env"
+    if env_file.is_file():
+        try:
+            from dotenv import load_dotenv
+        except ImportError:
+            raise SyncError("加载 .env 需要先执行：python -m pip install python-dotenv") from None
+        load_dotenv(env_file, override=False, interpolate=False, encoding="utf-8-sig")
+    source_config = database_config("SQL_DSN")
+    target_config = database_config("TARGET_SQL_DSN")
+    if source_config["dsn"] == target_config["dsn"] or all(
+        str(source_config[key]) == str(target_config[key])
+        for key in ("driver", "host", "port", "database")
+    ):
         raise SyncError("A、B 数据库配置相同，已停止。")
     with ExitStack() as stack:
-        source = stack.enter_context(closing(connect_database(SOURCE_DB, "A 站")))
-        target = stack.enter_context(closing(connect_database(TARGET_DB, "B 站")))
-        driver = TARGET_DB["driver"]
+        source = stack.enter_context(closing(connect_database(source_config)))
+        target = stack.enter_context(closing(connect_database(target_config)))
+        driver = target_config["driver"]
         check_target_schema(target, driver)
-        source_rows = read_prices(source, SOURCE_DB["driver"])
+        source_rows = read_prices(source, source_config["driver"])
         target_rows = read_prices(target, driver)
         source_maps = parse_prices(source_rows)
         target_maps = parse_prices(target_rows)
+        source_recommendations = parse_recommendations(source_rows.get(RECOMMENDATION_KEY))
+        target_recommendations = parse_recommendations(target_rows.get(RECOMMENDATION_KEY))
+        # 保留 source_rows 原始快照用于并发检查；缺失推荐行写入明确默认值，
+        # 避免删除数据库行后运行进程仍保留旧的 OptionMap 值。
+        desired_rows = dict(source_rows)
+        if RECOMMENDATION_KEY not in desired_rows:
+            desired_rows[RECOMMENDATION_KEY] = json.dumps(source_recommendations)
         if not source_maps:
             raise SyncError("A 站没有已落库的模型价格；请先在 A 站后台保存定价。")
         for key in PRICE_KEYS:
@@ -221,7 +350,7 @@ def sync_prices(apply: bool, backup_dir: Path):
             raise SyncError("两站 QuotaPerUnit 不同，复制旧倍率不能保证基础价格一致。")
 
         changed = []
-        print("方向：SOURCE_DB（A 站）→ TARGET_DB（B 站），完整替换基础定价映射。")
+        print("方向：SQL_DSN（A 站）→ TARGET_SQL_DSN（B 站），完整替换基础定价和模型广场推荐。")
         for key in PRICE_KEYS:
             if key not in source_maps or source_maps[key] == target_maps.get(key):
                 continue
@@ -235,15 +364,24 @@ def sync_prices(apply: bool, backup_dir: Path):
                 old = repr(before[name]) if name in before else "未配置（继承默认值）"
                 new = repr(after[name]) if name in after else "移除覆盖（继承默认值）"
                 print(f"  {name!r}: {old} -> {new}")
+        if source_recommendations != target_recommendations:
+            changed.append(RECOMMENDATION_KEY)
+            print(f"\n[{RECOMMENDATION_KEY}]（推荐配置完整覆盖，数组顺序即推荐顺序）")
+            if RECOMMENDATION_KEY not in source_rows:
+                print("A 站未配置推荐：将关闭 B 站推荐并清空列表。")
+            print("B 站原配置：")
+            print(json.dumps(target_recommendations, ensure_ascii=False, indent=2))
+            print("同步后配置：")
+            print(json.dumps(source_recommendations, ensure_ascii=False, indent=2))
         if not changed:
-            print("数据库中的基础定价配置一致，无需写入。")
+            print("数据库中的基础定价和推荐配置一致，无需写入。")
             return
         print(f"\n共 {len(changed)} 项配置变化。")
         if not apply:
             print("仅预览，未写入数据库。确认后添加 --apply 执行。")
             return
 
-        # 在锁定后重读整个价格集合，避免覆盖预览期间他人提交的修改。
+        # 在锁定后重读价格和推荐配置，避免覆盖预览期间他人提交的修改。
         with closing(target.cursor()) as cursor:
             if driver == "mysql":
                 cursor.execute("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
@@ -255,23 +393,26 @@ def sync_prices(apply: bool, backup_dir: Path):
         committed = False
         try:
             if read_prices(target, driver, lock=True) != target_rows:
-                raise SyncError("B 站价格在预览后发生变化，请重新执行预览。")
-            if read_prices(source, SOURCE_DB["driver"]) != source_rows:
-                raise SyncError("A 站价格在预览后发生变化，请重新执行预览。")
+                raise SyncError("B 站价格或推荐配置在预览后发生变化，请重新执行预览。")
+            if read_prices(source, source_config["driver"]) != source_rows:
+                raise SyncError("A 站价格或推荐配置在预览后发生变化，请重新执行预览。")
             backup_dir = backup_dir.expanduser().resolve()
             backup_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
             backup_path = backup_dir / f"prices-{timestamp}.json"
             backup = {
                 "format": 1, "created_at": timestamp,
-                "direction": "SOURCE_DB -> TARGET_DB",
+                "direction": "SQL_DSN -> TARGET_SQL_DSN",
                 "target": {
-                    key: TARGET_DB[key]
+                    key: target_config[key]
                     for key in ("driver", "host", "port", "database")
                 },
                 "changed_keys": changed,
-                "before": {key: target_rows.get(key) for key in PRICE_KEYS},
-                "after": {key: source_rows.get(key) for key in PRICE_KEYS},
+                "before": {key: target_rows.get(key) for key in SYNC_KEYS},
+                "after": {
+                    key: desired_rows.get(key) if key in changed else target_rows.get(key)
+                    for key in SYNC_KEYS
+                },
                 "quota_per_unit": str(target_quota),
                 "note": "null 表示原配置行不存在；恢复此状态需删除行并重启服务以清除内存旧值",
             }
@@ -288,15 +429,15 @@ def sync_prices(apply: bool, backup_dir: Path):
                     if key in target_rows:
                         cursor.execute(
                             f"UPDATE options SET value = %s "
-                            f"WHERE {key_col} = %s", (source_rows[key], key),
+                            f"WHERE {key_col} = %s", (desired_rows[key], key),
                         )
                     else:
                         cursor.execute(
                             f"INSERT INTO options ({key_col}, value) "
-                            "VALUES (%s, %s)", (key, source_rows[key]),
+                            "VALUES (%s, %s)", (key, desired_rows[key]),
                         )
             expected = dict(target_rows)
-            expected.update({key: source_rows[key] for key in changed})
+            expected.update({key: desired_rows[key] for key in changed})
             if read_prices(target, driver) != expected:
                 raise SyncError("事务内回读不一致，取消提交。")
             target.commit()
@@ -308,6 +449,7 @@ def sync_prices(apply: bool, backup_dir: Path):
             raise SyncError("提交后的数据库回读不一致，请检查并发修改；写入前备份已保留。")
         print("同步已提交，数据库回读验证一致。请等待各实例配置刷新（默认约 60 秒）。")
         print("此结果不代表服务内存已刷新；已开始的请求或任务可能继续使用原定价快照。")
+        print("模型广场页面也有查询缓存，配置刷新后请重新加载页面查看价格和推荐。")
 
 
 def main() -> int:
