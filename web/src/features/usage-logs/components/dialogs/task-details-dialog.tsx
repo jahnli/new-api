@@ -30,6 +30,7 @@ import {
   maskFormattedCurrencyAmount,
 } from '@/lib/demo-mode'
 import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
+import { translateServerText } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 import { taskActionMapper, taskStatusMapper } from '../../lib/mappers'
@@ -180,7 +181,10 @@ export function TaskDetailsDialog(props: TaskDetailsDialogProps) {
             />
           ) : null}
           {props.log.fail_reason ? (
-            <DetailRow label={t('Fail Reason')} value={props.log.fail_reason} />
+            <DetailRow
+              label={t('Fail Reason')}
+              value={translateServerText(t, props.log.fail_reason)}
+            />
           ) : null}
         </DetailSection>
 

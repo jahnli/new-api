@@ -33,7 +33,7 @@ common/        — 共享工具（JSON、加密、Redis、环境变量、速率�
 dto/           — 数据传输对象（请求/响应结构体）
 constant/      — 常量（API 类型、渠道类型、上下文键）
 types/         — 类型定义（relay 格式、文件来源、错误）
-i18n/          — 后端国际化（go-i18n，en/zh）
+i18n/          — 后端国际化（go-i18n，en/zh-CN/zh-TW）
 oauth/         — OAuth 提供商实现
 pkg/           — 内部包（cachex、ionet）
 web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
@@ -51,7 +51,11 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 ### 后端 (`i18n/`)
 
 - 库: `nicksnyder/go-i18n/v2`
-- 语言: en、zh
+- 语言: en、zh-CN、zh-TW
+- 适用范围：没有 Web 控制台介入的文本（返回给 AI 客户端的错误、邮件、通知），用 `i18n.T` / `i18n.Translate` 翻译
+- Web 控制台 API 消息使用英文原文，通过 `common.NewMessage` / `common.ApiErrorT` / `common.ApiSuccessT` 构造，由前端负责翻译，因此每个键都必须加入全部 7 个前端 locale 文件
+- 存储的日志内容为 `[]*common.Message`；网关写入的失败原因是固定英文句子，同时也是前端 locale 文件中的键
+- 服务端日志为英文，统一经 `common.LogText` 输出；`DEFAULT_LANGUAGE=zh-CN` 时，`common/log_text.zh-CN.json` 中有中文的行输出中文，未声明语言的读者所收到的后端消息也使用该语言
 
 ### 前端 (`web/src/i18n/`)
 

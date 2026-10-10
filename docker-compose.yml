@@ -28,21 +28,18 @@ services:
       - DATA_OVERVIEW_MODEL_MAPPING=${DATA_OVERVIEW_MODEL_MAPPING:-}
       - DATA_OVERVIEW_MODEL_SERIES_KEYWORDS=${DATA_OVERVIEW_MODEL_SERIES_KEYWORDS:-}
       - IMAGE_STUDIO_S3_DSN=${IMAGE_STUDIO_S3_DSN:-}
-    #      - STREAMING_TIMEOUT=300  # 流模式无响应超时时间，单位秒，默认120秒，如果出现空补全可以尝试改为更大值 （Streaming timeout in seconds, default is 120s. Increase if experiencing empty completions）
-    #      - RELAY_IDLE_CONN_TIMEOUT=90  # Relay HTTP 客户端空闲连接超时时间，单位秒，默认跟随 Go 标准库，设置为0表示不限制 (Relay HTTP client idle keep-alive timeout in seconds, defaults to Go standard library; set 0 to disable)
-    #      - SESSION_SECRET=random_string  # 多机部署时设置，必须修改这个随机字符串！！ （multi-node deployment, set this to a random string!!!!!!!）
-    #      - SESSION_COOKIE_SECURE=true  # true：启用 Secure Refresh Cookie 和严格 refresh/logout OriginGuard；false/未配置：关闭 OriginGuard，仅用于本地 HTTP
-    #      - SESSION_COOKIE_TRUSTED_URL=https://example.com,https://admin.example.com  # Secure=true 时必填的精确 HTTPS Origin；不是 relay CORS 白名单，不支持通配符/路径
-    #      - TRUSTED_PROXIES=172.20.0.0/16  # 未配置时信任回环/RFC1918/fc00::/7 并告警；none 不信任任何代理；显式列表替代默认值
-    #      - USER_SESSION_ACTIVE_LIMIT=50
+    #      - DEFAULT_LANGUAGE=zh-CN  # 默认语言：日志输出，以及对方没有指定语言时返回的提示、邮件和通知；可选 en、zh-CN、zh-TW，不设置为 en (Default language of logs and of messages, emails and notifications when the reader states none: en, zh-CN or zh-TW; en if unset)
+    #      - STREAMING_TIMEOUT=300  # 娴佹ā寮忔棤鍝嶅簲瓒呮椂鏃堕棿锛屽崟浣嶇锛岄粯璁?20绉掞紝濡傛灉鍑虹幇绌鸿ˉ鍏ㄥ彲浠ュ皾璇曟敼涓烘洿澶у€?锛圫treaming timeout in seconds, default is 120s. Increase if experiencing empty completions锛?    #      - RELAY_IDLE_CONN_TIMEOUT=90  # Relay HTTP 瀹㈡埛绔┖闂茶繛鎺ヨ秴鏃舵椂闂达紝鍗曚綅绉掞紝榛樿璺熼殢 Go 鏍囧噯搴擄紝璁剧疆涓?琛ㄧず涓嶉檺鍒?(Relay HTTP client idle keep-alive timeout in seconds, defaults to Go standard library; set 0 to disable)
+    #      - SESSION_SECRET=random_string  # 澶氭満閮ㄧ讲鏃惰缃紝蹇呴』淇敼杩欎釜闅忔満瀛楃涓诧紒锛?锛坢ulti-node deployment, set this to a random string!!!!!!!锛?    #      - SESSION_COOKIE_SECURE=true  # true锛氬惎鐢?Secure Refresh Cookie 鍜屼弗鏍?refresh/logout OriginGuard锛沠alse/鏈厤缃細鍏抽棴 OriginGuard锛屼粎鐢ㄤ簬鏈湴 HTTP
+    #      - SESSION_COOKIE_TRUSTED_URL=https://example.com,https://admin.example.com  # Secure=true 鏃跺繀濉殑绮剧‘ HTTPS Origin锛涗笉鏄?relay CORS 鐧藉悕鍗曪紝涓嶆敮鎸侀€氶厤绗?璺緞
+    #      - TRUSTED_PROXIES=172.20.0.0/16  # 鏈厤缃椂淇′换鍥炵幆/RFC1918/fc00::/7 骞跺憡璀︼紱none 涓嶄俊浠讳换浣曚唬鐞嗭紱鏄惧紡鍒楄〃鏇夸唬榛樿鍊?    #      - USER_SESSION_ACTIVE_LIMIT=50
     #      - USER_SESSION_ISSUANCE_LIMIT=100
-    #      - USER_SESSION_ISSUANCE_WINDOW_SECONDS=86400  # 不得大于 revoked 保留期
-    #      - USER_SESSION_REVOKED_RETENTION_DAYS=7
-    #      - USER_SESSION_HOURLY_ALERT_THRESHOLD=5000  # 仅告警，不做全局拒绝
+    #      - USER_SESSION_ISSUANCE_WINDOW_SECONDS=86400  # 涓嶅緱澶т簬 revoked 淇濈暀鏈?    #      - USER_SESSION_REVOKED_RETENTION_DAYS=7
+    #      - USER_SESSION_HOURLY_ALERT_THRESHOLD=5000  # 浠呭憡璀︼紝涓嶅仛鍏ㄥ眬鎷掔粷
     #      - SYNC_FREQUENCY=60  # Uncomment if regular database syncing is needed
-    #      - GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX  # Google Analytics 的测量 ID (Google Analytics Measurement ID)
-    #      - UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # Umami 网站 ID (Umami Website ID)
-    #      - UMAMI_SCRIPT_URL=https://analytics.umami.is/script.js  # Umami 脚本 URL，默认为官方地址 (Umami Script URL, defaults to official URL)
+    #      - GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX  # Google Analytics 鐨勬祴閲?ID (Google Analytics Measurement ID)
+    #      - UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # Umami 缃戠珯 ID (Umami Website ID)
+    #      - UMAMI_SCRIPT_URL=https://analytics.umami.is/script.js  # Umami 鑴氭湰 URL锛岄粯璁や负瀹樻柟鍦板潃 (Umami Script URL, defaults to official URL)
     networks:
       - 1panel-network
     healthcheck:

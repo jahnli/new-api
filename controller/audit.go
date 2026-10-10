@@ -67,10 +67,11 @@ var auditContentTemplates = map[string]string{
 	"channel.upstream_apply":     "Applied upstream model changes to channel (ID: ${id})",
 	"channel.upstream_apply_all": "Applied upstream model changes to ${count} channels",
 
-	"subscription.premium_policy":  "Updated premium model quota settings",
-	"subscription.premium_percent": "Updated premium quota percentage for user ${target_user_id}",
-	"subscription.plan_reset":      "Reset active subscriptions for plan ${plan_id}",
-	"subscription.user_plan_reset": "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
+	"subscription.premium_policy":   "Updated premium model quota settings",
+	"subscription.premium_percent":  "Updated premium quota percentage for user ${target_user_id}",
+	"subscription.plan_reset":       "Reset active subscriptions for plan ${plan_id}",
+	"subscription.user_plan_reset":  "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
+	"subscription.user_quota_reset": "Administrator reset the quota of subscription plan ${plan_title} (ID: ${plan_id})",
 
 	"subscription.quota_increase": "Increased subscription quota by ${quota}",
 	"subscription.quota_decrease": "Decreased subscription quota by ${quota}",

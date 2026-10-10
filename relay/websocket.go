@@ -56,6 +56,6 @@ func WssHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *typ
 		service.ResetStatusCode(AIGatewayError, statusCodeMappingStr)
 		return AIGatewayError
 	}
-	service.PostWssConsumeQuota(c, info, info.UpstreamModelName, usage.(*dto.RealtimeUsage), "")
+	service.PostWssConsumeQuota(c, info, info.UpstreamModelName, usage.(*dto.RealtimeUsage), nil)
 	return nil
 }

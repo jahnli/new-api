@@ -29,6 +29,7 @@ import { useDemoMode } from '@/hooks/use-demo-mode'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { getDemoModeUsername } from '@/lib/demo-mode'
 import { formatTimestampToDate } from '@/lib/format'
+import { translateServerText } from '@/lib/server-error-message'
 import { buildFeishuUserChatUrl, cn } from '@/lib/utils'
 
 import { taskActionMapper, taskStatusMapper } from '../../lib/mappers'
@@ -69,7 +70,7 @@ function TaskDetailsCell(props: {
         </button>
         {props.log.fail_reason ? (
           <span className='max-w-full truncate text-xs text-red-600 dark:text-red-400'>
-            {props.log.fail_reason}
+            {translateServerText(t, props.log.fail_reason)}
           </span>
         ) : null}
       </div>

@@ -203,7 +203,7 @@ func buildHTMLMessage(subject string, receiver string, content string, attachmen
 		from = SMTPAccount
 	}
 	if SMTPServer == "" && SMTPAccount == "" {
-		return nil, fmt.Errorf("SMTP 服务器未配置")
+		return nil, NewMessage("SMTP server is not configured")
 	}
 	id, err := generateMessageID(from)
 	if err != nil {
