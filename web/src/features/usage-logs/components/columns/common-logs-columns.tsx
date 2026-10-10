@@ -21,7 +21,6 @@ import { CircleAlert, GitBranch, KeyRound, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { GroupBadge } from "@/components/group-badge";
 import { StatusBadge, type StatusBadgeProps } from "@/components/status-badge";
 import { TokenBreakdownTooltipContent } from "@/components/token-breakdown-tooltip-content";
 import {
@@ -128,24 +127,6 @@ function getGroupRatioText(
   const groupRatio = other?.group_ratio;
   if (groupRatio != null && groupRatio !== 1 && Number.isFinite(groupRatio)) {
     return `${formatRatioCompact(groupRatio)}x`;
-  }
-
-  return null;
-}
-
-function getGroupRatio(other: LogOtherData | null): number | null {
-  const userGroupRatio = other?.user_group_ratio;
-  if (
-    userGroupRatio != null &&
-    userGroupRatio !== -1 &&
-    Number.isFinite(userGroupRatio)
-  ) {
-    return userGroupRatio;
-  }
-
-  const groupRatio = other?.group_ratio;
-  if (groupRatio != null && groupRatio !== 1 && Number.isFinite(groupRatio)) {
-    return groupRatio;
   }
 
   return null;
@@ -508,66 +489,6 @@ export function useCommonLogsColumns(
       });
     }
 
-    columns.push({
-      accessorKey: 'token_name',
-      header: t('Token'),
-      cell: function TokenNameCell({ row }) {
-        const { sensitiveVisible } = useUsageLogsContext()
-        const log = row.original
-        if (!isDisplayableLogType(log.type)) return null
-
-        const tokenName = logTokenName(log, t)
-        if (!tokenName) return null
-
-        const other = parseLogOther(log.other)
-        const displayName = sensitiveVisible ? tokenName : '••••'
-        let group = log.group
-        if (!group) group = other?.group || ''
-        const groupRatio = getGroupRatio(other)
-
-        return (
-          <div className='flex max-w-[200px] flex-col gap-0.5'>
-            <Tooltip>
-              <TooltipTrigger render={<div className='max-w-full' />}>
-                <StatusBadge
-                  label={displayName}
-                  icon={KeyRound}
-                  copyText={sensitiveVisible ? log.token_name : undefined}
-                  size='sm'
-                  showDot={false}
-                  className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)]'
-                />
-              </TooltipTrigger>
-              {sensitiveVisible && tokenName.length > 16 && (
-                <TooltipContent side='top' className='max-w-xs break-all'>
-                  {tokenName}
-                </TooltipContent>
-              )}
-            </Tooltip>
-            {(group || groupRatio != null) && (
-              <span className='block max-w-full truncate text-xs leading-none'>
-                {group ? (
-                  <GroupBadge
-                    group={group}
-                    label={sensitiveVisible ? undefined : '••••'}
-                    type='text'
-                    size='sm'
-                    className='inline align-baseline text-xs leading-none [&>span]:leading-none'
-                  />
-                ) : null}
-                {group && groupRatio != null ? ' ' : null}
-                {groupRatio != null ? (
-                  <span className='text-muted-foreground/60 relative top-px align-baseline tabular-nums'>
-                    {formatRatioCompact(groupRatio)}x
-                  </span>
-                ) : null}
-              </span>
-            )}
-          </div>
-        )
-      },
-      size: 160,
-    })
     columns.push(
       {
         accessorKey: "model_name",
@@ -1135,7 +1056,7 @@ export function useCommonLogsColumns(
           const { sensitiveVisible } = useUsageLogsContext();
           const log = row.original;
           if (!isDisplayableLogType(log.type)) return null;
-          const tokenName = log.token_name;
+          const tokenName = logTokenName(log, t);
           if (!tokenName) return null;
           const other = parseLogOther(log.other);
           const displayName = sensitiveVisible ? tokenName : "••••";
@@ -1154,7 +1075,7 @@ export function useCommonLogsColumns(
               <StatusBadge
                 label={displayName}
                 icon={KeyRound}
-                copyText={sensitiveVisible ? tokenName : undefined}
+                copyText={sensitiveVisible ? log.token_name : undefined}
                 size="sm"
                 showDot={false}
                 className="border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)] font-normal [&>span]:truncate"
