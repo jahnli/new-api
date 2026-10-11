@@ -14,6 +14,7 @@ import { ErrorState } from '@/components/error-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
@@ -92,12 +93,17 @@ function DeliveryTable(props: { deliveries: NotificationDelivery[] }) {
   })
 
   return (
-    <div className='space-y-3'>
+    <div className='flex h-full min-h-0 flex-col gap-3'>
       <DataTableView
         table={table}
+        splitHeader
+        containerClassName='min-h-0 flex-1'
+        tableContainerClassName='h-full min-h-0'
         emptyContent={t('Delivery results will appear here.')}
       />
-      <DataTablePagination table={table} />
+      <div className='shrink-0'>
+        <DataTablePagination table={table} />
+      </div>
     </div>
   )
 }
@@ -207,8 +213,8 @@ export function RecordDetail(props: {
         )
       }
       contentClassName='h-[92dvh] w-[calc(100vw-2rem)] overflow-hidden sm:max-w-7xl'
-      bodyContainerClassName='flex-1'
-      bodyClassName='grid min-h-full'
+      bodyContainerClassName='flex-1 overflow-hidden'
+      bodyClassName='h-full'
       footer={
         <>
           {record?.message && (
@@ -242,28 +248,41 @@ export function RecordDetail(props: {
       )}
       {query.isError && <ErrorState onRetry={() => void query.refetch()} />}
       {record && (
-        <div className='space-y-6'>
-          {record.message && (
-            <section className='space-y-3'>
-              <h3 className='text-sm font-medium'>{t('Message')}</h3>
-              <div className='rounded-lg border p-4 sm:p-5'>
-                <MessageContent message={record.message} />
-              </div>
-            </section>
-          )}
-          <section className='space-y-3'>
-            <h3 className='flex items-center gap-2 text-sm font-medium'>
+        <Tabs
+          key={record.id}
+          defaultValue={record.message ? 'message' : 'recipients'}
+          className='h-full min-h-0 gap-3'
+        >
+          <TabsList className='shrink-0'>
+            {record.message && (
+              <TabsTrigger value='message' className='px-4'>
+                {t('Message')}
+              </TabsTrigger>
+            )}
+            <TabsTrigger value='recipients' className='px-4'>
               {t('Recipients')}
               <Badge variant='secondary' className='tabular-nums'>
                 {formatNumber(record.total, locale)}
               </Badge>
-            </h3>
+            </TabsTrigger>
+          </TabsList>
+          {record.message && (
+            <TabsContent
+              value='message'
+              className='min-h-0 overflow-y-auto overscroll-contain'
+            >
+              <div className='rounded-lg border p-4 sm:p-5'>
+                <MessageContent message={record.message} />
+              </div>
+            </TabsContent>
+          )}
+          <TabsContent value='recipients' className='min-h-0 overflow-hidden'>
             <DeliveryTable
               key={record.id}
               deliveries={record.deliveries ?? []}
             />
-          </section>
-        </div>
+          </TabsContent>
+        </Tabs>
       )}
     </Dialog>
   )
