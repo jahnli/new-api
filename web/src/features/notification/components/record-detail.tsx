@@ -134,6 +134,19 @@ export function RecordDetail(props: {
         if (!open) props.onClose()
       }}
       title={record?.title || t('Delivery details')}
+      headerClassName='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 pr-8'
+      titleClassName='col-start-1 row-start-1 min-w-0 [overflow-wrap:anywhere]'
+      descriptionClassName='col-span-2 row-start-2'
+      headerTrailing={
+        record && (
+          <div className='col-start-2 row-start-1 flex flex-wrap justify-end gap-2'>
+            <NotificationStatusBadge status={record.status} />
+            {record.is_test && (
+              <Badge variant='secondary'>{t('Test send')}</Badge>
+            )}
+          </div>
+        )
+      }
       description={
         record
           ? `${record.channel} · ${record.sender_name} · ${notificationDate(record.created_at, locale)}`
@@ -174,12 +187,6 @@ export function RecordDetail(props: {
       {query.isError && <ErrorState onRetry={() => void query.refetch()} />}
       {record && (
         <div className='space-y-5'>
-          <div className='flex gap-2'>
-            <NotificationStatusBadge status={record.status} />
-            {record.is_test && (
-              <Badge variant='secondary'>{t('Test send')}</Badge>
-            )}
-          </div>
           {record.message && (
             <div className='bg-muted/20 rounded-xl border p-5'>
               <MessageContent message={record.message} />

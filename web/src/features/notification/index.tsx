@@ -185,7 +185,6 @@ export function Notifications() {
 
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Notifications')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <div className='w-full min-w-0 space-y-6 pb-8'>
           <header className='from-primary/7 via-card to-card relative overflow-hidden rounded-2xl border bg-gradient-to-br px-5 py-4 sm:px-7'>
