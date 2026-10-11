@@ -101,7 +101,9 @@ export function SendDialog(props: {
     onSuccess: (record) => {
       void client.invalidateQueries({ queryKey: notificationKeys.records })
       if (record.status === 'success') {
-        toast.success(t('Notification sent'))
+        toast.success(
+          props.test ? t('Test notification sent') : t('Notification sent')
+        )
         props.onSent()
       } else {
         const summary = t(

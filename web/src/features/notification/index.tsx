@@ -10,7 +10,7 @@ import {
   Send,
 } from 'lucide-react'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -66,7 +66,7 @@ export function Notifications() {
     resolver: zodResolver(messageSchema(t)),
     defaultValues: structuredClone(EMPTY_MESSAGE),
   })
-  const message = form.watch()
+  const message = useWatch({ control: form.control }) as NotificationMessage
   const config = useQuery({
     queryKey: notificationKeys.config,
     queryFn: getNotificationConfig,
@@ -386,10 +386,12 @@ export function Notifications() {
             {...pendingSend}
             onClose={() => setPendingSend(null)}
             onSent={() => {
-              form.reset(structuredClone(EMPTY_MESSAGE))
-              setSourceTemplate(null)
-              setSaveName('')
-              setRevision((value) => value + 1)
+              if (!pendingSend.test) {
+                form.reset(structuredClone(EMPTY_MESSAGE))
+                setSourceTemplate(null)
+                setSaveName('')
+                setRevision((value) => value + 1)
+              }
               setPendingSend(null)
             }}
           />
