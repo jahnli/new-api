@@ -828,7 +828,11 @@ export function Markdown(props: MarkdownProps) {
         '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80',
         '[&_ol]:my-2 [&_ul]:my-2 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:my-1 [&_li]:pl-1',
         '[&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:bg-muted/50 [&_blockquote]:py-1 [&_blockquote]:pl-4',
-        '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono',
+        // Inline code renders as a pill around monospace text. A monospace face
+        // carries far more ascent than descent above the baseline, so equal
+        // vertical padding leaves the label sitting low; the bottom padding is
+        // therefore larger than the top so the glyphs land on the pill's centre.
+        '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:pt-[0.06em] [&_code]:pb-[0.23em] [&_code]:font-mono',
         '[&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:bg-muted [&_pre]:p-3 [&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto',
         '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-sm',
         props.codeLineNumbers &&

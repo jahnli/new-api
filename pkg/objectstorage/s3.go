@@ -111,6 +111,13 @@ func (storage *Storage) Open(ctx context.Context, key string) (*Object, error) {
 	return &Object{Body: object, ContentType: info.ContentType, ModTime: info.LastModified}, nil
 }
 
+// OpenBody streams an object without the metadata request that Open performs
+// first. Callers that already know the expected size bound their own reads, so
+// the extra round trip only adds latency.
+func (storage *Storage) OpenBody(ctx context.Context, key string) (io.ReadCloser, error) {
+	return storage.Client.GetObject(ctx, storage.Bucket, key, minio.GetObjectOptions{})
+}
+
 func (storage *Storage) Delete(ctx context.Context, key string) error {
 	return storage.Client.RemoveObject(ctx, storage.Bucket, key, minio.RemoveObjectOptions{})
 }

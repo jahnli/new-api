@@ -251,13 +251,21 @@ func ListNotifications(filter NotificationFilter) ([]NotificationRecord, int64, 
 	return items, count, nil
 }
 
-func GetNotification(id, viewerID int, admin, includeMessage bool) (*NotificationRecord, error) {
+func GetNotificationMetadata(id, viewerID int, admin bool) (*NotificationRecord, error) {
 	var record NotificationRecord
 	query := DB.Where("id = ? AND kind = ?", id, "record")
 	if !admin {
 		query = query.Where("sender_id = ?", viewerID)
 	}
 	if err := query.First(&record).Error; err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
+func GetNotification(id, viewerID int, admin, includeMessage bool) (*NotificationRecord, error) {
+	record, err := GetNotificationMetadata(id, viewerID, admin)
+	if err != nil {
 		return nil, err
 	}
 	if includeMessage {
@@ -272,7 +280,7 @@ func GetNotification(id, viewerID int, admin, includeMessage bool) (*Notificatio
 	if err := DB.Omit("history").Where("record_id = ?", id).Order("id asc").Find(&record.Deliveries).Error; err != nil {
 		return nil, err
 	}
-	return &record, nil
+	return record, nil
 }
 
 func NotificationAttempts(recordID int) ([]NotificationAttempt, error) {
@@ -345,6 +353,62 @@ func ListNotificationDeliveries(recordID int) ([]NotificationDelivery, error) {
 	items := make([]NotificationDelivery, 0)
 	err := DB.Omit("history").Where("record_id = ?", recordID).Order("id asc").Find(&items).Error
 	return items, err
+}
+
+type NotificationDeliveryItem struct {
+	NotificationDelivery
+	Username string `json:"username"`
+}
+
+// The caller must authorize access to the parent record first. User names are
+// resolved from current profiles; deleted or unmatched recipients keep their ID.
+func ListNotificationDeliveryPage(ctx context.Context, record *NotificationRecord, username, status string, page, pageSize int) ([]NotificationDeliveryItem, int64, error) {
+	db := DB.WithContext(ctx)
+	identifier := "TRIM(open_id)"
+	if record.Channel == "email" {
+		identifier = "TRIM(email)"
+	}
+	query := db.Model(&NotificationDelivery{}).Where("record_id = ?", record.ID)
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if username != "" {
+		pattern := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(username))
+		users := db.Model(&User{}).Select(identifier).Where("LOWER(username) LIKE ? ESCAPE '!'", "%"+pattern+"%")
+		query = query.Where("recipient IN (?)", users)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	items := make([]NotificationDeliveryItem, 0)
+	if err := query.Select("id", "record_id", "recipient", "status", "attempts", "error", "message_id", "updated_at").Order("id asc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	if len(items) == 0 {
+		return items, total, nil
+	}
+	recipients := make([]string, len(items))
+	for i := range items {
+		recipients[i] = items[i].Recipient
+	}
+	var users []struct {
+		Recipient string
+		Username  string
+	}
+	if err := db.Model(&User{}).Select(identifier+" AS recipient, username").Where(identifier+" IN ?", recipients).Order("id asc").Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+	names := make(map[string]string, len(users))
+	for _, user := range users {
+		if _, exists := names[user.Recipient]; !exists {
+			names[user.Recipient] = user.Username
+		}
+	}
+	for i := range items {
+		items[i].Username = names[items[i].Recipient]
+	}
+	return items, total, nil
 }
 
 func RetryNotification(id, userID int, admin bool, claim string) error {

@@ -44,10 +44,18 @@ export interface NotificationAudience {
 export interface NotificationDelivery {
   id: number
   recipient: string
+  username?: string
   status: NotificationStatus
   error: string
   message_id: string
   attempts: number
+}
+
+export interface DeliveryFilters {
+  page: number
+  page_size: number
+  username?: string
+  status?: string
 }
 
 export interface NotificationRecord {

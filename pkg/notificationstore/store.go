@@ -172,12 +172,12 @@ func readManifest(ctx context.Context, storage *objectstorage.Storage, key strin
 	if !validKey(key) {
 		return nil, nil, errors.New("invalid notification storage key")
 	}
-	object, err := storage.Open(ctx, key)
+	object, err := storage.OpenBody(ctx, key)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer object.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(object.Body, maxManifestBytes+1))
+	defer object.Close()
+	data, err := io.ReadAll(io.LimitReader(object, maxManifestBytes+1))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,12 +206,12 @@ func readManifest(ctx context.Context, storage *objectstorage.Storage, key strin
 }
 
 func readImage(ctx context.Context, storage *objectstorage.Storage, key string, image storedImage) ([]byte, error) {
-	object, err := storage.Open(ctx, path.Dir(key)+"/"+image.ObjectName)
+	object, err := storage.OpenBody(ctx, path.Dir(key)+"/"+image.ObjectName)
 	if err != nil {
 		return nil, err
 	}
-	defer object.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(object.Body, image.Size+1))
+	defer object.Close()
+	data, err := io.ReadAll(io.LimitReader(object, image.Size+1))
 	if err != nil {
 		return nil, err
 	}

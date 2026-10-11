@@ -6,11 +6,13 @@ import {
   normalizeNotificationMessage,
 } from './lib/message'
 import type {
+  DeliveryFilters,
   LibraryFilters,
   LibraryKind,
   NotificationAudience,
   NotificationChannel,
   NotificationConfig,
+  NotificationDelivery,
   NotificationMessage,
   NotificationRecord,
   NotificationRetryResult,
@@ -57,6 +59,8 @@ export const notificationKeys = {
   audience: (channel: NotificationChannel, companyId: number) =>
     ['notification', 'audience', channel, companyId] as const,
   detail: (id: number) => ['notification', 'record', id] as const,
+  deliveries: (id: number, filters: DeliveryFilters) =>
+    ['notification', 'record', id, 'deliveries', filters] as const,
 }
 
 export async function getNotificationConfig(): Promise<NotificationConfig> {
@@ -121,7 +125,7 @@ export async function getRecord(
   const record = requireServerSuccess(
     (
       await api.get<Response<NotificationRecord>>(`${base}/records/${id}`, {
-        params: { include_message: includeMessage },
+        params: { include_message: includeMessage, include_deliveries: false },
       })
     ).data
   ).data
@@ -131,6 +135,23 @@ export async function getRecord(
       ? normalizeNotificationMessage(record.message)
       : undefined,
   }
+}
+
+export async function getRecordDeliveries(
+  id: number,
+  filters: DeliveryFilters,
+  signal: AbortSignal
+): Promise<{ items: NotificationDelivery[]; total: number }> {
+  return requireServerSuccess(
+    (
+      await api.get<Response<{ items: NotificationDelivery[]; total: number }>>(
+        `${base}/records/${id}/deliveries`,
+        // Query owns deduplication and cancellation. A remount must not reuse
+        // the HTTP client's promise for a request cancelled on unmount.
+        { params: filters, signal, disableDuplicate: true }
+      )
+    ).data
+  ).data
 }
 
 export async function retryRecords(

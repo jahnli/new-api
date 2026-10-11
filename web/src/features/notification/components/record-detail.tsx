@@ -1,14 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Clock3, Pencil, RefreshCw } from 'lucide-react'
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  DataTablePagination,
-  DataTableView,
-  useDataTable,
-} from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { ErrorState } from '@/components/error-state'
 import { Badge } from '@/components/ui/badge'
@@ -23,10 +16,10 @@ import { getRecord, notificationKeys } from '../api'
 import { notificationDate } from '../lib/message'
 import type {
   NotificationChannel,
-  NotificationDelivery,
   NotificationMessage,
   NotificationRecord,
 } from '../types'
+import { DeliveryTable } from './delivery-table'
 import { MessageContent } from './message-content'
 import { NotificationStatusBadge } from './status-badge'
 
@@ -34,78 +27,6 @@ const CHANNEL_LABEL_KEYS: Record<NotificationChannel, string> = {
   feishu: 'Feishu',
   dingtalk: 'DingTalk',
   email: 'Email',
-}
-
-function DeliveryTable(props: { deliveries: NotificationDelivery[] }) {
-  const { t, i18n } = useTranslation()
-  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
-  const columns = useMemo<ColumnDef<NotificationDelivery>[]>(
-    () => [
-      {
-        accessorKey: 'recipient',
-        header: t('Recipient'),
-        cell: ({ row }) => (
-          <span className='font-mono text-xs [overflow-wrap:anywhere] whitespace-normal'>
-            {row.original.recipient}
-          </span>
-        ),
-      },
-      {
-        accessorKey: 'status',
-        header: t('Status'),
-        cell: ({ row }) => (
-          <NotificationStatusBadge status={row.original.status} />
-        ),
-      },
-      {
-        accessorKey: 'error',
-        header: t('Error'),
-        cell: ({ row }) => (
-          <p className='text-xs [overflow-wrap:anywhere] whitespace-normal'>
-            {row.original.error || '—'}
-          </p>
-        ),
-      },
-      {
-        accessorKey: 'message_id',
-        header: t('Message ID'),
-        cell: ({ row }) => (
-          <span className='font-mono text-xs [overflow-wrap:anywhere] whitespace-normal'>
-            {row.original.message_id || '—'}
-          </span>
-        ),
-      },
-      {
-        accessorKey: 'attempts',
-        header: t('Attempts'),
-        cell: ({ row }) => formatNumber(row.original.attempts, locale),
-      },
-    ],
-    [locale, t]
-  )
-  const { table } = useDataTable({
-    data: props.deliveries,
-    columns,
-    initialPagination: { pageIndex: 0, pageSize: 10 },
-    getRowId: (delivery) => String(delivery.id),
-    enableSorting: false,
-    enableRowSelection: false,
-  })
-
-  return (
-    <div className='flex h-full min-h-0 flex-col gap-3'>
-      <DataTableView
-        table={table}
-        splitHeader
-        containerClassName='min-h-0 flex-1'
-        tableContainerClassName='h-full min-h-0'
-        emptyContent={t('Delivery results will appear here.')}
-      />
-      <div className='shrink-0'>
-        <DataTablePagination table={table} />
-      </div>
-    </div>
-  )
 }
 
 export function RecordDetail(props: {
@@ -279,7 +200,8 @@ export function RecordDetail(props: {
           <TabsContent value='recipients' className='min-h-0 overflow-hidden'>
             <DeliveryTable
               key={record.id}
-              deliveries={record.deliveries ?? []}
+              recordId={record.id}
+              active={record.status === 'queued' || record.status === 'sending'}
             />
           </TabsContent>
         </Tabs>

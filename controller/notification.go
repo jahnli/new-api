@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/notificationstore"
 	"github.com/QuantumNous/new-api/pkg/objectstorage"
@@ -32,12 +34,24 @@ func notificationCanViewAll(c *gin.Context) bool {
 }
 
 func notificationError(c *gin.Context, err error) {
+	// Notification panels cancel their requests whenever the operator switches
+	// tabs or closes the dialog, which surfaces here as a cancelled context.
+	// That is a client-side abort, not a server failure, so it must not be
+	// reported as a 500.
+	if errors.Is(err, context.Canceled) {
+		logger.LogDebug(c.Request.Context(), "notification request cancelled by the client")
+		c.AbortWithStatus(http.StatusRequestTimeout)
+		return
+	}
 	status, message := http.StatusInternalServerError, "notification operation failed"
 	if errors.Is(err, objectstorage.ErrNotConfigured) {
 		status, message = http.StatusServiceUnavailable, "notification storage requires IMAGE_STUDIO_S3_DSN"
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		status, message = http.StatusNotFound, "notification not found"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		status, message = http.StatusGatewayTimeout, "notification operation timed out"
 	}
 	if errors.Is(err, model.ErrNotificationActive) || errors.Is(err, model.ErrNotificationConflict) {
 		status, message = http.StatusConflict, err.Error()
@@ -49,6 +63,9 @@ func notificationError(c *gin.Context, err error) {
 	var deliveryUnknown *service.NotificationDeliveryUnknownError
 	if errors.As(err, &deliveryUnknown) {
 		status, message = http.StatusBadGateway, "发送结果未能确认，请先检查发送历史和收件情况，不要重复发送"
+	}
+	if status >= http.StatusInternalServerError {
+		logger.LogError(c.Request.Context(), common.LogText("notification request failed status=%d error=%s", status, common.LocalLogPreview(err.Error())))
 	}
 	c.JSON(status, gin.H{"success": false, "message": message})
 }
@@ -203,7 +220,7 @@ func GetNotificationRecord(c *gin.Context) {
 	if !ok {
 		return
 	}
-	record, err := model.GetNotification(id, c.GetInt("id"), notificationCanViewAll(c), false)
+	record, err := model.GetNotificationMetadata(id, c.GetInt("id"), notificationCanViewAll(c))
 	if err != nil {
 		notificationError(c, err)
 		return
@@ -217,12 +234,47 @@ func GetNotificationRecord(c *gin.Context) {
 			return
 		}
 	}
-	attempts, err := model.NotificationAttempts(id)
+	var attempts []model.NotificationAttempt
+	if c.Query("include_deliveries") != "false" {
+		record.Deliveries, err = model.ListNotificationDeliveries(id)
+		if err != nil {
+			notificationError(c, err)
+			return
+		}
+		attempts, err = model.NotificationAttempts(id)
+		if err != nil {
+			notificationError(c, err)
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"id": record.ID, "user_id": record.SenderID, "sender_name": record.Sender, "channel": record.Channel, "company_id": record.CompanyID, "title": record.Title, "is_test": record.IsTest, "status": record.Status, "total": record.Total, "success_count": record.SuccessCount, "failed_count": record.FailedCount, "unknown_count": record.UnknownCount, "created_at": record.CreatedAt, "updated_at": record.UpdatedAt, "message": record.Message, "deliveries": record.Deliveries, "attempts": attempts}})
+}
+
+func ListNotificationRecordDeliveries(c *gin.Context) {
+	id, ok := notificationID(c)
+	if !ok {
+		return
+	}
+	record, err := model.GetNotificationMetadata(id, c.GetInt("id"), notificationCanViewAll(c))
 	if err != nil {
 		notificationError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"id": record.ID, "user_id": record.SenderID, "sender_name": record.Sender, "channel": record.Channel, "company_id": record.CompanyID, "title": record.Title, "is_test": record.IsTest, "status": record.Status, "total": record.Total, "success_count": record.SuccessCount, "failed_count": record.FailedCount, "unknown_count": record.UnknownCount, "created_at": record.CreatedAt, "updated_at": record.UpdatedAt, "message": record.Message, "deliveries": record.Deliveries, "attempts": attempts}})
+	page, pageErr := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, sizeErr := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	username := strings.TrimSpace(c.Query("username"))
+	status := c.Query("status")
+	if pageErr != nil || sizeErr != nil || page < 1 || page > 1000000 || pageSize < 1 || pageSize > 100 || len(username) > 128 ||
+		(status != "" && !slices.Contains([]string{model.NotificationQueued, model.NotificationSending, model.NotificationSuccess, model.NotificationFailed, model.NotificationUnknown}, status)) {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": common.NewMessage("Invalid parameters")})
+		return
+	}
+	items, total, err := model.ListNotificationDeliveryPage(c.Request.Context(), record, username, status, page, pageSize)
+	if err != nil {
+		notificationError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"items": items, "total": total}})
 }
 
 func DeleteNotificationRecords(c *gin.Context) {
