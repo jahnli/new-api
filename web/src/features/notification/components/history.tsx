@@ -239,28 +239,24 @@ export function NotificationHistory(props: {
       {
         id: 'title',
         accessorKey: 'title',
-        header: t('Title'),
-        size: 220,
+        header: t('Details'),
+        size: 400,
         meta: { mobileTitle: true },
         cell: ({ row }) => (
-          <Button
-            variant='link'
-            className='h-auto max-w-52 justify-start p-0 text-left whitespace-normal'
-            onClick={() => setDetailId(row.original.id)}
-          >
-            {row.original.title}
-          </Button>
-        ),
-      },
-      {
-        id: 'content',
-        accessorKey: 'summary',
-        header: t('Content'),
-        size: 320,
-        cell: ({ row }) => (
-          <p className='text-muted-foreground line-clamp-2 max-w-72 text-xs whitespace-normal'>
-            {row.original.summary || '-'}
-          </p>
+          <div className='max-w-96 min-w-0 space-y-1'>
+            <Button
+              variant='link'
+              className='h-auto max-w-full justify-start p-0 text-left [overflow-wrap:anywhere] whitespace-normal'
+              onClick={() => setDetailId(row.original.id)}
+            >
+              {row.original.title}
+            </Button>
+            {row.original.summary && (
+              <p className='text-muted-foreground line-clamp-2 text-xs [overflow-wrap:anywhere] whitespace-normal'>
+                {row.original.summary}
+              </p>
+            )}
+          </div>
         ),
       },
       {
@@ -287,7 +283,14 @@ export function NotificationHistory(props: {
         accessorFn: (record) => (record.is_test ? 'test' : 'production'),
         header: t('Type'),
         cell: ({ row }) => (
-          <Badge variant={row.original.is_test ? 'secondary' : 'outline'}>
+          <Badge
+            variant='secondary'
+            className={
+              row.original.is_test
+                ? undefined
+                : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+            }
+          >
             {row.original.is_test ? t('Test') : t('Production')}
           </Badge>
         ),

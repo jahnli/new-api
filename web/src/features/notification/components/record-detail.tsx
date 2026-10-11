@@ -1,8 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil, RefreshCw } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { StaticDataTable } from '@/components/data-table'
+import {
+  DataTablePagination,
+  DataTableView,
+  useDataTable,
+} from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { ErrorState } from '@/components/error-state'
 import { Badge } from '@/components/ui/badge'
@@ -13,9 +19,80 @@ import { formatNumber } from '@/lib/format'
 
 import { getRecord, notificationKeys } from '../api'
 import { notificationDate } from '../lib/message'
-import type { NotificationMessage, NotificationRecord } from '../types'
+import type {
+  NotificationDelivery,
+  NotificationMessage,
+  NotificationRecord,
+} from '../types'
 import { MessageContent } from './message-content'
 import { NotificationStatusBadge } from './status-badge'
+
+function DeliveryTable(props: { deliveries: NotificationDelivery[] }) {
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+  const columns = useMemo<ColumnDef<NotificationDelivery>[]>(
+    () => [
+      {
+        accessorKey: 'recipient',
+        header: t('Recipient'),
+        cell: ({ row }) => (
+          <span className='font-mono text-xs [overflow-wrap:anywhere] whitespace-normal'>
+            {row.original.recipient}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: t('Status'),
+        cell: ({ row }) => (
+          <NotificationStatusBadge status={row.original.status} />
+        ),
+      },
+      {
+        accessorKey: 'error',
+        header: t('Error'),
+        cell: ({ row }) => (
+          <p className='text-xs [overflow-wrap:anywhere] whitespace-normal'>
+            {row.original.error || '—'}
+          </p>
+        ),
+      },
+      {
+        accessorKey: 'message_id',
+        header: t('Message ID'),
+        cell: ({ row }) => (
+          <span className='font-mono text-xs [overflow-wrap:anywhere] whitespace-normal'>
+            {row.original.message_id || '—'}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'attempts',
+        header: t('Attempts'),
+        cell: ({ row }) => formatNumber(row.original.attempts, locale),
+      },
+    ],
+    [locale, t]
+  )
+  const { table } = useDataTable({
+    data: props.deliveries,
+    columns,
+    initialPagination: { pageIndex: 0, pageSize: 10 },
+    getRowId: (delivery) => String(delivery.id),
+    enableSorting: false,
+    enableRowSelection: false,
+  })
+
+  return (
+    <div className='space-y-3'>
+      <DataTableView
+        table={table}
+        emptyContent={t('Delivery results will appear here.')}
+      />
+      <DataTablePagination table={table} />
+    </div>
+  )
+}
 
 export function RecordDetail(props: {
   id: number | null
@@ -62,7 +139,7 @@ export function RecordDetail(props: {
           ? `${record.channel} · ${record.sender_name} · ${notificationDate(record.created_at, locale)}`
           : undefined
       }
-      contentClassName='sm:max-w-4xl'
+      contentClassName='w-[calc(100vw-2rem)] sm:max-w-7xl'
       footer={
         <>
           {record?.message && (
@@ -108,48 +185,7 @@ export function RecordDetail(props: {
               <MessageContent message={record.message} />
             </div>
           )}
-          <StaticDataTable
-            data={record.deliveries ?? []}
-            getRowKey={(delivery) => delivery.id}
-            emptyContent={t('Delivery results will appear here.')}
-            columns={[
-              {
-                id: 'recipient',
-                header: t('Recipient'),
-                cell: (delivery) => (
-                  <span className='font-mono text-xs'>
-                    {delivery.recipient}
-                  </span>
-                ),
-              },
-              {
-                id: 'status',
-                header: t('Status'),
-                cell: (delivery) => (
-                  <NotificationStatusBadge status={delivery.status} />
-                ),
-              },
-              {
-                id: 'error',
-                header: t('Error'),
-                cell: (delivery) => (
-                  <p className='max-w-64 text-xs whitespace-normal'>
-                    {delivery.error || '—'}
-                  </p>
-                ),
-              },
-              {
-                id: 'message_id',
-                header: t('Message ID'),
-                cell: (delivery) => delivery.message_id || '—',
-              },
-              {
-                id: 'attempts',
-                header: t('Attempts'),
-                cell: (delivery) => formatNumber(delivery.attempts, locale),
-              },
-            ]}
-          />
+          <DeliveryTable key={record.id} deliveries={record.deliveries ?? []} />
         </div>
       )}
     </Dialog>
