@@ -35,6 +35,7 @@ type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
   placement?: 'floating' | 'inline'
   entityName: string
+  contentClassName?: string
   children: React.ReactNode
 }
 
@@ -52,9 +53,12 @@ export function DataTableBulkActions<TData>({
   table,
   entityName,
   placement = 'floating',
+  contentClassName,
   children,
 }: DataTableBulkActionsProps<TData>): React.ReactNode | null {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const isEnglish =
+    (i18n.resolvedLanguage || i18n.language).split('-')[0] === 'en'
   const selectedRows = table.getFilteredSelectedRowModel().rows
   const selectedCount = selectedRows.length
   const toolbarRef = useRef<HTMLDivElement>(null)
@@ -186,7 +190,8 @@ export function DataTableBulkActions<TData>({
             'p-2 shadow-xl',
             'rounded-xl border',
             'bg-background/95 supports-[backdrop-filter]:bg-background/60 backdrop-blur-lg',
-            'flex flex-wrap items-center gap-2'
+            'flex flex-wrap items-center gap-2',
+            contentClassName
           )}
         >
           <Tooltip>
@@ -228,7 +233,9 @@ export function DataTableBulkActions<TData>({
             </Badge>{' '}
             <span className='hidden sm:inline'>
               {entityName}
-              {selectedCount > 1 && /^[a-z]+$/i.test(entityName) ? 's' : ''}
+              {isEnglish && selectedCount > 1 && /^[a-z]+$/i.test(entityName)
+                ? 's'
+                : ''}
             </span>{' '}
             {t('selected')}
           </div>

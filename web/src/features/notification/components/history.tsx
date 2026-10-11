@@ -4,14 +4,15 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
-import { RefreshCw, Search, Trash2 } from 'lucide-react'
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table'
+import { RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
+  DataTableBulkActions,
   DataTablePage,
   DataTableRowActionMenu,
   useDataTable,
@@ -35,13 +36,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
 import { LogUserCell } from '@/features/usage-logs/components/log-user-cell'
 import { useMediaQuery } from '@/hooks'
 import { toIntlLocale } from '@/i18n/languages'
 import dayjs from '@/lib/dayjs'
-import { formatNumber } from '@/lib/format'
 
 import {
   deleteRecords,
@@ -182,8 +181,6 @@ export function NotificationHistory(props: {
   ]
   const statuses = [
     { value: '', label: t('All statuses') },
-    { value: 'queued', label: t('Queued') },
-    { value: 'sending', label: t('Sending') },
     { value: 'success', label: t('Success') },
     { value: 'failed', label: t('Failed') },
     { value: 'partial', label: t('Partially delivered') },
@@ -361,9 +358,25 @@ export function NotificationHistory(props: {
       t,
     ]
   )
+  const rowSelection = useMemo<RowSelectionState>(
+    () => Object.fromEntries(selected.map((id) => [String(id), true])),
+    [selected]
+  )
   const { table } = useDataTable({
     data: query.data?.items ?? [],
     columns,
+    getRowId: (record) => String(record.id),
+    rowSelection,
+    onRowSelectionChange: (updater) => {
+      const next =
+        typeof updater === 'function' ? updater(rowSelection) : updater
+      setSelected(
+        Object.keys(next)
+          .filter((id) => next[id] && selectableIds.includes(Number(id)))
+          .slice(0, MAX_BATCH_SIZE)
+          .map(Number)
+      )
+    },
     pagination: {
       pageIndex: filters.page - 1,
       pageSize: filters.page_size,
@@ -406,9 +419,44 @@ export function NotificationHistory(props: {
           applyHeaderSize
           tableClassName='[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
           mobileProps={{ getRowKey: (row) => row.original.id }}
+          bulkActions={
+            <DataTableBulkActions
+              table={table}
+              entityName={t('Notifications')}
+              contentClassName='gap-4 px-5 py-3'
+            >
+              <Button
+                variant='secondary'
+                size='sm'
+                className='min-w-20 px-4'
+                disabled={
+                  !selectedRetryIds.length ||
+                  retry.isPending ||
+                  remove.isPending ||
+                  query.isPlaceholderData
+                }
+                onClick={() => setRetryIds(selectedRetryIds)}
+              >
+                <RefreshCw className='size-3.5' />
+                {t('Retry')}
+              </Button>
+              <Button
+                variant='destructive'
+                size='sm'
+                className='min-w-20 px-4'
+                disabled={
+                  retry.isPending || remove.isPending || query.isPlaceholderData
+                }
+                onClick={() => setDeleteIds(selected)}
+              >
+                <Trash2 className='size-3.5' />
+                {t('Delete')}
+              </Button>
+            </DataTableBulkActions>
+          }
           toolbar={
             <div className='bg-card/50 shrink-0 rounded-lg border p-2.5 sm:p-3'>
-              <div className='grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[max-content_minmax(8rem,1fr)_repeat(3,minmax(6.5rem,1fr))_auto]'>
+              <div className='grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[max-content_minmax(8rem,1fr)_repeat(2,9rem)_minmax(6.5rem,0.5fr)_auto]'>
                 <CompactDateTimeRangePicker
                   start={filters.from ? new Date(filters.from) : undefined}
                   end={filters.to ? new Date(filters.to) : undefined}
@@ -459,7 +507,7 @@ export function NotificationHistory(props: {
                     >
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent align='start' alignItemWithTrigger={false}>
                       <SelectGroup>
                         {filter.items.map((item) => (
                           <SelectItem key={item.value} value={item.value}>
@@ -480,8 +528,8 @@ export function NotificationHistory(props: {
                   className='h-8 min-w-0 text-sm'
                 />
                 <div className='flex items-center justify-end gap-2'>
-                  <div className='flex shrink-0 items-center gap-2'>
-                    <Switch
+                  <div className='flex h-8 shrink-0 items-center gap-2 px-1'>
+                    <Checkbox
                       id='include-tests'
                       checked={filters.include_tests}
                       onCheckedChange={(value) =>
@@ -497,54 +545,31 @@ export function NotificationHistory(props: {
                   </div>
                   <Button
                     variant='outline'
+                    size='sm'
+                    onClick={() => {
+                      const now = dayjs()
+                      setKeyword('')
+                      setSelected([])
+                      setFilters((current) => ({
+                        page: 1,
+                        page_size: current.page_size,
+                        from: now.startOf('month').toISOString(),
+                        to: now.endOf('month').toISOString(),
+                        include_tests: true,
+                      }))
+                    }}
+                  >
+                    <RotateCcw className='size-4' />
+                    {t('Reset')}
+                  </Button>
+                  <Button
+                    variant='outline'
                     size='icon-sm'
                     aria-label={t('Search')}
                     onClick={() => void query.refetch()}
                     disabled={query.isFetching}
                   >
                     <Search className='size-4' />
-                  </Button>
-                </div>
-              </div>
-              <div className='mt-2 flex flex-wrap items-center justify-end gap-2'>
-                <div className='flex items-center gap-2'>
-                  <Button
-                    variant='secondary'
-                    size='sm'
-                    disabled={
-                      !selectedRetryIds.length ||
-                      retry.isPending ||
-                      remove.isPending ||
-                      query.isPlaceholderData
-                    }
-                    onClick={() => setRetryIds(selectedRetryIds)}
-                  >
-                    <RefreshCw className='size-3.5' />
-                    {t('Retry')}
-                    {selectedRetryIds.length > 0 && (
-                      <Badge variant='outline'>
-                        {formatNumber(selectedRetryIds.length, locale)}
-                      </Badge>
-                    )}
-                  </Button>
-                  <Button
-                    variant='destructive'
-                    size='sm'
-                    disabled={
-                      !selected.length ||
-                      retry.isPending ||
-                      remove.isPending ||
-                      query.isPlaceholderData
-                    }
-                    onClick={() => setDeleteIds(selected)}
-                  >
-                    <Trash2 className='size-3.5' />
-                    {t('Delete')}
-                    {selected.length > 0 && (
-                      <Badge variant='outline'>
-                        {formatNumber(selected.length, locale)}
-                      </Badge>
-                    )}
                   </Button>
                 </div>
               </div>
