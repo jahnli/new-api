@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
@@ -23,6 +23,9 @@ interface LogUserIdentityProps {
   size?: 'sm' | 'default' | 'lg'
   /** Whether hovering the avatar loads the extended user profile. */
   canFetchDetails?: boolean
+  /** Load the profile as soon as the identity is shown. */
+  fetchOnMount?: boolean
+  avatarClassName?: string
   className?: string
   nameClassName?: string
   /** Extra log facts rendered beside the name. */
@@ -88,6 +91,10 @@ export function LogUserIdentity(props: LogUserIdentityProps) {
     })
   }, [props.canFetchDetails, props.userId])
 
+  useEffect(() => {
+    if (props.fetchOnMount) handleFetchUser()
+  }, [props.fetchOnMount, handleFetchUser])
+
   // The log row already carries the author; the fetched profile only augments it.
   const fallbackUser: UserColumnRow = {
     id: props.userId,
@@ -123,7 +130,11 @@ export function LogUserIdentity(props: LogUserIdentityProps) {
       <UserProfileHoverCard user={user}>
         <Avatar
           size={size === 'sm' ? 'sm' : 'default'}
-          className={cn('shrink-0', size !== 'sm' && 'size-8.5')}
+          className={cn(
+            'shrink-0',
+            size !== 'sm' && 'size-8.5',
+            props.avatarClassName
+          )}
           onMouseEnter={handleFetchUser}
         >
           {user.avatar_url && (

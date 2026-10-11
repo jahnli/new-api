@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import type { ColumnDef, RowSelectionState } from '@tanstack/react-table'
-import { RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { RefreshCw, Search, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -456,7 +456,7 @@ export function NotificationHistory(props: {
           }
           toolbar={
             <div className='bg-card/50 shrink-0 rounded-lg border p-2.5 sm:p-3'>
-              <div className='grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[max-content_minmax(8rem,1fr)_repeat(2,9rem)_minmax(6.5rem,0.5fr)_auto]'>
+              <div className='grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[max-content_minmax(7rem,0.75fr)_repeat(2,10.5rem)_minmax(6.5rem,0.5fr)_auto]'>
                 <CompactDateTimeRangePicker
                   start={filters.from ? new Date(filters.from) : undefined}
                   end={filters.to ? new Date(filters.to) : undefined}
@@ -544,8 +544,8 @@ export function NotificationHistory(props: {
                     </Label>
                   </div>
                   <Button
+                    type='button'
                     variant='outline'
-                    size='sm'
                     onClick={() => {
                       const now = dayjs()
                       setKeyword('')
@@ -559,17 +559,14 @@ export function NotificationHistory(props: {
                       }))
                     }}
                   >
-                    <RotateCcw className='size-4' />
                     {t('Reset')}
                   </Button>
                   <Button
-                    variant='outline'
-                    size='icon-sm'
-                    aria-label={t('Search')}
+                    type='button'
                     onClick={() => void query.refetch()}
                     disabled={query.isFetching}
                   >
-                    <Search className='size-4' />
+                    {t('Search')}
                   </Button>
                 </div>
               </div>

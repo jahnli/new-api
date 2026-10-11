@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Pencil, RefreshCw } from 'lucide-react'
+import { Clock3, Pencil, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -14,18 +14,26 @@ import { ErrorState } from '@/components/error-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
 
 import { getRecord, notificationKeys } from '../api'
 import { notificationDate } from '../lib/message'
 import type {
+  NotificationChannel,
   NotificationDelivery,
   NotificationMessage,
   NotificationRecord,
 } from '../types'
 import { MessageContent } from './message-content'
 import { NotificationStatusBadge } from './status-badge'
+
+const CHANNEL_LABEL_KEYS: Record<NotificationChannel, string> = {
+  feishu: 'Feishu',
+  dingtalk: 'DingTalk',
+  email: 'Email',
+}
 
 function DeliveryTable(props: { deliveries: NotificationDelivery[] }) {
   const { t, i18n } = useTranslation()
@@ -134,25 +142,73 @@ export function RecordDetail(props: {
         if (!open) props.onClose()
       }}
       title={record?.title || t('Delivery details')}
-      headerClassName='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 pr-8'
-      titleClassName='col-start-1 row-start-1 min-w-0 [overflow-wrap:anywhere]'
-      descriptionClassName='col-span-2 row-start-2'
+      headerClassName='gap-4'
+      titleClassName='pr-8 text-lg leading-snug [overflow-wrap:anywhere]'
       headerTrailing={
         record && (
-          <div className='col-start-2 row-start-1 flex flex-wrap justify-end gap-2'>
-            <NotificationStatusBadge status={record.status} />
-            {record.is_test && (
-              <Badge variant='secondary'>{t('Test send')}</Badge>
-            )}
+          <div className='bg-muted/40 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-lg px-4 py-3'>
+            <LogUserIdentity
+              className='min-w-0 basis-64'
+              size='sm'
+              avatarClassName='size-8'
+              fetchOnMount
+              nameClassName='min-w-0'
+              key={record.user_id}
+              userId={record.user_id}
+              username={record.sender_name}
+              displayName={record.display_name}
+              avatarUrl={record.avatar_url}
+              openId={record.open_id}
+              gender={record.gender}
+              canFetchDetails={props.canSend}
+            >
+              <div className='flex flex-wrap items-center gap-x-3 gap-y-1.5'>
+                <Badge variant='outline'>
+                  {t(CHANNEL_LABEL_KEYS[record.channel])}
+                </Badge>
+                <span className='text-muted-foreground inline-flex items-center gap-1.5 text-xs'>
+                  <Clock3 className='size-3.5 shrink-0' aria-hidden='true' />
+                  {notificationDate(record.created_at, locale)}
+                </span>
+              </div>
+            </LogUserIdentity>
+            <div className='flex flex-wrap items-center gap-4 max-sm:w-full max-sm:border-t max-sm:pt-3'>
+              <div className='flex flex-col items-start gap-1.5'>
+                <NotificationStatusBadge status={record.status} />
+                {record.is_test && (
+                  <Badge variant='secondary'>{t('Test send')}</Badge>
+                )}
+              </div>
+              {record.status === 'partial' && (
+                <dl className='grid grid-cols-2 gap-5 border-l pl-4'>
+                  <div className='flex flex-col gap-1'>
+                    <dt className='text-muted-foreground text-xs'>
+                      {t('Delivered')}
+                    </dt>
+                    <dd className='text-lg leading-none font-semibold text-emerald-500 tabular-nums'>
+                      {formatNumber(record.success_count, locale)}
+                    </dd>
+                  </div>
+                  <div className='flex flex-col gap-1'>
+                    <dt className='text-muted-foreground text-xs'>
+                      {t('Undelivered')}
+                    </dt>
+                    <dd className='text-lg leading-none font-semibold text-amber-500 tabular-nums'>
+                      {formatNumber(
+                        Math.max(0, record.total - record.success_count),
+                        locale
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+            </div>
           </div>
         )
       }
-      description={
-        record
-          ? `${record.channel} · ${record.sender_name} · ${notificationDate(record.created_at, locale)}`
-          : undefined
-      }
-      contentClassName='w-[calc(100vw-2rem)] sm:max-w-7xl'
+      contentClassName='h-[92dvh] w-[calc(100vw-2rem)] overflow-hidden sm:max-w-7xl'
+      bodyContainerClassName='flex-1'
+      bodyClassName='grid min-h-full'
       footer={
         <>
           {record?.message && (
@@ -180,19 +236,33 @@ export function RecordDetail(props: {
       }
     >
       {query.isPending && (
-        <div className='flex justify-center p-12'>
+        <div className='flex h-full min-h-64 items-center justify-center p-12'>
           <Spinner />
         </div>
       )}
       {query.isError && <ErrorState onRetry={() => void query.refetch()} />}
       {record && (
-        <div className='space-y-5'>
+        <div className='space-y-6'>
           {record.message && (
-            <div className='bg-muted/20 rounded-xl border p-5'>
-              <MessageContent message={record.message} />
-            </div>
+            <section className='space-y-3'>
+              <h3 className='text-sm font-medium'>{t('Message')}</h3>
+              <div className='rounded-lg border p-4 sm:p-5'>
+                <MessageContent message={record.message} />
+              </div>
+            </section>
           )}
-          <DeliveryTable key={record.id} deliveries={record.deliveries ?? []} />
+          <section className='space-y-3'>
+            <h3 className='flex items-center gap-2 text-sm font-medium'>
+              {t('Recipients')}
+              <Badge variant='secondary' className='tabular-nums'>
+                {formatNumber(record.total, locale)}
+              </Badge>
+            </h3>
+            <DeliveryTable
+              key={record.id}
+              deliveries={record.deliveries ?? []}
+            />
+          </section>
         </div>
       )}
     </Dialog>
