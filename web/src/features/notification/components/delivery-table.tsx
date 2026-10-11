@@ -21,16 +21,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { toIntlLocale } from '@/i18n/languages'
-import { formatNumber } from '@/lib/format'
+import { LogUserCell } from '@/features/usage-logs/components/log-user-cell'
 
 import { getRecordDeliveries, notificationKeys } from '../api'
 import type { DeliveryFilters, NotificationDelivery } from '../types'
 import { NotificationStatusBadge } from './status-badge'
 
-export function DeliveryTable(props: { recordId: number; active: boolean }) {
-  const { t, i18n } = useTranslation()
-  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
+export function DeliveryTable(props: {
+  recordId: number
+  active: boolean
+  canFetchUserDetails: boolean
+}) {
+  const { t } = useTranslation()
   const [username, setUsername] = useState('')
   const [filters, setFilters] = useState<DeliveryFilters>({
     page: 1,
@@ -75,13 +77,34 @@ export function DeliveryTable(props: { recordId: number; active: boolean }) {
       {
         accessorKey: 'username',
         header: t('Recipient'),
-        cell: ({ row }) => (
-          <TextTooltip content={row.original.recipient}>
-            <span className='text-xs [overflow-wrap:anywhere] whitespace-normal'>
-              {row.original.username || row.original.recipient}
-            </span>
-          </TextTooltip>
-        ),
+        cell: ({ row }) => {
+          if (row.original.username) {
+            return (
+              <div className='pl-2'>
+                <LogUserCell
+                  className='w-full'
+                  userId={row.original.user_id ?? 0}
+                  username={row.original.username}
+                  displayName={row.original.display_name}
+                  avatarUrl={row.original.avatar_url || undefined}
+                  openId={row.original.open_id || undefined}
+                  gender={row.original.gender}
+                  canFetchUserDetails={
+                    props.canFetchUserDetails && (row.original.user_id ?? 0) > 0
+                  }
+                  sensitiveVisible
+                />
+              </div>
+            )
+          }
+          return (
+            <TextTooltip content={row.original.recipient}>
+              <span className='pl-2 text-xs [overflow-wrap:anywhere] whitespace-normal'>
+                {row.original.recipient}
+              </span>
+            </TextTooltip>
+          )
+        },
       },
       {
         accessorKey: 'status',
@@ -94,18 +117,21 @@ export function DeliveryTable(props: { recordId: number; active: boolean }) {
         accessorKey: 'error',
         header: t('Error'),
         cell: ({ row }) => (
-          <p className='text-xs [overflow-wrap:anywhere] whitespace-normal'>
-            {row.original.error || '—'}
-          </p>
+          <TextTooltip
+            content={row.original.error}
+            onlyWhenOverflow
+            contentClassName='max-w-md [overflow-wrap:anywhere]'
+          >
+            <p className='line-clamp-2 text-xs [overflow-wrap:anywhere] whitespace-normal'>
+              {row.original.error || (
+                <span className='text-muted-foreground/50'>-</span>
+              )}
+            </p>
+          </TextTooltip>
         ),
       },
-      {
-        accessorKey: 'attempts',
-        header: t('Attempts'),
-        cell: ({ row }) => formatNumber(row.original.attempts, locale),
-      },
     ],
-    [locale, t]
+    [props.canFetchUserDetails, t]
   )
   const { table } = useDataTable({
     data: query.data?.items ?? [],
@@ -189,6 +215,14 @@ export function DeliveryTable(props: { recordId: number; active: boolean }) {
         <DataTableView
           table={table}
           splitHeader
+          tableClassName='w-full table-fixed'
+          colgroup={
+            <colgroup>
+              <col className='w-60' />
+              <col className='w-35' />
+              <col />
+            </colgroup>
+          }
           isLoading={query.isPending || (!query.data && query.isFetching)}
           containerClassName='min-h-0 flex-1'
           containerProps={{ 'aria-busy': query.isFetching }}

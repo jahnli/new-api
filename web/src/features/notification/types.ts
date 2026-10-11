@@ -44,7 +44,12 @@ export interface NotificationAudience {
 export interface NotificationDelivery {
   id: number
   recipient: string
+  user_id?: number
   username?: string
+  display_name?: string
+  avatar_url?: string
+  open_id?: string
+  gender?: number
   status: NotificationStatus
   error: string
   message_id: string

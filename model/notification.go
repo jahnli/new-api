@@ -357,7 +357,12 @@ func ListNotificationDeliveries(recordID int) ([]NotificationDelivery, error) {
 
 type NotificationDeliveryItem struct {
 	NotificationDelivery
-	Username string `json:"username"`
+	UserID      int    `json:"user_id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	AvatarUrl   string `json:"avatar_url"`
+	OpenId      string `json:"open_id"`
+	Gender      int    `json:"gender"`
 }
 
 // The caller must authorize access to the parent record first. User names are
@@ -393,20 +398,35 @@ func ListNotificationDeliveryPage(ctx context.Context, record *NotificationRecor
 		recipients[i] = items[i].Recipient
 	}
 	var users []struct {
-		Recipient string
-		Username  string
+		Recipient   string
+		UserID      int
+		Username    string
+		DisplayName string
+		AvatarUrl   string
+		OpenId      string
+		Gender      int
 	}
-	if err := db.Model(&User{}).Select(identifier+" AS recipient, username").Where(identifier+" IN ?", recipients).Order("id asc").Find(&users).Error; err != nil {
+	if err := db.Model(&User{}).Select(identifier+" AS recipient, id AS user_id, username, display_name, avatar_url, open_id, gender").Where(identifier+" IN ?", recipients).Order("id asc").Find(&users).Error; err != nil {
 		return nil, 0, err
 	}
-	names := make(map[string]string, len(users))
-	for _, user := range users {
-		if _, exists := names[user.Recipient]; !exists {
-			names[user.Recipient] = user.Username
+	userIndexes := make(map[string]int, len(users))
+	for i, user := range users {
+		if _, exists := userIndexes[user.Recipient]; !exists {
+			userIndexes[user.Recipient] = i
 		}
 	}
 	for i := range items {
-		items[i].Username = names[items[i].Recipient]
+		userIndex, exists := userIndexes[items[i].Recipient]
+		if !exists {
+			continue
+		}
+		user := users[userIndex]
+		items[i].UserID = user.UserID
+		items[i].Username = user.Username
+		items[i].DisplayName = user.DisplayName
+		items[i].AvatarUrl = user.AvatarUrl
+		items[i].OpenId = user.OpenId
+		items[i].Gender = user.Gender
 	}
 	return items, total, nil
 }

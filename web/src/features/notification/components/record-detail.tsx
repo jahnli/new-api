@@ -202,6 +202,7 @@ export function RecordDetail(props: {
               key={record.id}
               recordId={record.id}
               active={record.status === 'queued' || record.status === 'sending'}
+              canFetchUserDetails={props.canSend}
             />
           </TabsContent>
         </Tabs>

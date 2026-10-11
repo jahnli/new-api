@@ -6,7 +6,7 @@ import type { UserColumnRow } from '@/features/users/types'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { getDemoModeUsername } from '@/lib/demo-mode'
-import { buildFeishuUserChatUrl } from '@/lib/utils'
+import { buildFeishuUserChatUrl, cn } from '@/lib/utils'
 
 import { getUserInfo } from '../api'
 
@@ -19,6 +19,7 @@ interface LogUserCellProps {
   gender?: number
   canFetchUserDetails?: boolean
   sensitiveVisible?: boolean
+  className?: string
 }
 
 export function LogUserCell(props: LogUserCellProps) {
@@ -83,12 +84,21 @@ export function LogUserCell(props: LogUserCellProps) {
   )
 
   if (demoMode) {
-    return <div className='w-[120px] max-w-full truncate'>{primaryName}</div>
+    return (
+      <div className={cn('w-[120px] max-w-full truncate', props.className)}>
+        {primaryName}
+      </div>
+    )
   }
 
   if (!props.sensitiveVisible) {
     return (
-      <div className='flex w-[120px] max-w-full min-w-0 items-center gap-2'>
+      <div
+        className={cn(
+          'flex w-[120px] max-w-full min-w-0 items-center gap-2',
+          props.className
+        )}
+      >
         <Avatar size='sm' className='shrink-0'>
           <AvatarFallback className='bg-muted text-muted-foreground text-xs font-semibold'>
             •
@@ -150,7 +160,10 @@ export function LogUserCell(props: LogUserCellProps) {
 
   return (
     <div
-      className='flex w-[120px] max-w-full min-w-0 items-center gap-2'
+      className={cn(
+        'flex w-[120px] max-w-full min-w-0 items-center gap-2',
+        props.className
+      )}
       onMouseEnter={handleFetchUser}
     >
       {props.canFetchUserDetails ? (
