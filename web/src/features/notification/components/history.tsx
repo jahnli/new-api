@@ -391,7 +391,7 @@ export function NotificationHistory(props: {
   })
 
   return (
-    <div className='space-y-4'>
+    <div className='min-h-0 flex-1'>
       {query.isError && !query.data ? (
         <ErrorState onRetry={() => void query.refetch()} />
       ) : (
@@ -402,15 +402,13 @@ export function NotificationHistory(props: {
           isFetching={query.isFetching}
           emptyTitle={t('No notification history yet')}
           skeletonKeyPrefix='notification-history-skeleton'
-          fixedHeight={false}
-          paginationInFooter={false}
           compactPagination={isMobile}
           applyHeaderSize
           tableClassName='[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
           mobileProps={{ getRowKey: (row) => row.original.id }}
           toolbar={
-            <div className='bg-card/50 rounded-lg border p-2.5 sm:p-3'>
-              <div className='grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(14.5rem,1.5fr)_minmax(10rem,1.7fr)_repeat(3,minmax(6.5rem,1fr))_2rem]'>
+            <div className='bg-card/50 shrink-0 rounded-lg border p-2.5 sm:p-3'>
+              <div className='grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[max-content_minmax(8rem,1fr)_repeat(3,minmax(6.5rem,1fr))_auto]'>
                 <CompactDateTimeRangePicker
                   start={filters.from ? new Date(filters.from) : undefined}
                   end={filters.to ? new Date(filters.to) : undefined}
@@ -481,27 +479,34 @@ export function NotificationHistory(props: {
                   aria-label={t('Sender')}
                   className='h-8 min-w-0 text-sm'
                 />
-                <Button
-                  variant='outline'
-                  size='icon-sm'
-                  aria-label={t('Search')}
-                  onClick={() => void query.refetch()}
-                  disabled={query.isFetching}
-                >
-                  <Search className='size-4' />
-                </Button>
-              </div>
-              <div className='mt-2 flex flex-wrap items-center justify-between gap-2'>
-                <div className='flex items-center gap-2'>
-                  <Switch
-                    id='include-tests'
-                    checked={filters.include_tests}
-                    onCheckedChange={(value) =>
-                      updateFilter('include_tests', value)
-                    }
-                  />
-                  <Label htmlFor='include-tests'>{t('Include tests')}</Label>
+                <div className='flex items-center justify-end gap-2'>
+                  <div className='flex shrink-0 items-center gap-2'>
+                    <Switch
+                      id='include-tests'
+                      checked={filters.include_tests}
+                      onCheckedChange={(value) =>
+                        updateFilter('include_tests', value)
+                      }
+                    />
+                    <Label
+                      htmlFor='include-tests'
+                      className='whitespace-nowrap'
+                    >
+                      {t('Include tests')}
+                    </Label>
+                  </div>
+                  <Button
+                    variant='outline'
+                    size='icon-sm'
+                    aria-label={t('Search')}
+                    onClick={() => void query.refetch()}
+                    disabled={query.isFetching}
+                  >
+                    <Search className='size-4' />
+                  </Button>
                 </div>
+              </div>
+              <div className='mt-2 flex flex-wrap items-center justify-end gap-2'>
                 <div className='flex items-center gap-2'>
                   <Button
                     variant='secondary'

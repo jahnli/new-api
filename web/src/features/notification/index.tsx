@@ -184,10 +184,16 @@ export function Notifications() {
   }
 
   return (
-    <SectionPageLayout>
+    <SectionPageLayout fixedContent={tab === 'history'}>
       <SectionPageLayout.Content>
-        <div className='w-full min-w-0 space-y-6 pb-8'>
-          <header className='from-primary/7 via-card to-card relative overflow-hidden rounded-2xl border bg-gradient-to-br px-5 py-4 sm:px-7'>
+        <div
+          className={
+            tab === 'history'
+              ? 'flex h-full min-h-0 w-full min-w-0 flex-col gap-6'
+              : 'w-full min-w-0 space-y-6 pb-8'
+          }
+        >
+          <header className='from-primary/7 via-card to-card relative shrink-0 overflow-hidden rounded-2xl border bg-gradient-to-br px-5 py-4 sm:px-7'>
             <div className='bg-primary/5 pointer-events-none absolute -top-20 -right-12 size-64 rounded-full' />
             <div className='relative flex flex-wrap items-center justify-between gap-4'>
               <div className='flex items-center gap-3'>
@@ -216,7 +222,7 @@ export function Notifications() {
             </div>
           </header>
           <nav
-            className='flex gap-1 overflow-x-auto border-b pb-2'
+            className='flex shrink-0 gap-1 overflow-x-auto border-b pb-2'
             aria-label={t('Notifications')}
           >
             {[
