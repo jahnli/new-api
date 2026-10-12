@@ -7,9 +7,28 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 )
+
+// limitLogTimeRange returns the start of a log or dashboard search kept within
+// the longest log time range. A missing start reaches back the whole range, and
+// time after now does not count toward it.
+func limitLogTimeRange(startTimestamp int64, endTimestamp int64) (int64, error) {
+	maxRange := operation_setting.GetLogSetting().MaxRangeSeconds()
+	end := common.GetTimestamp()
+	if endTimestamp != 0 {
+		end = min(end, endTimestamp)
+	}
+	if startTimestamp == 0 {
+		return end - maxRange, nil
+	}
+	if end-startTimestamp > maxRange {
+		return 0, common.NewMessage("The time range cannot exceed {{days}} days", map[string]any{"days": maxRange / (24 * 60 * 60)})
+	}
+	return startTimestamp, nil
+}
 
 func GetAllLogs(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
@@ -126,6 +145,13 @@ func GetLogsSelfStat(c *gin.Context) {
 	logType, _ := strconv.Atoi(c.Query("type"))
 	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	if c.GetInt("role") < common.RoleAdminUser {
+		var err error
+		if startTimestamp, err = limitLogTimeRange(startTimestamp, endTimestamp); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	}
 	tokenName := c.Query("token_name")
 	modelName := c.Query("model_name")
 	channel := c.Query("channel")

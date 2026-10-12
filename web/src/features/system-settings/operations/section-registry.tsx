@@ -81,6 +81,8 @@ const OPERATIONS_SECTIONS = [
       <LogSettingsSection
         defaultValues={{
           LogConsumeEnabled: Boolean(settings.LogConsumeEnabled),
+          'log_setting.max_range_days':
+            settings['log_setting.max_range_days'] ?? 365,
         }}
       />
     ),
