@@ -1,5 +1,11 @@
 {
   "_说明": "单位均为元/百万 Token；折扣只使用 input（官网非缓存输入单价）计算。模型名必须与模型广场完全一致，没有的价格类型填写 null。",
+  "gpt-5.4": {
+    "input": 17.5,
+    "output": 105,
+    "cache_read": 1.75,
+    "cache_write": null
+  },
   "gpt-5.4-mini": {
     "input": 5.25,
     "output": 31.5,
@@ -30,13 +36,55 @@
     "cache_read": 3.5,
     "cache_write": null
   },
+  "gpt-6-sol": {
+    "input": 14,
+    "output": 70,
+    "cache_read": 1.4,
+    "cache_write": null
+  },
   "gpt-6-astra": {
     "input": 70,
     "output": 350,
     "cache_read": 7,
     "cache_write": null
   },
+  "gpt-6.1-sol": {
+    "input": 14,
+    "output": 70,
+    "cache_read": 0.7,
+    "cache_write": null
+  },
+  "claude-sonnet-4-5": {
+    "input": 21,
+    "output": 105,
+    "cache_read": 26.25,
+    "cache_write": 0.21
+  },
+  "claude-haiku-4-5": {
+    "input": 7,
+    "output": 35,
+    "cache_read": 8.75,
+    "cache_write": 0.7
+  },
+  "claude-sonnet-4-6": {
+    "input": 35,
+    "output": 175,
+    "cache_read": 3.5,
+    "cache_write": 70
+  },
   "claude-opus-4-6": {
+    "input": 35,
+    "output": 175,
+    "cache_read": 3.5,
+    "cache_write": 70
+  },
+  "claude-opus-4-7": {
+    "input": 35,
+    "output": 175,
+    "cache_read": 3.5,
+    "cache_write": 70
+  },
+  "claude-opus-4-8": {
     "input": 35,
     "output": 175,
     "cache_read": 3.5,
@@ -54,11 +102,23 @@
     "cache_read": 2.1,
     "cache_write": 42
   },
+  "claude-opus-5-5": {
+    "input": 28,
+    "output": 140,
+    "cache_read": 7,
+    "cache_write": 1.4
+  },
+  "claude-sonnet-5-5": {
+    "input": 14,
+    "output": 70,
+    "cache_read": 17.5,
+    "cache_write": 0.7
+  },
+  
   "grok-4.6": {
     "input": 14,
     "output": 42,
     "cache_read": 3.5,
     "cache_write": null
   }
-  
 }
