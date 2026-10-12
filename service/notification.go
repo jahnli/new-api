@@ -81,12 +81,25 @@ func PrepareNotificationMessage(message *NotificationMessage, maxRecipients int,
 	if message.CompanyID < 0 {
 		return errors.New("invalid company ID")
 	}
+	if len(message.CompanyIDs) > 100 {
+		return common.NewMessage("Select up to 100 companies")
+	}
+	companyIDs := make(map[int]bool, len(message.CompanyIDs))
+	for _, id := range message.CompanyIDs {
+		if id <= 0 || companyIDs[id] {
+			return common.NewMessage("Invalid company selection")
+		}
+		companyIDs[id] = true
+	}
+	if sending && len(message.CompanyIDs) > 0 {
+		return common.NewMessage("Invalid company selection")
+	}
 	if message.Channel != "email" && sending {
 		company, err := model.GetEnabledCompanyByID(message.CompanyID)
 		if err != nil || company.Platform != message.Channel {
 			return errors.New("an enabled company matching the channel is required")
 		}
-	} else if message.Channel == "email" && message.CompanyID != 0 {
+	} else if message.Channel == "email" && (message.CompanyID != 0 || len(message.CompanyIDs) > 0) {
 		return errors.New("email notifications must not select a company")
 	}
 	if len(message.Recipients) > maxRecipients || (sending && len(message.Recipients) == 0) {
@@ -311,6 +324,64 @@ func DeliverNotificationMessage(ctx context.Context, message NotificationMessage
 	if err := PrepareNotificationMessage(&message, limit, true); err != nil {
 		return nil, &NotificationValidationError{Err: err}
 	}
+	return deliverPreparedNotification(ctx, message, userID, username, isTest)
+}
+
+type NotificationCompanyResult struct {
+	CompanyID int                       `json:"company_id"`
+	Record    *model.NotificationRecord `json:"record,omitempty"`
+	Failed    bool                      `json:"failed"`
+}
+
+// DeliverNotificationBatch validates every company before sending anything and
+// freezes a separate audience per application. Identical IDs in different apps
+// must not be deduplicated across companies. Retry uses each record's snapshot.
+func DeliverNotificationBatch(ctx context.Context, message NotificationMessage, userID int, username string, isTest bool) ([]NotificationCompanyResult, error) {
+	if len(message.CompanyIDs) == 0 || message.Channel == "email" {
+		return nil, &NotificationValidationError{Err: common.NewMessage("Invalid company selection")}
+	}
+	if err := PrepareNotificationMessage(&message, 1000, false); err != nil {
+		return nil, &NotificationValidationError{Err: err}
+	}
+	messages := make([]NotificationMessage, 0, len(message.CompanyIDs))
+	for _, companyID := range message.CompanyIDs {
+		item := message
+		item.CompanyID, item.CompanyIDs = companyID, nil
+		limit := 20
+		if !isTest {
+			audience, err := ResolveNotificationAudience(item.Channel, companyID)
+			if err != nil {
+				return nil, err
+			}
+			if audience.RecipientCount == 0 {
+				return nil, &NotificationValidationError{Err: common.NewMessage("One or more selected companies have no valid recipients")}
+			}
+			item.Recipients = audience.Recipients
+			limit = len(item.Recipients)
+		}
+		if err := PrepareNotificationMessage(&item, limit, true); err != nil {
+			return nil, &NotificationValidationError{Err: err}
+		}
+		messages = append(messages, item)
+	}
+	results := make([]NotificationCompanyResult, 0, len(messages))
+	for _, item := range messages {
+		result := NotificationCompanyResult{CompanyID: item.CompanyID}
+		if ctx.Err() != nil {
+			result.Failed = true
+		} else {
+			record, err := deliverPreparedNotification(ctx, item, userID, username, isTest)
+			result.Record, result.Failed = record, err != nil
+			if err != nil {
+				common.SysError(common.LogText("notification batch delivery failed company_id=%d: %s", item.CompanyID, common.LocalLogPreview(err.Error())))
+			}
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func deliverPreparedNotification(ctx context.Context, message NotificationMessage, userID int, username string, isTest bool) (*model.NotificationRecord, error) {
 	payload, err := common.Marshal(message)
 	if err != nil {
 		return nil, err

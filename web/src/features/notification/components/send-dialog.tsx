@@ -14,6 +14,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 import { cn } from '@/lib/utils'
 
 import {
@@ -27,7 +28,7 @@ import {
   splitRecipients,
 } from '../lib/message'
 import { NOTIFICATION_TITLE_THEME_CLASSES } from '../lib/title-theme'
-import type { NotificationMessage } from '../types'
+import type { NotificationConfig, NotificationMessage } from '../types'
 import { MessageContent } from './message-content'
 
 const FEISHU_TEST_RECIPIENTS = [
@@ -45,6 +46,7 @@ const FEISHU_TEST_RECIPIENT_OPTIONS = FEISHU_TEST_RECIPIENTS.map(
 
 export function SendDialog(props: {
   message: NotificationMessage
+  companies: NotificationConfig['companies']
   test: boolean
   onClose: () => void
   onSent: () => void
@@ -59,15 +61,18 @@ export function SendDialog(props: {
     ? props.message.recipients
     : splitRecipients(testRecipients)
   const [recipientError, setRecipientError] = useState('')
-  const allUsers = !props.test && props.message.channel !== 'email'
+  const companyAudience = !props.test && props.message.channel !== 'email'
   const audience = useQuery({
     queryKey: notificationKeys.audience(
       props.message.channel,
-      props.message.company_id
+      props.message.company_ids ?? []
     ),
     queryFn: () =>
-      getNotificationAudience(props.message.channel, props.message.company_id),
-    enabled: allUsers,
+      getNotificationAudience(
+        props.message.channel,
+        props.message.company_ids ?? []
+      ),
+    enabled: companyAudience,
   })
   let testLabel = t('Feishu Open IDs')
   if (props.message.channel === 'dingtalk') testLabel = t('DingTalk User IDs')
@@ -79,9 +84,9 @@ export function SendDialog(props: {
   }
   let confirmationDescription: string | undefined
   if (!props.test) {
-    confirmationDescription = allUsers
+    confirmationDescription = companyAudience
       ? t(
-          'This notification will be sent to all users with a valid Open ID, regardless of company. Review the audience and message before sending.'
+          'Only members of the selected companies receive official notifications. Each company uses its own application to send.'
         )
       : t(
           'Only the recipients listed below will receive this message. Check the content and recipients before continuing.'
@@ -98,9 +103,19 @@ export function SendDialog(props: {
       }
       return sendNotification({ ...props.message, recipients }, props.test)
     },
-    onSuccess: (record) => {
+    onSuccess: (results) => {
       void client.invalidateQueries({ queryKey: notificationKeys.records })
-      if (record.status === 'success') {
+      const records = results.flatMap((result) =>
+        result.record ? [result.record] : []
+      )
+      const incomplete = results.some(
+        (result) => result.failed || !result.record
+      )
+      if (
+        !incomplete &&
+        records.length > 0 &&
+        records.every((record) => record.status === 'success')
+      ) {
         toast.success(
           props.test ? t('Test notification sent') : t('Notification sent')
         )
@@ -109,27 +124,55 @@ export function SendDialog(props: {
         const summary = t(
           'Sent: {{sent}}; failed: {{failed}}; unconfirmed: {{unknown}}',
           {
-            sent: formatNumber(record.success_count, locale),
-            failed: formatNumber(record.failed_count, locale),
-            unknown: formatNumber(record.unknown_count, locale),
+            sent: formatNumber(
+              records.reduce((sum, record) => sum + record.success_count, 0),
+              locale
+            ),
+            failed: formatNumber(
+              records.reduce((sum, record) => sum + record.failed_count, 0),
+              locale
+            ),
+            unknown: formatNumber(
+              records.reduce((sum, record) => sum + record.unknown_count, 0),
+              locale
+            ),
           }
         )
-        const reason = record.deliveries?.find(
-          (delivery) => delivery.status === 'failed'
-        )?.error
+        const reason = records
+          .flatMap((record) => record.deliveries ?? [])
+          .find((delivery) => delivery.status === 'failed')?.error
         const title =
-          record.unknown_count > 0
+          incomplete || records.some((record) => record.unknown_count > 0)
             ? t(
                 'Delivery could not be confirmed. Check recipients before resending.'
               )
             : t('Notification failed')
         toast.error(title, {
-          description: [summary, reason].filter(Boolean).join('\n'),
+          description: [
+            summary,
+            reason,
+            incomplete
+              ? t(
+                  'Some companies could not complete sending. Check notification history before retrying.'
+                )
+              : undefined,
+          ]
+            .filter(Boolean)
+            .join('\n'),
           duration: 10000,
         })
         props.onClose()
       }
     },
+    onError: (error) => {
+      void client.invalidateQueries({ queryKey: notificationKeys.records })
+      handleServerError(
+        error,
+        t('Delivery could not be confirmed. Check recipients before resending.')
+      )
+      props.onClose()
+    },
+    meta: { errorToast: false },
   })
   return (
     <ConfirmDialog
@@ -168,18 +211,21 @@ export function SendDialog(props: {
         missingImages.length > 0 ||
         (props.test &&
           (testRecipientIDs.length === 0 || testRecipientIDs.length > 20)) ||
-        (allUsers &&
+        (companyAudience &&
           (audience.isFetching ||
             !audience.data ||
             audience.isError ||
-            audience.data.recipient_count === 0))
+            audience.data.recipient_count === 0 ||
+            audience.data.companies?.some(
+              (company) => company.recipient_count === 0
+            )))
       }
       isLoading={mutation.isPending}
       handleConfirm={() => {
         const recipients = props.test
           ? testRecipientIDs
           : props.message.recipients
-        if (!allUsers && recipients.length === 0) {
+        if (!companyAudience && recipients.length === 0) {
           setRecipientError(t('Please enter at least one recipient'))
           return
         }
@@ -209,7 +255,7 @@ export function SendDialog(props: {
           return
         }
         setRecipientError('')
-        mutation.mutate(allUsers ? [] : recipients)
+        mutation.mutate(companyAudience ? [] : recipients)
       }}
       className={
         props.test
@@ -238,12 +284,31 @@ export function SendDialog(props: {
               <Badge variant='outline'>
                 {channelLabels[props.message.channel]}
               </Badge>
-              {allUsers && <Badge variant='secondary'>{t('All users')}</Badge>}
-              {!allUsers && (
+              {companyAudience && (
+                <Badge variant='secondary'>{t('Selected companies')}</Badge>
+              )}
+              {!companyAudience && (
                 <Badge variant='secondary'>
                   {t('Recipients')}:{' '}
                   {formatNumber(props.message.recipients.length, locale)}
                 </Badge>
+              )}
+            </div>
+          )}
+          {props.message.channel !== 'email' && (
+            <div className='flex flex-wrap gap-2'>
+              {(props.message.company_ids ?? []).map((id) => (
+                <Badge key={id} variant='outline'>
+                  {props.companies.find((company) => company.id === id)?.name ??
+                    String(id)}
+                </Badge>
+              ))}
+              {props.test && (
+                <p className='text-muted-foreground w-full text-xs'>
+                  {t(
+                    'Each selected company sends to the test recipients entered below.'
+                  )}
+                </p>
               )}
             </div>
           )}
@@ -359,7 +424,7 @@ export function SendDialog(props: {
               {recipientError}
             </p>
           )}
-          {allUsers && (
+          {companyAudience && (
             <div className='bg-muted/40 space-y-3 rounded-lg p-4 text-sm'>
               {audience.isPending && <Spinner />}
               {audience.isError && (
@@ -371,6 +436,16 @@ export function SendDialog(props: {
                     {t('Recipients')}:{' '}
                     {formatNumber(audience.data.recipient_count, locale)}
                   </p>
+                  <div className='space-y-1'>
+                    {audience.data.companies?.map((company) => (
+                      <p key={company.company_id}>
+                        {props.companies.find(
+                          (item) => item.id === company.company_id
+                        )?.name ?? String(company.company_id)}
+                        : {formatNumber(company.recipient_count, locale)}
+                      </p>
+                    ))}
+                  </div>
                   <dl className='grid grid-cols-2 gap-3 text-xs sm:grid-cols-4'>
                     <div>
                       <dt className='text-muted-foreground'>
@@ -407,19 +482,23 @@ export function SendDialog(props: {
                   </dl>
                   <p className='text-muted-foreground text-xs'>
                     {t(
-                      'Blank or invalid IDs are skipped and duplicate IDs receive one message. The final audience is determined when you send.'
+                      'Blank or invalid IDs are skipped. Duplicate IDs receive one message per company. The final audience is determined when you send.'
                     )}
                   </p>
-                  {audience.data.recipient_count === 0 && (
+                  {audience.data.companies?.some(
+                    (company) => company.recipient_count === 0
+                  ) && (
                     <p role='alert' className='text-destructive text-xs'>
-                      {t('No users have a valid recipient ID.')}
+                      {t(
+                        'One or more selected companies have no valid recipients'
+                      )}
                     </p>
                   )}
                 </>
               )}
             </div>
           )}
-          {!props.test && !allUsers && (
+          {!props.test && !companyAudience && (
             <p className='bg-muted/40 rounded-lg p-3 font-mono text-xs break-all'>
               {props.message.recipients.join(', ')}
             </p>

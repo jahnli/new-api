@@ -1,6 +1,29 @@
 # 企业通知对象存储与并发发送
 
-**日期**: 2026-09-28 ~ 2026-10-06
+**日期**: 2026-09-28 ~ 2026-10-12
+
+## 2026-10-12 公司多选与收件范围限制
+
+飞书、钉钉正式通知从全站收件范围改为仅面向所选公司的成员：根据公司 ID 读取公司名称，再匹配用户资料的 `company` 字段，不实时查询平台通讯录。排除已删除用户，跳过空白或格式无效的收件标识，同一公司内去重；保留原有不按账号启用状态筛选的行为。
+
+公司最多选择 100 家，全部校验通过后再按公司依次发送，每家公司使用自己的应用配置和独立收件快照、发送记录。任一所选公司没有有效收件人时阻止正式发送；部分公司执行失败时返回分公司结果，不自动重发整批。测试发送仍使用手填的最多 20 个收件人，由每家所选公司分别发送；邮件继续使用填写的邮箱地址。
+
+- `controller/notification.go` — 接收公司数组并返回分公司发送结果，兼容旧单公司请求；错误响应补充结构化国际化键与参数。
+- `dto/notification.go` — 消息结构新增可选 `company_ids`，用于多公司请求及模板保存。
+- `model/notification_audience.go` — 查询收件标识时增加用户公司名称条件。
+- `service/notification_audience.go` — 收件人数预览和正式发送统一使用所选公司的成员范围。
+- `service/notification.go` — 校验公司数量、重复及无效 ID，预先校验所有公司和消息；按公司构建快照并独立执行发送，保留单公司处理入口。
+- `model/notification.go` — 平台投递详情中的用户名筛选及用户资料匹配限制在记录所属公司，避免跨公司同名标识关联错误。
+- `web/src/features/notification/components/delivery-settings.tsx` — 复用 `MultiSelect` 实现公司多选，复用 `DescriptionTooltip` 说明发送范围；占位文案为“选择公司”，切换渠道清空所选公司。
+- `web/src/features/notification/api.ts` — 并行查询各公司人数并汇总，提交公司数组，兼容单条记录和分公司结果响应。
+- `web/src/features/notification/components/send-dialog.tsx` — 展示所选公司及各公司人数，提示测试发送范围，汇总发送结果并提示部分未完成情况；请求失败后刷新历史记录。
+- `web/src/features/notification/components/history.tsx`、`web/src/features/notification/components/record-detail.tsx` — 增加公司标识，便于区分各公司的发送记录和失败重试入口。
+- `web/src/features/notification/index.tsx` — 校验所选公司与渠道匹配，将公司配置传递给发送确认和历史界面。
+- `web/src/features/notification/lib/message.ts` — 校验公司多选与数量上限，将旧模板、历史消息中的单个 `company_id` 转换为公司数组。
+- `web/src/features/notification/types.ts` — 补充公司数组、分公司人数、发送结果及历史记录公司字段。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐公司选择、发送范围、校验和部分失败提示；简化选择公司的占位文案。
+
+验证记录：根目录 `go build ./...` 通过；`web/` 下 `bun run typecheck`、`bun run build` 通过，修改的 8 个前端文件经 `bun x oxlint -c .oxlintrc.json` 和 `bun x oxfmt --check` 检查通过；`bun run i18n:sync` 完成，相关字面量翻译键在全部七种语言中均存在；`git diff --check` 通过。未运行测试或实际发送通知。SQLite、MySQL、PostgreSQL 实库验证仍受环境限制而阻塞，未取得数据库版本及运行结果，不能据此确认三库兼容验证通过。
 
 ## 2026-10-06 补记邮箱测试与邮件展示优化
 

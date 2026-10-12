@@ -373,13 +373,19 @@ func ListNotificationDeliveryPage(ctx context.Context, record *NotificationRecor
 	if record.Channel == "email" {
 		identifier = "TRIM(email)"
 	}
+	userQuery := db.Model(&User{})
+	if record.Channel != "email" {
+		company := db.Model(&Company{}).Select("name").Where("id = ?", record.CompanyID)
+		userQuery = userQuery.Where("company IN (?)", company)
+	}
+	userQuery = userQuery.Session(&gorm.Session{})
 	query := db.Model(&NotificationDelivery{}).Where("record_id = ?", record.ID)
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
 	if username != "" {
 		pattern := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(username))
-		users := db.Model(&User{}).Select(identifier).Where("LOWER(username) LIKE ? ESCAPE '!'", "%"+pattern+"%")
+		users := userQuery.Select(identifier).Where("LOWER(username) LIKE ? ESCAPE '!'", "%"+pattern+"%")
 		query = query.Where("recipient IN (?)", users)
 	}
 	var total int64
@@ -406,7 +412,7 @@ func ListNotificationDeliveryPage(ctx context.Context, record *NotificationRecor
 		OpenId      string
 		Gender      int
 	}
-	if err := db.Model(&User{}).Select(identifier+" AS recipient, id AS user_id, username, display_name, avatar_url, open_id, gender").Where(identifier+" IN ?", recipients).Order("id asc").Find(&users).Error; err != nil {
+	if err := userQuery.Select(identifier+" AS recipient, id AS user_id, username, display_name, avatar_url, open_id, gender").Where(identifier+" IN ?", recipients).Order("id asc").Find(&users).Error; err != nil {
 		return nil, 0, err
 	}
 	userIndexes := make(map[string]int, len(users))

@@ -16,6 +16,7 @@ import { getRecord, notificationKeys } from '../api'
 import { notificationDate } from '../lib/message'
 import type {
   NotificationChannel,
+  NotificationConfig,
   NotificationMessage,
   NotificationRecord,
 } from '../types'
@@ -30,6 +31,7 @@ const CHANNEL_LABEL_KEYS: Record<NotificationChannel, string> = {
 }
 
 export function RecordDetail(props: {
+  companies: NotificationConfig['companies']
   id: number | null
   onClose: () => void
   onClone: (message: NotificationMessage) => void
@@ -93,6 +95,13 @@ export function RecordDetail(props: {
                 <Badge variant='outline'>
                   {t(CHANNEL_LABEL_KEYS[record.channel])}
                 </Badge>
+                {!!record.company_id && (
+                  <Badge variant='outline'>
+                    {props.companies.find(
+                      (company) => company.id === record.company_id
+                    )?.name ?? `${t('Company')} #${record.company_id}`}
+                  </Badge>
+                )}
                 <span className='text-muted-foreground inline-flex items-center gap-1.5 text-xs'>
                   <Clock3 className='size-3.5 shrink-0' aria-hidden='true' />
                   {notificationDate(record.created_at, locale)}

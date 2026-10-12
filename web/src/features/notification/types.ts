@@ -20,6 +20,7 @@ export interface NotificationImage {
 export interface NotificationMessage {
   channel: NotificationChannel
   company_id: number
+  company_ids?: number[]
   recipients: string[]
   title: string
   title_icon?: string
@@ -39,6 +40,13 @@ export interface NotificationAudience {
   missing_ids: number
   invalid_ids: number
   duplicate_ids: number
+  companies?: { company_id: number; recipient_count: number }[]
+}
+
+export interface NotificationCompanyResult {
+  company_id: number
+  record?: NotificationRecord
+  failed: boolean
 }
 
 export interface NotificationDelivery {
@@ -65,6 +73,7 @@ export interface DeliveryFilters {
 
 export interface NotificationRecord {
   id: number
+  company_id?: number
   user_id: number
   sender_name: string
   display_name?: string
@@ -128,6 +137,7 @@ export interface LibraryFilters {
 export const EMPTY_MESSAGE: NotificationMessage = {
   channel: 'feishu',
   company_id: 0,
+  company_ids: [],
   recipients: [],
   title: '',
   title_icon: '📢',

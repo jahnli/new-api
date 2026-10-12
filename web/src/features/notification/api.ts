@@ -12,6 +12,7 @@ import type {
   NotificationAudience,
   NotificationChannel,
   NotificationConfig,
+  NotificationCompanyResult,
   NotificationDelivery,
   NotificationMessage,
   NotificationRecord,
@@ -56,8 +57,8 @@ export const notificationKeys = {
   library: (kind: LibraryKind) => ['notification', kind] as const,
   libraryPage: (kind: LibraryKind, filters: LibraryFilters) =>
     ['notification', kind, 'list', filters] as const,
-  audience: (channel: NotificationChannel, companyId: number) =>
-    ['notification', 'audience', channel, companyId] as const,
+  audience: (channel: NotificationChannel, companyIds: number[]) =>
+    ['notification', 'audience', channel, companyIds] as const,
   detail: (id: number) => ['notification', 'record', id] as const,
   deliveries: (id: number, filters: DeliveryFilters) =>
     ['notification', 'record', id, 'deliveries', filters] as const,
@@ -72,13 +73,18 @@ export async function getNotificationConfig(): Promise<NotificationConfig> {
 export async function sendNotification(
   message: NotificationMessage,
   test: boolean
-): Promise<NotificationRecord> {
-  return requireServerSuccess(
+): Promise<NotificationCompanyResult[]> {
+  const normalized = normalizeNotificationMessage(message)
+  const data = requireServerSuccess(
     (
-      await api.post<Response<NotificationRecord>>(
+      await api.post<
+        Response<NotificationRecord | { results: NotificationCompanyResult[] }>
+      >(
         `${base}/${test ? 'test' : 'send'}`,
         {
-          ...normalizeNotificationMessage(message),
+          ...normalized,
+          company_ids:
+            message.channel === 'email' ? undefined : normalized.company_ids,
           // Submit exactly the title shown in the confirmation preview.
           // Templates keep the icon separate so it remains editable.
           title: formatNotificationTitle(message),
@@ -90,19 +96,53 @@ export async function sendNotification(
       )
     ).data
   ).data
+  return 'results' in data
+    ? data.results
+    : [{ company_id: 0, record: data, failed: false }]
 }
 
 export async function getNotificationAudience(
   channel: NotificationChannel,
-  companyId: number
+  companyIds: number[]
 ): Promise<NotificationAudience> {
-  return requireServerSuccess(
-    (
-      await api.get<Response<NotificationAudience>>(`${base}/audience`, {
-        params: { channel, company_id: companyId },
-      })
-    ).data
-  ).data
+  const companies = await Promise.all(
+    companyIds.map(async (companyId) => {
+      const audience = requireServerSuccess(
+        (
+          await api.get<Response<NotificationAudience>>(`${base}/audience`, {
+            params: { channel, company_id: companyId },
+          })
+        ).data
+      ).data
+      return { companyId, audience }
+    })
+  )
+  return {
+    total_users: companies.reduce(
+      (sum, item) => sum + item.audience.total_users,
+      0
+    ),
+    recipient_count: companies.reduce(
+      (sum, item) => sum + item.audience.recipient_count,
+      0
+    ),
+    missing_ids: companies.reduce(
+      (sum, item) => sum + item.audience.missing_ids,
+      0
+    ),
+    invalid_ids: companies.reduce(
+      (sum, item) => sum + item.audience.invalid_ids,
+      0
+    ),
+    duplicate_ids: companies.reduce(
+      (sum, item) => sum + item.audience.duplicate_ids,
+      0
+    ),
+    companies: companies.map(({ companyId, audience }) => ({
+      company_id: companyId,
+      recipient_count: audience.recipient_count,
+    })),
+  }
 }
 
 export async function getRecords(

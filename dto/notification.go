@@ -12,6 +12,7 @@ type NotificationImage struct {
 type NotificationMessage struct {
 	Channel       string              `json:"channel"`
 	CompanyID     int                 `json:"company_id"`
+	CompanyIDs    []int               `json:"company_ids,omitempty"`
 	RecipientType string              `json:"recipient_type,omitempty"`
 	Recipients    []string            `json:"recipients"`
 	Title         string              `json:"title"`

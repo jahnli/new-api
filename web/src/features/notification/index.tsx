@@ -152,13 +152,13 @@ export function Notifications() {
       }
       if (
         value.channel !== 'email' &&
-        !config.data?.companies.some(
-          (company) =>
-            company.id === value.company_id &&
-            company.platform === value.channel
+        !value.company_ids?.every((id) =>
+          config.data?.companies.some(
+            (company) => company.id === id && company.platform === value.channel
+          )
         )
       ) {
-        form.setError('company_id', { message: t('Select a company') })
+        form.setError('company_ids', { message: t('Select companies') })
         return
       }
       const snapshot = structuredClone(value)
@@ -371,6 +371,7 @@ export function Notifications() {
               )}
               {tab === 'history' && (
                 <NotificationHistory
+                  companies={config.data.companies}
                   canSend={config.data.can_send}
                   canTest={canTest}
                   onClone={(value) =>
@@ -388,6 +389,7 @@ export function Notifications() {
         </div>
         {pendingSend && (
           <SendDialog
+            companies={config.data?.companies ?? []}
             {...pendingSend}
             onClose={() => setPendingSend(null)}
             onSent={() => {

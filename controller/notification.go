@@ -67,7 +67,14 @@ func notificationError(c *gin.Context, err error) {
 	if status >= http.StatusInternalServerError {
 		logger.LogError(c.Request.Context(), common.LogText("notification request failed status=%d error=%s", status, common.LocalLogPreview(err.Error())))
 	}
-	c.JSON(status, gin.H{"success": false, "message": message})
+	response := gin.H{"success": false, "message": message}
+	var localized *common.Message
+	if errors.As(err, &localized) {
+		for key, value := range localized.Fields() {
+			response[key] = value
+		}
+	}
+	c.JSON(status, response)
 }
 
 func notificationBind(c *gin.Context, body any) bool {
@@ -125,6 +132,15 @@ func SendNotification(c *gin.Context) {
 	}
 	if err := resolveNotificationImages(c, &message); err != nil {
 		notificationError(c, err)
+		return
+	}
+	if message.CompanyIDs != nil {
+		results, err := service.DeliverNotificationBatch(c.Request.Context(), message, c.GetInt("id"), c.GetString("username"), isTest)
+		if err != nil {
+			notificationError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"results": results}})
 		return
 	}
 	record, err := service.DeliverNotificationMessage(c.Request.Context(), message, c.GetInt("id"), c.GetString("username"), isTest)

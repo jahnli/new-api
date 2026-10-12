@@ -17,7 +17,7 @@ type NotificationAudience struct {
 }
 
 // ResolveNotificationAudience is used both for the confirmation count and for
-// the immutable send snapshot. The company selects credentials, not membership.
+// the immutable send snapshot. Company membership and credentials share the same scope.
 func ResolveNotificationAudience(channel string, companyID int) (*NotificationAudience, error) {
 	if channel != "feishu" && channel != "dingtalk" {
 		return nil, &NotificationValidationError{Err: errors.New("only platform notifications use the user-table audience")}
@@ -26,7 +26,7 @@ func ResolveNotificationAudience(channel string, companyID int) (*NotificationAu
 	if err != nil || company.Platform != channel {
 		return nil, &NotificationValidationError{Err: errors.New("an enabled company matching the channel is required")}
 	}
-	identifiers, err := model.ListNotificationPlatformIDs()
+	identifiers, err := model.ListNotificationPlatformIDs(company.Name)
 	if err != nil {
 		return nil, err
 	}

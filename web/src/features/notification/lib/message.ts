@@ -63,6 +63,10 @@ export function messageSchema(t: TFunction) {
     .object({
       channel: z.enum(['feishu', 'dingtalk', 'email']),
       company_id: z.number(),
+      company_ids: z
+        .array(z.number().int().positive())
+        .max(100, t('Select up to 100 companies'))
+        .optional(),
       recipients: z.array(z.string()),
       title: z.string().trim().min(1, t('Title is required')),
       title_theme: z.enum(NOTIFICATION_TITLE_THEMES).optional(),
@@ -119,11 +123,11 @@ export function messageSchema(t: TFunction) {
           message: t('Notification images'),
         })
       }
-      if (message.channel !== 'email' && message.company_id <= 0) {
+      if (message.channel !== 'email' && !message.company_ids?.length) {
         context.addIssue({
           code: 'custom',
-          path: ['company_id'],
-          message: t('Select a company'),
+          path: ['company_ids'],
+          message: t('Select companies'),
         })
       }
     })
@@ -135,7 +139,10 @@ export function normalizeNotificationMessage(
 ): NotificationMessage {
   return {
     channel: message.channel,
-    company_id: message.company_id ?? 0,
+    company_id: 0,
+    company_ids:
+      message.company_ids ??
+      (message.company_id > 0 ? [message.company_id] : []),
     recipients: message.recipients ?? [],
     title: message.title ?? '',
     title_icon: message.title_icon ?? '',

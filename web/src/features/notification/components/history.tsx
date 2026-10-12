@@ -51,6 +51,7 @@ import {
 import { notificationDate } from '../lib/message'
 import type {
   NotificationChannel,
+  NotificationConfig,
   NotificationMessage,
   NotificationRecord,
   RecordFilters,
@@ -67,6 +68,7 @@ const CHANNEL_LABEL_KEYS: Record<NotificationChannel, string> = {
 const MAX_BATCH_SIZE = 50
 
 export function NotificationHistory(props: {
+  companies: NotificationConfig['companies']
   onClone: (message: NotificationMessage) => void
   canSend: boolean
   canTest: boolean
@@ -253,6 +255,13 @@ export function NotificationHistory(props: {
                 {row.original.summary}
               </p>
             )}
+            {!!row.original.company_id && (
+              <Badge variant='outline'>
+                {props.companies.find(
+                  (company) => company.id === row.original.company_id
+                )?.name ?? `${t('Company')} #${row.original.company_id}`}
+              </Badge>
+            )}
           </div>
         ),
       },
@@ -355,6 +364,7 @@ export function NotificationHistory(props: {
       selected,
       selectionIds,
       props.canSend,
+      props.companies,
       t,
     ]
   )
@@ -575,6 +585,7 @@ export function NotificationHistory(props: {
         />
       )}
       <RecordDetail
+        companies={props.companies}
         id={detailId}
         onClose={() => setDetailId(null)}
         onClone={props.onClone}

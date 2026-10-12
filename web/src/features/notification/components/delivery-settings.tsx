@@ -1,8 +1,9 @@
-import { CircleAlert, Mail, MessageSquare, Users } from 'lucide-react'
+import { Mail, MessageSquare, Users } from 'lucide-react'
 import type { UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
-import { TextTooltip } from '@/components/text-tooltip'
+import { DescriptionTooltip } from '@/components/description-tooltip'
+import { MultiSelect } from '@/components/multi-select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -76,6 +77,7 @@ export function DeliverySettings(props: {
     if (next === channel) return
     props.form.setValue('channel', next, { shouldDirty: true })
     props.form.setValue('company_id', 0, { shouldDirty: true })
+    props.form.setValue('company_ids', [], { shouldDirty: true })
     props.form.setValue('recipients', [], { shouldDirty: true })
     props.form.clearErrors()
   }
@@ -134,52 +136,31 @@ export function DeliverySettings(props: {
             </Button>
           ))}
         </div>
-        <div className='grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,8fr)]'>
+        <div className='grid gap-5 md:grid-cols-[minmax(0,4fr)_minmax(0,6fr)]'>
           {channel !== 'email' && (
             <FormField
               control={props.form.control}
-              name='company_id'
+              name='company_ids'
               render={({ field }) => (
                 <FormItem>
                   <div className='flex items-center gap-1'>
-                    <FormLabel>{t('Company')}</FormLabel>
-                    <TextTooltip
-                      content={t(
-                        'Official notifications reach all users with a valid Open ID in the user table, regardless of company. Blank or invalid IDs are skipped and duplicate IDs receive one message.'
+                    <FormLabel>{t('Companies')}</FormLabel>
+                    <DescriptionTooltip
+                      description={t(
+                        'Only members of the selected companies receive official notifications. Each company uses its own application to send.'
                       )}
-                      contentClassName='max-w-xs text-sm leading-relaxed sm:max-w-sm'
-                    >
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='icon-sm'
-                        className='text-muted-foreground hover:text-primary'
-                        aria-label={t('All users')}
-                      >
-                        <CircleAlert className='size-4' aria-hidden='true' />
-                      </Button>
-                    </TextTooltip>
+                    />
                   </div>
-                  <Select
-                    items={companies}
-                    value={field.value ? String(field.value) : ''}
-                    onValueChange={(value) => field.onChange(Number(value))}
-                  >
-                    <FormControl>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue placeholder={t('Select a company')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent alignItemWithTrigger={false}>
-                      <SelectGroup>
-                        {companies.map((company) => (
-                          <SelectItem key={company.value} value={company.value}>
-                            {company.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <MultiSelect
+                      options={companies}
+                      selected={(field.value ?? []).map(String)}
+                      onChange={(values) => field.onChange(values.map(Number))}
+                      placeholder={t('Select companies')}
+                      inputAriaLabel={t('Companies')}
+                      maxVisibleChips={3}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
