@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Tag } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -514,7 +515,7 @@ export function SendDialog(props: {
         >
           <h3
             className={cn(
-              'mb-3 font-semibold',
+              'mb-3 flex items-start gap-3 font-semibold',
               props.message.channel === 'feishu' && [
                 '-mx-4 -mt-4 rounded-t-lg p-4',
                 NOTIFICATION_TITLE_THEME_CLASSES[
@@ -523,7 +524,18 @@ export function SendDialog(props: {
               ]
             )}
           >
-            {formatNotificationTitle(props.message)}
+            <span className='min-w-0'>
+              {formatNotificationTitle(props.message)}
+            </span>
+            {props.test && props.message.channel === 'feishu' && (
+              <Badge
+                variant='outline'
+                className='h-7 gap-1.5 rounded-md border-indigo-300 bg-indigo-100 px-2.5 font-semibold text-indigo-800 shadow-sm dark:border-indigo-400/50 dark:bg-indigo-950 dark:text-indigo-200'
+              >
+                <Tag aria-hidden='true' />
+                Test
+              </Badge>
+            )}
           </h3>
           <MessageContent message={props.message} />
           {missingImages.length > 0 && (

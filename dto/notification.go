@@ -10,6 +10,7 @@ type NotificationImage struct {
 
 // NotificationMessage captures the content and resolved audience of a send.
 type NotificationMessage struct {
+	IsTest        bool                `json:"-"` // Set from the delivery record, never from request or template content.
 	Channel       string              `json:"channel"`
 	CompanyID     int                 `json:"company_id"`
 	CompanyIDs    []int               `json:"company_ids,omitempty"`

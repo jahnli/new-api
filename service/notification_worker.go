@@ -105,6 +105,7 @@ func runNotificationPoll(ctx context.Context) {
 }
 
 func deliverNotificationRecipients(ctx context.Context, record *model.NotificationRecord, message NotificationMessage) error {
+	message.IsTest = record.IsTest
 	remaining := max(0, record.Total-record.SuccessCount-record.FailedCount-record.UnknownCount)
 	results := make(chan notificationDeliveryResult, notificationDeliveryConcurrency)
 	sendCtx, cancel := context.WithCancel(ctx)
