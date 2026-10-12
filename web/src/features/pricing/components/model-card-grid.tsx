@@ -31,12 +31,13 @@ export const ModelCardGrid = memo(function ModelCardGrid(
   const totalPages = Math.max(1, Math.ceil(props.models.length / pageSize))
   const currentPage = Math.min(page, totalPages)
 
-  const perfMap = useModelPerfBadges()
-
   const pagedModels = useMemo(() => {
     const start = (currentPage - 1) * pageSize
     return props.models.slice(start, start + pageSize)
   }, [currentPage, pageSize, props.models])
+  const perfMap = useModelPerfBadges(
+    pagedModels.map((model) => model.model_name || '')
+  )
 
   if (props.models.length === 0) {
     return null

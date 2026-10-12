@@ -1,7 +1,8 @@
 import { Loader2, Shield, UserRound, type LucideIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SiWechat } from 'react-icons/si'
+
+import { IconWeChat } from '@/assets/brand-icons'
 
 import { AuthLayout } from '../auth-layout'
 
@@ -20,7 +21,7 @@ const providerDictionary: Record<string, ProviderMeta> = {
   wechat: {
     label: 'WeChat',
     Icon: (props: { className?: string }) => (
-      <SiWechat className={props.className} focusable='false' />
+      <IconWeChat className={props.className} focusable='false' />
     ),
   },
 }

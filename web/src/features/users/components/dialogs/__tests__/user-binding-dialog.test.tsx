@@ -112,7 +112,7 @@ const user = {
 }
 
 function findUnbindButton(provider: string): HTMLButtonElement {
-  let container = screen.getByText(provider).parentElement
+  let container = screen.getByText(provider, { selector: 'span' }).parentElement
   while (container && !container.querySelector('button')) {
     container = container.parentElement
   }
@@ -260,9 +260,9 @@ describe('UserBindingDialog shared status updates', () => {
       queryClient
     )
     await screen.findByText('bound-user (ID: 7)')
-    expect(screen.getByText('GitHub').parentElement).toHaveTextContent(
-      'Disabled'
-    )
+    expect(
+      screen.getByText('GitHub', { selector: 'span' }).parentElement
+    ).toHaveTextContent('Disabled')
     fireEvent.click(screen.getByRole('button', { name: 'Show All' }))
     await act(async () => {
       resolveStatus({
@@ -276,9 +276,9 @@ describe('UserBindingDialog shared status updates', () => {
       })
     })
     await screen.findByText('New provider')
-    expect(screen.getByText('GitHub').parentElement).not.toHaveTextContent(
-      'Disabled'
-    )
+    expect(
+      screen.getByText('GitHub', { selector: 'span' }).parentElement
+    ).not.toHaveTextContent('Disabled')
   })
 
   test.each(['success', 'failure'] as const)(
@@ -341,9 +341,9 @@ describe('UserBindingDialog shared status updates', () => {
     await waitFor(() =>
       expect(queryClient.getQueryState(STATUS_QUERY_KEY)?.status).toBe('error')
     )
-    expect(screen.getByText('GitHub').parentElement).not.toHaveTextContent(
-      'Disabled'
-    )
+    expect(
+      screen.getByText('GitHub', { selector: 'span' }).parentElement
+    ).not.toHaveTextContent('Disabled')
   })
 
   test.each([

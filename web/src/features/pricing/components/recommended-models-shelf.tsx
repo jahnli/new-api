@@ -47,7 +47,6 @@ export interface RecommendedModelsShelfProps {
 export function RecommendedModelsShelf(props: RecommendedModelsShelfProps) {
   const { t } = useTranslation()
   const headingId = useId()
-  const perfMap = useModelPerfBadges()
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const [api, setApi] = useState<CarouselApi>()
   const [isScrollable, setIsScrollable] = useState(false)
@@ -64,6 +63,9 @@ export function RecommendedModelsShelf(props: RecommendedModelsShelfProps) {
             (b.recommendation_rank ?? Number.MAX_SAFE_INTEGER)
         ),
     [props.models]
+  )
+  const perfMap = useModelPerfBadges(
+    recommendedModels.map((model) => model.model_name || '')
   )
   const plugins = useMemo(
     () =>

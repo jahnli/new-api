@@ -19,9 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { Mail, Shield, Link2, Unlink } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SiWechat } from 'react-icons/si'
 import { toast } from 'sonner'
 
+import { IconWeChat } from '@/assets/brand-icons'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { TextTooltip } from '@/components/text-tooltip'
@@ -238,7 +238,7 @@ export function AccountBindings({ profile, onUpdate }: AccountBindingsProps) {
     {
       id: 'wechat',
       label: t('WeChat'),
-      icon: SiWechat as React.ComponentType<{ className?: string }>,
+      icon: IconWeChat,
       value: undefined,
       isBound: Boolean(
         (profile as unknown as Record<string, unknown>).wechat_id
