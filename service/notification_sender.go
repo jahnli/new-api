@@ -226,11 +226,18 @@ func (sender notificationFeishuSender) Send(ctx context.Context, message Notific
 		// Preserve blue headers for snapshots created before themes were configurable.
 		titleTheme = "blue"
 	}
+	header := map[string]any{"template": titleTheme, "title": map[string]string{"tag": "plain_text", "content": message.Title}}
+	if message.IsTest {
+		header["text_tag_list"] = []map[string]any{{
+			"tag": "text_tag", "color": "indigo",
+			"text": map[string]string{"tag": "plain_text", "content": "🏷️ Test"},
+		}}
+	}
 	// JSON 2.0 renders standard Markdown headings in the notification body.
 	card, err := common.Marshal(map[string]any{
 		"schema": "2.0",
 		"config": map[string]string{"width_mode": "default"},
-		"header": map[string]any{"template": titleTheme, "title": map[string]string{"tag": "plain_text", "content": message.Title}},
+		"header": header,
 		"body":   map[string]any{"elements": elements},
 	})
 	if err != nil {

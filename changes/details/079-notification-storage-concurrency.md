@@ -2,6 +2,17 @@
 
 **日期**: 2026-09-28 ~ 2026-10-12
 
+## 2026-10-12 飞书测试通知标识
+
+飞书测试卡片在标题文字后显示靛蓝色「🏷️ Test」标签，发送确认预览同步显示标签图标和固定 `Test` 文案，位置紧跟标题文字。标识不随界面、服务器或飞书客户端语言变化；仅飞书测试通知显示，正式通知不显示。
+
+- `dto/notification.go` — 新增仅供发送过程使用的 `IsTest` 字段，不参与 JSON 序列化或反序列化，不从请求、模板内容读取。
+- `service/notification_worker.go` — 在统一投递入口从发送记录读取测试状态，首次发送和失败重试均保留标识。
+- `service/notification_sender.go` — 测试卡片使用飞书原生标题后缀标签，颜色设为靛蓝色，文案固定为「🏷️ Test」。
+- `web/src/features/notification/components/send-dialog.tsx` — 复用现有 `Badge` 组件，配合标签图标展示浅底深字、细边框和轻阴影，适配深色模式；徽标紧跟标题文字。
+
+验证记录：根目录 `go build ./...`、`git diff --check` 通过；`web/` 下 `bun run typecheck`、`bun x oxlint -c .oxlintrc.json src/features/notification/components/send-dialog.tsx`、`bun x oxfmt --check src/features/notification/components/send-dialog.tsx` 通过。未运行测试或实际发送通知，最终样式尚未在飞书客户端验证。
+
 ## 2026-10-12 飞书卡片 Markdown 标题支持
 
 通知正文中的 `#`、`##`、`###` 至 `######` 使用飞书原生 Markdown 渲染为一级至六级标题，标题标记后需留空格。沿用现有表格、图片与正文的排列顺序，以及卡片标题和主题色。
