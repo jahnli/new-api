@@ -17,8 +17,8 @@ type notificationFeishuElement struct {
 	Element    map[string]any
 }
 
-// Feishu's Markdown element does not render GFM tables. Parse them with the
-// same Markdown grammar used for attachments, leaving fenced examples intact.
+// Native Feishu tables preserve column alignment and configurable pagination.
+// Use the attachment Markdown grammar, leaving fenced examples intact.
 func notificationFeishuTables(content string) ([]notificationFeishuElement, error) {
 	source := []byte(content)
 	document := goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser().Parse(text.NewReader(source))

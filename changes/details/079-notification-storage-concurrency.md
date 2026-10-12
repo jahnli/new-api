@@ -2,6 +2,17 @@
 
 **日期**: 2026-09-28 ~ 2026-10-12
 
+## 2026-10-12 飞书卡片 Markdown 标题支持
+
+通知正文中的 `#`、`##`、`###` 至 `######` 使用飞书原生 Markdown 渲染为一级至六级标题，标题标记后需留空格。沿用现有表格、图片与正文的排列顺序，以及卡片标题和主题色。
+
+- `service/notification_sender.go` — 飞书卡片声明 `schema: "2.0"`，将内容组件移至 `body.elements`，宽度配置改用 `width_mode: "default"`。
+- `service/notification_feishu.go` — 更新表格转换说明，明确继续使用原生表格以保留列对齐与分页配置。
+
+兼容要求：飞书客户端需为 7.20 或以上版本；更低版本可显示卡片标题，正文显示升级提示。参考[飞书 JSON 2.0 富文本文档](https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/content-components/rich-text)。
+
+验证记录：`gofmt -w service/notification_sender.go service/notification_feishu.go`、`go build ./...` 和 `git diff --check` 均通过。未运行测试或实际发送通知，尚未验证飞书客户端中的实际展示。
+
 ## 2026-10-12 公司多选与收件范围限制
 
 飞书、钉钉正式通知从全站收件范围改为仅面向所选公司的成员：根据公司 ID 读取公司名称，再匹配用户资料的 `company` 字段，不实时查询平台通讯录。排除已删除用户，跳过空白或格式无效的收件标识，同一公司内去重；保留原有不按账号启用状态筛选的行为。
