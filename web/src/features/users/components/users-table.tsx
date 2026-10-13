@@ -121,6 +121,11 @@ export function UsersTable() {
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' },
+      {
+        columnId: 'registration_method',
+        searchKey: 'registration_method',
+        type: 'array',
+      },
       { columnId: 'group', searchKey: 'group', type: 'array' },
       { columnId: 'company', searchKey: 'company', type: 'array' },
     ],
@@ -137,6 +142,9 @@ export function UsersTable() {
     (columnFilters.find((filter) => filter.id === 'group')?.value as
       | string[]
       | undefined) ?? []
+  const registrationMethodFilter =
+    (columnFilters.find((filter) => filter.id === 'registration_method')
+      ?.value as string[] | undefined) ?? []
   const companyFilter =
     (columnFilters.find((filter) => filter.id === 'company')?.value as
       | string[]
@@ -174,6 +182,7 @@ export function UsersTable() {
       globalFilter,
       statusFilter,
       roleFilter,
+      registrationMethodFilter,
       groupFilter,
       companyFilter,
       refreshTrigger,
@@ -185,6 +194,7 @@ export function UsersTable() {
       const hasColumnFilter =
         statusFilter.length > 0 ||
         roleFilter.length > 0 ||
+        registrationMethodFilter.length > 0 ||
         groupFilter.length > 0 ||
         companyFilter.length > 0
       const params = {
@@ -201,6 +211,7 @@ export function UsersTable() {
               keyword: globalFilter,
               status: statusFilter[0] ?? '',
               role: roleFilter[0] ?? '',
+              registration_method: registrationMethodFilter[0] ?? '',
               group: groupFilter[0] ?? '',
               company: companyFilter[0] ?? '',
             })

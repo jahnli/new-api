@@ -85,6 +85,11 @@ export const getUserRoleOptions = (t: (key: string) => string) => [
   { label: t('Root'), value: String(USER_ROLE.ROOT), icon: Shield },
 ]
 
+export const getRegistrationMethodOptions = (t: (key: string) => string) => [
+  { label: t('LDAP'), value: 'ldap', icon: Building2 },
+  { label: t('Manual'), value: 'manual', icon: User },
+]
+
 // ============================================================================
 // Default Values
 // ============================================================================

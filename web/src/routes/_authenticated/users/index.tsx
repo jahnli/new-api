@@ -18,6 +18,10 @@ const usersSearchSchema = z.object({
     .optional()
     .catch([]),
   group: z.array(z.string()).optional().catch([]),
+  registration_method: z
+    .array(z.enum(['ldap', 'manual']))
+    .optional()
+    .catch([]),
   company: z.array(z.string()).optional().catch([]),
 })
 

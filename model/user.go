@@ -90,6 +90,7 @@ type User struct {
 	Username             string                     `json:"username" gorm:"unique;index" validate:"max=20"`
 	Password             string                     `json:"password" gorm:"not null;" validate:"min=8,max=128"`
 	HasPassword          bool                       `json:"-" gorm:"-:all"`
+	RegistrationMethod   string                     `json:"registration_method,omitempty" gorm:"-:all"`
 	OriginalPassword     string                     `json:"original_password" gorm:"-:all"`
 	DisplayName          string                     `json:"display_name" gorm:"index" validate:"max=20"`
 	Role                 int                        `json:"role" gorm:"type:int;default:1"`
@@ -538,6 +539,10 @@ func GetAllUsers(pageInfo *common.PageInfo, sortOptions ...UserSortOptions) (use
 		tx.Rollback()
 		return nil, 0, UserStatusCounts{}, err
 	}
+	if err = loadUserRegistrationMethods(tx, users); err != nil {
+		tx.Rollback()
+		return nil, 0, UserStatusCounts{}, err
+	}
 
 	// Commit transaction
 	if err = tx.Commit().Error; err != nil {
@@ -561,6 +566,21 @@ func GetUserCompanies() ([]string, error) {
 }
 
 func SearchUsers(keyword string, group string, company string, role *int, status *int, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, UserStatusCounts, error) {
+	return SearchUsersWithFilters(UserSearchFilters{
+		Keyword: keyword, Group: group, Company: company, Role: role, Status: status,
+	}, startIdx, num, sortOptions...)
+}
+
+type UserSearchFilters struct {
+	Keyword            string
+	Group              string
+	Company            string
+	Role               *int
+	Status             *int
+	RegistrationMethod string
+}
+
+func SearchUsersWithFilters(filters UserSearchFilters, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, UserStatusCounts, error) {
 	var users []*User
 	var total int64
 	var statusCounts UserStatusCounts
@@ -576,7 +596,7 @@ func SearchUsers(keyword string, group string, company string, role *int, status
 		}
 	}()
 
-	query := buildUserSearchQuery(tx, keyword, group, company, role, status)
+	query := buildUserSearchQuery(tx, filters)
 
 	// 获取总数
 	err := query.Count(&total).Error
@@ -585,7 +605,7 @@ func SearchUsers(keyword string, group string, company string, role *int, status
 		return nil, 0, UserStatusCounts{}, err
 	}
 
-	statusCounts, err = countUserStatuses(buildUserSearchQuery(tx, keyword, group, company, role, status))
+	statusCounts, err = countUserStatuses(buildUserSearchQuery(tx, filters))
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, UserStatusCounts{}, err
@@ -593,8 +613,13 @@ func SearchUsers(keyword string, group string, company string, role *int, status
 
 	// 获取分页数据
 	order := resolveUserSortOptions(sortOptions)
-	err = order.Apply(buildUserSearchQuery(tx, keyword, group, company, role, status).Omit("password", "access_token")).Limit(num).Offset(startIdx).Find(&users).Error
+	err = order.Apply(buildUserSearchQuery(tx, filters).Omit("password", "access_token")).Limit(num).Offset(startIdx).Find(&users).Error
 	if err != nil {
+		tx.Rollback()
+		return nil, 0, UserStatusCounts{}, err
+	}
+
+	if err = loadUserRegistrationMethods(tx, users); err != nil {
 		tx.Rollback()
 		return nil, 0, UserStatusCounts{}, err
 	}
@@ -610,34 +635,67 @@ func SearchUsers(keyword string, group string, company string, role *int, status
 	return users, total, statusCounts, nil
 }
 
-func buildUserSearchQuery(tx *gorm.DB, keyword string, group string, company string, role *int, status *int) *gorm.DB {
+func buildUserSearchQuery(tx *gorm.DB, filters UserSearchFilters) *gorm.DB {
 	query := tx.Unscoped().Model(&User{})
 	likeCondition := "username LIKE ? OR email LIKE ? OR display_name LIKE ?"
-	likeArgs := []any{"%" + keyword + "%", "%" + keyword + "%", "%" + keyword + "%"}
+	likeArgs := []any{"%" + filters.Keyword + "%", "%" + filters.Keyword + "%", "%" + filters.Keyword + "%"}
 
-	if keywordInt, err := strconv.Atoi(keyword); err == nil {
+	if keywordInt, err := strconv.Atoi(filters.Keyword); err == nil {
 		likeCondition = "id = ? OR " + likeCondition
 		likeArgs = append([]any{keywordInt}, likeArgs...)
 	}
 
 	query = query.Where("("+likeCondition+")", likeArgs...)
-	if group != "" {
-		query = query.Where(commonGroupCol+" = ?", group)
+	if filters.Group != "" {
+		query = query.Where(commonGroupCol+" = ?", filters.Group)
 	}
-	if company != "" {
-		query = query.Where("company = ?", company)
+	if filters.Company != "" {
+		query = query.Where("company = ?", filters.Company)
 	}
-	if role != nil {
-		query = query.Where("role = ?", *role)
+	if filters.Role != nil {
+		query = query.Where("role = ?", *filters.Role)
 	}
-	if status != nil {
-		if *status == -1 {
+	switch filters.RegistrationMethod {
+	case "ldap":
+		query = query.Where("password = ? OR password IS NULL", "")
+	case "manual":
+		query = query.Where("password <> ?", "")
+	}
+	if filters.Status != nil {
+		if *filters.Status == -1 {
 			query = query.Where("deleted_at IS NOT NULL")
 		} else {
-			query = query.Where("deleted_at IS NULL").Where("status = ?", *status)
+			query = query.Where("deleted_at IS NULL").Where("status = ?", *filters.Status)
 		}
 	}
 	return query
+}
+
+// Classify the page in one query without loading password hashes into memory.
+func loadUserRegistrationMethods(tx *gorm.DB, users []*User) error {
+	if len(users) == 0 {
+		return nil
+	}
+	ids := make([]int, len(users))
+	for i, user := range users {
+		ids[i] = user.Id
+	}
+	var ldapIDs []int
+	if err := tx.Unscoped().Model(&User{}).Where("id IN ?", ids).
+		Where("password = ? OR password IS NULL", "").Pluck("id", &ldapIDs).Error; err != nil {
+		return err
+	}
+	ldapUsers := make(map[int]struct{}, len(ldapIDs))
+	for _, id := range ldapIDs {
+		ldapUsers[id] = struct{}{}
+	}
+	for _, user := range users {
+		user.RegistrationMethod = "manual"
+		if _, ok := ldapUsers[user.Id]; ok {
+			user.RegistrationMethod = "ldap"
+		}
+	}
+	return nil
 }
 
 func countUserStatuses(query *gorm.DB) (UserStatusCounts, error) {

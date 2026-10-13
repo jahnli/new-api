@@ -41,6 +41,7 @@ export const userSchema = z.object({
   group: z.string(),
   status: userStatusSchema,
   role: userRoleSchema,
+  registration_method: z.enum(['ldap', 'manual']).optional(),
   sales_user_id: z.number().optional(),
   sales_user: z
     .object({
@@ -140,6 +141,7 @@ export interface SearchUsersParams {
   group?: string
   company?: string
   role?: string
+  registration_method?: string
   status?: string
   p?: number
   page_size?: number

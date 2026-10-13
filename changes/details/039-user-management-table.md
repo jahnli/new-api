@@ -1,6 +1,6 @@
 # 用户管理与共享悬停交互增强
 
-**日期**: 2026-06-30 ~ 09-26（最后更新 09-26）
+**日期**: 2026-06-30 ~ 2026-10-13（最后更新 2026-10-13）
 
 ## 涉及文件
 
@@ -262,3 +262,16 @@
 - `web/src/features/users/components/shared-user-columns.tsx` — 分组列在分组名称后展示基础倍率，格式统一为 `x1`、`x2.5`；分组名与倍率文字固定为 12px，并缩小标签间距和留白。
 - `web/src/features/users/components/users-columns.tsx` — 用户管理列定义接收分组倍率映射并传给共享列。
 - `web/src/features/users/components/users-table.tsx` — 复用用户编辑弹窗已有的分组倍率查询键与五分钟缓存，将接口结果传给表格列定义；倍率加载失败或缺失时仍只显示分组名称。
+
+## 2026-10-13 注册方式列与列头筛选
+
+- `model/user.go` — 用户列表与搜索结果新增不持久化的 `registration_method` 字段：密码为空字符串或空值时归类为 LDAP，非空时归类为手动；批量查询仅提取用户编号，不读取或返回密码哈希。注册方式条件在分页前应用，总数及启用、禁用人数使用相同筛选条件。
+- `controller/user.go` — 搜索接口接收 `registration_method` 参数，普通排序与计算列排序路径均传入该条件。
+- `web/src/features/users/components/users-columns.tsx` — 新增注册方式列，复用角色列的 `DataTableColumnHeaderFilter`，通过标题旁漏斗按钮单选全部、LDAP 或手动；保持自定义表头渲染，避免 `meta.label` 将筛选按钮覆盖为普通标题。
+- `web/src/features/users/components/users-table.tsx` — 注册方式筛选接入地址栏状态、查询缓存及服务端请求，沿用筛选变化时的分页重置；筛选入口仅放在列标题旁。
+- `web/src/features/users/constants.ts` — 定义 LDAP、手动选项及图标。
+- `web/src/features/users/api.ts`、`web/src/features/users/types.ts` — 补充注册方式响应类型及搜索参数透传。
+- `web/src/routes/_authenticated/users/index.tsx` — 校验并恢复地址栏中的注册方式筛选值。
+- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐注册方式和手动两条文案的七语言翻译。
+
+本次已执行 `bun run typecheck`、受影响文件的 `bunx oxlint -c .oxlintrc.json` 与 `bunx oxfmt --check`、`bun run build`、`go build ./...`，均通过；最终表头修正后重新执行类型、lint 和格式检查并通过。按项目要求未运行测试。缺少可用的 MySQL、PostgreSQL 及 Docker 环境，三库兼容性验证仍受阻，尚未完成。
