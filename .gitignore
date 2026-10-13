@@ -15,6 +15,7 @@ web/dist
 web/node_modules
 .env
 /.1panel.local.json
+/.main-upstream-deploy.local.json
 one-api
 new-api
 /__debug_bin*
