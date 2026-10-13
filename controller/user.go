@@ -422,11 +422,15 @@ func SearchUsers(c *gin.Context) {
 			status = &parsed
 		}
 	}
+	filters := model.UserSearchFilters{
+		Keyword: keyword, Group: group, Company: company, Role: role, Status: status,
+		RegistrationMethod: c.Query("registration_method"),
+	}
 	pageInfo := common.GetPageQuery(c)
 	if common.IsComputedSortColumn(pageInfo.SortBy) {
 		sortBy := pageInfo.SortBy
 		sortOrder := pageInfo.SortOrder
-		users, total, statusCounts, err := model.SearchUsers(keyword, group, company, role, status, 0, 10000)
+		users, total, statusCounts, err := model.SearchUsersWithFilters(filters, 0, 10000)
 		if err != nil {
 			common.ApiError(c, err)
 			return
@@ -448,7 +452,7 @@ func SearchUsers(c *gin.Context) {
 	}
 
 	sortOptions := model.NewUserSortOptions(c.Query("sort_by"), c.Query("sort_order"))
-	users, total, statusCounts, err := model.SearchUsers(keyword, group, company, role, status, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
+	users, total, statusCounts, err := model.SearchUsersWithFilters(filters, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -79,6 +79,7 @@ export async function searchUsers(
     group = '',
     company = '',
     role = '',
+    registration_method = '',
     status = '',
     p = 1,
     page_size = 10,
@@ -90,6 +91,9 @@ export async function searchUsers(
   queryParams.set('group', group)
   queryParams.set('company', company)
   if (role) queryParams.set('role', role)
+  if (registration_method) {
+    queryParams.set('registration_method', registration_method)
+  }
   if (status) queryParams.set('status', status)
   queryParams.set('p', String(p))
   queryParams.set('page_size', String(page_size))

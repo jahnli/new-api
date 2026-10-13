@@ -2,10 +2,12 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { DataTableColumnHeaderFilter } from '@/components/data-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { useExternalMode } from '@/hooks/use-external-mode'
 
+import { getRegistrationMethodOptions } from '../constants'
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 import { userNameColumn, useSharedUserColumns } from './shared-user-columns'
@@ -54,6 +56,30 @@ export function useUsersColumns(
         size: 40,
       } satisfies ColumnDef<User>,
       ...sharedColumns,
+      {
+        accessorKey: 'registration_method',
+        header: ({ column }) => (
+          <DataTableColumnHeaderFilter
+            column={column}
+            label={t('Registration Method')}
+            options={getRegistrationMethodOptions(t)}
+          />
+        ),
+        cell: ({ row }) => {
+          const method = getRegistrationMethodOptions(t).find(
+            (option) => option.value === row.original.registration_method
+          )
+          if (!method) return null
+          return (
+            <div className='flex items-center gap-x-2'>
+              <method.icon size={16} className='text-muted-foreground' />
+              <span className='text-sm'>{method.label}</span>
+            </div>
+          )
+        },
+        enableSorting: false,
+        size: 150,
+      } satisfies ColumnDef<User>,
       ...(externalMode
         ? [
             {
