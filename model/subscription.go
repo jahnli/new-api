@@ -803,10 +803,14 @@ func adminBindSubscription(userId int, planId int, sourceNote string, includeDel
 			now := GetDBTimestamp()
 			var activeSubscriptions []UserSubscription
 			if err := lockForUpdate(tx).
-				Where("user_id = ? AND plan_id = ? AND status = ? AND end_time > ?", userId, planId, "active", now).
+				Where("user_id = ? AND plan_id = ? AND status = ? AND start_time <= ? AND end_time > ?", userId, planId, "active", now, now).
 				Order("id asc").
 				Find(&activeSubscriptions).Error; err != nil {
 				return err
+			}
+			// Replacements require a currently effective subscription; never grant a new plan here.
+			if len(activeSubscriptions) == 0 {
+				return ErrNoActiveSubscription
 			}
 			replacedSubscriptions = activeSubscriptions
 			for _, activeSubscription := range activeSubscriptions {
@@ -824,7 +828,7 @@ func adminBindSubscription(userId int, planId int, sourceNote string, includeDel
 			}
 			if len(activeSubscriptions) > 0 {
 				if err := tx.Model(&UserSubscription{}).
-					Where("user_id = ? AND plan_id = ? AND status = ? AND end_time > ?", userId, planId, "active", now).
+					Where("user_id = ? AND plan_id = ? AND status = ? AND start_time <= ? AND end_time > ?", userId, planId, "active", now, now).
 					Updates(map[string]any{
 						"status":     "cancelled",
 						"end_time":   now,
@@ -929,6 +933,10 @@ func AdminSubscribeAllUsers(planId int, companyId int) (AdminSubscribeAllUsersRe
 					continue
 				}
 				if _, err := adminBindSubscription(user.Id, planId, "", true, true); err != nil {
+					if errors.Is(err, ErrNoActiveSubscription) {
+						result.Skipped++
+						continue
+					}
 					result.Failed++
 					continue
 				}

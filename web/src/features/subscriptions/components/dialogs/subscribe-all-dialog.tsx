@@ -77,11 +77,11 @@ export function SubscribeAllDialog() {
   const companyLabel = selectedCompany?.alias || selectedCompany?.name
   const description = companyLabel
     ? t(
-        'This will replace existing active subscriptions for {{plan}}, preserve used quota, and set every user in {{company}} to the latest total quota, including disabled and deleted users. Continue?',
+        'Only users in {{company}} with a currently effective subscription to {{plan}} will have it replaced with the latest total quota, preserving used quota. All other users will be skipped. Disabled and deleted users are included if eligible. Continue?',
         { company: companyLabel, plan: currentRow.plan.title }
       )
     : t(
-        'Select a company to subscribe all its users to {{plan}}, including disabled and deleted users.',
+        'Select a company to update only currently effective subscriptions to {{plan}}. Users without one will be skipped, and used quota will be preserved.',
         { plan: currentRow.plan.title }
       )
 
