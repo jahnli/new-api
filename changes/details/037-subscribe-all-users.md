@@ -1,6 +1,14 @@
 # 订阅管理增强：公司范围订阅、分类额度调整与高级模型限额
 
-**日期**: 2026-10-05
+**日期**: 2026-10-14
+
+## 2026-10-14 全员订阅仅更新当前生效的订阅
+
+- `model/subscription.go` — 全员订阅在用户事务内检查同套餐订阅，必须状态为 `active`、开始时间不晚于当前时间且结束时间晚于当前时间，才按原逻辑替换订阅并保留已用额度。未订阅、已取消、已过期或尚未生效的用户计入跳过，不新增该套餐；取消旧订阅使用相同的生效条件。已禁用和已注销用户仍按上述条件处理。
+- `web/src/features/subscriptions/components/dialogs/subscribe-all-dialog.tsx` — 继续复用 `ConfirmDialog`，公司选择及确认提示明确仅更新当前生效订阅、跳过其他用户并保留已用额度。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐上述提示的七种语言翻译。
+
+验证：根目录 `go build ./...`、`git diff --check`，以及 `web/` 下 `bun run typecheck`、`bunx oxlint -c .oxlintrc.json src/features/subscriptions/components/dialogs/subscribe-all-dialog.tsx`、`bunx oxfmt --check src/features/subscriptions/components/dialogs/subscribe-all-dialog.tsx` 均通过；`bun run i18n:sync` 完成，七种语言缺失键均为零。未新增、修改或运行测试。当前环境未发现 Docker、MySQL 或 PostgreSQL 工具及服务，三库实库兼容验证尚未完成。
 
 ## 2026-10-05 用户订阅额度增减交互与实时预览
 

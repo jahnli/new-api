@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""将模型广场 Basic 分组价格同步到既有报价表（Python 3.10+）。
+"""将模型广场指定分组价格同步到既有报价表（Python 3.10+）。
 
     python -m pip install cryptography python-dotenv
     python scripts/sync_price_sheet.py          # 只读预览
@@ -10,9 +10,11 @@
 （控制台个人访问令牌）、MODEL_SQUARE_AES_KEY（与部署站点一致）。
 可用 --pricing-json 和 --status-json 同时传入已解密的接口响应，离线同步。
 
-仅更新现有模型行的 B/C/D/E/G 列，不新增模型、不改接口协议及表格排版。
+仅更新“模型价格列表”工作表中现有模型行的 B/C/D/E/G 列，
+不新增模型、不改接口协议及表格排版。
 Token 价格为人民币/百万 Token；按次价格 B=￥xx/次、C=按次收费、D/E=—。
-分组匹配忽略大小写，倍率优先级为用户特殊倍率 > 供应商倍率 > 分组倍率。
+分组名称在脚本开头的 GROUP_NAME 设置，匹配忽略大小写。
+倍率优先级为用户特殊倍率 > 供应商倍率 > 分组倍率。
 汇率读取 /api/status.usd_exchange_rate，不应用充值折算。
 价格精度跟随模型广场：金额 >= 1 最多 4 位小数，< 1 最多 6 位小数；
 旧版按次价格最多 4 位小数。去除末尾零，非零小额保留界面的最小显示值。
@@ -35,6 +37,7 @@ import hashlib
 import io
 import json
 import os
+import posixpath
 import re
 import sys
 import tempfile
@@ -50,6 +53,9 @@ from zipfile import BadZipFile, ZipFile
 
 from model_square_prices import PRICE_FIELDS, calculate_prices, positive_decimal, to_decimal
 
+
+GROUP_NAME = "Basic"  # 要同步的分组名称，不区分大小写
+SHEET_NAME = "模型价格列表"  # 要同步的工作表名称
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SHEET_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -192,7 +198,7 @@ def basic_prices(model: dict, pricing: dict, group: str, exchange: Decimal) -> t
             for field in ("cache_ratio", "create_cache_ratio"):
                 if model.get(field) is not None:
                     nonnegative(model[field], f"{name}.{field}")
-            # 复用现有导出脚本的倍率计算，仅提供已解析的 Basic 倍率。
+            # 复用现有导出脚本的倍率计算，仅提供已解析的目标分组倍率。
             prices = calculate_prices(
                 {**model, "enable_groups": [group]}, {group: ratio}, {}, {group}, exchange
             )
@@ -259,6 +265,30 @@ def update_workbook(
     changed = {}
     count = 0
     with ZipFile(io.BytesIO(original)) as archive:
+        workbook = minidom.parseString(archive.read("xl/workbook.xml"))
+        sheets = [sheet for sheet in workbook.getElementsByTagNameNS(SHEET_NS, "sheet")
+                  if sheet.getAttribute("name") == SHEET_NAME]
+        if len(sheets) != 1:
+            raise ValueError(f"未找到唯一的 {SHEET_NAME!r} 工作表，请检查工作表名称")
+        relationship_id = sheets[0].getAttributeNS(
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id"
+        )
+        relationships = minidom.parseString(archive.read("xl/_rels/workbook.xml.rels"))
+        targets = [node for node in relationships.getElementsByTagNameNS(
+            "http://schemas.openxmlformats.org/package/2006/relationships", "Relationship"
+        ) if node.getAttribute("Id") == relationship_id]
+        if (
+            not relationship_id or len(targets) != 1
+            or targets[0].getAttribute("TargetMode") == "External"
+            or targets[0].getAttribute("Type")
+            != "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"
+        ):
+            raise ValueError(f"{SHEET_NAME!r} 工作表关联无效")
+        target = targets[0].getAttribute("Target")
+        sheet_path = posixpath.normpath(target.lstrip("/") if target.startswith("/")
+                                       else posixpath.join("xl", target))
+        if not target or sheet_path not in archive.namelist():
+            raise ValueError(f"{SHEET_NAME!r} 工作表 XML 文件不存在")
         strings = []
         if "xl/sharedStrings.xml" in archive.namelist():
             doc = minidom.parseString(archive.read("xl/sharedStrings.xml"))
@@ -268,7 +298,7 @@ def update_workbook(
                 for item in doc.getElementsByTagNameNS(SHEET_NS, "si")
             ]
         for entry in archive.namelist():
-            if not re.fullmatch(r"xl/worksheets/[^/]+\.xml", entry):
+            if entry != sheet_path:
                 continue
             doc = minidom.parseString(archive.read(entry))
             sheet_changed = False
@@ -337,7 +367,7 @@ def update_workbook(
             if sheet_changed:
                 changed[entry] = doc.toxml(encoding="UTF-8")
     if not count:
-        raise ValueError("未找到模型报价行，请检查工作簿中的“模型名称”表头")
+        raise ValueError(f"未找到模型报价行，请检查 {SHEET_NAME!r} 工作表中的“模型名称”表头")
     return changed, count
 
 
@@ -383,9 +413,9 @@ def main() -> int:
         ratios = pricing.get("group_ratio")
         if not isinstance(ratios, dict):
             raise ValueError("/api/pricing 缺少 group_ratio 对象")
-        groups = [group for group in ratios if group.casefold() == "basic"]
+        groups = [group for group in ratios if group.casefold() == GROUP_NAME.casefold()]
         if len(groups) != 1:
-            raise ValueError("未找到唯一的 Basic 分组，请检查当前用户的分组权限")
+            raise ValueError(f"未找到唯一的 {GROUP_NAME} 分组，请检查分组名称和当前用户的分组权限")
         if not isinstance(pricing.get("group_vendor_ratio", {}), dict) or not isinstance(pricing.get("group_special_ratios", []), list):
             raise ValueError("分组供应商倍率或特殊倍率结构无效")
         for vendor_ratios in pricing.get("group_vendor_ratio", {}).values():

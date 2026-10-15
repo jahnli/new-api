@@ -24,21 +24,15 @@
     "cache_read": 0.14,
     "cache_write": null
   },
-  "gpt-5.6-terra": {
-    "input": 14,
-    "output": 84,
-    "cache_read": 1.4,
-    "cache_write": null
-  },
   "gpt-5.6-sol": {
     "input": 35,
     "output": 210,
     "cache_read": 3.5,
     "cache_write": null
   },
-  "gpt-6-sol": {
+  "gpt-5.6-terra": {
     "input": 14,
-    "output": 70,
+    "output": 84,
     "cache_read": 1.4,
     "cache_write": null
   },
@@ -46,6 +40,12 @@
     "input": 70,
     "output": 350,
     "cache_read": 7,
+    "cache_write": null
+  },
+  "gpt-6-sol": {
+    "input": 14,
+    "output": 70,
+    "cache_read": 1.4,
     "cache_write": null
   },
   "gpt-6.1-sol": {
@@ -57,82 +57,85 @@
   "claude-sonnet-4-5": {
     "input": 21,
     "output": 105,
-    "cache_read": 26.25,
-    "cache_write": 0.21
+    "cache_read": 2.1,
+    "cache_write": 26.25
   },
   "claude-haiku-4-5": {
     "input": 7,
     "output": 35,
-    "cache_read": 8.75,
-    "cache_write": 0.7
+    "cache_read": 0.7,
+    "cache_write": 8.75
   },
   "claude-sonnet-4-6": {
-    "input": 35,
-    "output": 175,
-    "cache_read": 3.5,
-    "cache_write": 70
+    "input": 21,
+    "output": 105,
+    "cache_read": 2.1,
+    "cache_write": 26.25
   },
   "claude-opus-4-6": {
     "input": 35,
     "output": 175,
     "cache_read": 3.5,
-    "cache_write": 70
+    "cache_write": 43.75
   },
   "claude-opus-4-7": {
     "input": 35,
     "output": 175,
     "cache_read": 3.5,
-    "cache_write": 70
+    "cache_write": 43.75
   },
   "claude-opus-4-8": {
     "input": 35,
     "output": 175,
     "cache_read": 3.5,
-    "cache_write": 70
-  },
+    "cache_write": 43.75
+  },  
   "claude-opus-5": {
     "input": 35,
     "output": 175,
     "cache_read": 3.5,
-    "cache_write": 70
+    "cache_write": 43.75
   },
   "claude-sonnet-5": {
-    "input": 21,
-    "output": 105,
+    "input": 14,
+    "output": 70,
     "cache_read": 2.1,
-    "cache_write": 42
-  },
-  "claude-opus-5-5": {
-    "input": 28,
-    "output": 140,
-    "cache_read": 7,
-    "cache_write": 1.4
+    "cache_write": 17.5
   },
   "claude-sonnet-5-5": {
     "input": 14,
     "output": 70,
-    "cache_read": 17.5,
-    "cache_write": 0.7
+    "cache_read": 0.7,
+    "cache_write": 17.5
   },
-  
+  "claude-opus-5-5": {
+    "input": 28,
+    "output": 140,
+    "cache_read": 1.4,
+    "cache_write": 35
+  },
+ 
   "grok-4.6": {
     "input": 14,
     "output": 42,
     "cache_read": 3.5,
     "cache_write": null
   },
-  "deepseek-v4.1-flash": {
-    "input": 2,
-    "output": 8,
-    "cache_read": 0.04,
-    "cache_write": null
-  },
+
   "deepseek-v4-pro": {
     "input": 9,
     "output": 27,
     "cache_read": 0.3,
     "cache_write": null
   },
+
+  "deepseek-v4.1-flash": {
+    "input": 2,
+    "output": 8,
+    "cache_read": 0.04,
+    "cache_write": null
+  },
+
   "kimi-k2.6": {
     "input": 6.5,
     "output": 27,
