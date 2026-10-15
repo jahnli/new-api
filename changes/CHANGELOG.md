@@ -57,7 +57,7 @@
 | 050 | 2026-07-01 | 渠道表格移除「已使用 / 剩余」列及卡片视图中的余额展示，清理相关翻译 | [详情](details/050-remove-channel-balance-column.md) |
 | 051 | 2026-07-02 | 个人资料页设置调整：移除邮箱旁分组显示、用户 ID 徽章改为默认色、API 请求数万前加空格；记录使用和错误日志 IP 地址默认开启，且仅超级管理员可见并可切换 | [详情](details/051-profile-settings.md) |
 | 052 | 2026-07-01 | 全站进度条分阶段变色统一：阈值统一为 50%/80%（绿→橙→红），涉及概览订阅、用户表格、数据总览；修复子部门统计 formatCNY 传入 undefined 导致崩溃 | [详情](details/052-progress-bar-color-unify.md) |
-| 053 | 2026-07-23 | 新增或编辑未设置定价的模型时，补全价格和缓存读取价格默认开启，并补充定价通道初始化测试 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/__tests__/pricing-initialization.test.ts` |
+| 053 | 2026-10-15 | 新增或编辑未设置定价的模型时，补全价格和缓存读取价格默认开启；表达式定价草稿默认包含零值缓存读取价格，已有表达式保持原配置，并补充定价通道初始化测试 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/__tests__/pricing-initialization.test.ts`、`web/src/features/system-settings/models/model-pricing-sheet.tsx` |
 | 054 | 2026-07-01 | 模型广场与模型定价编辑器默认分页大小从 20 改为 100 | `web/default/src/features/pricing/constants.ts`、`web/default/src/features/system-settings/models/model-ratio-visual-editor.tsx` |
 | 055 | 2026-10-04 | 模型广场与分组定价优化：新增分组 × 供应商倍率配置与统一计费优先级，分档价格表按当前用户或管理员筛选分组显示；定价响应加密；新增超级管理员推荐配置与自动循环横滑区；推荐标签移至计费方式右侧，精简空描述、缩小内边距并放大价格及性能文字，优化微光效果；新增「均衡之选」场景，「添加推荐」移至重置左侧 | [详情](details/055-pricing-square.md) |
 | 056 | 2026-10-06 | 使用日志与审计设置优化：完善用户信息、权限筛选、详情导出与 Token 统计，并拆分安全审计配置模块；微调筛选布局，RPM/TPM 复用语言相关数字格式化；新增 SMTP 发送审计、筛选与诊断详情；Token 汇总与综合单价仅超级管理员可见，单条 Token 明细点击显示、移出关闭，统一次要文字字号；移除高级筛选展开/收起按钮的数量徽章 | [详情](details/056-usage-logs-user-column.md) |
