@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """逐条按使用日志的历史计费快照生成 AI 中转站周报。"""
 
 from __future__ import annotations
@@ -8,25 +7,27 @@ import argparse
 import ast
 import base64
 import json
+import os
 import re
 import sys
 import tempfile
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from collections import Counter
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation, ROUND_FLOOR
+from decimal import ROUND_FLOOR, Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
 import psycopg2
-
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 DEFAULT_DSN = "postgresql://admin:semitech@10.16.7.77:5432/ai-gateway"
+SECONDARY_DSN = "postgresql://admin:semitech@10.16.7.144:5432/ai-gateway"
 DEFAULT_USD_TO_CNY_RATE = 6.8
 DEFAULT_QUOTA_PER_UNIT = 500_000.0
 TOKENS_PER_HUNDRED_MILLION = 100_000_000.0
@@ -851,6 +852,253 @@ Top 5 费用的模型："""]
     return "\n".join(lines)
 
 
+@dataclass
+class UserStats:
+    display_name: str
+    accounts: list[str] = field(default_factory=list)
+    total_tokens: int = 0
+    input_tokens: int = 0
+    cache_tokens: int = 0
+    cost_cny: Decimal = Decimal(0)
+    model_tokens: Counter[str] = field(default_factory=Counter)
+    last_used_at: int = 0
+
+
+def collect_user_statistics(
+    dsn: str,
+    start: datetime,
+    end: datetime,
+) -> tuple[list[UserStats], int]:
+    """只读统计公司信息非空的用户，包括周期内没有消费的用户。"""
+    users: dict[int, UserStats] = {}
+    malformed_rows = 0
+    conn = psycopg2.connect(dsn, connect_timeout=15)
+    try:
+        conn.set_session(readonly=True, isolation_level="REPEATABLE READ")
+        options = load_options(conn)
+        exchange_rate = get_positive_option(
+            options,
+            ("Price", "USDExchangeRate", "usd_exchange_rate", "price"),
+            DEFAULT_USD_TO_CNY_RATE,
+        )
+        quota_per_unit = get_positive_option(
+            options,
+            ("QuotaPerUnit", "quota_per_unit"),
+            DEFAULT_QUOTA_PER_UNIT,
+        )
+        rate = Decimal(str(exchange_rate)) / Decimal(str(quota_per_unit))
+        if not rate.is_finite() or rate <= 0:
+            raise ValueError("费用换算配置无效")
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, username, display_name, company
+                FROM users
+                WHERE company IS NOT NULL AND TRIM(company) <> ''
+                """
+            )
+            for user_id, username, display_name, company in cur:
+                if not str(company).strip():
+                    continue
+                username = str(username or "").strip() or f"ID {user_id}"
+                display_name = str(display_name or "").strip() or username
+                users[int(user_id)] = UserStats(display_name, [username])
+
+        if not users:
+            return [], 0
+        with conn.cursor(name="weekly_user_report_rows") as cur:
+            cur.itersize = 2_000
+            cur.execute(
+                """
+                SELECT user_id, model_name, prompt_tokens, completion_tokens,
+                       quota, other, created_at
+                FROM logs
+                WHERE type = %s AND created_at >= %s AND created_at <= %s
+                      AND user_id = ANY(%s)
+                """,
+                (
+                    CONSUME_LOG_TYPE,
+                    int(start.timestamp()),
+                    int(end.timestamp()),
+                    list(users),
+                ),
+            )
+            for user_id, model, prompt, completion, quota, raw_other, created_at in cur:
+                stat = users[user_id]
+                other, malformed = parse_log_other(raw_other)
+                malformed_rows += int(malformed)
+                tokens = extract_token_categories(prompt, completion, other)
+                input_tokens = tokens.input + tokens.cache_input + tokens.cache_output
+                total_tokens = input_tokens + tokens.output
+                stat.total_tokens += total_tokens
+                stat.input_tokens += input_tokens
+                stat.cache_tokens += tokens.cache_input
+                stat.cost_cny += Decimal(int(quota or 0)) * rate
+                model_name = MODEL_LOOKUP.get(normalize_model_name(model))
+                model_name = model_name or str(model or "").strip() or "未标注模型"
+                stat.model_tokens[model_name] += total_tokens
+                stat.last_used_at = max(stat.last_used_at, int(created_at or 0))
+    finally:
+        conn.close()
+
+    return sorted(
+        users.values(),
+        key=lambda item: (-item.cost_cny, -item.total_tokens, item.display_name),
+    ), malformed_rows
+
+
+def save_user_table(
+    users: list[UserStats],
+    start: datetime,
+    end: datetime,
+    output_path: Path,
+    font_path: Path | None,
+    page_label: str = "",
+) -> Path:
+    """第一行合并单元格展示周期，第二行表头，其后每个用户占一行。"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError as exc:
+        raise RuntimeError(
+            "生成用户表格需要 Pillow，请执行：python -m pip install Pillow"
+        ) from exc
+
+    candidates = (
+        [font_path]
+        if font_path
+        else [
+            Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts/msyh.ttc",
+            Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+            Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
+            Path("/System/Library/Fonts/PingFang.ttc"),
+        ]
+    )
+    selected_font = next((path for path in candidates if path.is_file()), None)
+    if selected_font is None:
+        raise ValueError("未找到中文字体，请通过 --font 指定中文 TTF/OTF/TTC 字体文件")
+    font = ImageFont.truetype(str(selected_font), 24)
+    header_font = ImageFont.truetype(str(selected_font), 25)
+    title_font = ImageFont.truetype(str(selected_font), 30)
+    widths = (300, 250, 220, 250, 440, 330)
+    headers = (
+        "显示名称",
+        "Token 总量（亿）",
+        "总费用（元）",
+        "单价（元/亿 Token）",
+        "常用模型",
+        "最后使用时间",
+    )
+    names = Counter(user.display_name for user in users)
+    measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    rows: list[tuple[list[list[str]], int]] = []
+    for user in users:
+        name = user.display_name
+        if names[name] > 1:
+            name += "\n" + "、".join(user.accounts)
+        price = (
+            user.cost_cny * Decimal(100_000_000) / user.total_tokens
+            if user.total_tokens
+            else None
+        )
+        models = sorted(
+            user.model_tokens, key=lambda model: (-user.model_tokens[model], model)
+        )[:1]
+        cells = (
+            name,
+            f"{Decimal(user.total_tokens) / Decimal(100_000_000):,.2f}",
+            f"{user.cost_cny:,.2f}",
+            f"{price:,.2f}" if price is not None else "—",
+            "\n".join(models) or "—",
+            datetime.fromtimestamp(user.last_used_at, start.tzinfo).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+            if user.last_used_at
+            else "周期内未使用",
+        )
+        wrapped_cells = []
+        for cell, width in zip(cells, widths):
+            lines = []
+            for paragraph in cell.splitlines():
+                line = ""
+                for char in paragraph:
+                    if line and measure.textlength(line + char, font=font) > width - 32:
+                        lines.append(line)
+                        line = ""
+                    line += char
+                lines.append(line)
+            wrapped_cells.append(lines)
+        height = max(64, max(len(lines) for lines in wrapped_cells) * 36 + 24)
+        rows.append((wrapped_cells, height))
+
+    margin, title_height, header_height = 24, 84, 68
+    table_width = sum(widths)
+    image = Image.new(
+        "RGB",
+        (
+            table_width + margin * 2,
+            margin * 2
+            + title_height
+            + header_height
+            + sum(height for _, height in rows),
+        ),
+        "#ffffff",
+    )
+    draw = ImageDraw.Draw(image)
+    draw.rectangle(
+        (margin, margin, margin + table_width, margin + title_height), fill="#18334d"
+    )
+    title = (
+        f"统计周期：{start:%Y-%m-%d %H:%M:%S} 至 {end:%Y-%m-%d %H:%M:%S}{page_label}"
+    )
+    draw.text(
+        (margin + 24, margin + title_height / 2),
+        title,
+        font=title_font,
+        fill="white",
+        anchor="lm",
+    )
+    y = margin + title_height
+    x = margin
+    for heading, width in zip(headers, widths):
+        draw.rectangle(
+            (x, y, x + width, y + header_height), fill="#e4edf5", outline="#c8d4df"
+        )
+        draw.text(
+            (x + width / 2, y + header_height / 2),
+            heading,
+            font=header_font,
+            fill="#18334d",
+            anchor="mm",
+        )
+        x += width
+    y += header_height
+    for index, (cells, height) in enumerate(rows):
+        x = margin
+        for column, (lines, width) in enumerate(zip(cells, widths)):
+            draw.rectangle(
+                (x, y, x + width, y + height),
+                fill="#ffffff" if index % 2 == 0 else "#f3f7fa",
+                outline="#d6dfe7",
+            )
+            for line_index, line in enumerate(lines):
+                line_y = y + (height - len(lines) * 36) / 2 + line_index * 36 + 18
+                numeric = column in (1, 2, 3)
+                draw.text(
+                    (x + width - 16 if numeric else x + 16, line_y),
+                    line,
+                    font=font,
+                    fill="#243746",
+                    anchor="rm" if numeric else "lm",
+                )
+            x += width
+        y += height
+    output_path = output_path.resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(output_path, format="PNG")
+    image.close()
+    return output_path
+
+
 def parse_report_datetime(value: str) -> datetime:
     for date_format in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
         try:
@@ -906,9 +1154,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--send-feishu",
         action="store_true",
-        help="将文字周报和消费柱状图发送到 FEISHU_WEBHOOK_URL 指定的飞书群机器人",
+        help="将原文字周报、消费柱状图和第二个中转站用户表格发送到飞书群机器人",
+    )
+    parser.add_argument("--font", type=Path, help="用户表格使用的中文字体路径")
+    parser.add_argument(
+        "--rows-per-image",
+        type=int,
+        default=50,
+        help="用户表格每张图片的行数，默认 50；0 表示完整长图",
     )
     args = parser.parse_args()
+    if args.rows_per_image < 0:
+        parser.error("--rows-per-image 不能为负数")
     if (args.start is None) != (args.end is None):
         parser.error("--start 和 --end 必须同时提供")
     if args.start is not None and args.end <= args.start:
@@ -981,7 +1238,7 @@ def upload_feishu_image(image_path: Path, tenant_access_token: str) -> str:
         f"--{boundary}\r\n"
         f'Content-Disposition: form-data; name="image"; filename="{image_path.name}"\r\n'
         "Content-Type: image/png\r\n\r\n"
-    ).encode("utf-8") + image_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+    ).encode() + image_bytes + f"\r\n--{boundary}--\r\n".encode()
     request = urllib.request.Request(
         "https://open.feishu.cn/open-apis/im/v1/images",
         data=body,
@@ -1007,11 +1264,15 @@ def upload_feishu_image(image_path: Path, tenant_access_token: str) -> str:
     return str(image_key)
 
 
-def send_report_to_feishu(report: str, chart_path: Path) -> None:
+def send_report_to_feishu(report: str, chart_paths: list[Path]) -> None:
     tenant_access_token = get_feishu_tenant_access_token()
-    image_key = upload_feishu_image(chart_path, tenant_access_token)
+    # 所有图片上传成功后再发消息，避免图片生成或上传失败时只发出部分周报。
+    image_keys = [
+        upload_feishu_image(path, tenant_access_token) for path in chart_paths
+    ]
     post_feishu_webhook({"msg_type": "text", "content": {"text": report}})
-    post_feishu_webhook({"msg_type": "image", "content": {"image_key": image_key}})
+    for image_key in image_keys:
+        post_feishu_webhook({"msg_type": "image", "content": {"image_key": image_key}})
 
 
 def main() -> int:
@@ -1044,8 +1305,12 @@ def main() -> int:
             stat.quota_cost_cny = stat.quota / quota_per_unit * exchange_rate
             stat.input_cost_cny = stat.input_quota / quota_per_unit * exchange_rate
             stat.output_cost_cny = stat.output_quota / quota_per_unit * exchange_rate
-            stat.cache_input_cost_cny = stat.cache_input_quota / quota_per_unit * exchange_rate
-            stat.cache_output_cost_cny = stat.cache_output_quota / quota_per_unit * exchange_rate
+            stat.cache_input_cost_cny = (
+                stat.cache_input_quota / quota_per_unit * exchange_rate
+            )
+            stat.cache_output_cost_cny = (
+                stat.cache_output_quota / quota_per_unit * exchange_rate
+            )
         if sum(stat.quota for stat in stats) != total_quota:
             raise RuntimeError("模型汇总 quota 与日志总 quota 不一致")
         consumption_distribution = calculate_consumption_distribution(
@@ -1062,29 +1327,60 @@ def main() -> int:
             "已按该条日志的四类 Token 占比分配最终 quota。",
             file=sys.stderr,
         )
-    report = build_report(label, start, end, total_users, consumption_distribution, stats)
-    if args.send_feishu:
-        with tempfile.TemporaryDirectory(prefix="weekly_stats_") as temporary_directory:
-            chart_path = save_consumption_histogram(
-                label,
-                start,
-                end,
-                total_users,
-                consumption_distribution,
-                Path(temporary_directory) / "weekly_consumption_histogram.png",
-            )
-            send_report_to_feishu(report, chart_path)
-        return 0
-
-    print(report)
-    chart_path = save_consumption_histogram(
-        label,
-        start,
-        end,
-        total_users,
-        consumption_distribution,
+    report = build_report(
+        label, start, end, total_users, consumption_distribution, stats
     )
-    print(f"\n消费柱状图已保存至：{chart_path}")
+    secondary_dsn = os.environ.get("SECONDARY_STATS_DSN", SECONDARY_DSN).strip()
+    if not secondary_dsn:
+        raise RuntimeError("SECONDARY_STATS_DSN 不能为空")
+    users, malformed_rows = collect_user_statistics(secondary_dsn, start, end)
+    if malformed_rows:
+        print(
+            f"提示：第二个中转站有 {malformed_rows:,} 条日志的 other 无法解析，缓存 Token 可能不完整；费用仍使用实际 quota。",
+            file=sys.stderr,
+        )
+    # 两站共享同一统计周期，原站的统计范围和文字内容保持不变。
+    with tempfile.TemporaryDirectory(prefix="weekly_stats_") as temporary_directory:
+        output_directory = (
+            Path(temporary_directory) if args.send_feishu else Path(__file__).parent
+        )
+        chart_path = save_consumption_histogram(
+            label,
+            start,
+            end,
+            total_users,
+            consumption_distribution,
+            output_directory / "weekly_consumption_histogram.png",
+        )
+        chart_paths = [chart_path]
+        page_size = args.rows_per_image or max(len(users), 1)
+        page_count = max(1, (len(users) + page_size - 1) // page_size)
+        for page in range(page_count):
+            filename = (
+                "weekly_user_stats.png"
+                if page_count == 1
+                else f"weekly_user_stats_{page + 1:03d}.png"
+            )
+            page_label = f"  ·  第 {page + 1}/{page_count} 页" if page_count > 1 else ""
+            chart_paths.append(
+                save_user_table(
+                    users[page * page_size : (page + 1) * page_size],
+                    start,
+                    end,
+                    output_directory / filename,
+                    args.font,
+                    page_label,
+                )
+            )
+        if args.send_feishu:
+            send_report_to_feishu(report, chart_paths)
+            print(
+                f"已发送飞书：原文字周报、消费柱状图及第二个中转站用户表格（{len(users)} 位用户）。"
+            )
+        else:
+            print(report)
+            for path in chart_paths:
+                print(f"图片已保存至：{path.resolve()}")
     return 0
 
 
