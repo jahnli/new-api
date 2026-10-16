@@ -157,6 +157,8 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	}
 	relayInfo.RetryIndex = 0
 	relayInfo.LastError = nil
+	originalContentType := c.Request.Header.Get("Content-Type")
+	originalContentLength := c.Request.ContentLength
 
 	for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
 		relayInfo.StreamStatus = nil
@@ -186,6 +188,14 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			break
 		}
 		c.Request.Body = io.NopCloser(bodyStorage)
+		// Adaptors can rebuild JSON as multipart and replace its boundary.
+		// Replaying the original body also requires its original metadata.
+		if originalContentType == "" {
+			c.Request.Header.Del("Content-Type")
+		} else {
+			c.Request.Header.Set("Content-Type", originalContentType)
+		}
+		c.Request.ContentLength = originalContentLength
 
 		switch relayFormat {
 		case types.RelayFormatOpenAIRealtime:
