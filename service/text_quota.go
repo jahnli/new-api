@@ -68,11 +68,15 @@ type textQuotaSummary struct {
 }
 
 // hasBillableUsage reports whether this request should incur any charge.
-// A request can carry zero tokens yet still be billable via a tool-call
+// Claude reports cache tokens separately from ordinary input and output.
+// A request can carry zero ordinary tokens yet still be billable via cache or a tool-call
 // surcharge (e.g. /v1/alpha/search returns no usage but bills one web_search
 // call), so token count alone is not sufficient to decide.
 func (summary *textQuotaSummary) hasBillableUsage() bool {
-	return summary.FixedPriceBilling || summary.TotalTokens > 0 || !summary.ToolCallSurchargeQuota.IsZero()
+	return summary.FixedPriceBilling || summary.TotalTokens > 0 ||
+		(summary.IsClaudeUsageSemantic && (summary.CacheTokens > 0 || summary.CacheCreationTokens > 0 ||
+			summary.CacheCreationTokens5m > 0 || summary.CacheCreationTokens1h > 0)) ||
+		!summary.ToolCallSurchargeQuota.IsZero()
 }
 
 func cacheWriteTokensTotal(summary textQuotaSummary) int {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
@@ -27,7 +28,7 @@ func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
 	defer func() {
 		if AIGatewayError != nil {
 			c.JSON(AIGatewayError.StatusCode, gin.H{
-				"error": AIGatewayError.ToOpenAIError(),
+				"error": AIGatewayError.ToOpenAIError(common.UpstreamAddresses(c)...),
 			})
 		}
 	}()

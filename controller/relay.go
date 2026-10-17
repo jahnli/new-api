@@ -92,17 +92,18 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			service.RecordRequestPolicyTermination(c, AIGatewayError)
 			logger.LogError(c, common.LogText("relay error: %s", common.LocalLogPreview(AIGatewayError.Error())))
 			AIGatewayError.SetMessage(common.MessageWithRequestId(AIGatewayError.Error(), requestId))
+			upstreamURLs := common.UpstreamAddresses(c)
 			switch relayFormat {
 			case types.RelayFormatOpenAIRealtime:
-				helper.WssError(c, ws, AIGatewayError.ToOpenAIError())
+				helper.WssError(c, ws, AIGatewayError.ToOpenAIError(upstreamURLs...))
 			case types.RelayFormatClaude:
 				c.JSON(AIGatewayError.StatusCode, gin.H{
 					"type":  "error",
-					"error": AIGatewayError.ToClaudeError(),
+					"error": AIGatewayError.ToClaudeError(upstreamURLs...),
 				})
 			default:
 				c.JSON(AIGatewayError.StatusCode, gin.H{
-					"error": AIGatewayError.ToOpenAIError(),
+					"error": AIGatewayError.ToOpenAIError(upstreamURLs...),
 				})
 			}
 		}
