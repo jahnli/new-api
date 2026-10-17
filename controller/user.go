@@ -1184,9 +1184,15 @@ func UpdateSelf(c *gin.Context) {
 			return
 		}
 		succeeded = true
-		notificationFailed = service.NotifyAccountSecurityChange(current.Email, "Password updated", common.SMTPAuditMetadata{
-			UserID: current.Id, ActorID: identity.UserID, RequestID: c.GetString(common.RequestIdKey),
-		}) != nil
+		notificationFailed = service.NotifyAccountSecurityChangeWithAudit(
+			service.AccountMailLanguage(c, current.Id),
+			current.Email,
+			i18n.MsgSecurityEventPasswordUpdated,
+			common.SMTPAuditMetadata{
+				UserID: current.Id, ActorID: identity.UserID,
+				RequestID: c.GetString(common.RequestIdKey),
+			},
+		) != nil
 		if err := model.PublishUserAuthCache(cleanUser.Id); err != nil {
 			writeSecurityOperationError(c, err)
 			return
@@ -1547,6 +1553,7 @@ func ManageUser(c *gin.Context) {
 type UpdateUserSettingRequest struct {
 	QuotaWarningType                 string  `json:"notify_type"`
 	QuotaWarningThreshold            float64 `json:"quota_warning_threshold"`
+	QuotaWarningEnabled              *bool   `json:"quota_warning_enabled,omitempty"`
 	WebhookUrl                       string  `json:"webhook_url,omitempty"`
 	WebhookSecret                    string  `json:"webhook_secret,omitempty"`
 	NotificationEmail                string  `json:"notification_email,omitempty"`
@@ -1555,6 +1562,7 @@ type UpdateUserSettingRequest struct {
 	GotifyToken                      string  `json:"gotify_token,omitempty"`
 	GotifyPriority                   int     `json:"gotify_priority,omitempty"`
 	UpstreamModelUpdateNotifyEnabled *bool   `json:"upstream_model_update_notify_enabled,omitempty"`
+	ChannelNotifyEnabled             *bool   `json:"channel_notify_enabled,omitempty"`
 	AcceptUnsetModelRatioModel       bool    `json:"accept_unset_model_ratio_model"`
 	RecordIpLog                      *bool   `json:"record_ip_log,omitempty"`
 	DemoMode                         *bool   `json:"demo_mode,omitempty"`
@@ -1573,9 +1581,9 @@ func UpdateUserSetting(c *gin.Context) {
 		return
 	}
 
-	// 验证预警阈值
-	if req.QuotaWarningThreshold <= 0 {
-		common.ApiErrorT(c, "Warning threshold must be greater than 0")
+	// 验证预警阈值，0 表示使用系统默认阈值
+	if req.QuotaWarningThreshold < 0 {
+		common.ApiErrorT(c, "Reminder threshold cannot be negative")
 		return
 	}
 
@@ -1647,50 +1655,43 @@ func UpdateUserSetting(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	existingSettings := user.GetSetting()
-	if user.Role >= common.RoleAdminUser && req.UpstreamModelUpdateNotifyEnabled != nil {
-		existingSettings.UpstreamModelUpdateNotifyEnabled = *req.UpstreamModelUpdateNotifyEnabled
-	}
-	if user.Role >= common.RoleRootUser && req.RecordIpLog != nil {
-		existingSettings.RecordIpLog = *req.RecordIpLog
-	}
-	if req.DemoMode != nil {
-		existingSettings.DemoMode = *req.DemoMode
-	}
-
-	// 更新表单管理的设置，同时保留语言、侧边栏、扣费偏好等独立配置。
-	settings := existingSettings
+	// 更新表单管理的设置，保留语言、侧边栏、扣费偏好和未提交的开关。
+	settings := user.GetSetting()
 	settings.NotifyType = req.QuotaWarningType
 	settings.QuotaWarningThreshold = req.QuotaWarningThreshold
 	settings.AcceptUnsetRatioModel = req.AcceptUnsetModelRatioModel
-	settings.WebhookUrl = ""
-	settings.WebhookSecret = ""
-	settings.NotificationEmail = ""
-	settings.BarkUrl = ""
-	settings.GotifyUrl = ""
-	settings.GotifyToken = ""
-	settings.GotifyPriority = 0
-
-	// 如果是webhook类型,添加webhook相关设置
-	if req.QuotaWarningType == dto.NotifyTypeWebhook {
-		settings.WebhookUrl = req.WebhookUrl
-		if req.WebhookSecret != "" {
-			settings.WebhookSecret = req.WebhookSecret
+	if req.QuotaWarningEnabled != nil {
+		settings.QuotaWarningEnabled = req.QuotaWarningEnabled
+	}
+	if user.Role >= common.RoleAdminUser {
+		if req.UpstreamModelUpdateNotifyEnabled != nil {
+			settings.UpstreamModelUpdateNotifyEnabled = *req.UpstreamModelUpdateNotifyEnabled
+		}
+		if req.ChannelNotifyEnabled != nil {
+			settings.ChannelNotifyEnabled = req.ChannelNotifyEnabled
 		}
 	}
+	if user.Role >= common.RoleRootUser && req.RecordIpLog != nil {
+		settings.RecordIpLog = *req.RecordIpLog
+	}
+	if req.DemoMode != nil {
+		settings.DemoMode = *req.DemoMode
+	}
 
-	// 如果提供了通知邮箱，添加到设置中
-	if req.QuotaWarningType == dto.NotifyTypeEmail && req.NotificationEmail != "" {
+	// 只保留所选通知方式的配置，其他方式的配置清空
+	settings.WebhookUrl, settings.WebhookSecret = "", ""
+	settings.NotificationEmail = ""
+	settings.BarkUrl = ""
+	settings.GotifyUrl, settings.GotifyToken, settings.GotifyPriority = "", "", 0
+	switch req.QuotaWarningType {
+	case dto.NotifyTypeWebhook:
+		settings.WebhookUrl = req.WebhookUrl
+		settings.WebhookSecret = req.WebhookSecret
+	case dto.NotifyTypeEmail:
 		settings.NotificationEmail = req.NotificationEmail
-	}
-
-	// 如果是Bark类型，添加Bark URL到设置中
-	if req.QuotaWarningType == dto.NotifyTypeBark {
+	case dto.NotifyTypeBark:
 		settings.BarkUrl = req.BarkUrl
-	}
-
-	// 如果是Gotify类型，添加Gotify配置到设置中
-	if req.QuotaWarningType == dto.NotifyTypeGotify {
+	case dto.NotifyTypeGotify:
 		settings.GotifyUrl = req.GotifyUrl
 		settings.GotifyToken = req.GotifyToken
 		// Gotify优先级范围0-10，超出范围则使用默认值5

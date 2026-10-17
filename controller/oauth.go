@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
@@ -321,9 +322,16 @@ func handleOAuthBind(c *gin.Context, providerName string, provider oauth.Provide
 		writeSecurityOperationError(c, err)
 		return true, true
 	}
-	notificationFailed := service.NotifyAccountSecurityChange(user.Email, "Login account linked: "+provider.GetName(), common.SMTPAuditMetadata{
-		UserID: user.Id, ActorID: identity.UserID, RequestID: c.GetString(common.RequestIdKey),
-	}) != nil
+	notificationFailed := service.NotifyAccountSecurityChangeWithAudit(
+		service.AccountMailLanguage(c, user.Id),
+		user.Email,
+		i18n.MsgSecurityEventLoginLinked,
+		common.SMTPAuditMetadata{
+			UserID: user.Id, ActorID: identity.UserID,
+			RequestID: c.GetString(common.RequestIdKey),
+		},
+		map[string]any{"Provider": provider.GetName()},
+	) != nil
 	common.ApiSuccessT(c, "Binding successful", gin.H{"action": "bind", "notification_warning": notificationFailed})
 	return true, notificationFailed
 }

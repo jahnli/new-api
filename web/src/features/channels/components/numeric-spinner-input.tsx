@@ -149,6 +149,7 @@ export function NumericSpinnerInput({
 
         {editing ? (
           <input
+            data-slot='numeric-spinner-value'
             ref={inputRef}
             type='text'
             value={localValue}
@@ -160,6 +161,7 @@ export function NumericSpinnerInput({
           />
         ) : (
           <button
+            data-slot='numeric-spinner-value'
             type='button'
             onClick={handleStartEdit}
             disabled={disabled}

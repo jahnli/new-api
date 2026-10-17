@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -46,7 +47,11 @@ func EmailBindStart(c *gin.Context) {
 	if authorization == nil {
 		return
 	}
-	data, err := service.StartEmailBinding(identity, authorization, email, common.SMTPAuditMetadata{RequestID: c.GetString(common.RequestIdKey)})
+	data, err := service.StartEmailBinding(
+		identity, authorization, email,
+		service.AccountMailLanguage(c, identity.UserID),
+		common.SMTPAuditMetadata{RequestID: c.GetString(common.RequestIdKey)},
+	)
 	if err != nil {
 		writeSecurityOperationError(c, err)
 		return
@@ -70,7 +75,11 @@ func EmailBindResend(c *gin.Context) {
 		writeSecurityOperationError(c, model.ErrAuthFlowInvalid)
 		return
 	}
-	data, err := service.ResendAccountEmailBinding(identity, request.FlowToken, common.SMTPAuditMetadata{RequestID: c.GetString(common.RequestIdKey)})
+	data, err := service.ResendAccountEmailBinding(
+		identity, request.FlowToken,
+		service.AccountMailLanguage(c, identity.UserID),
+		common.SMTPAuditMetadata{RequestID: c.GetString(common.RequestIdKey)},
+	)
 	if err != nil {
 		writeSecurityOperationError(c, err)
 		return
@@ -100,9 +109,17 @@ func EmailBind(c *gin.Context) {
 		return
 	}
 	succeeded = true
-	audit := common.SMTPAuditMetadata{UserID: identity.UserID, ActorID: identity.UserID, RequestID: c.GetString(common.RequestIdKey)}
-	notificationFailed = service.NotifyAccountSecurityChange(state.CurrentEmail, "Email address changed", audit) != nil
-	if err := service.NotifyAccountSecurityChange(state.Email, "Email address confirmed", audit); err != nil {
+	lang := service.AccountMailLanguage(c, identity.UserID)
+	audit := common.SMTPAuditMetadata{
+		UserID: identity.UserID, ActorID: identity.UserID,
+		RequestID: c.GetString(common.RequestIdKey),
+	}
+	notificationFailed = service.NotifyAccountSecurityChangeWithAudit(
+		lang, state.CurrentEmail, i18n.MsgSecurityEventEmailChanged, audit,
+	) != nil
+	if err := service.NotifyAccountSecurityChangeWithAudit(
+		lang, state.Email, i18n.MsgSecurityEventEmailConfirmed, audit,
+	); err != nil {
 		notificationFailed = true
 	}
 	if err := model.PublishUserAuthCache(identity.UserID); err != nil {

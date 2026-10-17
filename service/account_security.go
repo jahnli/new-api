@@ -6,9 +6,11 @@ import (
 	"html"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
 	"github.com/QuantumNous/new-api/setting/system_setting"
+	"github.com/gin-gonic/gin"
 )
 
 func UnbindAccountOAuth(identity AuthIdentity, providerID int) error {
@@ -30,18 +32,42 @@ func UnbindAccountOAuth(identity AuthIdentity, providerID int) error {
 	return model.UnbindUserOAuthForSession(identity, providerID, enabled)
 }
 
+// AccountMailLanguage is the language of mail about a user's account: the
+// language the user saved, else the one the request stated.
+func AccountMailLanguage(c *gin.Context, userId int) string {
+	if lang := model.GetUserLanguage(userId); lang != "" {
+		return lang
+	}
+	return i18n.StatedLang(c)
+}
+
 // NotifyAccountSecurityChange never includes credentials or tokens. The caller
 // records delivery failure independently from the already-committed change.
-func NotifyAccountSecurityChange(email, event string, metadata ...common.SMTPAuditMetadata) error {
+// eventKey names the change; the notice is written in lang (see
+// AccountMailLanguage).
+func NotifyAccountSecurityChange(lang, email, eventKey string, eventArgs ...map[string]any) error {
+	return NotifyAccountSecurityChangeWithAudit(
+		lang, email, eventKey, common.SMTPAuditMetadata{}, eventArgs...,
+	)
+}
+
+// NotifyAccountSecurityChangeWithAudit associates a localized account security
+// notice with the user, actor, and request that caused the change.
+func NotifyAccountSecurityChangeWithAudit(
+	lang, email, eventKey string,
+	audit common.SMTPAuditMetadata,
+	eventArgs ...map[string]any,
+) error {
 	if email == "" {
 		return nil
 	}
-	subject := common.SystemName + " — Account security notification"
-	content := fmt.Sprintf("<p>Your account security settings have changed: %s.</p><p>If you did not make this change, open your account security settings, revoke other login sessions, and contact your administrator.</p>", html.EscapeString(event))
-	var audit common.SMTPAuditMetadata
-	if len(metadata) > 0 {
-		audit = metadata[0]
-	}
+	event := html.EscapeString(i18n.Translate(lang, eventKey, eventArgs...))
+	subject := i18n.Translate(lang, i18n.MsgEmailSecurityNoticeSubject,
+		map[string]any{"SystemName": common.SystemName})
+	content := fmt.Sprintf("<p>%s</p><p>%s</p>",
+		i18n.Translate(lang, i18n.MsgEmailSecurityNoticeChanged,
+			map[string]any{"Event": event}),
+		i18n.Translate(lang, i18n.MsgEmailSecurityNoticeAdvice))
 	audit.Purpose = "account_security"
 	ctx := common.WithSMTPAudit(context.Background(), audit)
 	return common.SendEmailWithContext(ctx, subject, email, content)
