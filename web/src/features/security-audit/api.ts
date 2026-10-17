@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
 import type {
   GetImageAuditParams,
@@ -49,4 +50,11 @@ export async function getImageAudit(
   })
   const res = await api.get(`/api/security_audit/image_studio?${queryParams}`)
   return res.data
+}
+
+export async function deleteImageAudit(id: string): Promise<void> {
+  const res = await api.delete(
+    `/api/security_audit/image_studio/${encodeURIComponent(id)}`
+  )
+  requireServerSuccess(res.data)
 }

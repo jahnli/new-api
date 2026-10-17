@@ -1,12 +1,21 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import type { OnChangeFn, PaginationState } from '@tanstack/react-table'
+import { Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
-import { DataTablePage, useDataTable } from '@/components/data-table'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  DataTableBulkActions,
+  DataTablePage,
+  useDataTable,
+} from '@/components/data-table'
+import { Button } from '@/components/ui/button'
+import { handleServerError } from '@/lib/handle-server-error'
 
-import { getImageAudit } from '../api'
+import { deleteImageAudit, getImageAudit } from '../api'
 import type { ImageAuditItem, ImageAuditPreviewTarget } from '../types'
 import { useImageAuditColumns } from './image-audit-columns'
 import { ImageAuditPreviewDialog } from './image-audit-preview-dialog'
@@ -24,6 +33,8 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const search = route.useSearch()
+  const queryClient = useQueryClient()
+  const [deleteTargets, setDeleteTargets] = useState<string[]>([])
 
   const pagination: PaginationState = {
     pageIndex: (search.imageAuditPage ?? 1) - 1,
@@ -93,12 +104,52 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
     [previewOpen]
   )
 
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const deletedIds: string[] = []
+      const failures: Array<{ id: string; error: unknown }> = []
+      for (const id of ids) {
+        try {
+          await deleteImageAudit(id)
+          deletedIds.push(id)
+        } catch (error) {
+          failures.push({ id, error })
+        }
+      }
+      return { deletedIds, failures }
+    },
+    onSuccess: async ({ deletedIds, failures }) => {
+      setDeleteTargets([])
+      table.setRowSelection(
+        Object.fromEntries(failures.map(({ id }) => [id, true]))
+      )
+      setPreviewOpen(false)
+      setPreviewTarget(null)
+      setRequestContentOpen(false)
+      setRequestContentItem(null)
+      if (failures.length > 0) {
+        handleServerError(failures[0].error)
+      } else {
+        toast.success(t('Deleted successfully'))
+      }
+      if (deletedIds.length === items.length && pagination.pageIndex > 0) {
+        onPaginationChange({
+          ...pagination,
+          pageIndex: pagination.pageIndex - 1,
+        })
+      }
+      await queryClient.invalidateQueries({
+        queryKey: ['security-audit', 'image-studio'],
+      })
+    },
+  })
+
   const columns = useImageAuditColumns(handlePreview, handleViewRequestContent)
 
   const { table } = useDataTable({
     data: items,
     columns,
-    enableRowSelection: false,
+    enableRowSelection: !deleteMutation.isPending,
     getRowId: (row) => row.id,
     pagination,
     onPaginationChange,
@@ -109,6 +160,25 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
 
   return (
     <>
+      <ConfirmDialog
+        open={deleteTargets.length > 0}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) setDeleteTargets([])
+        }}
+        title={t('Delete')}
+        desc={t(
+          'Permanently delete {{count}} selected generation records, their request content, and all their stored images? This cannot be undone. Billing logs and charges are retained.',
+          { count: deleteTargets.length }
+        )}
+        confirmText={t('Delete')}
+        destructive
+        isLoading={deleteMutation.isPending}
+        handleConfirm={() => {
+          if (deleteTargets.length > 0 && !deleteMutation.isPending) {
+            deleteMutation.mutate(deleteTargets)
+          }
+        }}
+      />
       <DataTablePage
         table={table}
         columns={columns}
@@ -126,6 +196,25 @@ export function ImageAuditTable(props: ImageAuditTableProps) {
             : 'px-2 whitespace-normal [overflow-wrap:anywhere]'
         }
         toolbarProps={null}
+        bulkActions={
+          <DataTableBulkActions table={table} entityName=''>
+            <Button
+              variant='destructive'
+              size='sm'
+              disabled={deleteMutation.isPending}
+              onClick={() =>
+                setDeleteTargets(
+                  table
+                    .getFilteredSelectedRowModel()
+                    .rows.map((row) => row.original.id)
+                )
+              }
+            >
+              <Trash2 className='size-4' aria-hidden='true' />
+              {t('Delete')}
+            </Button>
+          </DataTableBulkActions>
+        }
         tableClassName='[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]'
       />
       <ImageAuditPreviewDialog

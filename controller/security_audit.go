@@ -126,3 +126,37 @@ func GetImageStudioAudit(c *gin.Context) {
 	pageInfo.SetItems(items)
 	common.ApiSuccess(c, pageInfo)
 }
+
+// DeleteImageStudioAudit permanently removes the stored images and request record.
+func DeleteImageStudioAudit(c *gin.Context) {
+	err := model.DeleteImageStudioAuditGeneration(c.Param("id"), func(record *model.ImageStudioGeneration) error {
+		if len(record.Images) == 0 {
+			return nil
+		}
+		paths := make([]string, 0, len(record.Images))
+		for _, asset := range record.Images {
+			assetPath, err := cleanImageStudioAssetPath(asset.Path)
+			if err != nil {
+				return err
+			}
+			// Paths come from the locked generation record, not the request.
+			// Storage folders use names and can predate a user's rename.
+			paths = append(paths, assetPath)
+		}
+		storage, err := getImageStudioStorage()
+		if err != nil {
+			return err
+		}
+		for _, assetPath := range paths {
+			if err := storage.Delete(c.Request.Context(), assetPath); err != nil {
+				return fmt.Errorf("delete image studio asset: %w", err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}

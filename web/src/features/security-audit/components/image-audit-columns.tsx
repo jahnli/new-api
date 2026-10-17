@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { TextTooltip } from '@/components/text-tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Tooltip,
   TooltipContent,
@@ -190,6 +191,33 @@ export function useImageAuditColumns(
 
   return useMemo<ColumnDef<ImageAuditItem>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected()}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            disabled={
+              !table.getRowModel().rows.some((row) => row.getCanSelect())
+            }
+            aria-label={t('Select all')}
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            disabled={!row.getCanSelect()}
+            aria-label={t('Select row')}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        size: 40,
+      },
       {
         id: 'created_at',
         header: t('Time'),

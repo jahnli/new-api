@@ -453,6 +453,7 @@ func SetApiRouter(router *gin.Engine) {
 			securityAuditRoute.GET("/off_hours", controller.GetOffHoursUsage)
 			securityAuditRoute.POST("/off_hours/notify-violation", controller.NotifyOffHoursViolation)
 			securityAuditRoute.GET("/image_studio", controller.GetImageStudioAudit)
+			securityAuditRoute.DELETE("/image_studio/:id", controller.DeleteImageStudioAudit)
 		}
 
 		logRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())

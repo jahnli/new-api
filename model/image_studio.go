@@ -155,6 +155,24 @@ func HideImageStudioGeneration(id string, userID int, isAdmin bool) error {
 	return nil
 }
 
+// DeleteImageStudioAuditGeneration keeps the asset paths available for retry if
+// object cleanup fails. The row lock serializes deletion with image appends.
+func DeleteImageStudioAuditGeneration(id string, deleteAssets func(*ImageStudioGeneration) error) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var record ImageStudioGeneration
+		if err := lockForUpdate(tx).Where("id = ?", id).First(&record).Error; err != nil {
+			return err
+		}
+		if err := loadImageStudioGenerationImages(&record); err != nil {
+			return err
+		}
+		if err := deleteAssets(&record); err != nil {
+			return err
+		}
+		return tx.Where("id = ?", id).Delete(&ImageStudioGeneration{}).Error
+	})
+}
+
 func HideUserImageStudioGenerations(userID int) error {
 	return DB.Model(&ImageStudioGeneration{}).Where("user_id = ?", userID).Updates(map[string]any{
 		"hidden_from_studio": true,
