@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { UserProfileHoverCard } from '@/features/users/components/user-profile-hover-card'
 import type { UserColumnRow } from '@/features/users/types'
@@ -85,9 +86,11 @@ export function LogUserCell(props: LogUserCellProps) {
 
   if (demoMode) {
     return (
-      <div className={cn('w-[120px] max-w-full truncate', props.className)}>
-        {primaryName}
-      </div>
+      <TextTooltip content={primaryName} onlyWhenOverflow>
+        <div className={cn('w-[120px] max-w-full truncate', props.className)}>
+          {primaryName}
+        </div>
+      </TextTooltip>
     )
   }
 
@@ -174,10 +177,14 @@ export function LogUserCell(props: LogUserCellProps) {
         avatarLink
       )}
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
-        <div className='max-w-full truncate'>{primaryName}</div>
+        <TextTooltip content={primaryName} onlyWhenOverflow>
+          <div className='max-w-full truncate'>{primaryName}</div>
+        </TextTooltip>
         {primaryName !== resolvedUsername ? (
           <div className='text-muted-foreground/70 flex min-w-0 items-center gap-1.5 text-xs'>
-            <div className='min-w-0 flex-1 truncate'>{resolvedUsername}</div>
+            <TextTooltip content={resolvedUsername} onlyWhenOverflow>
+              <div className='min-w-0 flex-1 truncate'>{resolvedUsername}</div>
+            </TextTooltip>
           </div>
         ) : null}
       </div>

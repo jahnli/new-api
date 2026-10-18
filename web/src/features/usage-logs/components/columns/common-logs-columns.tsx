@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { StatusBadge, type StatusBadgeProps } from "@/components/status-badge";
+import { TextTooltip } from "@/components/text-tooltip";
 import { TokenBreakdownTooltipContent } from "@/components/token-breakdown-tooltip-content";
 import {
   Popover,
@@ -958,9 +959,11 @@ export function useCommonLogsColumns(
                 onClick={() => setDialogOpen(true)}
                 aria-label={t("Click to view the full conversation")}
               >
-                <span className="text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline">
-                  {latestMessage}
-                </span>
+                <TextTooltip content={latestMessage} onlyWhenOverflow>
+                  <span className="text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline">
+                    {latestMessage}
+                  </span>
+                </TextTooltip>
                 {messages.length > 1 && (
                   <span className="text-muted-foreground/40 shrink-0 !font-normal">
                     +{messages.length - 1}
@@ -1015,19 +1018,15 @@ export function useCommonLogsColumns(
         }
 
         return (
-          <Tooltip>
-            <TooltipTrigger render={<div className="max-w-[150px]" />}>
-              <span className="text-muted-foreground block truncate font-mono text-xs !font-normal">
-                {client}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent
-              side="top"
-              className="max-w-md font-mono text-xs break-all"
-            >
+          <TextTooltip
+            content={client}
+            onlyWhenOverflow
+            contentClassName="max-w-md font-mono text-xs break-all"
+          >
+            <span className="text-muted-foreground block max-w-[150px] truncate font-mono text-xs !font-normal">
               {client}
-            </TooltipContent>
-          </Tooltip>
+            </span>
+          </TextTooltip>
         );
       },
       size: 150,
@@ -1081,9 +1080,11 @@ export function useCommonLogsColumns(
                 className="border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)] font-normal [&>span]:truncate"
               />
               {metaParts.length > 0 && (
-                <span className="text-muted-foreground/60 truncate [font-family:var(--font-body)] !text-xs">
-                  {metaParts.join(" · ")}
-                </span>
+                <TextTooltip content={metaParts.join(" · ")} onlyWhenOverflow>
+                  <span className="text-muted-foreground/60 truncate [font-family:var(--font-body)] !text-xs">
+                    {metaParts.join(" · ")}
+                  </span>
+                </TextTooltip>
               )}
             </div>
           );
@@ -1140,28 +1141,35 @@ export function useCommonLogsColumns(
           );
           if (log.content) {
             detailContent = (
-              <span
-                className={cn("truncate hover:underline", contentTextClassName)}
+              <TextTooltip
+                content={renderLogContent(other, t) ?? log.content}
+                onlyWhenOverflow
               >
-                {renderLogContent(other, t) ?? log.content}
-              </span>
+                <span
+                  className={cn("truncate hover:underline", contentTextClassName)}
+                >
+                  {renderLogContent(other, t) ?? log.content}
+                </span>
+              </TextTooltip>
             );
           }
           if (primary) {
             detailContent = (
-              <span
-                className={cn(
-                  "truncate leading-snug hover:underline",
-                  primaryTextClassName,
-                )}
-              >
-                {primary.text}
-                {hasMore && (
-                  <span className="text-muted-foreground/40 ml-0.5 !font-normal">
-                    +{segments.length - 1}
-                  </span>
-                )}
-              </span>
+              <TextTooltip content={primary.text} onlyWhenOverflow>
+                <span
+                  className={cn(
+                    "truncate leading-snug hover:underline",
+                    primaryTextClassName,
+                  )}
+                >
+                  {primary.text}
+                  {hasMore && (
+                    <span className="text-muted-foreground/40 ml-0.5 !font-normal">
+                      +{segments.length - 1}
+                    </span>
+                  )}
+                </span>
+              </TextTooltip>
             );
           }
 
