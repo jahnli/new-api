@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -75,7 +76,7 @@ func GetOptions(c *gin.Context) {
 	optionValues := make(map[string]string)
 	common.OptionMapRWMutex.Lock()
 	for k, v := range common.OptionMap {
-		if k == "billing_setting.billing_mode" || k == "billing_setting.billing_expr" {
+		if k == "billing_setting.billing_mode" || k == "billing_setting.billing_expr" || k == "ResendKeyConfigured" {
 			continue
 		}
 		value := common.Interface2String(v)
@@ -95,6 +96,9 @@ func GetOptions(c *gin.Context) {
 			optionValues[k] = value
 		}
 	}
+	options = append(options, &model.Option{
+		Key: "ResendKeyConfigured", Value: strconv.FormatBool(strings.TrimSpace(common.OptionMap["ResendApiKey"]) != ""),
+	})
 	common.OptionMapRWMutex.Unlock()
 	// Display the same effective expressions used by pricing and settlement,
 	// including built-in defaults absent from persisted administrator options.
