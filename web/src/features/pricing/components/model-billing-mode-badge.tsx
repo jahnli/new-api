@@ -39,7 +39,7 @@ export function ModelBillingModeBadge(props: ModelBillingModeBadgeProps) {
   let variant: StatusVariant = 'purple'
 
   if (isDynamicPricingModel(props.model)) {
-    variant = 'primary'
+    variant = isCaption ? 'warning' : 'primary'
   } else if (labelKey === 'Token-based') {
     variant = 'info'
   }

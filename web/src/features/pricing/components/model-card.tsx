@@ -21,13 +21,14 @@ import { memo, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
-import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { DEMO_MODE_MASK } from '@/lib/demo-mode'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 import { useSystemConfigStore } from '@/stores/system-config-store'
+
+import '@/styles/model-card.css'
 
 import { DEFAULT_TOKEN_UNIT } from '../constants'
 import { useBillingTime } from '../hooks/use-billing-time'
@@ -39,9 +40,8 @@ import {
   isUnconfiguredTaskUsageModel,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import { getModelDisplayGroup, isTokenBasedModel } from '../lib/model-helpers'
+import { isTokenBasedModel } from '../lib/model-helpers'
 import { formatPrice, formatRequestPrice } from '../lib/price'
-import { getTaskNumberFields } from '../lib/task-expr'
 import { taskPriceLabel, taskUsageUnitLabel } from '../lib/task-price-display'
 import type { PricingModel, PriceType, TokenUnit } from '../types'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
@@ -57,7 +57,6 @@ export interface ModelCardProps {
   tokenUnit?: TokenUnit
   showRechargePrice?: boolean
   selectedGroup?: string
-  currentUserGroup?: string
   maskPrices?: boolean
   /**
    * Hide the corner "Recommended" badge on surfaces where every card is a
@@ -87,7 +86,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const tags = parseTags(props.model.tags)
-  const groups = props.model.enable_groups || []
+  const groups = showGroups ? props.model.enable_groups || [] : []
   const endpoints = showEndpoints
     ? props.model.supported_endpoint_types || []
     : []
@@ -131,17 +130,6 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.model, dynamicPriceOptions, currency]
   )
-  const showTaskFieldLabels =
-    getTaskNumberFields(props.model.billing_usage_schema).length > 1
-  // With the endpoint list already gated above, nulling the group here makes
-  // the metadata row below disappear when both are hidden, and drop to one
-  // column when only the endpoints remain.
-  const displayGroup = showGroups
-    ? getModelDisplayGroup(props.model, props.currentUserGroup)
-    : null
-  const hiddenGroupCount = displayGroup
-    ? Math.max(groups.length - (groups.includes(displayGroup) ? 1 : 0), 0)
-    : 0
   let priceSummary: ReactNode
   if (dynamicSummary) {
     const cacheReadEntries = dynamicSummary.secondaryEntries.filter(
@@ -150,7 +138,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     if (dynamicSummary.isSpecialExpression) {
       priceSummary = (
         <div className='col-span-full min-w-0'>
-          <span className='text-primary'>
+          <span className='text-warning'>
             {t('Special billing expression')}
           </span>
           <code className='text-muted-foreground mt-1 line-clamp-2 block font-mono text-xs break-all'>
@@ -182,7 +170,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
               let label: ReactNode = null
               if (entry.labelKind !== 'schema') {
                 label = t(entry.shortLabel)
-              } else if (showTaskFieldLabels) {
+              } else {
                 label = taskPriceLabel(
                   entry.description,
                   entry.shortLabel,
@@ -201,13 +189,13 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                   )}
                 >
                   {label && (
-                    <span className='text-muted-foreground text-[13px] break-words whitespace-normal'>
+                    <span className='text-muted-foreground text-xs break-words whitespace-normal'>
                       {label}
                     </span>
                   )}
-                  <span className='flex flex-wrap items-baseline gap-x-1 font-mono text-[15px] font-semibold tabular-nums'>
+                  <span className='flex flex-wrap items-baseline gap-x-1 font-mono text-sm font-semibold tabular-nums'>
                     <span>{displayedPrice}</span>
-                    <span className='text-muted-foreground text-[13px] font-normal whitespace-nowrap'>
+                    <span className='text-muted-foreground text-xs font-normal whitespace-nowrap'>
                       {' '}
                       / {unitLabel}
                     </span>
@@ -268,8 +256,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     ]
     priceSummary = prices.map((price) => (
       <div key={price.type} className='flex min-w-0 flex-col gap-1'>
-        <span className='text-muted-foreground text-[13px]'>{price.label}</span>
-        <span className='font-mono text-[15px] font-semibold tabular-nums'>
+        <span className='text-muted-foreground text-xs'>{price.label}</span>
+        <span className='font-mono text-sm font-semibold tabular-nums'>
           {props.maskPrices
             ? DEMO_MODE_MASK
             : formatPrice(
@@ -281,7 +269,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 usdExchangeRate,
                 props.selectedGroup
               )}
-          <span className='text-muted-foreground text-[13px] font-normal'>
+          <span className='text-muted-foreground text-xs font-normal'>
             {' '}
             / {tokenUnitLabel}
           </span>
@@ -291,7 +279,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   } else {
     priceSummary = (
       <div className='col-span-full flex min-w-0 flex-col gap-1'>
-        <span className='font-mono text-[15px] font-semibold tabular-nums'>
+        <span className='font-mono text-sm font-semibold tabular-nums'>
           {props.maskPrices
             ? DEMO_MODE_MASK
             : formatRequestPrice(
@@ -301,7 +289,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 usdExchangeRate,
                 props.selectedGroup
               )}
-          <span className='text-muted-foreground text-[13px] font-normal'>
+          <span className='text-muted-foreground text-xs font-normal'>
             {' '}
             / {t('request')}
           </span>
@@ -312,15 +300,15 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
 
   return (
     <Card
-      data-card-hover='false'
+      data-card-hover={props.model.is_recommended ? 'false' : undefined}
       className={cn(
-        'relative h-full min-w-0 gap-3 overflow-visible border border-foreground/10 ring-0 transition-colors',
+        'model-square-card h-full min-w-0 gap-3 transition-colors',
         props.model.is_recommended
-          ? 'bg-linear-to-br from-amber-50/60 via-card to-card hover:border-amber-400 dark:from-amber-950/20 dark:hover:border-amber-600'
-          : 'hover:border-foreground/20'
+          ? 'relative overflow-visible border border-foreground/10 bg-linear-to-br from-amber-50/60 via-card to-card ring-0 hover:border-amber-400 dark:from-amber-950/20 dark:hover:border-amber-600'
+          : 'hover:ring-foreground/20'
       )}
     >
-      <CardHeader className='grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5'>
+      <CardHeader className='flex flex-row items-start gap-3'>
         <div
           aria-hidden
           className='bg-muted/50 flex size-10 shrink-0 items-center justify-center rounded-lg'
@@ -332,27 +320,29 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           )}
         </div>
         <div className='min-w-0 flex-1'>
-          <TextTooltip content={props.model.model_name} onlyWhenOverflow>
-            <h3 className='line-clamp-2 font-mono text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]'>
-              {props.model.model_name}
-            </h3>
-          </TextTooltip>
+          <h3
+            className='line-clamp-2 font-mono text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]'
+            title={props.model.model_name}
+          >
+            {props.model.model_name}
+          </h3>
           {props.model.vendor_name && (
-            <TextTooltip content={props.model.vendor_name} onlyWhenOverflow>
-              <p className='text-muted-foreground mt-1 truncate text-xs'>
-                {props.model.vendor_name}
-              </p>
-            </TextTooltip>
+            <p
+              className='text-muted-foreground mt-1 truncate text-xs'
+              title={props.model.vendor_name}
+            >
+              {props.model.vendor_name}
+            </p>
           )}
         </div>
         <CopyButton
           value={props.model.model_name}
           tooltip={t('Copy model name')}
-          className='size-7 shrink-0'
+          className='size-7'
           iconClassName='size-3.5'
         />
       </CardHeader>
-      <CardContent className='flex flex-1 flex-col gap-3 py-2 sm:py-2'>
+      <CardContent className='flex flex-1 flex-col gap-3 px-4 py-0 sm:px-4 sm:py-0'>
         {(showDescription || tags.length > 0) && (
           <div className='flex min-w-0 flex-col gap-1.5'>
             {showDescription && (
@@ -367,15 +357,13 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 className='text-muted-foreground flex min-w-0 items-baseline gap-1.5 text-xs'
               >
                 <span className='shrink-0'>{t('Tags')}</span>
-                <TextTooltip content={tags.join(', ')}>
-                  <span className='truncate'>
-                    {tags.slice(0, 2).join(', ')}
-                  </span>
-                </TextTooltip>
+                <span className='truncate' title={tags.join(', ')}>
+                  {tags.slice(0, 2).join(', ')}
+                </span>
                 {tags.length > 2 && (
-                  <TextTooltip content={tags.slice(2).join(', ')}>
-                    <span className='shrink-0'>+{tags.length - 2}</span>
-                  </TextTooltip>
+                  <span className='shrink-0' title={tags.slice(2).join(', ')}>
+                    +{tags.length - 2}
+                  </span>
                 )}
               </div>
             )}
@@ -384,33 +372,37 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
         <div
           role='group'
           aria-label={t('Pricing')}
-          className='mt-auto flex min-w-0 flex-col gap-1.5'
+          className='flex min-w-0 flex-col gap-1.5'
         >
-          <div className='flex min-w-0 items-center justify-between gap-3'>
-            <ModelBillingModeBadge
-              model={props.model}
-              appearance='caption'
-              className='shrink-0 text-[13px]'
-            />
-            {props.model.is_recommended && !showRecommendationBadge && (
-              <ModelRecommendationScenarios
-                scenarios={props.model.recommendation_scenarios}
-                className='mt-0 flex-1 justify-end [&>span]:max-w-full [&>span]:break-words'
+          {props.model.is_recommended ? (
+            <div className='flex min-w-0 items-center justify-between gap-3'>
+              <ModelBillingModeBadge
+                model={props.model}
+                appearance='caption'
+                className='shrink-0'
               />
-            )}
-            {props.model.is_recommended && showRecommendationBadge && (
-              <ModelRecommendationBadge
-                prominent
-                className='min-w-0 shrink gap-1 px-2 text-xs [&>svg]:size-3.5'
-                label={[
-                  t('Recommended'),
-                  ...(props.model.recommendation_scenarios ?? [])
-                    .filter((scenario) => scenario.trim())
-                    .map((scenario) => t(scenario)),
-                ].join(' · ')}
-              />
-            )}
-          </div>
+              {!showRecommendationBadge && (
+                <ModelRecommendationScenarios
+                  scenarios={props.model.recommendation_scenarios}
+                  className='mt-0 flex-1 justify-end [&>span]:max-w-full [&>span]:break-words'
+                />
+              )}
+              {showRecommendationBadge && (
+                <ModelRecommendationBadge
+                  prominent
+                  className='min-w-0 shrink gap-1 px-2 text-xs [&>svg]:size-3.5'
+                  label={[
+                    t('Recommended'),
+                    ...(props.model.recommendation_scenarios ?? [])
+                      .filter((scenario) => scenario.trim())
+                      .map((scenario) => t(scenario)),
+                  ].join(' · ')}
+                />
+              )}
+            </div>
+          ) : (
+            <ModelBillingModeBadge model={props.model} appearance='caption' />
+          )}
           {dynamicSummary?.providerCount && (
             <span className='text-muted-foreground text-xs break-words'>
               {t('{{count}} providers', {
@@ -420,36 +412,35 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                 ` · ${t('Not configured for some providers')}`}
             </span>
           )}
-          <div className='grid grid-cols-[repeat(auto-fit,minmax(88px,1fr))] gap-x-3 gap-y-2 py-2'>
+          {/* Keep the reference layout's empty tracks even without a full-width
+              time-pricing note; auto-fit otherwise stretches the price columns. */}
+          <div className='grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-x-3 gap-y-2'>
             {priceSummary}
           </div>
         </div>
-        {(displayGroup || endpoints.length > 0) && (
+        {(groups.length > 0 || endpoints.length > 0) && (
           <dl
             className={cn(
-              'grid min-w-0 grid-cols-2 gap-3 text-[13px]',
-              (!displayGroup || endpoints.length === 0) && 'grid-cols-1'
+              'grid min-w-0 grid-cols-2 gap-3 text-xs',
+              (groups.length === 0 || endpoints.length === 0) && 'grid-cols-1'
             )}
           >
-            {displayGroup && (
+            {groups.length > 0 && (
               <div className='flex min-w-0 items-baseline gap-1.5'>
                 <dt className='text-muted-foreground shrink-0'>
                   {t('Groups')}
                 </dt>
                 <dd className='flex min-w-0 items-baseline gap-1'>
-                  <TextTooltip content={displayGroup} onlyWhenOverflow>
-                    <span className='truncate'>{displayGroup}</span>
-                  </TextTooltip>
-                  {hiddenGroupCount > 0 && (
-                    <TextTooltip
-                      content={groups
-                        .filter((group) => group !== displayGroup)
-                        .join(', ')}
+                  <span className='truncate' title={groups.join(', ')}>
+                    {groups[0]}
+                  </span>
+                  {groups.length > 1 && (
+                    <span
+                      className='text-muted-foreground shrink-0'
+                      title={groups.slice(1).join(', ')}
                     >
-                      <span className='text-muted-foreground shrink-0'>
-                        +{hiddenGroupCount}
-                      </span>
-                    </TextTooltip>
+                      +{groups.length - 1}
+                    </span>
                   )}
                 </dd>
               </div>
@@ -460,17 +451,16 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                   {t('Endpoints')}
                 </dt>
                 <dd className='flex min-w-0 items-baseline gap-1'>
-                  <TextTooltip content={endpoints.join(', ')}>
-                    <span className='truncate'>
-                      {endpoints.slice(0, 2).join(', ')}
-                    </span>
-                  </TextTooltip>
+                  <span className='truncate' title={endpoints.join(', ')}>
+                    {endpoints.slice(0, 2).join(', ')}
+                  </span>
                   {endpoints.length > 2 && (
-                    <TextTooltip content={endpoints.slice(2).join(', ')}>
-                      <span className='text-muted-foreground shrink-0'>
-                        +{endpoints.length - 2}
-                      </span>
-                    </TextTooltip>
+                    <span
+                      className='text-muted-foreground shrink-0'
+                      title={endpoints.slice(2).join(', ')}
+                    >
+                      +{endpoints.length - 2}
+                    </span>
                   )}
                 </dd>
               </div>

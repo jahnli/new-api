@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { TextTooltip } from '@/components/text-tooltip'
 import {
   formatLatency,
   formatThroughput,
@@ -85,63 +84,57 @@ export const ModelPerfBadge = memo(function ModelPerfBadge(
         props.className
       )}
     >
-      <dl className='flex min-w-0 items-start gap-5 text-[13px] tabular-nums'>
+      <dl className='flex min-w-0 items-start gap-5 text-xs tabular-nums'>
         <div className='w-24 shrink-0'>
-          <TextTooltip
-            content={t(
+          <dt
+            title={t(
               'Success rate excludes business rejections and includes the current partial hour.'
             )}
+            className='text-muted-foreground flex items-center justify-between gap-1 text-[11px] leading-4'
           >
-            <dt className='text-muted-foreground flex items-center justify-between gap-1 text-xs leading-4'>
-              <span>{t('Status')}</span>
-              <span className='font-mono'>
-                {hasSuccessRate ? `${successRate.toFixed(2)}%` : '—'}
-              </span>
-            </dt>
-          </TextTooltip>
-          <TextTooltip content={statusLabel}>
-            <dd
-              role='img'
-              aria-label={statusLabel}
-              className='mt-1 flex h-3 w-24 items-center gap-px'
-            >
-              {statusSamples.length > 0 ? (
-                statusSamples.map((sample) => (
-                  <span
-                    key={sample.ts}
-                    aria-hidden
-                    className={cn(
-                      'h-full w-[3px] shrink-0 rounded-xs',
-                      getSuccessRateDotClass(sample.success_rate)
-                    )}
-                  />
-                ))
-              ) : (
-                <span className='text-muted-foreground'>—</span>
-              )}
-            </dd>
-          </TextTooltip>
+            <span>{t('Status')}</span>
+            <span className='font-mono'>
+              {hasSuccessRate ? `${successRate.toFixed(2)}%` : '—'}
+            </span>
+          </dt>
+          <dd
+            role='img'
+            aria-label={statusLabel}
+            title={statusLabel}
+            className='mt-1 flex h-3 w-24 items-center gap-px'
+          >
+            {statusSamples.length > 0 ? (
+              statusSamples.map((sample) => (
+                <span
+                  key={sample.ts}
+                  aria-hidden
+                  className={cn(
+                    'h-full w-[3px] shrink-0 rounded-xs',
+                    getSuccessRateDotClass(sample.success_rate)
+                  )}
+                />
+              ))
+            ) : (
+              <span className='text-muted-foreground'>—</span>
+            )}
+          </dd>
         </div>
-        <TextTooltip content={t('Average latency')}>
-          <div className='shrink-0'>
-            <dt className='text-muted-foreground text-xs leading-4'>
-              {t('Latency short')}
-            </dt>
-            <dd className='mt-1 font-mono whitespace-nowrap'>
-              {latencyText === '—' ? '—s' : latencyText}
-            </dd>
-          </div>
-        </TextTooltip>
-        <TextTooltip content={t('Throughput')}>
-          <div className='shrink-0'>
-            <dt className='text-muted-foreground text-xs leading-4'>
-              {t('Throughput short')}
-            </dt>
-            <dd className='mt-1 font-mono whitespace-nowrap'>
-              {throughputText === '—' ? '—t/s' : throughputText}
-            </dd>
-          </div>
-        </TextTooltip>
+        <div title={t('Average latency')} className='shrink-0'>
+          <dt className='text-muted-foreground text-[11px] leading-4'>
+            {t('Latency short')}
+          </dt>
+          <dd className='mt-1 font-mono whitespace-nowrap'>
+            {latencyText === '—' ? '—s' : latencyText}
+          </dd>
+        </div>
+        <div title={t('Throughput')} className='shrink-0'>
+          <dt className='text-muted-foreground text-[11px] leading-4'>
+            {t('Throughput short')}
+          </dt>
+          <dd className='mt-1 font-mono whitespace-nowrap'>
+            {throughputText === '—' ? '—t/s' : throughputText}
+          </dd>
+        </div>
       </dl>
       {props.children}
     </div>
