@@ -52,6 +52,10 @@ func notifyFeishuChannelStatusAsync(card map[string]any) {
 }
 
 func sendFeishuRobotCard(webhookURL string, card map[string]any) error {
+	return sendFeishuRobotCardContext(context.Background(), webhookURL, card)
+}
+
+func sendFeishuRobotCardContext(ctx context.Context, webhookURL string, card map[string]any) error {
 	normalizedWebhookURL, err := operation_setting.NormalizeFeishuRobotWebhookURL(webhookURL)
 	if err != nil {
 		return err
@@ -63,7 +67,7 @@ func sendFeishuRobotCard(webhookURL string, card map[string]any) error {
 		return fmt.Errorf("Feishu robot webhook rejected: %w", err)
 	}
 
-	requestContext, cancelRequest := context.WithTimeout(context.Background(), feishuRobotRequestTimeout)
+	requestContext, cancelRequest := context.WithTimeout(ctx, feishuRobotRequestTimeout)
 	defer cancelRequest()
 	return sendFeishuRobotCardRequest(requestContext, GetSSRFProtectedHTTPClient(), normalizedWebhookURL, card)
 }

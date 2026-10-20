@@ -37,6 +37,9 @@ export type HealthSettings = {
     | 'auto_ban_only'
     | 'passive_recovery'
   'monitor_setting.feishu_channel_status_webhook_url': string
+  'monitor_setting.usage_log_error_alert_enabled'?: boolean
+  'monitor_setting.usage_log_error_window_minutes'?: number
+  'monitor_setting.usage_log_error_threshold'?: number
 }
 export type FilteringSettings = Pick<
   SecuritySettings,
@@ -61,6 +64,9 @@ export const defaultRequestPolicySettings: RequestPolicySettings = {
   'monitor_setting.channel_test_concurrency': 1,
   'monitor_setting.channel_test_mode': 'scheduled_all',
   'monitor_setting.feishu_channel_status_webhook_url': '',
+  'monitor_setting.usage_log_error_alert_enabled': false,
+  'monitor_setting.usage_log_error_window_minutes': 5,
+  'monitor_setting.usage_log_error_threshold': 10,
   'channel_affinity_setting.enabled': false,
   'channel_affinity_setting.session_mode': '',
   'channel_affinity_setting.switch_on_success': true,

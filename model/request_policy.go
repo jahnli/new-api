@@ -22,15 +22,18 @@ import (
 // settings API. It is rebuilt from the option map on every option write, so
 // the runtime globals updated by the same write never disagree with it.
 type RequestPolicySnapshot struct {
-	Affinity        operation_setting.ChannelAffinitySetting
-	RetryTimes      int
-	RetryCodes      []operation_setting.StatusCodeRange
-	DisableCodes    []operation_setting.StatusCodeRange
-	DisableKeywords []string
-	CheckText       bool
-	TextKeywords    []string
-	AutoDisable     bool
-	Options         map[string]string
+	Affinity                   operation_setting.ChannelAffinitySetting
+	RetryTimes                 int
+	RetryCodes                 []operation_setting.StatusCodeRange
+	DisableCodes               []operation_setting.StatusCodeRange
+	DisableKeywords            []string
+	CheckText                  bool
+	TextKeywords               []string
+	AutoDisable                bool
+	Options                    map[string]string
+	UsageLogErrorAlertEnabled  bool
+	UsageLogErrorWindowMinutes int
+	UsageLogErrorThreshold     int
 }
 
 var requestPolicySnapshot atomic.Pointer[RequestPolicySnapshot]
@@ -69,7 +72,10 @@ func IsRequestPolicyOption(key string) bool {
 		return true
 	}
 	switch key {
-	case operation_setting.FeishuChannelStatusWebhookOptionKey:
+	case operation_setting.FeishuChannelStatusWebhookOptionKey,
+		operation_setting.UsageLogErrorAlertEnabledOptionKey,
+		operation_setting.UsageLogErrorWindowMinutesOptionKey,
+		operation_setting.UsageLogErrorThresholdOptionKey:
 		return true
 	case "CheckSensitiveEnabled", "CheckSensitiveOnPromptEnabled", "SensitiveWords", "AutomaticEnableChannelEnabled", "ChannelDisableThreshold", "monitor_setting.auto_test_channel_enabled", "monitor_setting.auto_test_channel_minutes", "monitor_setting.channel_test_concurrency", "monitor_setting.channel_test_mode", "RetryTimes", "AutomaticRetryStatusCodes", "AutomaticDisableChannelEnabled", "AutomaticDisableStatusCodes", "AutomaticDisableKeywords":
 		return true
@@ -100,6 +106,22 @@ func BuildRequestPolicy(options map[string]string) (*RequestPolicySnapshot, erro
 	}
 	maps.Copy(raw, options)
 	snapshot := &RequestPolicySnapshot{Options: raw}
+	var err error
+	snapshot.UsageLogErrorAlertEnabled, err = strconv.ParseBool(raw[operation_setting.UsageLogErrorAlertEnabledOptionKey])
+	if err != nil {
+		return nil, fmt.Errorf("Usage log error alert switch must be a boolean")
+	}
+	snapshot.UsageLogErrorWindowMinutes, err = strconv.Atoi(raw[operation_setting.UsageLogErrorWindowMinutesOptionKey])
+	if err != nil || snapshot.UsageLogErrorWindowMinutes < 1 || snapshot.UsageLogErrorWindowMinutes > 1440 {
+		return nil, fmt.Errorf("Error counting window must be between 1 and 1440 minutes")
+	}
+	snapshot.UsageLogErrorThreshold, err = strconv.Atoi(raw[operation_setting.UsageLogErrorThresholdOptionKey])
+	if err != nil || snapshot.UsageLogErrorThreshold < 1 || snapshot.UsageLogErrorThreshold > 1000000 {
+		return nil, fmt.Errorf("Error count threshold must be between 1 and 1000000")
+	}
+	if snapshot.UsageLogErrorAlertEnabled && strings.TrimSpace(raw[operation_setting.FeishuChannelStatusWebhookOptionKey]) == "" {
+		return nil, fmt.Errorf("Configure the Feishu webhook before enabling usage log error alerts")
+	}
 	affinityFields := map[string]string{}
 	for key, value := range raw {
 		if field, ok := strings.CutPrefix(key, "channel_affinity_setting."); ok {

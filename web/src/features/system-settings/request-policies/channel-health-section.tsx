@@ -85,9 +85,38 @@ const createChannelHealthSchema = (
           ),
         channel_test_mode: z.enum(channelTestModes),
         feishu_channel_status_webhook_url: z.string(),
+        usage_log_error_alert_enabled: z.boolean(),
+        usage_log_error_window_minutes: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(1, t('Error counting window must be between 1 and 1440 minutes'))
+          .max(
+            1440,
+            t('Error counting window must be between 1 and 1440 minutes')
+          ),
+        usage_log_error_threshold: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(1, t('Error count threshold must be between 1 and 1000000'))
+          .max(
+            1000000,
+            t('Error count threshold must be between 1 and 1000000')
+          ),
       }),
     })
     .superRefine((values, ctx) => {
+      if (
+        values.monitor_setting.usage_log_error_alert_enabled &&
+        !values.monitor_setting.feishu_channel_status_webhook_url.trim()
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['monitor_setting', 'feishu_channel_status_webhook_url'],
+          message: t(
+            'Configure the Feishu webhook before enabling usage log error alerts'
+          ),
+        })
+      }
       const disableParsed = parseHttpStatusCodeRules(
         values.AutomaticDisableStatusCodes
       )
@@ -138,6 +167,9 @@ type NormalizedChannelHealthValues = {
   'monitor_setting.channel_test_concurrency': number
   'monitor_setting.channel_test_mode': ChannelTestMode
   'monitor_setting.feishu_channel_status_webhook_url': string
+  'monitor_setting.usage_log_error_alert_enabled': boolean
+  'monitor_setting.usage_log_error_window_minutes': number
+  'monitor_setting.usage_log_error_threshold': number
 }
 
 function normalizeChannelTestMode(value?: string): ChannelTestMode {
@@ -158,6 +190,12 @@ const buildFormDefaults = (
   ),
   AutomaticDisableStatusCodes: defaults.AutomaticDisableStatusCodes ?? '',
   monitor_setting: {
+    usage_log_error_alert_enabled:
+      defaults['monitor_setting.usage_log_error_alert_enabled'] ?? false,
+    usage_log_error_window_minutes:
+      defaults['monitor_setting.usage_log_error_window_minutes'] ?? 5,
+    usage_log_error_threshold:
+      defaults['monitor_setting.usage_log_error_threshold'] ?? 10,
     auto_test_channel_enabled:
       defaults['monitor_setting.auto_test_channel_enabled'],
     auto_test_channel_minutes:
@@ -175,6 +213,12 @@ const buildFormDefaults = (
 const normalizeDefaults = (
   defaults: ChannelHealthSectionProps['defaultValues']
 ): NormalizedChannelHealthValues => ({
+  'monitor_setting.usage_log_error_alert_enabled':
+    defaults['monitor_setting.usage_log_error_alert_enabled'] ?? false,
+  'monitor_setting.usage_log_error_window_minutes':
+    defaults['monitor_setting.usage_log_error_window_minutes'] ?? 5,
+  'monitor_setting.usage_log_error_threshold':
+    defaults['monitor_setting.usage_log_error_threshold'] ?? 10,
   ChannelDisableThreshold: (defaults.ChannelDisableThreshold ?? '').trim(),
   AutomaticDisableChannelEnabled: defaults.AutomaticDisableChannelEnabled,
   AutomaticEnableChannelEnabled: defaults.AutomaticEnableChannelEnabled,
@@ -201,6 +245,12 @@ const normalizeDefaults = (
 const normalizeFormValues = (
   values: ChannelHealthFormValues
 ): NormalizedChannelHealthValues => ({
+  'monitor_setting.usage_log_error_alert_enabled':
+    values.monitor_setting.usage_log_error_alert_enabled,
+  'monitor_setting.usage_log_error_window_minutes':
+    values.monitor_setting.usage_log_error_window_minutes,
+  'monitor_setting.usage_log_error_threshold':
+    values.monitor_setting.usage_log_error_threshold,
   ChannelDisableThreshold: values.ChannelDisableThreshold.trim(),
   AutomaticDisableChannelEnabled: values.AutomaticDisableChannelEnabled,
   AutomaticEnableChannelEnabled: values.AutomaticEnableChannelEnabled,
@@ -354,13 +404,87 @@ export function ChannelHealthSection({
                   </FormControl>
                   <FormDescription>
                     {t(
-                      'Sends a Feishu group message after a channel is automatically disabled or enabled. Leave empty to disable notifications.'
+                      'Used for automatic channel status notifications and usage log error alerts. Disable error alerts before clearing this URL.'
                     )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
+
+          <Separator />
+
+          <div className='flex min-w-0 flex-col gap-4'>
+            <h4 className='text-sm font-medium'>
+              {t('Usage log error alerts')}
+            </h4>
+            <SettingsFormGrid>
+              <FormField
+                control={form.control}
+                name='monitor_setting.usage_log_error_alert_enabled'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>
+                        {t('Enable usage log error checks')}
+                      </FormLabel>
+                      <FormDescription>
+                        {t(
+                          'Checks error logs across all channels every 30 seconds. When the threshold is reached within the rolling window, sends a Feishu alert at most once per window. Channel status is unchanged.'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='monitor_setting.usage_log_error_window_minutes'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('Error counting window (minutes)')}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={1}
+                        max={1440}
+                        step={1}
+                        {...safeNumberFieldProps(field)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='monitor_setting.usage_log_error_threshold'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Error count threshold')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={1}
+                        max={1000000}
+                        step={1}
+                        {...safeNumberFieldProps(field)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsFormGrid>
           </div>
 
           <Separator />

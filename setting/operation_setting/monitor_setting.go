@@ -14,6 +14,9 @@ type MonitorSetting struct {
 	ChannelTestMode               string  `json:"channel_test_mode"`
 	ChannelTestConcurrency        int     `json:"channel_test_concurrency"`
 	FeishuChannelStatusWebhookURL string  `json:"feishu_channel_status_webhook_url"`
+	UsageLogErrorAlertEnabled     bool    `json:"usage_log_error_alert_enabled"`
+	UsageLogErrorWindowMinutes    int     `json:"usage_log_error_window_minutes"`
+	UsageLogErrorThreshold        int     `json:"usage_log_error_threshold"`
 }
 
 const (
@@ -21,9 +24,12 @@ const (
 	ChannelTestModeAutoBanOnly     = "auto_ban_only"
 	ChannelTestModePassiveRecovery = "passive_recovery"
 
-	ChannelTestConcurrencyOptionKey = "monitor_setting.channel_test_concurrency"
-	DefaultChannelTestConcurrency   = 1
-	MaxChannelTestConcurrency       = 32
+	ChannelTestConcurrencyOptionKey     = "monitor_setting.channel_test_concurrency"
+	DefaultChannelTestConcurrency       = 1
+	MaxChannelTestConcurrency           = 32
+	UsageLogErrorAlertEnabledOptionKey  = "monitor_setting.usage_log_error_alert_enabled"
+	UsageLogErrorWindowMinutesOptionKey = "monitor_setting.usage_log_error_window_minutes"
+	UsageLogErrorThresholdOptionKey     = "monitor_setting.usage_log_error_threshold"
 )
 
 // 默认配置
@@ -33,6 +39,8 @@ var monitorSetting = MonitorSetting{
 	ChannelTestMode:               ChannelTestModeScheduledAll,
 	ChannelTestConcurrency:        DefaultChannelTestConcurrency,
 	FeishuChannelStatusWebhookURL: "",
+	UsageLogErrorWindowMinutes:    5,
+	UsageLogErrorThreshold:        10,
 }
 
 func init() {
