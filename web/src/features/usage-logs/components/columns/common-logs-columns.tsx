@@ -959,11 +959,9 @@ export function useCommonLogsColumns(
                 onClick={() => setDialogOpen(true)}
                 aria-label={t("Click to view the full conversation")}
               >
-                <TextTooltip content={latestMessage} onlyWhenOverflow>
-                  <span className="text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline">
-                    {latestMessage}
-                  </span>
-                </TextTooltip>
+                <span className="text-muted-foreground min-w-0 flex-1 truncate !font-normal hover:underline">
+                  {latestMessage}
+                </span>
                 {messages.length > 1 && (
                   <span className="text-muted-foreground/40 shrink-0 !font-normal">
                     +{messages.length - 1}
