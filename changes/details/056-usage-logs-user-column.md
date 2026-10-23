@@ -1,6 +1,12 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-10-06（最后更新 2026-10-06）
+**日期**: 2026-09-09 ~ 2026-10-23（最后更新 2026-10-23）
+
+## 2026-10-23 统计栏新增命中率
+
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统计栏在综合单价右侧新增「命中率」徽标，按缓存读取 ÷（非缓存输入 + 缓存读取 + 缓存写入）计算，保留一位小数，无输入 Token 时显示 `-`，缓存写入计入分母且视为未命中，与数据总览同口径；Token 明细与命中率仅在超级管理员日志视图展示，切换视图时按需携带 `token_breakdown`；Token 明细改为主统计一次请求返回，移除悬停时的独立明细请求与延迟加载状态。
+- `model/log.go` — `LogStatsOptions.TokenBreakdownOnly` 改为 `TokenBreakdown`，统计不再短路为只返回 Token 明细；`SumUsedQuota` 在原有 `quota_data` 聚合中一并取回非缓存输入/输出与缓存读取/写入汇总，避免前端为 Token 明细重复请求。
+- `controller/log.go` — 日志统计与个人统计接口改用新的 `TokenBreakdown` 选项，保留 `token_breakdown` 查询参数语义。
 
 ## 2026-10-06 高级筛选入口精简
 

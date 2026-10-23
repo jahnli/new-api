@@ -913,24 +913,21 @@ type Stat struct {
 }
 
 type LogStatsOptions struct {
-	Context            context.Context
-	TokenBreakdownOnly bool
-	UserID             int
+	Context        context.Context
+	TokenBreakdown bool
+	UserID         int
 }
 
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel string, group string, userCategory string, options ...LogStatsOptions) (stat Stat, err error) {
 	ctx := context.Background()
-	tokenBreakdownOnly := false
+	tokenBreakdown := false
 	userID := 0
 	if len(options) > 0 {
 		if options[0].Context != nil {
 			ctx = options[0].Context
 		}
-		tokenBreakdownOnly = options[0].TokenBreakdownOnly
+		tokenBreakdown = options[0].TokenBreakdown
 		userID = options[0].UserID
-	}
-	if tokenBreakdownOnly {
-		return sumLogQuotaData(ctx, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, userID, true)
 	}
 	tx := LOG_DB.WithContext(ctx).Table("logs")
 
@@ -983,11 +980,17 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	}
 	stat.Rpm = rateStat.Rpm
 	stat.Tpm = rateStat.Tpm
-	tokens, err := sumLogQuotaData(ctx, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, userID, false)
+	// Cache token totals ride along in the same quota_data aggregate: the console
+	// derives the cache hit rate from them without a second statistics request.
+	tokens, err := sumLogQuotaData(ctx, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, userID, tokenBreakdown)
 	if err != nil {
 		return stat, errors.New("查询统计数据失败")
 	}
 	stat.TotalTokens = tokens.TotalTokens
+	stat.UncachedInputTokens = tokens.UncachedInputTokens
+	stat.UncachedOutputTokens = tokens.UncachedOutputTokens
+	stat.CacheReadTokens = tokens.CacheReadTokens
+	stat.CacheWriteTokens = tokens.CacheWriteTokens
 
 	return stat, nil
 }

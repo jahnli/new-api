@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { CircleAlert, Loader2 } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { CircleAlert } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/error-state'
@@ -63,13 +63,10 @@ export function CommonLogsStats() {
     structuralSharing: true,
   })
   const [defaultTimeRange] = useState(getDefaultTimeRange)
-  const [tokenTooltipActive, setTokenTooltipActive] = useState(false)
-  const [tokenTooltipLoadingVisible, setTokenTooltipLoadingVisible] =
-    useState(false)
   const { sensitiveVisible } = useUsageLogsContext()
   const params = useMemo(() => {
     const hasTimeParams = searchParams.startTime ?? searchParams.endTime
-    return buildApiParams({
+    const apiParams = buildApiParams({
       page: 1,
       pageSize: 1,
       searchParams: hasTimeParams
@@ -82,12 +79,14 @@ export function CommonLogsStats() {
       columnFilters: [],
       isAdmin,
     })
-  }, [searchParams, defaultTimeRange, isAdmin])
+    // Token details and the cache hit rate are root-only badges, so only that
+    // view asks the statistics endpoint for the token breakdown.
+    return isRootView ? { ...apiParams, token_breakdown: true } : apiParams
+  }, [searchParams, defaultTimeRange, isAdmin, isRootView])
 
   const {
     data: stats,
     isLoading,
-    isFetching,
     isError,
     refetch,
   } = useQuery({
@@ -103,34 +102,23 @@ export function CommonLogsStats() {
     },
   })
 
-  const tokenStats = useQuery({
-    queryKey: ['usage-logs-stats', 'quota-tokens', isAdmin, params],
-    queryFn: async ({ signal }) => {
-      const detailParams = { ...params, token_breakdown: true }
-      const result = isAdmin
-        ? requireServerSuccess(await getLogStats(detailParams, signal))
-        : requireServerSuccess(await getUserLogStats(detailParams, signal))
-      return result.data || DEFAULT_LOG_STATS
-    },
-    enabled: tokenTooltipActive && !!stats && !isFetching,
-    staleTime: 60_000,
-    retry: false,
-    meta: { errorToast: false },
-  })
-
+  const totalTokens = stats?.total_tokens ?? 0
+  const cacheReadTokens = stats?.cache_read_tokens ?? 0
+  const totalInputTokens =
+    (stats?.uncached_input_tokens ?? 0) +
+    cacheReadTokens +
+    (stats?.cache_write_tokens ?? 0)
   const tokenValue = `${new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format((stats?.total_tokens ?? 0) / 100_000_000)} ${t('100M')}`
+  }).format(totalTokens / 100_000_000)} ${t('100M')}`
   let averagePricePerMillionTokens = '-'
   if (!sensitiveVisible) {
     averagePricePerMillionTokens = '••••'
-  } else if ((stats?.total_tokens ?? 0) > 0) {
+  } else if (totalTokens > 0) {
     const { config } = getCurrencyDisplay()
     const averagePriceUSD =
-      ((stats?.quota ?? 0) * 1_000_000) /
-      config.quotaPerUnit /
-      (stats?.total_tokens ?? 0)
+      ((stats?.quota ?? 0) * 1_000_000) / config.quotaPerUnit / totalTokens
     averagePricePerMillionTokens = formatBillingCurrencyFromUSD(
       averagePriceUSD,
       {
@@ -140,34 +128,11 @@ export function CommonLogsStats() {
       }
     )
   }
-  const tokenTooltipLoading = tokenTooltipActive && tokenStats.isFetching
-  const tokenTooltipOpen =
-    tokenTooltipActive && tokenStats.isSuccess && !tokenStats.isFetching
-  useEffect(() => {
-    if (!tokenTooltipLoading) {
-      setTokenTooltipLoadingVisible(false)
-      return
-    }
-
-    const timer = window.setTimeout(
-      () => setTokenTooltipLoadingVisible(true),
-      200
-    )
-    return () => window.clearTimeout(timer)
-  }, [tokenTooltipLoading])
-
-  let tokenDetails: ReactNode = null
-  if (tokenStats.data) {
-    tokenDetails = (
-      <TokenBreakdownTooltipContent
-        totalTokens={tokenStats.data.total_tokens}
-        inputTokens={tokenStats.data.uncached_input_tokens ?? 0}
-        outputTokens={tokenStats.data.uncached_output_tokens ?? 0}
-        cacheReadTokens={tokenStats.data.cache_read_tokens ?? 0}
-        cacheWriteTokens={tokenStats.data.cache_write_tokens ?? 0}
-      />
-    )
-  }
+  // Cache writes count as misses, matching the data overview definition.
+  const cacheHitRate =
+    totalInputTokens > 0
+      ? `${((cacheReadTokens / totalInputTokens) * 100).toFixed(1)}%`
+      : '-'
 
   if (isLoading) {
     return (
@@ -179,6 +144,7 @@ export function CommonLogsStats() {
           <>
             <Skeleton className='h-7 w-[150px] rounded-md' />
             <Skeleton className='h-7 w-[100px] rounded-md' />
+            <Skeleton className='h-7 w-[110px] rounded-md' />
           </>
         )}
       </div>
@@ -208,13 +174,7 @@ export function CommonLogsStats() {
       />
       {isRootView && (
         <>
-          <Tooltip
-            open={tokenTooltipOpen}
-            onOpenChange={(open) => {
-              setTokenTooltipActive(open)
-              if (open && tokenStats.isError) void tokenStats.refetch()
-            }}
-          >
+          <Tooltip>
             <StatBadge
               label={t('Tokens')}
               value={tokenValue}
@@ -226,24 +186,32 @@ export function CommonLogsStats() {
                       type='button'
                       className='text-muted-foreground/70 hover:text-foreground shrink-0 transition-colors'
                       aria-label={t('View details')}
-                      aria-busy={tokenTooltipLoading}
                     />
                   }
                 >
-                  {tokenTooltipLoading && tokenTooltipLoadingVisible ? (
-                    <Loader2 className='size-3 animate-spin sm:size-3.5' />
-                  ) : (
-                    <CircleAlert className='size-3 sm:size-3.5' />
-                  )}
+                  <CircleAlert className='size-3 sm:size-3.5' />
                 </TooltipTrigger>
               }
             />
-            <TooltipContent>{tokenDetails}</TooltipContent>
+            <TooltipContent>
+              <TokenBreakdownTooltipContent
+                totalTokens={totalTokens}
+                inputTokens={stats?.uncached_input_tokens ?? 0}
+                outputTokens={stats?.uncached_output_tokens ?? 0}
+                cacheReadTokens={cacheReadTokens}
+                cacheWriteTokens={stats?.cache_write_tokens ?? 0}
+              />
+            </TooltipContent>
           </Tooltip>
           <StatBadge
             label={t('Unit Price')}
             value={averagePricePerMillionTokens}
             accent='bg-amber-500/70'
+          />
+          <StatBadge
+            label={t('Hit Rate')}
+            value={cacheHitRate}
+            accent='bg-indigo-500/70'
           />
         </>
       )}

@@ -124,8 +124,8 @@ func GetLogsStat(c *gin.Context) {
 	group := c.Query("group")
 	userCategory := c.Query("user_category")
 	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, model.LogStatsOptions{
-		Context:            c.Request.Context(),
-		TokenBreakdownOnly: c.Query("token_breakdown") == "true",
+		Context:        c.Request.Context(),
+		TokenBreakdown: c.Query("token_breakdown") == "true",
 	})
 	if err != nil {
 		common.ApiError(c, err)
@@ -158,9 +158,9 @@ func GetLogsSelfStat(c *gin.Context) {
 	group := c.Query("group")
 	userCategory := c.Query("user_category")
 	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, model.LogStatsOptions{
-		Context:            c.Request.Context(),
-		UserID:             c.GetInt("id"),
-		TokenBreakdownOnly: c.Query("token_breakdown") == "true",
+		Context:        c.Request.Context(),
+		UserID:         c.GetInt("id"),
+		TokenBreakdown: c.Query("token_breakdown") == "true",
 	})
 	if err != nil {
 		common.ApiError(c, err)
