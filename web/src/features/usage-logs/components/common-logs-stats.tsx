@@ -131,7 +131,11 @@ export function CommonLogsStats() {
   // Cache writes count as misses, matching the data overview definition.
   const cacheHitRate =
     totalInputTokens > 0
-      ? `${((cacheReadTokens / totalInputTokens) * 100).toFixed(1)}%`
+      ? formatNumber(cacheReadTokens / totalInputTokens, locale, {
+          style: 'percent',
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
       : '-'
 
   if (isLoading) {
@@ -143,8 +147,8 @@ export function CommonLogsStats() {
         {isRootView && (
           <>
             <Skeleton className='h-7 w-[150px] rounded-md' />
-            <Skeleton className='h-7 w-[100px] rounded-md' />
             <Skeleton className='h-7 w-[110px] rounded-md' />
+            <Skeleton className='h-7 w-[100px] rounded-md' />
           </>
         )}
       </div>
@@ -204,14 +208,14 @@ export function CommonLogsStats() {
             </TooltipContent>
           </Tooltip>
           <StatBadge
+            label={t('Cache Hit Rate')}
+            value={cacheHitRate}
+            accent='bg-indigo-500/70'
+          />
+          <StatBadge
             label={t('Unit Price')}
             value={averagePricePerMillionTokens}
             accent='bg-amber-500/70'
-          />
-          <StatBadge
-            label={t('Hit Rate')}
-            value={cacheHitRate}
-            accent='bg-indigo-500/70'
           />
         </>
       )}
