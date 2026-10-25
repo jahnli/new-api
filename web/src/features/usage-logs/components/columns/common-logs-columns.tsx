@@ -1175,7 +1175,7 @@ export function useCommonLogsColumns(
             <>
               <button
                 type="button"
-                className="group flex w-full max-w-[150px] min-w-0 items-center gap-1 text-left text-xs"
+                className="group flex w-full max-w-[160px] min-w-0 items-center gap-1 text-left text-xs"
                 onClick={() => setDialogOpen(true)}
                 aria-label={t("Click to view full details")}
               >
@@ -1193,8 +1193,8 @@ export function useCommonLogsColumns(
             </>
           );
         },
-        size: 155,
-        maxSize: 175,
+        size: 165,
+        maxSize: 185,
         meta: { pinned: "right" as const },
       },
     );

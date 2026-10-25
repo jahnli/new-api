@@ -1,12 +1,23 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-10-23（最后更新 2026-10-23）
+**日期**: 2026-09-09 ~ 2026-10-25（最后更新 2026-10-25）
+
+## 2026-10-25 缓存命中率展示与详情列宽
+
+- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 命中率标签改为复用七语言「缓存命中率」文案，位置调整为 Token 汇总之后、综合单价之前，加载骨架同步换位；百分比使用共享数字格式化器随界面语言展示，仍保留一位小数。计算公式不变：缓存读取 ÷（非缓存输入 + 缓存读取 + 缓存写入），无输入 Token 时显示 `-`。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 详情列默认宽度从 155px 增至 165px，最大列宽从 175px 增至 185px，内容宽度上限从 150px 增至 160px，保留右侧固定及点击详情行为。
 
 ## 2026-10-23 统计栏新增命中率
+
+以下为初次加入时的布局，当前标签和顺序以 2026-10-25 说明为准。
 
 - `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统计栏在综合单价右侧新增「命中率」徽标，按缓存读取 ÷（非缓存输入 + 缓存读取 + 缓存写入）计算，保留一位小数，无输入 Token 时显示 `-`，缓存写入计入分母且视为未命中，与数据总览同口径；Token 明细与命中率仅在超级管理员日志视图展示，切换视图时按需携带 `token_breakdown`；Token 明细改为主统计一次请求返回，移除悬停时的独立明细请求与延迟加载状态。
 - `model/log.go` — `LogStatsOptions.TokenBreakdownOnly` 改为 `TokenBreakdown`，统计不再短路为只返回 Token 明细；`SumUsedQuota` 在原有 `quota_data` 聚合中一并取回非缓存输入/输出与缓存读取/写入汇总，避免前端为 Token 明细重复请求。
 - `controller/log.go` — 日志统计与个人统计接口改用新的 `TokenBreakdown` 选项，保留 `token_breakdown` 查询参数语义。
+
+## 2026-10-21 请求内容摘要交互精简
+
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 请求内容列移除最新消息摘要外层的悬浮提示，保留截断展示、多条消息数量提示及点击打开完整对话的入口。
 
 ## 2026-10-06 高级筛选入口精简
 
