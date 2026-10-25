@@ -208,14 +208,14 @@ export function CommonLogsStats() {
             </TooltipContent>
           </Tooltip>
           <StatBadge
-            label={t('Cache Hit Rate')}
-            value={cacheHitRate}
-            accent='bg-indigo-500/70'
-          />
-          <StatBadge
             label={t('Unit Price')}
             value={averagePricePerMillionTokens}
             accent='bg-amber-500/70'
+          />
+          <StatBadge
+            label={t('Cache Hit Rate')}
+            value={cacheHitRate}
+            accent='bg-indigo-500/70'
           />
         </>
       )}
