@@ -85,7 +85,7 @@ func TestAdaptorMasksDialedHostsInDialFailure(t *testing.T) {
 
 			_, err := (&Adaptor{}).DoRequest(c, info, nil)
 
-			var apiErr *types.NewAPIError
+			var apiErr *types.AIGatewayError
 			require.ErrorAs(t, err, &apiErr)
 			require.Contains(t, apiErr.Error(), tc.hidden)
 			message := apiErr.ToOpenAIError(common.UpstreamAddresses(c)...).Message

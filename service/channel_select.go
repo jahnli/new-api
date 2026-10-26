@@ -258,7 +258,7 @@ func pinnedTaskPluginIdentities(c *gin.Context, expected string) ([]int, []strin
 // ChannelSelectError explains why SelectChannelForRequest found no channel.
 // Callers render it for their transport: the HTTP distributor localizes
 // MessageID with its own helpers and the Responses WebSocket relay wraps it in
-// a NewAPIError. Message is set instead of MessageID when the text is a fixed
+// a AIGatewayError. Message is set instead of MessageID when the text is a fixed
 // error code that clients match on.
 type ChannelSelectError struct {
 	StatusCode int

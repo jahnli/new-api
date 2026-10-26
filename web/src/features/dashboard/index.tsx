@@ -78,6 +78,8 @@ const LOG_STAT_CARD_FALLBACK_ITEMS = [
   'token-used',
   'total-cost',
   'average-price',
+  'cache-read',
+  'cache-write',
   'request-count',
   'average-rpm',
   'average-tpm',
@@ -90,9 +92,12 @@ const PERFORMANCE_FALLBACK_BADGES = ['bucket-count', 'sample-count']
 function LogStatCardsFallback() {
   return (
     <div className='overflow-hidden rounded-lg border'>
-      <div className='divide-border/60 grid grid-cols-2 divide-x sm:grid-cols-3 lg:grid-cols-6'>
+      <div className='divide-border/60 grid min-w-0 grid-cols-2 divide-x sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8'>
         {LOG_STAT_CARD_FALLBACK_ITEMS.map((fallbackItem) => (
-          <div key={fallbackItem} className='px-2.5 py-1.5 sm:px-5 sm:py-4'>
+          <div
+            key={fallbackItem}
+            className='min-w-0 px-2.5 py-1.5 sm:px-3 sm:py-4 xl:px-4'
+          >
             <div className='flex items-center gap-1.5 sm:gap-2'>
               <Skeleton className='size-4 rounded-sm sm:size-7 sm:rounded-md' />
               <Skeleton className='h-4 w-16' />
@@ -101,6 +106,9 @@ function LogStatCardsFallback() {
             <Skeleton className='mt-1 hidden h-3.5 w-28 md:block' />
           </div>
         ))}
+      </div>
+      <div className='border-t px-3 py-2'>
+        <Skeleton className='h-4 w-full max-w-md' />
       </div>
     </div>
   )

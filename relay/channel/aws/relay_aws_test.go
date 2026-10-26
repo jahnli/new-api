@@ -904,7 +904,7 @@ func TestMantleCanceledRequestSkipsRetry(t *testing.T) {
 	response, err := (&Adaptor{}).DoRequest(c, newMantleTestInfo(), strings.NewReader(`{"messages":[]}`))
 	require.Error(t, err)
 	assert.Nil(t, response)
-	var apiError *relaytypes.NewAPIError
+	var apiError *relaytypes.AIGatewayError
 	require.ErrorAs(t, err, &apiError)
 	assert.True(t, relaytypes.IsSkipRetryError(apiError))
 }
