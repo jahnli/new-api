@@ -8300,6 +8300,17 @@
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom",
+    "Classify this account for trial or paid operations reporting.": "Phân loại tài khoản để báo cáo vận hành khách hàng dùng thử hoặc trả phí.",
+    "Commercial Attributes": "Thuộc tính thương mại",
+    "Customer Type": "Loại khách hàng",
+    "Paid": "Trả phí",
+    "Postpaid": "Trả sau",
+    "Prepaid": "Trả trước",
+    "Prepaid deducts from the balance before use. Postpaid is an operations label and does not change billing by itself.": "Trả trước sẽ trừ số dư trước khi sử dụng. Trả sau hiện chỉ là nhãn vận hành và không tự thay đổi cách tính phí.",
+    "Select a customer type": "Chọn loại khách hàng",
+    "Select a settlement mode": "Chọn phương thức thanh toán",
+    "Settlement Mode": "Phương thức thanh toán",
+    "Trial": "Dùng thử",
     "Zoom in": "Phóng to",
     "Zoom out": "Thu nhỏ"
   }

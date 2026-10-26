@@ -2,15 +2,84 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DataTableColumnHeaderFilter } from '@/components/data-table'
+import { BadgeCell, DataTableColumnHeaderFilter } from '@/components/data-table'
+import { StatusBadge } from '@/components/status-badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { useExternalMode } from '@/hooks/use-external-mode'
+import { cn } from '@/lib/utils'
 
-import { getRegistrationMethodOptions } from '../constants'
+import {
+  USER_CUSTOMER_TYPES,
+  USER_SETTLEMENT_MODES,
+  getRegistrationMethodOptions,
+  getUserCustomerTypeOptions,
+  getUserSettlementModeOptions,
+} from '../constants'
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
 import { userNameColumn, useSharedUserColumns } from './shared-user-columns'
+
+function userCustomerTypeColumn(t: (key: string) => string): ColumnDef<User> {
+  return {
+    accessorKey: 'customer_type',
+    header: ({ column }) => (
+      <DataTableColumnHeaderFilter
+        column={column}
+        label={t('Customer Type')}
+        options={getUserCustomerTypeOptions(t)}
+      />
+    ),
+    cell: ({ row }) => {
+      const config = USER_CUSTOMER_TYPES[row.original.customer_type ?? 'unset']
+      return (
+        <BadgeCell>
+          <StatusBadge
+            label={t(config.labelKey)}
+            variant={config.variant}
+            icon={config.icon}
+            size='lg'
+            copyable={false}
+            className={cn('border shadow-xs', config.className)}
+          />
+        </BadgeCell>
+      )
+    },
+    enableSorting: false,
+    size: 120,
+  }
+}
+
+function userSettlementModeColumn(t: (key: string) => string): ColumnDef<User> {
+  return {
+    accessorKey: 'settlement_mode',
+    header: ({ column }) => (
+      <DataTableColumnHeaderFilter
+        column={column}
+        label={t('Settlement Mode')}
+        options={getUserSettlementModeOptions(t)}
+      />
+    ),
+    cell: ({ row }) => {
+      const config =
+        USER_SETTLEMENT_MODES[row.original.settlement_mode ?? 'prepaid']
+      return (
+        <BadgeCell>
+          <StatusBadge
+            label={t(config.labelKey)}
+            variant={config.variant}
+            icon={config.icon}
+            size='lg'
+            copyable={false}
+            className={cn('border shadow-xs', config.className)}
+          />
+        </BadgeCell>
+      )
+    },
+    enableSorting: false,
+    size: 130,
+  }
+}
 
 export function useUsersColumns(
   groupRatios?: Readonly<Record<string, number>>
@@ -92,6 +161,8 @@ export function useUsersColumns(
               enableSorting: false,
               meta: undefined,
             } satisfies ColumnDef<User>,
+            userCustomerTypeColumn(t),
+            userSettlementModeColumn(t),
           ]
         : []),
       {

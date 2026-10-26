@@ -8300,6 +8300,17 @@
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom",
+    "Classify this account for trial or paid operations reporting.": "Классифицируйте аккаунт для отчётности по пробным и платным клиентам.",
+    "Commercial Attributes": "Коммерческие атрибуты",
+    "Customer Type": "Тип клиента",
+    "Paid": "Платный",
+    "Postpaid": "Постоплата",
+    "Prepaid": "Предоплата",
+    "Prepaid deducts from the balance before use. Postpaid is an operations label and does not change billing by itself.": "Предоплата списывает средства с баланса до использования. Постоплата — только операционная метка и сама по себе не меняет биллинг.",
+    "Select a customer type": "Выберите тип клиента",
+    "Select a settlement mode": "Выберите способ расчёта",
+    "Settlement Mode": "Способ расчёта",
+    "Trial": "Пробный",
     "Zoom in": "Увеличить",
     "Zoom out": "Уменьшить"
   }

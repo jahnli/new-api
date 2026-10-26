@@ -411,6 +411,24 @@ func SearchUsers(c *gin.Context) {
 	keyword := c.Query("keyword")
 	group := c.Query("group")
 	company := c.Query("company")
+	customerType := strings.TrimSpace(c.Query("customer_type"))
+	if customerType != "" {
+		normalized, ok := model.NormalizeCustomerType(customerType)
+		if !ok {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		customerType = normalized
+	}
+	settlementMode := strings.TrimSpace(c.Query("settlement_mode"))
+	if settlementMode != "" {
+		normalized, ok := model.NormalizeSettlementMode(settlementMode)
+		if !ok {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		settlementMode = normalized
+	}
 	var role *int
 	if roleStr := c.Query("role"); roleStr != "" {
 		if parsed, err := strconv.Atoi(roleStr); err == nil {
@@ -426,6 +444,8 @@ func SearchUsers(c *gin.Context) {
 	filters := model.UserSearchFilters{
 		Keyword: keyword, Group: group, Company: company, Role: role, Status: status,
 		RegistrationMethod: c.Query("registration_method"),
+		CustomerType:       customerType,
+		SettlementMode:     settlementMode,
 	}
 	pageInfo := common.GetPageQuery(c)
 	if common.IsComputedSortColumn(pageInfo.SortBy) {
@@ -857,7 +877,9 @@ func GetUserModels(c *gin.Context) {
 func UpdateUser(c *gin.Context) {
 	var request struct {
 		model.User
-		SalesUserID *int `json:"sales_user_id"`
+		SalesUserID    *int    `json:"sales_user_id"`
+		CustomerType   *string `json:"customer_type"`
+		SettlementMode *string `json:"settlement_mode"`
 	}
 	err := common.DecodeJson(c.Request.Body, &request)
 	updatedUser := request.User
@@ -878,6 +900,32 @@ func UpdateUser(c *gin.Context) {
 	if err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	previousCustomerType, _ := model.NormalizeCustomerType(originUser.CustomerType)
+	previousSettlementMode, _ := model.NormalizeSettlementMode(originUser.SettlementMode)
+	updatedUser.CustomerType = previousCustomerType
+	updatedUser.SettlementMode = previousSettlementMode
+	if request.CustomerType != nil || request.SettlementMode != nil {
+		if !operation_setting.ExternalModeEnabled {
+			common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
+			return
+		}
+	}
+	if request.CustomerType != nil {
+		customerType, ok := model.NormalizeCustomerType(*request.CustomerType)
+		if !ok {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		updatedUser.CustomerType = customerType
+	}
+	if request.SettlementMode != nil {
+		settlementMode, ok := model.NormalizeSettlementMode(*request.SettlementMode)
+		if !ok {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		updatedUser.SettlementMode = settlementMode
 	}
 	myRole := c.GetInt("role")
 	if !canManageTargetRole(myRole, originUser.Role) {
@@ -985,6 +1033,14 @@ func UpdateUser(c *gin.Context) {
 	if request.SalesUserID != nil {
 		auditParams["sales_user_id"] = *request.SalesUserID
 		auditParams["previous_sales_user_id"] = originUser.SalesUserID
+	}
+	if updatedUser.CustomerType != previousCustomerType {
+		auditParams["customer_type"] = updatedUser.CustomerType
+		auditParams["previous_customer_type"] = previousCustomerType
+	}
+	if updatedUser.SettlementMode != previousSettlementMode {
+		auditParams["settlement_mode"] = updatedUser.SettlementMode
+		auditParams["previous_settlement_mode"] = previousSettlementMode
 	}
 	recordManageAuditFor(c, updatedUser.Id, "user.update", auditParams)
 	c.JSON(http.StatusOK, gin.H{
@@ -1300,6 +1356,22 @@ func CreateUser(c *gin.Context) {
 		common.ApiErrorT(c, "Invalid parameters")
 		return
 	}
+	if !operation_setting.ExternalModeEnabled && (strings.TrimSpace(user.CustomerType) != "" || strings.TrimSpace(user.SettlementMode) != "") {
+		common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
+		return
+	}
+	customerType, ok := model.NormalizeCustomerType(user.CustomerType)
+	if !ok {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	settlementMode, ok := model.NormalizeSettlementMode(user.SettlementMode)
+	if !ok {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	user.CustomerType = customerType
+	user.SettlementMode = settlementMode
 	if err := common.Validate.Struct(&user); err != nil {
 		common.ApiErrorT(c, "Invalid input {{error}}", map[string]any{"error": err.Error()})
 		return
@@ -1329,7 +1401,11 @@ func CreateUser(c *gin.Context) {
 	if selectedCostCenter != nil {
 		user.DepartmentName = selectedCostCenter.Name
 	}
-	auditParams := map[string]any{"role": user.Role}
+	auditParams := map[string]any{
+		"role":            user.Role,
+		"customer_type":   user.CustomerType,
+		"settlement_mode": user.SettlementMode,
+	}
 	// Creating an administrator grants privilege just like promoting one.
 	if user.Role >= common.RoleAdminUser {
 		authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserCreate, service.AdminUserCreateContext{Role: user.Role})
@@ -1344,6 +1420,8 @@ func CreateUser(c *gin.Context) {
 		Password:        user.Password,
 		DisplayName:     user.DisplayName,
 		Role:            user.Role, // 保持管理员设置的角色
+		CustomerType:    user.CustomerType,
+		SettlementMode:  user.SettlementMode,
 		OverviewDeptIDs: user.OverviewDeptIDs,
 		CostCenter:      user.CostCenter,
 		DepartmentName:  user.DepartmentName,

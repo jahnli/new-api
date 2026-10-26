@@ -48,6 +48,8 @@ import {
   USER_STATUS,
   getUserStatusOptions,
   getUserRoleOptions,
+  getUserCustomerTypeOptions,
+  getUserSettlementModeOptions,
   isUserDeleted,
 } from '../constants'
 import type { User, UserSortBy, UserSortOrder } from '../types'
@@ -128,6 +130,12 @@ export function UsersTable() {
       },
       { columnId: 'group', searchKey: 'group', type: 'array' },
       { columnId: 'company', searchKey: 'company', type: 'array' },
+      { columnId: 'customer_type', searchKey: 'customer_type', type: 'array' },
+      {
+        columnId: 'settlement_mode',
+        searchKey: 'settlement_mode',
+        type: 'array',
+      },
     ],
   })
   const statusFilter =
@@ -149,6 +157,15 @@ export function UsersTable() {
     (columnFilters.find((filter) => filter.id === 'company')?.value as
       | string[]
       | undefined) ?? []
+  const customerTypeFilter = externalMode
+    ? ((columnFilters.find((filter) => filter.id === 'customer_type')?.value as
+        | string[]
+        | undefined) ?? [])
+    : []
+  const settlementModeFilter = externalMode
+    ? ((columnFilters.find((filter) => filter.id === 'settlement_mode')
+        ?.value as string[] | undefined) ?? [])
+    : []
 
   const { data: groupsData } = useQuery({
     queryKey: ['groups'],
@@ -185,6 +202,8 @@ export function UsersTable() {
       registrationMethodFilter,
       groupFilter,
       companyFilter,
+      customerTypeFilter,
+      settlementModeFilter,
       refreshTrigger,
       sortBy,
       sortOrder,
@@ -196,7 +215,9 @@ export function UsersTable() {
         roleFilter.length > 0 ||
         registrationMethodFilter.length > 0 ||
         groupFilter.length > 0 ||
-        companyFilter.length > 0
+        companyFilter.length > 0 ||
+        customerTypeFilter.length > 0 ||
+        settlementModeFilter.length > 0
       const params = {
         p: pagination.pageIndex + 1,
         page_size: pagination.pageSize,
@@ -214,6 +235,15 @@ export function UsersTable() {
               registration_method: registrationMethodFilter[0] ?? '',
               group: groupFilter[0] ?? '',
               company: companyFilter[0] ?? '',
+              customer_type: customerTypeFilter[0] as
+                | 'unset'
+                | 'trial'
+                | 'paid'
+                | undefined,
+              settlement_mode: settlementModeFilter[0] as
+                | 'prepaid'
+                | 'postpaid'
+                | undefined,
             })
           : await getUsers(params)
 
@@ -314,6 +344,22 @@ export function UsersTable() {
             options: companyOptions,
             singleSelect: true,
           },
+          ...(externalMode
+            ? [
+                {
+                  columnId: 'customer_type',
+                  title: t('Customer Type'),
+                  options: getUserCustomerTypeOptions(t),
+                  singleSelect: true,
+                },
+                {
+                  columnId: 'settlement_mode',
+                  title: t('Settlement Mode'),
+                  options: getUserSettlementModeOptions(t),
+                  singleSelect: true,
+                },
+              ]
+            : []),
         ],
       }}
       getRowClassName={(row, context) => {

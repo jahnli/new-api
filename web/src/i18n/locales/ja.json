@@ -8300,6 +8300,17 @@
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V 4",
     "Zoom": "ズーム",
+    "Classify this account for trial or paid operations reporting.": "トライアル顧客と有料顧客の運用レポート用にアカウントを分類します。",
+    "Commercial Attributes": "商用属性",
+    "Customer Type": "顧客タイプ",
+    "Paid": "有料",
+    "Postpaid": "後払い",
+    "Prepaid": "前払い",
+    "Prepaid deducts from the balance before use. Postpaid is an operations label and does not change billing by itself.": "前払いは利用前に残高から差し引きます。後払いは運用上のラベルであり、それ自体では課金方法を変更しません。",
+    "Select a customer type": "顧客タイプを選択",
+    "Select a settlement mode": "決済方式を選択",
+    "Settlement Mode": "決済方式",
+    "Trial": "トライアル",
     "Zoom in": "拡大",
     "Zoom out": "縮小"
   }

@@ -14,6 +14,12 @@ export type UserStatus = z.infer<typeof userStatusSchema>
 export const userRoleSchema = z.number()
 export type UserRole = z.infer<typeof userRoleSchema>
 
+export const userCustomerTypeSchema = z.enum(['unset', 'trial', 'paid'])
+export type UserCustomerType = z.infer<typeof userCustomerTypeSchema>
+
+export const userSettlementModeSchema = z.enum(['prepaid', 'postpaid'])
+export type UserSettlementMode = z.infer<typeof userSettlementModeSchema>
+
 export interface SalesUser {
   id: number
   username: string
@@ -41,6 +47,8 @@ export const userSchema = z.object({
   group: z.string(),
   status: userStatusSchema,
   role: userRoleSchema,
+  customer_type: userCustomerTypeSchema.optional(),
+  settlement_mode: userSettlementModeSchema.optional(),
   registration_method: z.enum(['ldap', 'manual']).optional(),
   sales_user_id: z.number().optional(),
   sales_user: z
@@ -141,6 +149,8 @@ export interface SearchUsersParams {
   group?: string
   company?: string
   role?: string
+  customer_type?: UserCustomerType
+  settlement_mode?: UserSettlementMode
   registration_method?: string
   status?: string
   p?: number
@@ -155,6 +165,8 @@ export interface UserFormData {
   display_name: string
   password?: string
   role?: number // Only used when creating user
+  customer_type?: UserCustomerType
+  settlement_mode?: UserSettlementMode
   overview_dept_ids?: string[] // Explicitly configured visible department node values for BP users
   cost_center?: string // Canonical single-department JSON array for the user's cost center
   quota?: number // Only used when updating user
@@ -205,6 +217,8 @@ export interface UserColumnRow {
   group: string
   status: number
   role: number
+  customer_type?: UserCustomerType
+  settlement_mode?: UserSettlementMode
   created_at?: number
   last_login_at?: number
   DeletedAt?: unknown | null

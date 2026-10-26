@@ -23,6 +23,14 @@ const usersSearchSchema = z.object({
     .optional()
     .catch([]),
   company: z.array(z.string()).optional().catch([]),
+  customer_type: z
+    .array(z.enum(['unset', 'trial', 'paid']))
+    .optional()
+    .catch([]),
+  settlement_mode: z
+    .array(z.enum(['prepaid', 'postpaid']))
+    .optional()
+    .catch([]),
 })
 
 export const Route = createFileRoute('/_authenticated/users/')({
