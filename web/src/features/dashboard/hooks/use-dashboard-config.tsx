@@ -69,7 +69,7 @@ export function useModelStatCardsConfig(): StatCardConfig[] {
       title: t('Cache Write'),
       description: t('Statistical tokens'),
       icon: Upload,
-      iconTone: 'chart-5',
+      iconTone: 'success',
       getValue: (stat) => stat?.cacheWrite ?? 0,
     },
     {

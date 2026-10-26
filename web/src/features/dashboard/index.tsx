@@ -92,7 +92,7 @@ const PERFORMANCE_FALLBACK_BADGES = ['bucket-count', 'sample-count']
 function LogStatCardsFallback() {
   return (
     <div className='overflow-hidden rounded-lg border'>
-      <div className='divide-border/60 grid min-w-0 grid-cols-2 divide-x sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8'>
+      <div className='divide-border/60 grid min-w-0 grid-cols-2 divide-x divide-y sm:grid-cols-4'>
         {LOG_STAT_CARD_FALLBACK_ITEMS.map((fallbackItem) => (
           <div
             key={fallbackItem}
