@@ -8277,6 +8277,17 @@
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom",
+    "Classify this account for trial or paid operations reporting.": "Classez ce compte pour le suivi des clients en essai ou payants.",
+    "Commercial Attributes": "Attributs commerciaux",
+    "Customer Type": "Type de client",
+    "Paid": "Payant",
+    "Postpaid": "Postpayé",
+    "Prepaid": "Prépayé",
+    "Prepaid deducts from the balance before use. Postpaid is an operations label and does not change billing by itself.": "Le prépaiement déduit le solde avant utilisation. Le postpaiement est uniquement un libellé opérationnel et ne modifie pas la facturation à lui seul.",
+    "Select a customer type": "Sélectionner un type de client",
+    "Select a settlement mode": "Sélectionner un mode de règlement",
+    "Settlement Mode": "Mode de règlement",
+    "Trial": "Essai",
     "Zoom in": "Zoomer",
     "Zoom out": "Dézoomer"
   }

@@ -1,6 +1,23 @@
-import { Building2, Shield, User, Users } from 'lucide-react'
+import {
+  BadgeCheck,
+  Building2,
+  CircleDashed,
+  ReceiptText,
+  Shield,
+  Sparkles,
+  User,
+  Users,
+  WalletCards,
+  type LucideIcon,
+} from 'lucide-react'
 
-import type { User as UserType } from './types'
+import type { StatusVariant } from '@/components/status-badge'
+
+import type {
+  User as UserType,
+  UserCustomerType,
+  UserSettlementMode,
+} from './types'
 
 // ============================================================================
 // User Utilities
@@ -88,6 +105,85 @@ export const getUserRoleOptions = (t: (key: string) => string) => [
 export const getRegistrationMethodOptions = (t: (key: string) => string) => [
   { label: t('LDAP'), value: 'ldap', icon: Building2 },
   { label: t('Manual'), value: 'manual', icon: User },
+]
+
+// ============================================================================
+// Commercial Attributes
+// ============================================================================
+
+export const USER_CUSTOMER_TYPE = {
+  UNSET: 'unset',
+  TRIAL: 'trial',
+  PAID: 'paid',
+} as const satisfies Record<string, UserCustomerType>
+
+interface UserCommercialAttributeConfig {
+  labelKey: string
+  variant: StatusVariant
+  icon: LucideIcon
+  className: string
+}
+
+export const USER_CUSTOMER_TYPES: Record<
+  UserCustomerType,
+  UserCommercialAttributeConfig
+> = {
+  unset: {
+    labelKey: 'Not set',
+    variant: 'neutral',
+    icon: CircleDashed,
+    className: 'border-border/70 bg-muted/50 text-muted-foreground',
+  },
+  trial: {
+    labelKey: 'Trial',
+    variant: 'info',
+    icon: Sparkles,
+    className:
+      'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300',
+  },
+  paid: {
+    labelKey: 'Paid',
+    variant: 'success',
+    icon: BadgeCheck,
+    className:
+      'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300',
+  },
+}
+
+export const getUserCustomerTypeOptions = (t: (key: string) => string) => [
+  { label: t('Trial'), value: USER_CUSTOMER_TYPE.TRIAL },
+  { label: t('Paid'), value: USER_CUSTOMER_TYPE.PAID },
+  { label: t('Not set'), value: USER_CUSTOMER_TYPE.UNSET },
+]
+
+export const USER_SETTLEMENT_MODE = {
+  PREPAID: 'prepaid',
+  POSTPAID: 'postpaid',
+} as const satisfies Record<string, UserSettlementMode>
+
+export const USER_SETTLEMENT_MODES: Record<
+  UserSettlementMode,
+  UserCommercialAttributeConfig
+> = {
+  prepaid: {
+    labelKey: 'Prepaid',
+    variant: 'info',
+    icon: WalletCards,
+    className:
+      'border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-300',
+  },
+  postpaid: {
+    labelKey: 'Postpaid',
+    variant: 'warning',
+    icon: ReceiptText,
+    className:
+      'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300',
+  },
+}
+
+export const getUserSettlementModeOptions = (t: (key: string) => string) => [
+  { label: t('Prepaid'), value: USER_SETTLEMENT_MODE.PREPAID },
+  { label: t('Postpaid'), value: USER_SETTLEMENT_MODE.POSTPAID },
 ]
 
 // ============================================================================

@@ -18,6 +18,37 @@ import (
 
 const UserNameMaxLength = 20
 
+const (
+	CustomerTypeUnset = "unset"
+	CustomerTypeTrial = "trial"
+	CustomerTypePaid  = "paid"
+
+	SettlementModePrepaid  = "prepaid"
+	SettlementModePostpaid = "postpaid"
+)
+
+func NormalizeCustomerType(value string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", CustomerTypeUnset:
+		return CustomerTypeUnset, true
+	case CustomerTypeTrial, CustomerTypePaid:
+		return strings.ToLower(strings.TrimSpace(value)), true
+	default:
+		return "", false
+	}
+}
+
+func NormalizeSettlementMode(value string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", SettlementModePrepaid:
+		return SettlementModePrepaid, true
+	case SettlementModePostpaid:
+		return SettlementModePostpaid, true
+	default:
+		return "", false
+	}
+}
+
 var userSortColumns = map[string]string{
 	"id":            "id",
 	"username":      "username",
@@ -94,6 +125,8 @@ type User struct {
 	OriginalPassword     string                     `json:"original_password" gorm:"-:all"`
 	DisplayName          string                     `json:"display_name" gorm:"index" validate:"max=20"`
 	Role                 int                        `json:"role" gorm:"type:int;default:1"`
+	CustomerType         string                     `json:"customer_type" gorm:"type:varchar(16);not null;default:'unset';index"`
+	SettlementMode       string                     `json:"settlement_mode" gorm:"type:varchar(16);not null;default:'prepaid';index"`
 	SalesUserID          int                        `json:"sales_user_id" gorm:"column:sales_user_id;default:0;not null;index"`
 	SalesUser            *SalesUser                 `json:"sales_user,omitempty" gorm:"-:all"`
 	OverviewDeptIDs      []string                   `json:"overview_dept_ids" gorm:"type:text;serializer:json;column:overview_dept_ids;default:'[]'"`
@@ -578,6 +611,8 @@ type UserSearchFilters struct {
 	Role               *int
 	Status             *int
 	RegistrationMethod string
+	CustomerType       string
+	SettlementMode     string
 }
 
 func SearchUsersWithFilters(filters UserSearchFilters, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, UserStatusCounts, error) {
@@ -651,6 +686,12 @@ func buildUserSearchQuery(tx *gorm.DB, filters UserSearchFilters) *gorm.DB {
 	}
 	if filters.Company != "" {
 		query = query.Where("company = ?", filters.Company)
+	}
+	if filters.CustomerType != "" {
+		query = query.Where("customer_type = ?", filters.CustomerType)
+	}
+	if filters.SettlementMode != "" {
+		query = query.Where("settlement_mode = ?", filters.SettlementMode)
 	}
 	if filters.Role != nil {
 		query = query.Where("role = ?", *filters.Role)
@@ -1002,6 +1043,12 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 		"role":              newUser.Role,
 		"overview_dept_ids": string(overviewDeptIDsJSON),
 		"cost_center":       newUser.CostCenter,
+	}
+	if newUser.CustomerType != "" {
+		updates["customer_type"] = newUser.CustomerType
+	}
+	if newUser.SettlementMode != "" {
+		updates["settlement_mode"] = newUser.SettlementMode
 	}
 	if newUser.DepartmentName != "" {
 		updates["department_name"] = newUser.DepartmentName

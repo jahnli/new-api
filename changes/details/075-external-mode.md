@@ -42,3 +42,22 @@
 - `web/src/features/users/components/users-columns.tsx`、`web/src/features/users/components/users-mutate-drawer.tsx` — 对外模式显示销售列，编辑弹窗支持销售选择。
 - `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/user-profile-hover-card.tsx` — 复用用户头像列和资料悬浮卡片展示销售资料，包含手机号字段。
 - `i18n/keys.go`、`i18n/locales/{en,zh-CN,zh-TW}.yaml`、`web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补充销售绑定、未分配和失效销售相关文案。
+
+## 2026-10-26 客户类型与结算方式
+
+对外模式下用户管理新增「客户类型」（未设置 / 试用 / 付费）与「结算方式」（预付 / 后付）两个商业属性。列表以带图标的状态标签展示客户类型与结算方式两列，列标题支持单选筛选，筛选条件写入路由搜索参数并参与分页统计请求。编辑弹窗新增「商业属性」分区，仅在对外模式开启时展示并提交；关闭对外模式时后端拒绝修改这两个字段，更新接口保留原值。
+
+服务端为 users 表新增 `customer_type`、`settlement_mode` 字段（默认 `unset`、`prepaid`，均建立索引），搜索接口支持按两字段过滤并规范化取值，创建与更新接口校验合法值，非法参数返回统一错误，变更写入用户管理审计。结算方式仅为运营标签，不改变计费逻辑。
+
+### 涉及文件
+
+- `model/user.go` — users 表新增 `customer_type`、`settlement_mode` 字段与索引，新增 `NormalizeCustomerType` / `NormalizeSettlementMode` 取值规范化，搜索过滤与 `EditWithTx` 写入
+- `controller/user.go` — 搜索接口支持两个字段筛选，创建与更新接口校验取值、按对外模式拦截修改、保留原值并记录审计参数
+- `web/src/features/users/types.ts` — 新增客户类型、结算方式枚举，以及用户、表单与搜索参数类型字段
+- `web/src/features/users/constants.ts` — 新增两种属性的标签配置（图标、语义色、样式）与下拉 / 筛选选项
+- `web/src/features/users/lib/user-form.ts` — 表单 schema、默认值与数据转换接入商业属性，仅在对外模式下提交
+- `web/src/features/users/components/users-columns.tsx` — 对外模式下新增客户类型、结算方式列及列标题筛选
+- `web/src/features/users/components/users-mutate-drawer.tsx` — 编辑弹窗新增「商业属性」分区
+- `web/src/features/users/components/users-table.tsx` — 两列筛选条件、查询参数与移动端筛选选项
+- `web/src/routes/_authenticated/users/index.tsx` — 路由搜索参数新增两个字段
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 七语言文案

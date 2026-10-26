@@ -90,7 +90,13 @@ import {
   getAdminFullDepartmentTree,
   getSalesUsers,
 } from '../api'
-import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
+import {
+  BINDING_FIELDS,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  getUserCustomerTypeOptions,
+  getUserSettlementModeOptions,
+} from '../constants'
 import {
   userFormSchema,
   type UserFormValues,
@@ -231,7 +237,8 @@ export function UsersMutateDrawer({
       const payload = transformFormDataToPayload(
         data,
         currentRow?.id,
-        permissionCatalog
+        permissionCatalog,
+        externalMode
       )
       if (
         isUpdate &&
@@ -551,6 +558,102 @@ export function UsersMutateDrawer({
                   )}
                 />
               </SideDrawerSection>
+
+              {externalMode && (
+                <SideDrawerSection>
+                  <h3 className='text-sm font-medium'>
+                    {t('Commercial Attributes')}
+                  </h3>
+
+                  <FormField
+                    control={form.control}
+                    name='customer_type'
+                    render={({ field }) => (
+                      <FormItem className='min-w-0'>
+                        <FormLabel>{t('Customer Type')}</FormLabel>
+                        <Select
+                          items={getUserCustomerTypeOptions(t)}
+                          onValueChange={(value) =>
+                            value !== null && field.onChange(value)
+                          }
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className='w-full max-w-full min-w-0'>
+                              <SelectValue
+                                className='min-w-0 overflow-hidden text-ellipsis'
+                                placeholder={t('Select a customer type')}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent alignItemWithTrigger={false}>
+                            <SelectGroup>
+                              {getUserCustomerTypeOptions(t).map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {t(
+                            'Classify this account for trial or paid operations reporting.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='settlement_mode'
+                    render={({ field }) => (
+                      <FormItem className='min-w-0'>
+                        <FormLabel>{t('Settlement Mode')}</FormLabel>
+                        <Select
+                          items={getUserSettlementModeOptions(t)}
+                          onValueChange={(value) =>
+                            value !== null && field.onChange(value)
+                          }
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className='w-full max-w-full min-w-0'>
+                              <SelectValue
+                                className='min-w-0 overflow-hidden text-ellipsis'
+                                placeholder={t('Select a settlement mode')}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent alignItemWithTrigger={false}>
+                            <SelectGroup>
+                              {getUserSettlementModeOptions(t).map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {t(
+                            'Prepaid deducts from the balance before use. Postpaid is an operations label and does not change billing by itself.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SideDrawerSection>
+              )}
 
               {/* Group & Quota Settings (Update only) */}
               {isUpdate && externalMode && (

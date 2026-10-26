@@ -8277,6 +8277,17 @@
     "Zhipu GLM": "智譜GLM",
     "Zhipu V4": "智譜 V4",
     "Zoom": "縮放",
+    "Classify this account for trial or paid operations reporting.": "用於區分試用或付費客戶，便於營運統計。",
+    "Commercial Attributes": "營運屬性",
+    "Customer Type": "客戶類型",
+    "Paid": "付費",
+    "Postpaid": "後結算",
+    "Prepaid": "預支付",
+    "Prepaid deducts from the balance before use. Postpaid is an operations label and does not change billing by itself.": "預支付會在使用前從餘額扣費；後結算目前僅為營運標記，不會單獨改變計費方式。",
+    "Select a customer type": "選擇客戶類型",
+    "Select a settlement mode": "選擇結算方式",
+    "Settlement Mode": "結算方式",
+    "Trial": "試用",
     "Zoom in": "放大",
     "Zoom out": "縮小"
   }

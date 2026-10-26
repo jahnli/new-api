@@ -10,7 +10,12 @@ import { quotaUnitsToDollars } from '@/lib/format'
 import { ROLE } from '@/lib/roles'
 
 import { DEFAULT_GROUP } from '../constants'
-import type { UserFormData, User } from '../types'
+import {
+  userCustomerTypeSchema,
+  userSettlementModeSchema,
+  type UserFormData,
+  type User,
+} from '../types'
 
 export interface CostCenterSelection {
   value: string
@@ -34,6 +39,8 @@ export const userFormSchema = z.object({
   display_name: z.string().optional(),
   password: z.string().optional(),
   role: z.number().optional(),
+  customer_type: userCustomerTypeSchema,
+  settlement_mode: userSettlementModeSchema,
   sales_user_id: z.number().int().min(0).optional(),
   overview_dept_ids: z.array(z.string()).optional(),
   cost_center: z
@@ -94,6 +101,8 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
   display_name: '',
   password: '',
   role: 1, // Default to common user
+  customer_type: 'unset',
+  settlement_mode: 'prepaid',
   overview_dept_ids: [],
   cost_center: null,
   quota_dollars: 0,
@@ -112,7 +121,8 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
 export function transformFormDataToPayload(
   data: UserFormValues,
   userId?: number,
-  catalog?: PermissionCatalog
+  catalog?: PermissionCatalog,
+  externalMode = false
 ): UserFormData & { id?: number } {
   const payload: UserFormData & { id?: number } = {
     username: data.username,
@@ -123,6 +133,10 @@ export function transformFormDataToPayload(
   const role = userId === undefined ? data.role || 1 : (data.role ?? 0)
   payload.overview_dept_ids = data.overview_dept_ids ?? []
   payload.cost_center = serializeCostCenter(data.cost_center)
+  if (externalMode) {
+    payload.customer_type = data.customer_type
+    payload.settlement_mode = data.settlement_mode
+  }
 
   // Only send the permission matrix when the target is an admin and the catalog
   // is available; without the catalog we cannot build a full matrix, so we omit
@@ -158,6 +172,8 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
     display_name: user.display_name,
     password: '',
     role: user.role,
+    customer_type: user.customer_type ?? 'unset',
+    settlement_mode: user.settlement_mode ?? 'prepaid',
     sales_user_id: user.sales_user_id ?? 0,
     overview_dept_ids: user.overview_dept_ids ?? [],
     cost_center: parseStoredCostCenter(user.cost_center),
