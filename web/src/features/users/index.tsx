@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 
+import { UsersDeleteDialog } from './components/users-delete-dialog'
 import { UsersMutateDrawer } from './components/users-mutate-drawer'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersProvider, useUsers } from './components/users-provider'
@@ -23,6 +24,7 @@ function UsersContent() {
         </SectionPageLayout.Content>
       </SectionPageLayout>
 
+      <UsersDeleteDialog />
       <UsersMutateDrawer
         open={open === 'create' || open === 'update'}
         onOpenChange={(isOpen) => !isOpen && setOpen(null)}

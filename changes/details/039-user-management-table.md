@@ -1,6 +1,6 @@
 # 用户管理与共享悬停交互增强
 
-**日期**: 2026-06-30 ~ 2026-10-13（最后更新 2026-10-13）
+**日期**: 2026-06-30 ~ 2026-10-26（最后更新 2026-10-26）
 
 ## 涉及文件
 
@@ -275,3 +275,13 @@
 - `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐注册方式和手动两条文案的七语言翻译。
 
 本次已执行 `bun run typecheck`、受影响文件的 `bunx oxlint -c .oxlintrc.json` 与 `bunx oxfmt --check`、`bun run build`、`go build ./...`，均通过；最终表头修正后重新执行类型、lint 和格式检查并通过。按项目要求未运行测试。缺少可用的 MySQL、PostgreSQL 及 Docker 环境，三库兼容性验证仍受阻，尚未完成。
+
+## 2026-10-26 恢复用户删除入口
+
+恢复此前移除的用户删除操作，确认后通过现有身份验证流程获取绑定目标用户的删除凭证，再调用删除接口；成功后关闭弹窗并刷新用户列表。
+
+- `web/src/features/users/api.ts` — 恢复删除用户接口封装，通过 `securityProofConfig` 携带删除凭证。
+- `web/src/features/users/components/data-table-row-actions.tsx` — 三点菜单恢复删除项，超级管理员账户的删除入口禁用。
+- `web/src/features/users/components/users-delete-dialog.tsx` — 恢复删除确认弹窗，复用 `ConfirmDialog`；请求 `admin.user.delete` 身份验证并绑定目标用户编号，验证期间隐藏确认弹窗，处理提交加载状态、成功提示与失败反馈。
+- `web/src/features/users/index.tsx` — 挂载用户删除确认弹窗。
+- `web/src/features/users/types.ts` — 用户弹窗类型恢复 `delete` 状态。

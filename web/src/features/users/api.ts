@@ -154,6 +154,20 @@ export async function updateUser(
 }
 
 /**
+ * Permanently delete a user; requires an `admin.user.delete` proof.
+ */
+export async function deleteUser(
+  id: number,
+  proofToken: string
+): Promise<ApiResponse> {
+  const res = await api.delete(
+    `/api/user/${id}/`,
+    securityProofConfig(proofToken)
+  )
+  return res.data
+}
+
+/**
  * Manage user (promote, demote, enable, disable); requires an
  * `admin.user.manage` proof
  */

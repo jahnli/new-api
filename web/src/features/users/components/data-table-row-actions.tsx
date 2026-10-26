@@ -1,6 +1,7 @@
 import type { Row } from '@tanstack/react-table'
 import {
   Pencil,
+  Trash2,
   Power,
   PowerOff,
   ArrowUp,
@@ -295,6 +296,21 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           {t('Reset 2FA')}
           <DropdownMenuShortcut>
             <ShieldAlert size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={() => {
+            setCurrentRow(user)
+            setOpen('delete')
+          }}
+          className='text-destructive focus:text-destructive'
+          disabled={isRoot}
+        >
+          {t('Delete')}
+          <DropdownMenuShortcut>
+            <Trash2 size={16} aria-hidden='true' />
           </DropdownMenuShortcut>
         </DropdownMenuItem>
       </DataTableRowActionMenu>
