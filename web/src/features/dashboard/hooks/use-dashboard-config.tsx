@@ -57,6 +57,14 @@ export function useModelStatCardsConfig(): StatCardConfig[] {
         calculateUnitPricePer100MTokens(stat?.quota ?? 0, stat?.tpm ?? 0),
     },
     {
+      key: 'count',
+      title: t('Total Requests'),
+      description: t('Statistical count'),
+      icon: Hash,
+      iconTone: 'info',
+      getValue: (stat) => stat?.rpm ?? 0,
+    },
+    {
       key: 'cacheRead',
       title: t('Cache Read'),
       description: t('Statistical tokens'),
@@ -71,14 +79,6 @@ export function useModelStatCardsConfig(): StatCardConfig[] {
       icon: Upload,
       iconTone: 'success',
       getValue: (stat) => stat?.cacheWrite ?? 0,
-    },
-    {
-      key: 'count',
-      title: t('Total Requests'),
-      description: t('Statistical count'),
-      icon: Hash,
-      iconTone: 'info',
-      getValue: (stat) => stat?.rpm ?? 0,
     },
     {
       key: 'avgRpm',

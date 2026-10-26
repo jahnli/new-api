@@ -1,9 +1,16 @@
+import { CircleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { TextTooltip } from '@/components/text-tooltip'
+import { TokenBreakdownTooltipContent } from '@/components/token-breakdown-tooltip-content'
 import { IconBadge } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { getUserQuotaDates } from '@/features/dashboard/api'
 import { useModelStatCardsConfig } from '@/features/dashboard/hooks/use-dashboard-config'
 import {
@@ -34,15 +41,22 @@ interface LogStatCardsProps {
 
 const MAX_INLINE_STAT_CHARS = 7
 
+// Intl compact notation glues CJK units to the number ("2919万"), so split them for readability.
+const CJK_COMPACT_UNIT_LOOKAHEAD = /^([\d.,]+)(?=\p{Script=Han})/u
+
 function formatStatNumber(value: number, locale: Intl.LocalesArgument) {
   const fullValue = formatNumber(value, locale)
-  const displayValue =
-    fullValue.length > MAX_INLINE_STAT_CHARS
-      ? formatCompactNumber(value, locale)
-      : fullValue
+  if (fullValue.length <= MAX_INLINE_STAT_CHARS) {
+    return {
+      displayValue: fullValue,
+      fullValue,
+    }
+  }
+
+  const compactValue = formatCompactNumber(value, locale)
 
   return {
-    displayValue,
+    displayValue: compactValue.replace(CJK_COMPACT_UNIT_LOOKAHEAD, '$1 '),
     fullValue,
   }
 }
@@ -169,6 +183,41 @@ export function LogStatCards(props: LogStatCardsProps) {
                 </div>
               </>
             )
+          } else if (it.key === 'tokens') {
+            valueContent = (
+              <>
+                <Tooltip>
+                  <div className='mt-1 flex min-w-0 items-center gap-1.5 sm:mt-2'>
+                    <div className='text-foreground min-w-0 truncate font-mono text-base leading-tight font-bold tracking-tight tabular-nums sm:text-2xl sm:leading-normal'>
+                      {it.value}
+                    </div>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          type='button'
+                          className='text-muted-foreground/70 hover:text-foreground shrink-0 -translate-y-3 transition-colors'
+                          aria-label={t('View details')}
+                        />
+                      }
+                    >
+                      <CircleAlert className='size-3 sm:size-3.5' />
+                    </TooltipTrigger>
+                  </div>
+                  <TooltipContent>
+                    <TokenBreakdownTooltipContent
+                      totalTokens={stats?.totalTokens ?? 0}
+                      inputTokens={stats?.totalInputTokens ?? 0}
+                      outputTokens={stats?.totalOutputTokens ?? 0}
+                      cacheReadTokens={stats?.totalCacheReadTokens ?? 0}
+                      cacheWriteTokens={stats?.totalCacheWriteTokens ?? 0}
+                    />
+                  </TooltipContent>
+                </Tooltip>
+                <div className='text-muted-foreground/60 mt-1 hidden text-xs md:block'>
+                  {it.desc}
+                </div>
+              </>
+            )
           } else {
             valueContent = (
               <>
@@ -191,7 +240,7 @@ export function LogStatCards(props: LogStatCardsProps) {
               aria-label={it.title}
               aria-busy={loading}
               className={cn(
-                'min-w-0 px-2.5 py-1.5 sm:px-3 sm:py-4 xl:px-4',
+                'min-w-0 px-3 py-2 sm:px-5 sm:py-5 xl:px-6',
                 idx === items.length - 1 &&
                   items.length % 2 !== 0 &&
                   'col-span-2 sm:col-span-1'

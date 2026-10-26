@@ -78,9 +78,9 @@ const LOG_STAT_CARD_FALLBACK_ITEMS = [
   'token-used',
   'total-cost',
   'average-price',
+  'request-count',
   'cache-read',
   'cache-write',
-  'request-count',
   'average-rpm',
   'average-tpm',
 ]
@@ -96,7 +96,7 @@ function LogStatCardsFallback() {
         {LOG_STAT_CARD_FALLBACK_ITEMS.map((fallbackItem) => (
           <div
             key={fallbackItem}
-            className='min-w-0 px-2.5 py-1.5 sm:px-3 sm:py-4 xl:px-4'
+            className='min-w-0 px-3 py-2 sm:px-5 sm:py-5 xl:px-6'
           >
             <div className='flex items-center gap-1.5 sm:gap-2'>
               <Skeleton className='size-4 rounded-sm sm:size-7 sm:rounded-md' />
