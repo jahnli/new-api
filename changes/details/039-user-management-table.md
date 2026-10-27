@@ -1,6 +1,6 @@
 # 用户管理与共享悬停交互增强
 
-**日期**: 2026-06-30 ~ 2026-10-26（最后更新 2026-10-26）
+**日期**: 2026-06-30 ~ 2026-10-27（最后更新 2026-10-27）
 
 ## 涉及文件
 
@@ -285,3 +285,13 @@
 - `web/src/features/users/components/users-delete-dialog.tsx` — 恢复删除确认弹窗，复用 `ConfirmDialog`；请求 `admin.user.delete` 身份验证并绑定目标用户编号，验证期间隐藏确认弹窗，处理提交加载状态、成功提示与失败反馈。
 - `web/src/features/users/index.tsx` — 挂载用户删除确认弹窗。
 - `web/src/features/users/types.ts` — 用户弹窗类型恢复 `delete` 状态。
+
+## 2026-10-27 用户多选批量管理
+
+用户多选后可批量启用、禁用、删除或修改分组，操作按钮采用图标加文字并保留悬浮提示。操作前确认处理人数，完成后汇总成功、失败、跳过与未处理数量；成功项取消勾选，失败及未处理项保留勾选。
+
+- `web/src/features/users/components/data-table-bulk-actions.tsx` — 复用批量操作栏、确认弹窗、文字提示和分组选择组件，新增四项批量操作、分组输入及处理进度；跳过当前账户、同级或更高权限账户、已删除账户，以及已处于目标状态的账户。
+- `web/src/features/users/hooks/use-bulk-user-actions.ts` — 逐用户调用现有接口，启用、禁用和删除分别获取绑定目标用户及操作的一次性安全凭证；取消验证后停止后续操作。修改分组前读取最新用户详情，保留姓名、备注、可见部门和成本中心字段；处理重复提交、部分失败和页面卸载，完成后刷新列表并汇总结果。
+- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐批量操作入口、确认说明、安全验证提示、进度及结果汇总的七语言翻译。
+
+验证：在 `web/` 下执行 `node_modules/.bin/tsgo.exe -b`、`bun run lint`、改动文件的 `bun x oxlint -c .oxlintrc.json` 与 `bun x oxfmt --check`、`bun run build`、`bun run i18n:sync`，均通过；按钮加文字后重新执行类型检查及该组件的 lint、格式检查并通过。`git diff --check` 通过。本机 Bun 不支持项目 `bun run typecheck` 脚本中的 `bun check`，因此使用已安装的 `tsgo` 完成类型检查。按项目要求未新增或运行测试。
