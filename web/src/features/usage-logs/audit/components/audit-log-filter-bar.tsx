@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { Table } from '@tanstack/react-table'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Combobox } from '@/components/ui/combobox'
@@ -65,6 +66,17 @@ export function AuditLogFilterBar(props: {
   onReset: () => void
 }) {
   const { t } = useTranslation()
+  const [isUsernameComposing, setIsUsernameComposing] = useState(false)
+  const [usernameDraft, setUsernameDraft] = useState<{
+    baseValue: string
+    value: string
+  } | null>(null)
+  const username = props.filters.username ?? ''
+  const usernameValue =
+    usernameDraft &&
+    (isUsernameComposing || usernameDraft.baseValue === username)
+      ? usernameDraft.value
+      : username
   const dateFilter = (
     <LogsFilterField wide>
       <CompactDateTimeRangePicker
@@ -174,12 +186,23 @@ export function AuditLogFilterBar(props: {
         {props.scope === 'all' && (
           <LogsFilterField>
             <LogsFilterInput
-              aria-label={t('Username')}
-              placeholder={t('Username')}
-              value={props.filters.username ?? ''}
-              onChange={(event) =>
-                props.onChange({ username: event.target.value || undefined })
-              }
+              aria-label={t('Username or display name')}
+              placeholder={t('Username or display name')}
+              value={usernameValue}
+              onCompositionStart={() => setIsUsernameComposing(true)}
+              onCompositionEnd={(event) => {
+                const value = event.currentTarget.value
+                setIsUsernameComposing(false)
+                setUsernameDraft({ baseValue: username, value })
+                props.onChange({ username: value || undefined })
+              }}
+              onChange={(event) => {
+                const value = event.target.value
+                setUsernameDraft({ baseValue: username, value })
+                if (!isUsernameComposing) {
+                  props.onChange({ username: value || undefined })
+                }
+              }}
             />
           </LogsFilterField>
         )}

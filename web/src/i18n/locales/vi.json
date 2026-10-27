@@ -7922,6 +7922,7 @@
     "Username confirmation does not match": "Xác nhận tên người dùng không khớp",
     "Username Field": "Trường Tên người dùng",
     "Username must be {{max}} characters or fewer": "Tên người dùng tối đa {{max}} ký tự",
+    "Username or display name": "Tên người dùng hoặc tên hiển thị",
     "Username or Email": "Tên đăng nhập hoặc Email",
     "Username or password is empty": "Username or password is empty",
     "Username or password is incorrect, or user has been banned": "Tên người dùng hoặc mật khẩu không đúng, hoặc người dùng đã bị cấm",

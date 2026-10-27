@@ -7922,6 +7922,7 @@
     "Username confirmation does not match": "用户名确认不匹配",
     "Username Field": "用户名字段",
     "Username must be {{max}} characters or fewer": "用户名长度不能超过{{max}}个字符",
+    "Username or display name": "用户名或显示名称",
     "Username or Email": "用户名或电子邮件",
     "Username or password is empty": "用户名或密码为空",
     "Username or password is incorrect, or user has been banned": "用户名或密码错误，或用户已被封禁",

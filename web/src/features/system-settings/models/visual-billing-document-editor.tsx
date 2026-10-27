@@ -173,7 +173,7 @@ function PricingRuleCard(
 ) {
   const { t, i18n } = useTranslation()
   const node = props.node
-  const [open, setOpen] = useState(props.first)
+  const [open, setOpen] = useState(true)
   const tier = node.kind === 'tier' ? node : node.yes
   const name =
     tier.kind === 'tier'

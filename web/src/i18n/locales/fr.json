@@ -7922,6 +7922,7 @@
     "Username confirmation does not match": "La confirmation du nom d'utilisateur ne correspond pas",
     "Username Field": "Champ nom d'utilisateur",
     "Username must be {{max}} characters or fewer": "Le nom d’utilisateur doit comporter {{max}} caractères au maximum",
+    "Username or display name": "Nom d’utilisateur ou nom affiché",
     "Username or Email": "Nom d'utilisateur ou e-mail",
     "Username or password is empty": "Username or password is empty",
     "Username or password is incorrect, or user has been banned": "Nom d’utilisateur ou mot de passe incorrect, ou l’utilisateur a été banni",

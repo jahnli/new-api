@@ -7922,6 +7922,7 @@
     "Username confirmation does not match": "Подтверждение имени пользователя не совпадает",
     "Username Field": "Поле имени пользователя",
     "Username must be {{max}} characters or fewer": "Имя пользователя должно содержать не более {{max}} символов",
+    "Username or display name": "Имя пользователя или отображаемое имя",
     "Username or Email": "Имя пользователя или Email",
     "Username or password is empty": "Username or password is empty",
     "Username or password is incorrect, or user has been banned": "Неверное имя пользователя или пароль, либо пользователь заблокирован",

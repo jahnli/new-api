@@ -7922,6 +7922,7 @@
     "Username confirmation does not match": "ユーザー名の確認が一致しません",
     "Username Field": "ユーザー名フィールド",
     "Username must be {{max}} characters or fewer": "ユーザー名は {{max}} 文字以内で入力してください",
+    "Username or display name": "ユーザー名または表示名",
     "Username or Email": "ユーザー名またはメールアドレス",
     "Username or password is empty": "Username or password is empty",
     "Username or password is incorrect, or user has been banned": "ユーザー名またはパスワードが正しくないか、ユーザーが利用停止されています",

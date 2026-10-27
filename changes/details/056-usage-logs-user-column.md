@@ -1,6 +1,12 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-10-25（最后更新 2026-10-25）
+**日期**: 2026-09-09 ~ 2026-10-27（最后更新 2026-10-27）
+
+## 2026-10-27 安全审计用户模糊筛选
+
+- `model/audit_log.go` — 用户筛选从审计记录中的用户名精确匹配改为按当前用户的用户名或显示名称包含匹配；去除关键词首尾空格并转义 LIKE 通配符，先从主库查询匹配用户 ID，再筛选独立日志库中的审计记录，无匹配用户时返回空结果。
+- `web/src/features/usage-logs/audit/components/audit-log-filter-bar.tsx` — 全部日志范围的用户筛选提示改为「用户名或显示名称」，中文输入法组合输入期间保留草稿，组合结束后提交筛选值。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补充「用户名或显示名称」的七语言文案。
 
 ## 2026-10-25 缓存命中率展示与详情列宽
 

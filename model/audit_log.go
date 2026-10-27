@@ -157,8 +157,20 @@ func GetAuditLogs(filter AuditLogFilter, start, limit, viewerRole int) ([]*Audit
 	if filter.UserId > 0 {
 		query = query.Where("user_id = ?", filter.UserId)
 	}
-	if filter.Username != "" {
-		query = query.Where("username = ?", filter.Username)
+	if keyword := strings.TrimSpace(filter.Username); keyword != "" {
+		// Both fields belong to users in the main database. Resolve matching
+		// users before querying the independently configured log store.
+		pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(keyword) + "%"
+		var matchedUserIDs []int
+		if err := DB.Table("users").
+			Where("username LIKE ? ESCAPE '!' OR display_name LIKE ? ESCAPE '!'", pattern, pattern).
+			Pluck("id", &matchedUserIDs).Error; err != nil {
+			return nil, 0, err
+		}
+		if len(matchedUserIDs) == 0 {
+			return []*AuditLog{}, 0, nil
+		}
+		query = query.Where("user_id IN ?", matchedUserIDs)
 	}
 	if filter.Category != "" {
 		query = query.Where("category = ?", filter.Category)

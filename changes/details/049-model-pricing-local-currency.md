@@ -1,6 +1,6 @@
-# 模型定价编辑器支持本地货币输入与档位名称原样回显
+# 模型定价编辑器支持本地货币输入、档位名称原样回显与规则默认展开
 
-**日期**: 2026-09-23
+**日期**: 2026-10-27
 
 ## 涉及文件
 
@@ -22,7 +22,7 @@
 - `model/model_pricing_conversion.go` — 旧倍率定价迁移为表达式时，普通 Token 档位名称使用“标准”
 - `web/src/features/pricing/lib/tier-expr.ts` — 新建可视化配置的默认档位名称使用“标准”
 - `web/src/features/system-settings/models/tiered-pricing-editor.tsx` — 预设模板采用“标准”“长上下文”档位名，读取已有表达式时保留原始档位名称
-- `web/src/features/system-settings/models/visual-billing-document-editor.tsx` — 档位输入框与卡片标题原样展示名称，输入内容原样写回
+- `web/src/features/system-settings/models/visual-billing-document-editor.tsx` — 档位输入框与卡片标题原样展示名称，输入内容原样写回；所有定价规则卡片默认展开，仍可手动折叠
 - `web/src/features/system-settings/models/model-pricing-sheet.tsx` — 新增及未设置价格模型的默认 Token 表达式使用“标准”档位
 - `controller/user.go` — 个人信息更新接口仅允许超级管理员单独提交 USD/site 定价货币偏好，并保留其他个人设置
 - `relaykit/dto/user_settings.go` — 个人设置新增 pricing_currency 字段
@@ -32,6 +32,10 @@
 - `web/src/stores/pricing-preferences-store.ts` — 从认证用户设置读取及更新货币偏好，停用浏览器本地偏好的读写
 
 ## 变更说明
+
+### 2026-10-27：定价规则默认展开
+
+- 可视化定价编辑器初始化时展开所有规则卡片，便于直接查看和编辑各条规则；保留手动折叠与展开操作。
 
 ### 2026-09-23：价格精度与档位名称
 
