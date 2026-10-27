@@ -18,10 +18,10 @@
     "openai",
     "claude"
   ],
-  "author": "Jahnlis",
+  "author": "jahnli",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Jahnlis/ai-gateway"
+    "url": "https://github.com/jahnli/ai-gateway"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",

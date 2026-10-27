@@ -178,7 +178,7 @@ docker run --name ai-gateway -d --restart unless-stopped \
   -e TZ=Asia/Shanghai \
   -e PORT=3002 \
   -v "$(pwd)/data:/data" \
-  jahnlis/ai-gateway:latest
+  jahnli/ai-gateway:latest
 ```
 
 Open [http://localhost:3002](http://localhost:3002) and complete the setup wizard to create the administrator account. The `data` directory persists the SQLite database across container replacements.

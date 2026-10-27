@@ -9,7 +9,7 @@ description: 串联 Docker 镜像发布和 1Panel 部署，镜像发布成功后
 
 - 创建、编辑或解释本技能时不执行发布。用户调用 `/release` 或明确要求执行全自动发布，即授权一次 Docker 发布及其成功后的 1Panel 更新、强制拉取和重建，无需阶段间再次确认。
 - 执行前完整读取 [docker-publish](../docker-publish/SKILL.md) 和 [1panel-deploy](../1panel-deploy/SKILL.md)，按各自的接口、鉴权、运行定位及核验规则执行；本技能负责串联阶段和汇总结果。
-- 默认发布仓库 `jahnli/new-api` 的 `docker-publish.yml`，部署 `local` 节点的 `ai-gateway` 编排和容器，目标镜像仓库为 `jahnlis/ai-gateway`。用户指定值优先。
+- 默认发布仓库 `jahnli/new-api` 的 `docker-publish.yml`，部署 `local` 节点的 `ai-gateway` 编排和容器，目标镜像仓库为 `jahnli/ai-gateway`。用户指定值优先。
 - 1Panel 地址、凭据和节点统一从根目录 `.1panel.local.json` 的所选目标读取：对内为 `targets.internal`，对外为 `targets.external`。面板 API 使用 `baseUrl`，应用状态接口使用 `statusUrl`，应用访问地址使用 `accessUrl`；`baseUrl`、`statusUrl` 支持使用 `{host}` 复用该目标的 `host`，必须先按 1Panel 技能的字面替换及校验规则在内存中解析，所有请求与地址展示使用解析后的 URL，`accessUrl` 已是完整地址、直接使用。技能不固定主机或端口；`baseUrl`、`apiKey`、`statusUrl` 缺失时按 1Panel 技能停止并提示补齐，`accessUrl` 缺失或非法时在报告中注明访问地址未核实，不阻断发布。
 - ref 使用用户指定的远端分支或标签，否则查询远端默认分支；reason 使用用户原文，否则为 `Manual Docker Publish via agent`。仅发布远端代码，不自动提交、推送或创建标签。
 - Docker 阶段产出的实际版本标签自动传给 1Panel，不再询问标签，不使用 `latest`，不从本地版本、SHA 或运行日期推算。

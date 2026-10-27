@@ -11,7 +11,7 @@ description: 从 .1panel.local.json 读取所选系统的地址和凭据，通�
 - 面板 API 地址、应用状态地址和应用访问地址分别仅从所选目标的 `baseUrl`、`statusUrl` 和 `accessUrl` 读取，不在技能中固定主机或端口，也不在它们之间互相推算。
 - 每次独立调用本技能执行部署时，必须使用 AskQuestion 提供单选项，标签严格为“仅对内”“仅对外”“同时发布”，等待用户选择后执行。不要求用户填写 `target`，不通过参数、自然语言目标或 `defaultTarget` 跳过选择。三个选项在内部映射为 `internal`、`external`、`both`。由 `release` 串联调用时，复用该次发布中用户已通过选择项作出的选择，不再次询问。查询在多系统模式下未指定目标时提供“仅对内”“仅对外”“同时查询”三个选项。
 - 未知目标或目标配置不完整时停止，不猜测、不切换到另一系统。文件无 `targets` 时停止并提示按目标结构补齐配置。
-- 编排和容器：`ai-gateway`；镜像：`jahnlis/ai-gateway`。
+- 编排和容器：`ai-gateway`；镜像：`jahnli/ai-gateway`。
 - 用户指定值优先；缺少镜像标签时询问，不默认用 `latest`。
 - 部署请求授权一次更新，无需重复确认；强制拉取和重建支持同标签。查询或编辑技能时不部署。
 - 使用 API；镜像构建交给 `docker-publish`，不自动提交或推送代码。
@@ -98,10 +98,16 @@ POST /logs/tasks/read
 
 ```json
 {
-  "id": 0, "type": "task", "name": "",
-  "page": 1, "pageSize": 500, "latest": false,
+  "id": 0,
+  "type": "task",
+  "name": "",
+  "page": 1,
+  "pageSize": 500,
+  "latest": false,
   "taskID": "<同一 UUID>",
-  "taskType": "", "taskOperate": "", "resourceID": 0
+  "taskType": "",
+  "taskOperate": "",
+  "resourceID": 0
 }
 ```
 

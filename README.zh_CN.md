@@ -63,6 +63,7 @@ AI Gateway 是面向应用、Agent 和团队的自托管 AI 网关。将不同�
 你可以用它为团队分配已授权的模型资源，在切换上游时减少客户端改动，或搭建自己的多模型服务。支持接入 OpenAI、Anthropic、Google Gemini、Azure OpenAI、AWS Bedrock、Vertex AI、DeepSeek、通义千问及其他兼容服务。
 
 > [!IMPORTANT]
+>
 > - 本项目仅面向合法授权的 AI API 网关、组织内部鉴权、多模型管理、用量统计、成本核算和私有化部署场景。
 > - 使用者必须合法取得上游 API Key、账号、模型服务或接口权限，并遵守上游服务条款及适用法律法规。
 > - 使用者应确保其使用方式符合上游服务条款及适用法律法规。
@@ -81,11 +82,11 @@ AI Gateway 是面向应用、Agent 和团队的自托管 AI 网关。将不同�
 
 以下账号、渠道、插件安装状态、用量、价格和费用均为模拟数据，插件市场展示官方目录。点击图片可查看原图。
 
-| 数据看板 | 插件市场 |
-| --- | --- |
+| 数据看板                                                                                                                  | 插件市场                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![数据看板：模拟请求量、费用和性能指标](assets/screenshots/dashboard.zh-CN.jpg)](assets/screenshots/dashboard.zh-CN.jpg) | [![插件市场：官方插件目录与模拟安装状态](assets/screenshots/plugin-marketplace.zh-CN.jpg)](assets/screenshots/plugin-marketplace.zh-CN.jpg) |
-| **模型广场** | **使用日志** |
-| [![模型广场：模拟模型价格与可用状态](assets/screenshots/models.zh-CN.jpg)](assets/screenshots/models.zh-CN.jpg) | [![使用日志：模拟 Token 用量、费用和响应耗时](assets/screenshots/usage-logs.zh-CN.jpg)](assets/screenshots/usage-logs.zh-CN.jpg) |
+| **模型广场**                                                                                                              | **使用日志**                                                                                                                                |
+| [![模型广场：模拟模型价格与可用状态](assets/screenshots/models.zh-CN.jpg)](assets/screenshots/models.zh-CN.jpg)           | [![使用日志：模拟 Token 用量、费用和响应耗时](assets/screenshots/usage-logs.zh-CN.jpg)](assets/screenshots/usage-logs.zh-CN.jpg)            |
 
 ---
 
@@ -133,27 +134,27 @@ AI Gateway 是面向应用、Agent 和团队的自托管 AI 网关。将不同�
 
 ## 核心能力
 
-| 方向 | 可以做什么 |
-| --- | --- |
-| 模型接入 | 支持 OpenAI Chat Completions、Responses、Anthropic Messages 和 Gemini 协议，以及上游支持的流式输出、工具调用、推理与多模态输入 |
-| 渠道调度 | 配置模型映射、渠道优先级与权重、失败重试、渠道亲和性和多密钥管理 |
-| 用量与成本 | 管理额度、订阅套餐、用量日志、缓存计费，以及基于表达式的阶梯定价 |
-| 访问控制 | 管理用户、分组、细粒度权限和 API Key 限制；支持 OAuth/OIDC、通行密钥、两步验证与登录会话管理 |
-| 异步任务 | 通过 JavaScript 插件扩展图片、视频等任务 API，统一查询任务状态和获取产物 |
-| Web 控制台 | 配置渠道与模型、查看用量和审计日志、在 Playground 中调试模型；支持简体中文、繁体中文、英语、法语、日语、俄语和越南语 |
+| 方向       | 可以做什么                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 模型接入   | 支持 OpenAI Chat Completions、Responses、Anthropic Messages 和 Gemini 协议，以及上游支持的流式输出、工具调用、推理与多模态输入 |
+| 渠道调度   | 配置模型映射、渠道优先级与权重、失败重试、渠道亲和性和多密钥管理                                                               |
+| 用量与成本 | 管理额度、订阅套餐、用量日志、缓存计费，以及基于表达式的阶梯定价                                                               |
+| 访问控制   | 管理用户、分组、细粒度权限和 API Key 限制；支持 OAuth/OIDC、通行密钥、两步验证与登录会话管理                                   |
+| 异步任务   | 通过 JavaScript 插件扩展图片、视频等任务 API，统一查询任务状态和获取产物                                                       |
+| Web 控制台 | 配置渠道与模型、查看用量和审计日志、在 Playground 中调试模型；支持简体中文、繁体中文、英语、法语、日语、俄语和越南语           |
 
 ### 协议与接口
 
-| 接口类型 | 常用入口 |
-| --- | --- |
-| OpenAI Chat / Responses | `POST /v1/chat/completions`、`POST /v1/responses` |
-| Anthropic Messages | `POST /v1/messages` |
-| Gemini | `POST /v1beta/models/{model}:generateContent`、`POST /v1beta/models/{model}:streamGenerateContent` |
-| Realtime / Responses WebSocket | `GET /v1/realtime`、`GET /v1/responses`（WebSocket 升级） |
-| 图片 / 音频 | `/v1/images/generations`、`/v1/images/edits`、`/v1/audio/speech`、`/v1/audio/transcriptions`、`/v1/audio/translations` |
-| 视频 | [视频 API 文档](https://semi-tech.feishu.cn/docx/GhoWd4iMookr4BxbBXcc2Qudn2c) |
-| 向量 / 重排 | `POST /v1/embeddings`、`POST /v1/rerank` |
-| 任务插件 | `POST /v1/tasks/{pluginKey}`、`GET /v1/tasks/{taskId}`，以及各插件声明的协议路由 |
+| 接口类型                       | 常用入口                                                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| OpenAI Chat / Responses        | `POST /v1/chat/completions`、`POST /v1/responses`                                                                      |
+| Anthropic Messages             | `POST /v1/messages`                                                                                                    |
+| Gemini                         | `POST /v1beta/models/{model}:generateContent`、`POST /v1beta/models/{model}:streamGenerateContent`                     |
+| Realtime / Responses WebSocket | `GET /v1/realtime`、`GET /v1/responses`（WebSocket 升级）                                                              |
+| 图片 / 音频                    | `/v1/images/generations`、`/v1/images/edits`、`/v1/audio/speech`、`/v1/audio/transcriptions`、`/v1/audio/translations` |
+| 视频                           | [视频 API 文档](https://semi-tech.feishu.cn/docx/GhoWd4iMookr4BxbBXcc2Qudn2c)                                          |
+| 向量 / 重排                    | `POST /v1/embeddings`、`POST /v1/rerank`                                                                               |
+| 任务插件                       | `POST /v1/tasks/{pluginKey}`、`GET /v1/tasks/{taskId}`，以及各插件声明的协议路由                                       |
 
 [RelayKit](./relaykit/README.md) 提供上述四种文本协议之间的请求、响应和流式转换。实际可用能力取决于渠道、上游模型和转换路径；协议特有的工具与字段可能无法完整映射。WebSocket 同样需要上游与渠道配置支持。
 
@@ -174,7 +175,7 @@ docker run --name ai-gateway -d --restart unless-stopped \
   -e TZ=Asia/Shanghai \
   -e PORT=3002 \
   -v "$(pwd)/data:/data" \
-  jahnlis/ai-gateway:latest
+  jahnli/ai-gateway:latest
 ```
 
 打开 [http://localhost:3002](http://localhost:3002)，按初始化向导创建管理员账号。SQLite 数据库存放在挂载的 `data` 目录中，更换容器后仍会保留。
@@ -224,23 +225,23 @@ docker compose logs -f ai-gateway
 
 ### 存储与配置
 
-| 组件 | 可选方案 |
-| --- | --- |
-| 主数据库 | SQLite、MySQL ≥ 5.7.8、PostgreSQL ≥ 9.6 |
-| 独立日志库 | 通过 `LOG_SQL_DSN` 配置，额外支持 ClickHouse |
-| 缓存 | 可选 Redis 与内存缓存；多节点需要共享限流额度时使用共享 Redis |
-| 容器平台 | Linux amd64 / arm64 |
+| 组件       | 可选方案                                                      |
+| ---------- | ------------------------------------------------------------- |
+| 主数据库   | SQLite、MySQL ≥ 5.7.8、PostgreSQL ≥ 9.6                       |
+| 独立日志库 | 通过 `LOG_SQL_DSN` 配置，额外支持 ClickHouse                  |
+| 缓存       | 可选 Redis 与内存缓存；多节点需要共享限流额度时使用共享 Redis |
+| 容器平台   | Linux amd64 / arm64                                           |
 
-| 环境变量 | 用途 |
-| --- | --- |
-| `SQL_DSN` | 主数据库连接串；未设置时使用 SQLite |
-| `LOG_SQL_DSN` | 可选的独立日志数据库连接串 |
-| `REDIS_CONN_STRING` | Redis 连接串 |
-| `SESSION_SECRET` | 持久保存的鉴权密钥，所有节点必须一致 |
-| `CRYPTO_SECRET` | 默认使用 `SESSION_SECRET`；共享 Redis 的节点必须使用相同的有效值 |
-| `SESSION_COOKIE_SECURE` | HTTPS 控制台设为 `true`，启用 Secure 刷新 Cookie 和严格的刷新／退出来源校验 |
+| 环境变量                     | 用途                                                                                   |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `SQL_DSN`                    | 主数据库连接串；未设置时使用 SQLite                                                    |
+| `LOG_SQL_DSN`                | 可选的独立日志数据库连接串                                                             |
+| `REDIS_CONN_STRING`          | Redis 连接串                                                                           |
+| `SESSION_SECRET`             | 持久保存的鉴权密钥，所有节点必须一致                                                   |
+| `CRYPTO_SECRET`              | 默认使用 `SESSION_SECRET`；共享 Redis 的节点必须使用相同的有效值                       |
+| `SESSION_COOKIE_SECURE`      | HTTPS 控制台设为 `true`，启用 Secure 刷新 Cookie 和严格的刷新／退出来源校验            |
 | `SESSION_COOKIE_TRUSTED_URL` | Secure 模式必填：以逗号分隔的精确 HTTPS Origin，不含路径或通配符；本地 HTTP 模式不设置 |
-| `TRUSTED_PROXIES` | 可信反向代理 IP/CIDR，或 `none`；按实际网络显式配置 |
+| `TRUSTED_PROXIES`            | 可信反向代理 IP/CIDR，或 `none`；按实际网络显式配置                                    |
 
 完整配置见[环境变量示例](./.env.example)、[环境变量文档](https://docs.newapi.ai/zh/docs/installation/config-maintenance/environment-variables)和[鉴权与登录会话说明](./docs/authentication.md)。容器变量应通过 Compose 的 `environment` 或 `env_file` 注入；只复制 `.env.example` 不会自动将变量传入容器。
 
@@ -274,15 +275,15 @@ bun run dev -- --port 5173
 
 访问 [http://localhost:5173](http://localhost:5173)，开发服务器会将 API 请求代理到 3000 端口的后端。需要容器化开发后端时，参阅 [docker-compose.dev.yml](./docker-compose.dev.yml) 和 [makefile](./makefile) 中的 `make dev`。
 
-| 目录 | 职责 |
-| --- | --- |
-| `router/`、`middleware/`、`controller/` | HTTP 路由、访问校验与 API 处理 |
-| `relay/` | 上游适配与请求调度 |
-| `service/`、`model/` | 业务逻辑与持久化 |
-| [relaykit/](./relaykit/README.md) | 可独立构建的协议 DTO 与转换 Go 模块 |
-| [plugins/tasks/](./plugins/tasks/) | JavaScript 任务插件；编写方式与宿主边界见 [Task Plugin API v1](./docs/plugin-api/v1.md) |
-| `web/` | Web 控制台，参阅[前端开发约定](./web/AGENTS.md) |
-| [electron/](./electron/README.md) | 桌面封装与打包 |
+| 目录                                    | 职责                                                                                    |
+| --------------------------------------- | --------------------------------------------------------------------------------------- |
+| `router/`、`middleware/`、`controller/` | HTTP 路由、访问校验与 API 处理                                                          |
+| `relay/`                                | 上游适配与请求调度                                                                      |
+| `service/`、`model/`                    | 业务逻辑与持久化                                                                        |
+| [relaykit/](./relaykit/README.md)       | 可独立构建的协议 DTO 与转换 Go 模块                                                     |
+| [plugins/tasks/](./plugins/tasks/)      | JavaScript 任务插件；编写方式与宿主边界见 [Task Plugin API v1](./docs/plugin-api/v1.md) |
+| `web/`                                  | Web 控制台，参阅[前端开发约定](./web/AGENTS.md)                                         |
+| [electron/](./electron/README.md)       | 桌面封装与打包                                                                          |
 
 贡献前请阅读 [AGENTS.md](./AGENTS.md)。按改动范围执行检查：Go 模块使用 `make test`；前端在 `web/` 下运行 `bun check -b`、`bun run lint`、`bun run test` 和 `bun run build`。修改 RelayKit 后还必须在 `relaykit/` 下执行 `GOWORK=off go build ./...`。
 
@@ -290,13 +291,13 @@ bun run dev -- --port 5173
 
 ## 文档与社区
 
-| 资源 | 入口 |
-| --- | --- |
-| 官方文档 | [使用指南](https://docs.newapi.ai/zh/docs) · [安装部署](https://docs.newapi.ai/zh/docs/installation) · [API 参考](https://docs.newapi.ai/zh/docs/api) |
-| 项目导读 | [DeepWiki](https://deepwiki.com/QuantumNous/new-api) |
-| 使用问题与交流 | [常见问题](https://docs.newapi.ai/zh/docs/support/faq) · [社区渠道](https://docs.newapi.ai/zh/docs/support/community-interaction) |
-| 缺陷与功能建议 | [GitHub Issues](https://github.com/QuantumNous/new-api/issues) |
-| 安全漏洞 | 按[安全政策](./.github/SECURITY.md)进行私下报告 |
+| 资源           | 入口                                                                                                                                                  |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 官方文档       | [使用指南](https://docs.newapi.ai/zh/docs) · [安装部署](https://docs.newapi.ai/zh/docs/installation) · [API 参考](https://docs.newapi.ai/zh/docs/api) |
+| 项目导读       | [DeepWiki](https://deepwiki.com/QuantumNous/new-api)                                                                                                  |
+| 使用问题与交流 | [常见问题](https://docs.newapi.ai/zh/docs/support/faq) · [社区渠道](https://docs.newapi.ai/zh/docs/support/community-interaction)                     |
+| 缺陷与功能建议 | [GitHub Issues](https://github.com/QuantumNous/new-api/issues)                                                                                        |
+| 安全漏洞       | 按[安全政策](./.github/SECURITY.md)进行私下报告                                                                                                       |
 
 反馈问题时请附上版本、部署方式、复现步骤及脱敏日志。欢迎贡献文档、翻译、渠道适配和有针对性的回归测试。
 
@@ -306,17 +307,17 @@ bun run dev -- --port 5173
 
 ### 上游项目
 
-| 项目 | 说明 |
-|------|------|
-| [One API](https://github.com/songquanpeng/one-api) | 原版项目基础 |
+| 项目                                                             | 说明                |
+| ---------------------------------------------------------------- | ------------------- |
+| [One API](https://github.com/songquanpeng/one-api)               | 原版项目基础        |
 | [Midjourney-Proxy](https://github.com/novicezk/midjourney-proxy) | Midjourney 接口支持 |
 
 ### 配套工具
 
-| 项目 | 说明 |
-|------|------|
-| [new-api-key-tool](https://github.com/Calcium-Ion/new-api-key-tool) | Key 额度查询工具 |
-| [new-api-horizon](https://github.com/Calcium-Ion/new-api-horizon) | New API 高性能优化版 |
+| 项目                                                                | 说明                 |
+| ------------------------------------------------------------------- | -------------------- |
+| [new-api-key-tool](https://github.com/Calcium-Ion/new-api-key-tool) | Key 额度查询工具     |
+| [new-api-horizon](https://github.com/Calcium-Ion/new-api-horizon)   | New API 高性能优化版 |
 
 ---
 

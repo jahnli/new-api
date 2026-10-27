@@ -159,7 +159,7 @@ docker run --name ai-gateway -d --restart unless-stopped \
   -e TZ=Asia/Shanghai \
   -e PORT=3002 \
   -v "$(pwd)/data:/data" \
-  jahnlis/ai-gateway:latest
+  jahnli/ai-gateway:latest
 ```
 
 [http://localhost:3002](http://localhost:3002) を開き、初期設定ウィザードで管理者アカウントを作成します。SQLite データベースはマウントした `data` ディレクトリに保存され、コンテナを置き換えても残ります。

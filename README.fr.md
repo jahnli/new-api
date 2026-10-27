@@ -159,7 +159,7 @@ docker run --name ai-gateway -d --restart unless-stopped \
   -e TZ=Asia/Shanghai \
   -e PORT=3002 \
   -v "$(pwd)/data:/data" \
-  jahnlis/ai-gateway:latest
+  jahnli/ai-gateway:latest
 ```
 
 Ouvrez [http://localhost:3002](http://localhost:3002) et suivez l'assistant pour créer le compte administrateur. Le répertoire `data` conserve la base SQLite lors du remplacement du conteneur.
