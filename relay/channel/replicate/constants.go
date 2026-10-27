@@ -8,5 +8,4 @@ const (
 )
 
 var ModelList = []string{
-	ModelFlux11Pro,
 }
