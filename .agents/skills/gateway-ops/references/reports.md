@@ -18,6 +18,27 @@ python scripts/personal_monthly_stats.py "username" 9 --year 2026
 - 月报仅支持整月，没有 `--start`、`--end`、`--output`、`--send-feishu`。任意日期的公司/部门/个人报表不能用全站周报替代。支持逐月运行以覆盖多个月。
 - 产物为标准输出文本；保存文件由技能捕获文本完成。保留脚本关于历史日志按 Token 占比分摊费用的提示，不把回退分摊值描述成精确的分类原始账单。
 
+## 人员每日金额表
+
+“人员每日金额表”“按公司导出每天消费”“周末金额归周一”使用 `scripts/daily_usage.py`；个人月报仍使用 `personal_monthly_stats.py`。
+
+```text
+python scripts/daily_usage.py --month 6
+python scripts/daily_usage.py --month 6 --company "赛美特集团"
+python scripts/daily_usage.py --month 6 --company "上海繁竞科技有限公司" --output "output/gateway-ops/本次运行/每日金额.csv"
+```
+
+- Python 3.10+；数据库依赖 `psycopg2`（安装包 `psycopg2-binary`），默认 Excel 输出另需 `openpyxl`，CSV 不需要该包。需要可用的 `Asia/Shanghai` 时区数据；Windows 缺少时区数据时可在项目环境安装 `tzdata`。
+- `--month` 必填，范围 1–12；年份固定为 2026，不支持 `--year`。用户请求其他年份时说明能力缺口，不映射到 2026 年执行。`--tz` 默认 `Asia/Shanghai`，决定日期边界与周末判断。
+- 默认分别统计“赛美特集团”和“上海繁竞科技有限公司”；`--company` 仅接受这两个精确名称，可重复指定，重复公司会去重。只指定一家时仅导出该公司，不能用此脚本统计其他公司或筛选个人、部门。
+- 数据源为 PostgreSQL `quota_data`，连接默认来自脚本内 `POSTGRES_*` 常量，不读取 `.env` 或 `SQL_DSN`。支持 `--host`、`--port`、`--user`、`--password`、`--schema`，数据库名固定；schema 仅允许字母、数字、下划线且不能以数字开头。技能调用不把密码放进命令文本，现有参数若无法安全传递所需凭据，应说明缺口。
+- 只统计 `users.open_id` 非空且去空格后非空的用户，公司按当前 `users.company` 精确匹配，无启用状态筛选。公司内同工号合并，无工号按 user_id 独立；工号优先取 `job_number`，不存在时取 `employee_number`，均不存在则失败。归属依赖当前用户资料，不是历史组织快照。
+- 周六、周日的额度固定归入下一个周一，周末日期列为 0，无开关；不支持旧的 `--weekend-to-friday`。按归并后的日期筛选月份：月初为周日或周一时补取上月底相应周末；月末周末若对应下月周一，计入下月。查询时间左闭右开，结束于下月 1 日 00:00:00。该口径与自然月账单总额不同，本月也只能称为“整月归集窗口，目前已有记录”。
+- 金额为 `quota / QuotaPerUnit * exchange_rate`，先按人员、归集日累加额度，再转换并四舍五入到两位；人员总计为展示的每日金额之和。`--quota-per-unit` 必须大于 0，未提供时读取 `options.QuotaPerUnit`，缺失或无效时使用 500000；`--exchange-rate` 必须大于 0，默认 6.8。保留此口径，不重算历史账单。
+- `--output` 是基础文件名，仅支持 `.xlsx` 或 `.csv`，自动在扩展名前添加 `_<公司名称>`。默认在当前目录生成 `person_daily_amount_2026MM_weekend_to_monday_<公司名称>.xlsx`，两家公司各一个文件。技能运行优先显式指定本次独立输出目录中的基础文件名，避免同名覆盖；父目录会自动创建，已有同名文件会覆盖，无备份或预览开关。
+- 表格含年份、月份、员工名称、username、工号、部门、固定 1–31 日列及总计；超出当月天数的列为 0。Excel 提供冻结列、筛选和金额格式；CSV 为 UTF-8 BOM。仅查询数据库和写本地文件，无数据库业务写入、API 写入或飞书发送，不支持 `--apply`、`--send-feishu`、任意日期区间。
+- 交付时核对每家公司输出的用户数、合并后人数、人民币总额及“已输出”路径，并确认文件属于本次运行。即使无用户也会生成仅表头的文件，必须说明为空。某家公司写入失败时可能已生成另一家的文件，核对实际产物后报告部分完成，不能只凭首个文件认定全部成功。
+
 ## 周报与自定义周期
 
 ```text
