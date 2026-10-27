@@ -80,7 +80,7 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 
 - 实现、修改或审查认证相关流程时，必须遵循最新稳定版 OWASP Application Security Verification Standard（ASVS，https://owasp.org/www-project-application-security-verification-standard/）及 OWASP Cheat Sheet Series（https://cheatsheetseries.owasp.org/）中的适用要求。范围包括前后端的注册、登录/退出、密码修改与找回、邮箱验证、MFA、WebAuthn/Passkeys、OAuth/OIDC、账户绑定/解绑、会话、JWT、API 凭据及敏感操作的重新认证。
 - 修改上述流程前，先阅读 Authentication Cheat Sheet（https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html）和 Session Management Cheat Sheet（https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html），涉及相应机制时继续查阅密码存储、密码找回、MFA、OAuth 和 CSRF 指引。实施前明确适用控制要求；现有代码不能成为保留或引入不安全模式的理由。
-- 安全控制必须在服务端执行。落实凭据存储与传输、防账户枚举与暴力破解、CSRF 与重放防护、令牌/挑战的过期及必要时的一次性使用、协议验证、会话轮换与失效、敏感账户变更重新认证等适用要求。前端检查不能替代服务端执行，恢复或替代登录路径不得绕过必要的认证强度。
+- 安全控制必须在服务端执行。落实凭据存储与传输、防账户枚举、CSRF 与重放防护、令牌/挑战的过期及必要时的一次性使用、协议验证、会话轮换与失效、敏感账户变更重新认证等适用要求。前端检查不能替代服务端执行，恢复或替代登录路径不得绕过必要的认证强度。
 - 认证审计不得记录密码、验证码、恢复码、私钥或可用的会话/认证令牌。应保留足够的非秘密上下文，以调查认证失败和敏感账户变更。
 
 ### 后端规则
