@@ -25,6 +25,7 @@ description: 管理并通过中文指令运行本仓库 scripts/ 中的网关运
 | 一级部门月报 | `scripts/primary_department_stats.py` | [报表](references/reports.md) |
 | 二级部门月报 | `scripts/secondary_department_stats.py` | [报表](references/reports.md) |
 | 个人月报 | `scripts/personal_monthly_stats.py` | [报表](references/reports.md) |
+| 按公司导出人员每日金额表（周末归周一） | `scripts/daily_usage.py` | [报表](references/reports.md#人员每日金额表) |
 | 导出新的模型价格 Excel | `scripts/model_square_prices.py` | [价格](references/prices.md) |
 | 更新已有报价表 | `scripts/sync_price_sheet.py` | [价格](references/prices.md) |
 | A 站基础定价和模型广场推荐同步到 B 站 | `scripts/sync_model_prices.py` | [价格](references/prices.md) |
@@ -35,7 +36,7 @@ description: 管理并通过中文指令运行本仓库 scripts/ 中的网关运
 
 1. 从当前工作区向上定位含 `scripts/` 和 `go.mod` 的项目根目录，读取适用的 `AGENTS.md`，在根目录运行命令。路径不固定为某台机器的盘符。
 2. 明确操作、统计对象、时间范围、目标文件/站点，以及是否预览、写入或发送。复用本次对话已提供的信息；只询问无法推断且影响结果的缺项。部门层级不明确时询问一级还是二级，不凭名称猜测。
-3. 以当前北京时间解析“上个月”“今年”等时间。月报始终显式传 `--year`，不依赖脚本固定的默认年份。仅给月份时用当前年份并说明；整月统计和截至当前的统计不能混为一谈。
+3. 以当前北京时间解析“上个月”“今年”等时间。支持年份参数的月报始终显式传 `--year`，不依赖脚本固定的默认年份；`daily_usage.py` 目前固定为 2026 年且无 `--year`，其他年份不能直接执行。仅给月份时用当前年份并说明；整月统计和截至当前的统计不能混为一谈。
 4. 阅读所选脚本的参数解析、配置加载和主入口，核对参考文件是否仍准确。只通过读源码核查，不通过导入运营模块检查配置；不要输出内置凭据或 `.env` 全文。
 5. 检查 Python 3.10+、所需依赖、配置是否存在、输入文件及输出目录。优先使用已有项目 Python 环境；Windows 的 `python` 可能只是商店占位程序，要核实解释器可用。没有项目解释器时可通过可用的工作区依赖工具定位内置 Python，不把本机缓存路径写死在命令模板中。依赖检查用 `importlib.util.find_spec`，不用运行运营脚本充当检查。缺包时可安装到项目已有或新建的 `.venv`，只装本次需要的包，不改系统或内置 Python。只要求“检查条件”时列出缺项，不安装、不联网、不执行脚本。
 6. 运行前简短说明具体范围和操作；把参数作为独立参数传递，PowerShell 使用调用运算符和参数数组，不把用户名、部门名或路径拼接成待执行代码。凭据留在环境变量或进程内存中，不放入命令文本、报告或技能文件。捕获输出并在展示前去除可能包含的凭据。
@@ -71,6 +72,8 @@ $gateway-ops 生成上周完整自然周报告并发送飞书
 $gateway-ops 统计某公司 2026 年 9 月用量
 $gateway-ops 对比一级部门研发中心和销售中心上个月的用量
 $gateway-ops 查看用户 zhangsan 上个月用量
+$gateway-ops 导出 2026 年 6 月两家公司人员每日金额表，周末归周一
+$gateway-ops 导出赛美特集团 2026 年 6 月人员每日金额 CSV
 $gateway-ops 导出当前模型价格表
 $gateway-ops 预览报价表价格更新
 $gateway-ops 预览 A 站同步到 B 站的价格变化
