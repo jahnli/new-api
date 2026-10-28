@@ -419,6 +419,7 @@ func SetApiRouter(router *gin.Engine) {
 		requestMessageRoute.GET("/", middleware.RootAuth(), controller.GetRequestMessages)
 		requestMessageRoute.POST("/batch", middleware.RootAuth(), controller.GetRequestMessagesBatch)
 		requestMessageRoute.POST("/notify-violation", middleware.RootAuth(), controller.NotifyRequestMessageViolation)
+		requestMessageRoute.POST("/notice-preview", middleware.RootAuth(), controller.PreviewRequestMessageNotice)
 		requestMessageRoute.GET("/self", middleware.UserAuth(), controller.GetUserRequestMessages)
 		requestMessageRoute.POST("/self/batch", middleware.UserAuth(), controller.GetUserRequestMessagesBatch)
 

@@ -561,7 +561,19 @@ export interface RequestMessage {
   parameters: string
 }
 
+export type RequestNotificationType = 'non_work_content' | 'security_risk'
+
+export interface RequestNoticePreview {
+  title: string
+  content: string
+  template: 'orange' | 'red'
+  fields: { label: string; value: string }[]
+}
+
 export interface NotifyViolationRequest {
+  notification_type: RequestNotificationType
+  language?: string
+  client?: string
   request_id: string
   user_id: number
   model_name: string

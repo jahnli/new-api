@@ -17,7 +17,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { api, getFreshAuthHeaders, type ApiRequestConfig } from '@/lib/api'
-import { createServerError } from '@/lib/server-error-message'
+import {
+  createServerError,
+  requireServerSuccess,
+} from '@/lib/server-error-message'
 
 import type { UsageLog } from './data/schema'
 import { buildQueryParams } from './lib/query-params'
@@ -31,6 +34,7 @@ import type {
   GetTaskLogsParams,
   NotifyViolationRequest,
   RequestMessage,
+  RequestNoticePreview,
   TaskArtifactsResponse,
   UserInfo,
 } from './types'
@@ -177,6 +181,20 @@ export async function notifyRequestMessageViolation(
 ): Promise<{ success: boolean; message?: string }> {
   const res = await api.post('/api/request_message/notify-violation', payload)
   return res.data
+}
+
+export async function previewRequestMessageNotice(
+  payload: NotifyViolationRequest,
+  signal?: AbortSignal
+): Promise<RequestNoticePreview> {
+  const res = await api.post<{
+    success: boolean
+    message?: string
+    data?: RequestNoticePreview
+  }>('/api/request_message/notice-preview', payload, { signal })
+  const response = requireServerSuccess(res.data)
+  if (!response.data) throw createServerError(response)
+  return response.data
 }
 
 // ============================================================================

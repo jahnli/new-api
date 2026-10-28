@@ -1,6 +1,16 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-10-27（最后更新 2026-10-27）
+**日期**: 2026-09-09 ~ 2026-10-28（最后更新 2026-10-28）
+
+## 2026-10-28 请求内容通知分类与发送前预览
+
+- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 将「违规通知」改为红色「通知」按钮，支持选择「非工作内容」或「安全风险」；确认弹框采用左侧接收人与类型、右侧通知预览的响应式布局，最大宽度为 1024px、高度为视口的 75%，覆盖底层尺寸限制；允许非发送状态点击空白关闭，移除冗余发送说明。切换类型或界面语言重新获取预览，加载中或失败时禁用发送，失败可重试，错误提示复用统一处理。
+- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 新增通知预览卡片，复用共享卡片组件及企业通知标题配色；按类型展示橙色或红色标题栏，展示完整正文、请求时间、模型、请求 ID 与客户端，字段标签加粗，不额外显示「实时预览」标题行。
+- `web/src/features/usage-logs/api.ts`、`web/src/features/usage-logs/types.ts` — 通知载荷增加类型、当前界面语言和客户端；新增可取消的预览请求及结构化预览类型，检查业务失败与缺失预览数据。
+- `controller/request_message.go`、`router/api-router.go` — 新增仅超级管理员可调用的 `/api/request_message/notice-preview`；预览与发送共用参数、通知类型和飞书绑定校验，预览直接返回卡片内容且不发送消息；优先使用提交的界面语言，缺失时使用请求语言解析规则。
+- `service/feishu_department.go` — 预览和发送共用通知内容构建：非工作内容采用橙色卡头、安全风险采用红色卡头；补充客户端字段，缺失显示 `-`，客户端值按普通文本输出；移除「如误告警，忽略即可」，安全风险正文补充禁止逆向分析、REA 模型或破解行为；标题、正文和字段标签统一按传入语言生成，兼容未指定通知类型的旧调用。
+- `i18n/locales/en.yaml`、`i18n/locales/zh-CN.yaml`、`i18n/locales/zh-TW.yaml` — 补充两类通知与旧通知的标题、正文和字段标签；支持英文、简体中文和繁体中文，其他界面语言沿用后端规则回退英文。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补充通知类型、确认发送、发送失败与无效类型等七语言文案。
 
 ## 2026-10-27 安全审计用户模糊筛选
 

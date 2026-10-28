@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
@@ -298,8 +299,66 @@ func SendFeishuCardMessage(openID string, cardJSON string) error {
 }
 
 func BuildViolationNoticeCard(requestTime string, requestID string, modelName string) (string, error) {
+	return BuildRequestNoticeCard(requestTime, requestID, modelName, "", "", "")
+}
+
+const (
+	RequestNoticeNonWorkContent = "non_work_content"
+	RequestNoticeSecurityRisk   = "security_risk"
+)
+
+type RequestNoticeField struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
+type RequestNoticePreview struct {
+	Title    string               `json:"title"`
+	Content  string               `json:"content"`
+	Template string               `json:"template"`
+	Fields   []RequestNoticeField `json:"fields"`
+}
+
+func BuildRequestNoticePreview(requestTime string, requestID string, modelName string, notificationType string, client string, lang string) (*RequestNoticePreview, error) {
+	// Preserve the legacy card for clients that do not yet send a notification type.
+	title := i18n.Translate(lang, "request_notice.legacy_title")
+	content := i18n.Translate(lang, "request_notice.legacy_content")
+	template := "red"
+	switch notificationType {
+	case "":
+	case RequestNoticeNonWorkContent:
+		title = i18n.Translate(lang, "request_notice.non_work_title")
+		content = i18n.Translate(lang, "request_notice.non_work_content")
+		template = "orange"
+	case RequestNoticeSecurityRisk:
+		title = i18n.Translate(lang, "request_notice.security_title")
+		content = i18n.Translate(lang, "request_notice.security_content")
+	default:
+		return nil, fmt.Errorf("invalid notification type")
+	}
+
 	if modelName == "" {
 		modelName = "-"
+	}
+	client = strings.TrimSpace(client)
+	if client == "" {
+		client = "-"
+	}
+	return &RequestNoticePreview{
+		Title: title, Content: content, Template: template,
+		Fields: []RequestNoticeField{
+			{Label: i18n.Translate(lang, "request_notice.request_time"), Value: requestTime},
+			{Label: i18n.Translate(lang, "request_notice.model"), Value: modelName},
+			{Label: i18n.Translate(lang, "request_notice.request_id"), Value: requestID},
+			{Label: i18n.Translate(lang, "request_notice.client"), Value: client},
+		},
+	}, nil
+}
+
+func BuildRequestNoticeCard(requestTime string, requestID string, modelName string, notificationType string, client string, lang string) (string, error) {
+	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang)
+	if err != nil {
+		return "", err
 	}
 
 	card := map[string]any{
@@ -307,16 +366,16 @@ func BuildViolationNoticeCard(requestTime string, requestID string, modelName st
 			"wide_screen_mode": true,
 		},
 		"header": map[string]any{
-			"template": "red",
+			"template": preview.Template,
 			"title": map[string]string{
 				"tag":     "plain_text",
-				"content": "安全审计提醒",
+				"content": preview.Title,
 			},
 		},
 		"elements": []map[string]any{
 			{
 				"tag":     "markdown",
-				"content": "你的 API 请求疑似包含非工作或违规内容，请及时调整使用方式。",
+				"content": preview.Content,
 			},
 			{
 				"tag": "div",
@@ -325,14 +384,14 @@ func BuildViolationNoticeCard(requestTime string, requestID string, modelName st
 						"is_short": true,
 						"text": map[string]string{
 							"tag":     "lark_md",
-							"content": "**请求时间**\n" + requestTime,
+							"content": "**" + preview.Fields[0].Label + "**\n" + preview.Fields[0].Value,
 						},
 					},
 					{
 						"is_short": true,
 						"text": map[string]string{
 							"tag":     "lark_md",
-							"content": "**模型**\n" + modelName,
+							"content": "**" + preview.Fields[1].Label + "**\n" + preview.Fields[1].Value,
 						},
 					},
 				},
@@ -341,12 +400,24 @@ func BuildViolationNoticeCard(requestTime string, requestID string, modelName st
 				"tag": "div",
 				"text": map[string]string{
 					"tag":     "lark_md",
-					"content": "**Request ID**\n" + requestID,
+					"content": "**" + preview.Fields[2].Label + "**\n" + preview.Fields[2].Value,
 				},
 			},
 			{
-				"tag":     "markdown",
-				"content": "如误告警，忽略即可",
+				"tag": "div",
+				"text": map[string]string{
+					"tag":     "lark_md",
+					"content": "**" + preview.Fields[3].Label + "**",
+				},
+				"fields": []map[string]any{
+					{
+						"is_short": false,
+						"text": map[string]string{
+							"tag":     "plain_text",
+							"content": preview.Fields[3].Value,
+						},
+					},
+				},
 			},
 		},
 	}
