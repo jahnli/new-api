@@ -18,8 +18,10 @@ Token 价格为人民币/百万 Token；按次价格 B=￥xx/次、C=按次收�
 汇率读取 /api/status.usd_exchange_rate，不应用充值折算。
 价格精度跟随模型广场：金额 >= 1 最多 4 位小数，< 1 最多 6 位小数；
 旧版按次价格最多 4 位小数。去除末尾零，非零小额保留界面的最小显示值。
-普通 Token 阶梯使用模型广场摘要的第一档，预览会注明阶梯标签；不执行表达式。
-不支持时段、混合计费或任务用量表达式，遇到此类价格停止，避免写入错误报价。
+普通 Token 阶梯默认使用第一档；--tier 可指定档位名称，单档模型沿用唯一档位。
+多档模型找不到指定档位时停止，不回退到其他档位；预览注明实际标签，不执行表达式。
+时段价格必须通过 --model-tier 模型名=档位名 明确选择，不按当前时间推测。
+不支持混合计费或任务用量表达式，遇到此类价格停止，避免写入错误报价。
 折扣=未舍入的本地非缓存输入价/官方 input*10，固定保留两位小数。
 按次模型仅与官方 per_call（元/次，可选扩展字段）比较，绝不与 Token 价比较。
 缺失、null、空对象或没有可比较的官方价格时，G 列写 —。
@@ -68,6 +70,7 @@ TIER = re.compile(
     rf'(?P<body>fixed\(\s*{NUMBER}\s*\)|{TERM}(?:\s*\+\s*{TERM})*)\s*\)'
 )
 CONDITION = rf"(?:p|c|len)\s*(?:<=|>=|<|>)\s*{NUMBER}"
+TIME_CONDITION = rf'(?:weekday|hour|minute)\("[^"\\]+"\)\s*(?:<=|>=|<|>|==)\s*{NUMBER}'
 
 
 def nonnegative(value, field: str) -> Decimal:
@@ -135,7 +138,10 @@ def read_payload(args, endpoint: str) -> dict:
     return payload
 
 
-def basic_prices(model: dict, pricing: dict, group: str, exchange: Decimal) -> tuple[list, str]:
+def basic_prices(
+    model: dict, pricing: dict, group: str, exchange: Decimal,
+    tier_name: str | None = None, explicit_tier: bool = False,
+) -> tuple[list, str]:
     name = model["model_name"]
     enabled = model.get("enable_groups", [])
     if not isinstance(enabled, list) or (group not in enabled and "all" not in enabled):
@@ -167,19 +173,38 @@ def basic_prices(model: dict, pricing: dict, group: str, exchange: Decimal) -> t
         # 只接受完整的标准 Token 阶梯链，拒绝 regex 提取部分系数后遗漏乘数。
         shape = TIER.sub("T", expression)
         chain = rf"(?:{CONDITION}(?:\s*&&\s*{CONDITION})*\s*\?\s*T\s*:\s*)*T"
-        if not tiers or not re.fullmatch(chain, shape.strip()):
+        valid_shape = re.fullmatch(chain, shape.strip())
+        if not valid_shape and explicit_tier:
+            # 仅校验条件语法，不求值。显式命名档位后仍拒绝遗漏的乘数及未知函数。
+            reduced = re.sub(TIME_CONDITION, "C", shape)
+            reduced = re.sub(CONDITION, "C", reduced)
+            reduced = re.sub(r"\s+", "", reduced)
+            while True:
+                simpler = re.sub(r"\(C\)|C(?:&&|\|\|)C", "C", reduced)
+                if simpler == reduced:
+                    break
+                reduced = simpler
+            valid_shape = re.fullmatch(r"(?:C\?T:)*T", reduced)
+        if not tiers or not valid_shape:
             raise ValueError(f"{name} 的表达式无法可靠转换为报价表单价")
         fixed = [tier["body"].startswith("fixed") for tier in tiers]
         if any(fixed) and not all(fixed):
             raise ValueError(f"{name} 混合按次与 Token 计费，无法写入单行报价")
-        note = f"阶梯 {json.loads(tiers[0][1])}（共 {len(tiers)} 档）"
+        selected = tiers[0]
+        if tier_name and len(tiers) > 1:
+            matching = [tier for tier in tiers if json.loads(tier[1]) == tier_name]
+            if len(matching) != 1:
+                labels = "、".join(json.loads(tier[1]) for tier in tiers)
+                raise ValueError(f"{name} 未找到唯一的 {tier_name!r} 档位；可用档位：{labels}")
+            selected = matching[0]
+        note = f"阶梯 {json.loads(selected[1])}（共 {len(tiers)} 档）"
         if separator:
             note += "，基础价不含条件附加倍率"
         if fixed[0]:
-            per_call = nonnegative(re.search(NUMBER, tiers[0]["body"])[0], name) * conversion
+            per_call = nonnegative(re.search(NUMBER, selected["body"])[0], name) * conversion
         else:
             rates = {}
-            for variable, raw in re.findall(rf"({VARIABLE})\s*\*\s*({NUMBER})", tiers[0]["body"]):
+            for variable, raw in re.findall(rf"({VARIABLE})\s*\*\s*({NUMBER})", selected["body"]):
                 if variable in rates:
                     raise ValueError(f"{name} 的表达式包含重复价格项 {variable}")
                 rates[variable] = nonnegative(raw, name) * conversion
@@ -260,7 +285,8 @@ def set_cell_value(row, cell, address: str, value) -> None:
 
 def update_workbook(
     original: bytes, models: dict, pricing: dict, group: str,
-    exchange: Decimal, official: dict,
+    exchange: Decimal, official: dict, tier_name: str | None = None,
+    model_tiers: dict[str, str] | None = None,
 ) -> tuple[dict[str, bytes], int]:
     changed = {}
     count = 0
@@ -323,7 +349,11 @@ def update_workbook(
                     continue
                 if name not in models:
                     raise ValueError(f"{entry}:A{number} 模型 {name!r} 不在接口返回的模型列表中")
-                values, note = basic_prices(models[name], pricing, group, exchange)
+                overrides = model_tiers or {}
+                values, note = basic_prices(
+                    models[name], pricing, group, exchange,
+                    overrides.get(name, tier_name), name in overrides,
+                )
                 per_call = values.pop()
                 official_model = official.get(name)
                 discount = MISSING
@@ -380,11 +410,19 @@ def main() -> int:
     parser.add_argument("--pricing-json", type=Path, help="已解密的 /api/pricing 响应文件")
     parser.add_argument("--status-json", type=Path, help="/api/status 响应文件，与 --pricing-json 同时使用")
     parser.add_argument("--timeout", type=positive_decimal, default=Decimal(20))
+    parser.add_argument("--tier", help="多档模型使用的档位名称，如 长上下文；单档模型沿用唯一档位")
+    parser.add_argument("--model-tier", action="append", default=[], metavar="MODEL=TIER", help="指定单个模型档位，可重复；时段定价必须显式指定")
     parser.add_argument("--apply", action="store_true", help="备份并更新原表，默认仅预览")
     args = parser.parse_args()
     if bool(args.pricing_json) != bool(args.status_json):
         parser.error("--pricing-json 和 --status-json 必须同时提供")
     try:
+        model_tiers = {}
+        for selection in args.model_tier:
+            model_name, separator, label = selection.partition("=")
+            if not separator or not model_name.strip() or not label.strip() or model_name.strip() in model_tiers:
+                raise ValueError("--model-tier 必须为不重复的 模型名=档位名")
+            model_tiers[model_name.strip()] = label.strip()
         env_file = SCRIPT_DIR.parent / ".env"
         if env_file.is_file() and not args.pricing_json:
             try:
@@ -433,7 +471,9 @@ def main() -> int:
                 raise ValueError(f"接口返回重复模型：{name}")
             models[name] = model
         print(f"分组：{groups[0]}；美元兑人民币：{exchange}；B/C/D/E/G 列预览：")
-        changed, count = update_workbook(original, models, pricing, groups[0], exchange, official)
+        if any(name not in models for name in model_tiers):
+            raise ValueError("--model-tier 包含接口中不存在的模型")
+        changed, count = update_workbook(original, models, pricing, groups[0], exchange, official, args.tier, model_tiers)
         if not args.apply:
             print(f"已预览 {count} 行，未修改文件。添加 --apply 写入。")
             return 0
