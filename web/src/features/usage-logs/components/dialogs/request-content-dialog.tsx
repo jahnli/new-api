@@ -1,20 +1,14 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
 import {
-  Bell,
   Check,
   ChevronDown,
   ChevronsDown,
   ChevronsUp,
   Copy,
 } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
-import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Dialog } from '@/components/dialog'
-import { ErrorState } from '@/components/error-state'
-import { LoadingState } from '@/components/loading-state'
 import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,35 +16,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import type { UserColumnRow } from '@/features/users/types'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { formatTimestampToDate } from '@/lib/format'
-import { handleServerError } from '@/lib/handle-server-error'
-import { requireServerSuccess } from '@/lib/server-error-message'
 
-import {
-  notifyRequestMessageViolation,
-  previewRequestMessageNotice,
-} from '../../api'
 import type { UsageLog } from '../../data/schema'
-import type {
-  NotifyViolationRequest,
-  RequestMessage,
-  RequestNotificationType,
-} from '../../types'
+import type { RequestMessage } from '../../types'
 import { LogUserIdentity } from '../log-user-identity'
 import { parseUserMessages } from '../request-messages-provider'
 import { LOG_DETAILS_DIALOG_CONTENT_HEIGHT } from './log-detail-layout'
 import { RequestLogSummary } from './request-log-summary'
-import { RequestNoticePreviewCard } from './request-notice-preview'
+import { RequestNoticeButton } from './request-notice-button'
 
 interface RequestContentDialogProps {
   requestMessage: RequestMessage
@@ -71,57 +47,13 @@ function formatParameters(parameters: string): string {
 }
 
 export function RequestContentDialog(props: RequestContentDialogProps) {
-  const { t, i18n } = useTranslation()
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [notificationType, setNotificationType] =
-    useState<RequestNotificationType>('non_work_content')
-  const notificationTypeId = useId()
+  const { t } = useTranslation()
   const [copiedTarget, setCopiedTarget] = useState<string | null>(null)
   const [messageOpenState, setMessageOpenState] = useState<
     Record<string, boolean>
   >({})
   const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
   const messages = parseUserMessages(props.requestMessage.user_content)
-  const canNotify = props.requestMessage.user_id > 0
-  const notificationPayload: NotifyViolationRequest = {
-    notification_type: notificationType,
-    language: i18n.resolvedLanguage || i18n.language,
-    client: props.client,
-    request_id: props.requestMessage.request_id,
-    user_id: props.requestMessage.user_id,
-    model_name: props.requestMessage.model_name || '',
-    created_at: props.requestMessage.created_at || 0,
-  }
-  const previewQuery = useQuery({
-    queryKey: ['request-notice-preview', notificationPayload],
-    queryFn: ({ signal }) =>
-      previewRequestMessageNotice(notificationPayload, signal),
-    enabled: props.open && confirmOpen && canNotify,
-    placeholderData: undefined,
-    gcTime: 0,
-    refetchOnWindowFocus: false,
-    meta: { errorToast: false },
-  })
-  const notifyMutation = useMutation({
-    mutationFn: async (payload: NotifyViolationRequest) => {
-      const res = await notifyRequestMessageViolation(payload)
-      return requireServerSuccess(res)
-    },
-    onSuccess: () => {
-      toast.success(t('Notification sent'))
-      setConfirmOpen(false)
-    },
-    onError: (error) => {
-      handleServerError(error, t('Failed to send notification'))
-    },
-  })
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      setConfirmOpen(false)
-    }
-    props.onOpenChange(nextOpen)
-  }
 
   const handleCopy = async (text: string, target: string): Promise<void> => {
     if (await copyToClipboard(text)) {
@@ -148,287 +80,201 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
   )
 
   return (
-    <>
-      <Dialog
-        open={props.open}
-        onOpenChange={handleOpenChange}
-        title={t('Request Content')}
-        contentClassName='w-[65vw] max-w-[65vw] sm:max-w-[65vw]'
-        contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}
-        bodyContainerClassName='overflow-hidden'
-        bodyClassName='h-full min-h-0'
-      >
-        <div className='flex h-full min-h-0 flex-col space-y-3'>
-          <div className='shrink-0 border-b pb-3'>
-            <div className='flex flex-wrap items-start justify-between gap-3'>
-              <LogUserIdentity
-                userId={props.user.id}
-                username={props.user.username}
-                displayName={props.user.display_name}
-                avatarUrl={props.user.avatar_url}
-                openId={props.user.open_id}
-                gender={props.user.gender}
-              >
-                <div className='text-muted-foreground flex min-w-0 flex-wrap items-center gap-1 text-sm'>
-                  <span>
-                    {props.requestMessage.model_name} ·{' '}
-                    {props.requestMessage.relay_format} ·{' '}
-                    {formatTimestampToDate(props.requestMessage.created_at)}
-                  </span>
-                  <span className='text-muted-foreground/60'>·</span>
-                  <span className='shrink-0'>{t('Request ID')}:</span>
-                  <span className='max-w-[28rem] truncate font-mono'>
-                    {props.requestMessage.request_id}
-                  </span>
-                  <TextTooltip content={t('Copy to clipboard')}>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-6 w-6 shrink-0 p-0'
-                      onClick={() =>
-                        void handleCopy(
-                          props.requestMessage.request_id,
-                          'request-id'
-                        )
-                      }
-                      aria-label={t('Copy to clipboard')}
-                    >
-                      {copiedTarget === 'request-id' &&
-                      copiedText === props.requestMessage.request_id ? (
-                        <Check className='size-3 text-green-600' />
-                      ) : (
-                        <Copy className='size-3' />
-                      )}
-                    </Button>
-                  </TextTooltip>
-                </div>
-                {props.client && (
-                  <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
-                    <span className='shrink-0'>{t('Client')}:</span>
-                    <span className='min-w-0 break-all'>{props.client}</span>
-                  </div>
-                )}
-              </LogUserIdentity>
-              {canNotify && (
-                <Button
-                  variant='destructive'
-                  size='sm'
-                  className='h-8 shrink-0 gap-1.5'
-                  onClick={() => {
-                    setNotificationType('non_work_content')
-                    setConfirmOpen(true)
-                  }}
-                  disabled={notifyMutation.isPending}
-                >
-                  <Bell className='size-3.5' />
-                  {t('Notification')}
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className='grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-4 overflow-hidden md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.42fr)] md:grid-rows-[minmax(0,1fr)]'>
-            <div className='h-full min-h-0 [scrollbar-gutter:stable] overflow-y-scroll overscroll-contain pr-3'>
-              <div className='space-y-3'>
-                {entries.length > 1 && (
-                  <div className='bg-background/95 sticky top-0 z-10 flex justify-end pb-1 backdrop-blur-sm'>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='sm'
-                      className='text-muted-foreground hover:text-foreground h-8 rounded-full px-3 shadow-sm'
-                      onClick={() => {
-                        if (allMessagesExpanded) {
-                          setMessageOpenState(
-                            Object.fromEntries(
-                              entries.map((entry) => [entry.key, false])
-                            )
-                          )
-                          return
-                        }
-                        setMessageOpenState({})
-                      }}
-                    >
-                      {allMessagesExpanded ? (
-                        <ChevronsUp data-icon='inline-start' />
-                      ) : (
-                        <ChevronsDown data-icon='inline-start' />
-                      )}
-                      {t(allMessagesExpanded ? 'Collapse All' : 'Expand All')}
-                    </Button>
-                  </div>
-                )}
-                {entries.map((entry) => (
-                  <Collapsible
-                    key={entry.key}
-                    open={messageOpenState[entry.key] ?? true}
-                    onOpenChange={(open) =>
-                      setMessageOpenState((current) => ({
-                        ...current,
-                        [entry.key]: open,
-                      }))
+    <Dialog
+      open={props.open}
+      onOpenChange={props.onOpenChange}
+      title={t('Request Content')}
+      contentClassName='w-[65vw] max-w-[65vw] sm:max-w-[65vw]'
+      contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}
+      bodyContainerClassName='overflow-hidden'
+      bodyClassName='h-full min-h-0'
+    >
+      <div className='flex h-full min-h-0 flex-col space-y-3'>
+        <div className='shrink-0 border-b pb-3'>
+          <div className='flex flex-wrap items-start justify-between gap-3'>
+            <LogUserIdentity
+              userId={props.user.id}
+              username={props.user.username}
+              displayName={props.user.display_name}
+              avatarUrl={props.user.avatar_url}
+              openId={props.user.open_id}
+              gender={props.user.gender}
+            >
+              <div className='text-muted-foreground flex min-w-0 flex-wrap items-center gap-1 text-sm'>
+                <span>
+                  {props.requestMessage.model_name} ·{' '}
+                  {props.requestMessage.relay_format} ·{' '}
+                  {formatTimestampToDate(props.requestMessage.created_at)}
+                </span>
+                <span className='text-muted-foreground/60'>·</span>
+                <span className='shrink-0'>{t('Request ID')}:</span>
+                <span className='max-w-[28rem] truncate font-mono'>
+                  {props.requestMessage.request_id}
+                </span>
+                <TextTooltip content={t('Copy to clipboard')}>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-6 w-6 shrink-0 p-0'
+                    onClick={() =>
+                      void handleCopy(
+                        props.requestMessage.request_id,
+                        'request-id'
+                      )
                     }
-                    className='group/message rounded-lg border'
+                    aria-label={t('Copy to clipboard')}
                   >
-                    <div className='flex items-center gap-1 px-3 py-2'>
-                      <CollapsibleTrigger className='flex flex-1 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
-                        <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/message:-rotate-90' />
-                        <span>
-                          {t('User message {{index}}', { index: entry.label })}
-                        </span>
-                        {entry.isLatest && (
-                          <span className='text-muted-foreground/60 text-xs font-normal'>
-                            {t('Latest')}
-                          </span>
-                        )}
-                      </CollapsibleTrigger>
-                      <TextTooltip content={t('Copy to clipboard')}>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='h-7 w-7 shrink-0 p-0'
-                          onClick={() =>
-                            void handleCopy(entry.message, entry.key)
-                          }
-                          aria-label={t('Copy to clipboard')}
-                        >
-                          {copiedTarget === entry.key &&
-                          copiedText === entry.message ? (
-                            <Check className='size-3.5 text-green-600' />
-                          ) : (
-                            <Copy className='size-3.5' />
-                          )}
-                        </Button>
-                      </TextTooltip>
-                    </div>
-                    <CollapsibleContent className='CollapsibleContent'>
-                      <p className='bg-muted/40 border-t py-2.5 pr-3 pl-9 text-sm leading-relaxed break-words whitespace-pre-wrap'>
-                        {entry.message}
-                      </p>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ))}
+                    {copiedTarget === 'request-id' &&
+                    copiedText === props.requestMessage.request_id ? (
+                      <Check className='size-3 text-green-600' />
+                    ) : (
+                      <Copy className='size-3' />
+                    )}
+                  </Button>
+                </TextTooltip>
               </div>
-            </div>
+              {props.client && (
+                <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
+                  <span className='shrink-0'>{t('Client')}:</span>
+                  <span className='min-w-0 break-all'>{props.client}</span>
+                </div>
+              )}
+            </LogUserIdentity>
+            {props.open && (
+              <RequestNoticeButton
+                user={props.user}
+                requestId={props.requestMessage.request_id}
+                userId={props.requestMessage.user_id}
+                modelName={props.requestMessage.model_name || ''}
+                createdAt={props.requestMessage.created_at || 0}
+                client={props.client}
+              />
+            )}
+          </div>
+        </div>
 
-            <div className='flex h-full min-h-0 min-w-0 flex-col gap-3'>
-              {props.log && (
-                <Collapsible
-                  defaultOpen
-                  className='group/log-summary flex-none rounded-lg border px-3 py-2'
-                >
-                  <CollapsibleTrigger className='flex w-full shrink-0 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
-                    <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/log-summary:-rotate-90' />
-                    <span>{t('Request Info')}</span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className='CollapsibleContent mt-2'>
-                    <div className='pl-6'>
-                      <RequestLogSummary log={props.log} />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+        <div className='grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-4 overflow-hidden md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.42fr)] md:grid-rows-[minmax(0,1fr)]'>
+          <div className='h-full min-h-0 [scrollbar-gutter:stable] overflow-y-scroll overscroll-contain pr-3'>
+            <div className='space-y-3'>
+              {entries.length > 1 && (
+                <div className='bg-background/95 sticky top-0 z-10 flex justify-end pb-1 backdrop-blur-sm'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    className='text-muted-foreground hover:text-foreground h-8 rounded-full px-3 shadow-sm'
+                    onClick={() => {
+                      if (allMessagesExpanded) {
+                        setMessageOpenState(
+                          Object.fromEntries(
+                            entries.map((entry) => [entry.key, false])
+                          )
+                        )
+                        return
+                      }
+                      setMessageOpenState({})
+                    }}
+                  >
+                    {allMessagesExpanded ? (
+                      <ChevronsUp data-icon='inline-start' />
+                    ) : (
+                      <ChevronsDown data-icon='inline-start' />
+                    )}
+                    {t(allMessagesExpanded ? 'Collapse All' : 'Expand All')}
+                  </Button>
+                </div>
               )}
-              {props.requestMessage.parameters && (
+              {entries.map((entry) => (
                 <Collapsible
-                  defaultOpen
-                  className='group/parameters flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border px-3 py-2 data-[closed]:flex-none'
-                >
-                  <CollapsibleTrigger className='flex w-full shrink-0 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
-                    <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/parameters:-rotate-90' />
-                    <span>{t('Request Parameters')}</span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className='CollapsibleContent mt-2 flex min-h-0 flex-1 flex-col'>
-                    <div className='min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto'>
-                      <pre className='bg-muted overflow-x-auto rounded-md p-3 text-xs whitespace-pre'>
-                        {formatParameters(props.requestMessage.parameters)}
-                      </pre>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-            </div>
-          </div>
-        </div>
-      </Dialog>
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title={t('Confirm Notification')}
-        confirmText={t('Send')}
-        className='h-[75dvh] max-h-[90dvh] w-[calc(100vw-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] data-[size=default]:max-w-5xl data-[size=default]:sm:max-w-5xl'
-        closeOnOutsideClick
-        isLoading={notifyMutation.isPending}
-        disabled={!previewQuery.isSuccess || previewQuery.isFetching}
-        handleConfirm={() => {
-          if (previewQuery.isSuccess && !previewQuery.isFetching) {
-            notifyMutation.mutate(notificationPayload)
-          }
-        }}
-      >
-        <div className='grid min-h-0 grid-cols-1 gap-5 overflow-y-auto px-1 py-1 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]'>
-          <div className='min-w-0 space-y-4 md:border-r md:pr-5'>
-            <div className='bg-muted/40 space-y-2 rounded-lg border p-3'>
-              <p className='text-muted-foreground text-xs'>{t('Recipient')}</p>
-              <LogUserIdentity
-                userId={props.user.id}
-                username={props.user.username}
-                displayName={props.user.display_name}
-                avatarUrl={props.user.avatar_url}
-              />
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor={notificationTypeId}>
-                {t('Notification type')}
-              </Label>
-              <Select
-                items={[
-                  { value: 'non_work_content', label: t('Non-work content') },
-                  { value: 'security_risk', label: t('Security risk') },
-                ]}
-                value={notificationType}
-                disabled={notifyMutation.isPending}
-                onValueChange={(value) => {
-                  if (
-                    value === 'non_work_content' ||
-                    value === 'security_risk'
-                  ) {
-                    setNotificationType(value)
+                  key={entry.key}
+                  open={messageOpenState[entry.key] ?? true}
+                  onOpenChange={(open) =>
+                    setMessageOpenState((current) => ({
+                      ...current,
+                      [entry.key]: open,
+                    }))
                   }
-                }}
-              >
-                <SelectTrigger id={notificationTypeId} className='w-full'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align='start' alignItemWithTrigger={false}>
-                  <SelectItem value='non_work_content'>
-                    {t('Non-work content')}
-                  </SelectItem>
-                  <SelectItem value='security_risk'>
-                    {t('Security risk')}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                  className='group/message rounded-lg border'
+                >
+                  <div className='flex items-center gap-1 px-3 py-2'>
+                    <CollapsibleTrigger className='flex flex-1 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
+                      <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/message:-rotate-90' />
+                      <span>
+                        {t('User message {{index}}', { index: entry.label })}
+                      </span>
+                      {entry.isLatest && (
+                        <span className='text-muted-foreground/60 text-xs font-normal'>
+                          {t('Latest')}
+                        </span>
+                      )}
+                    </CollapsibleTrigger>
+                    <TextTooltip content={t('Copy to clipboard')}>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='h-7 w-7 shrink-0 p-0'
+                        onClick={() =>
+                          void handleCopy(entry.message, entry.key)
+                        }
+                        aria-label={t('Copy to clipboard')}
+                      >
+                        {copiedTarget === entry.key &&
+                        copiedText === entry.message ? (
+                          <Check className='size-3.5 text-green-600' />
+                        ) : (
+                          <Copy className='size-3.5' />
+                        )}
+                      </Button>
+                    </TextTooltip>
+                  </div>
+                  <CollapsibleContent className='CollapsibleContent'>
+                    <p className='bg-muted/40 border-t py-2.5 pr-3 pl-9 text-sm leading-relaxed break-words whitespace-pre-wrap'>
+                      {entry.message}
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
             </div>
           </div>
-          <div
-            className='min-w-0'
-            aria-live='polite'
-            aria-busy={previewQuery.isFetching}
-          >
-            {previewQuery.isPending && <LoadingState className='min-h-48' />}
-            {previewQuery.isError && (
-              <ErrorState
-                className='min-h-48'
-                description={previewQuery.error.message}
-                onRetry={() => void previewQuery.refetch()}
-              />
+
+          <div className='flex h-full min-h-0 min-w-0 flex-col gap-3'>
+            {props.log && (
+              <Collapsible
+                defaultOpen
+                className='group/log-summary flex-none rounded-lg border px-3 py-2'
+              >
+                <CollapsibleTrigger className='flex w-full shrink-0 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
+                  <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/log-summary:-rotate-90' />
+                  <span>{t('Request Info')}</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className='CollapsibleContent mt-2'>
+                  <div className='pl-6'>
+                    <RequestLogSummary log={props.log} />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
-            {previewQuery.isSuccess && (
-              <RequestNoticePreviewCard preview={previewQuery.data} />
+            {props.requestMessage.parameters && (
+              <Collapsible
+                defaultOpen
+                className='group/parameters flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border px-3 py-2 data-[closed]:flex-none'
+              >
+                <CollapsibleTrigger className='flex w-full shrink-0 cursor-pointer items-center gap-2 text-left text-sm font-medium'>
+                  <ChevronDown className='text-muted-foreground size-4 shrink-0 transition-transform group-data-[closed]/parameters:-rotate-90' />
+                  <span>{t('Request Parameters')}</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className='CollapsibleContent mt-2 flex min-h-0 flex-1 flex-col'>
+                  <div className='min-h-0 flex-1 [scrollbar-gutter:stable] overflow-y-auto'>
+                    <pre className='bg-muted overflow-x-auto rounded-md p-3 text-xs whitespace-pre'>
+                      {formatParameters(props.requestMessage.parameters)}
+                    </pre>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </div>
         </div>
-      </ConfirmDialog>
-    </>
+      </div>
+    </Dialog>
   )
 }

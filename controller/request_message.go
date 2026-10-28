@@ -22,6 +22,7 @@ type requestMessagesBatchRequest struct {
 
 type notifyRequestMessageViolationRequest struct {
 	NotificationType string `json:"notification_type"`
+	TargetVendorId   int    `json:"target_vendor_id"`
 	Language         string `json:"language"`
 	Client           string `json:"client"`
 	RequestId        string `json:"request_id"`
@@ -131,9 +132,28 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 	}
 	switch request.NotificationType {
 	case "", service.RequestNoticeNonWorkContent, service.RequestNoticeSecurityRisk:
+	case service.RequestNoticeModelSwitch:
+		if request.TargetVendorId <= 0 {
+			common.ApiErrorT(c, "Select a target model series")
+			return
+		}
 	default:
 		common.ApiErrorT(c, "Invalid notification type")
 		return
+	}
+
+	targetVendorName := ""
+	if request.NotificationType == service.RequestNoticeModelSwitch {
+		vendor, err := model.GetVendorByID(request.TargetVendorId)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if vendor.Status != 1 || vendor.ModelCount == 0 {
+			common.ApiErrorT(c, "The selected vendor has no available model series")
+			return
+		}
+		targetVendorName = vendor.Name
 	}
 
 	var user model.User
@@ -156,7 +176,7 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 		lang = i18n.StatedLang(c)
 	}
 	if previewOnly {
-		preview, err := service.BuildRequestNoticePreview(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang)
+		preview, err := service.BuildRequestNoticePreview(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
 		if err != nil {
 			common.ApiError(c, err)
 			return
@@ -164,7 +184,7 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 		common.ApiSuccess(c, preview)
 		return
 	}
-	cardJSON, err := service.BuildRequestNoticeCard(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang)
+	cardJSON, err := service.BuildRequestNoticeCard(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
 	if err != nil {
 		common.ApiError(c, err)
 		return

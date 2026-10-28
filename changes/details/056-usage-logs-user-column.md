@@ -4,13 +4,14 @@
 
 ## 2026-10-28 请求内容通知分类与发送前预览
 
-- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 将「违规通知」改为红色「通知」按钮，支持选择「非工作内容」或「安全风险」；确认弹框采用左侧接收人与类型、右侧通知预览的响应式布局，最大宽度为 1024px、高度为视口的 75%，覆盖底层尺寸限制；允许非发送状态点击空白关闭，移除冗余发送说明。切换类型或界面语言重新获取预览，加载中或失败时禁用发送，失败可重试，错误提示复用统一处理。
-- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 新增通知预览卡片，复用共享卡片组件及企业通知标题配色；按类型展示橙色或红色标题栏，展示完整正文、请求时间、模型、请求 ID 与客户端，字段标签加粗，不额外显示「实时预览」标题行。
+- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx`、`request-notice-button.tsx` — 请求内容弹框使用共享红色「通知」按钮，支持「非工作内容」「安全风险」「模型切换」三种类型；模型切换必须从已关联模型的启用供应商中选择目标系列，支持搜索和红色必选标记。确认弹框采用左侧接收人与类型、右侧通知预览的响应式布局，最大宽度为 1024px、高度为视口的 75%；允许非发送状态点击空白关闭，通知类型下拉复用分组内边距。切换类型、目标系列或界面语言重新获取预览，加载中或失败时禁用发送，失败可重试。
+- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情右上角复用相同通知按钮和确认弹框；仅超级管理员可在含用户及请求 ID 的消费或错误日志中使用，演示模式下隐藏，并传入模型、时间和客户端信息。
+- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 通知预览复用共享卡片组件及企业通知标题配色；按类型展示橙色、红色或蓝色标题栏，展示完整正文、请求时间、请求 ID 与客户端，非模型切换类型额外展示模型字段；模型切换使用圆形切换图标，不显示独立模型字段。
 - `web/src/features/usage-logs/api.ts`、`web/src/features/usage-logs/types.ts` — 通知载荷增加类型、当前界面语言和客户端；新增可取消的预览请求及结构化预览类型，检查业务失败与缺失预览数据。
-- `controller/request_message.go`、`router/api-router.go` — 新增仅超级管理员可调用的 `/api/request_message/notice-preview`；预览与发送共用参数、通知类型和飞书绑定校验，预览直接返回卡片内容且不发送消息；优先使用提交的界面语言，缺失时使用请求语言解析规则。
-- `service/feishu_department.go` — 预览和发送共用通知内容构建：非工作内容采用橙色卡头、安全风险采用红色卡头；补充客户端字段，缺失显示 `-`，客户端值按普通文本输出；移除「如误告警，忽略即可」，安全风险正文补充禁止逆向分析、REA 模型或破解行为；标题、正文和字段标签统一按传入语言生成，兼容未指定通知类型的旧调用。
-- `i18n/locales/en.yaml`、`i18n/locales/zh-CN.yaml`、`i18n/locales/zh-TW.yaml` — 补充两类通知与旧通知的标题、正文和字段标签；支持英文、简体中文和繁体中文，其他界面语言沿用后端规则回退英文。
-- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补充通知类型、确认发送、发送失败与无效类型等七语言文案。
+- `controller/request_message.go`、`router/api-router.go` — 预览与发送共用参数、通知类型和飞书绑定校验；模型切换要求有效的目标供应商，并校验供应商启用且关联模型，再由后端填入名称；预览接口仅超级管理员可调用且不发送消息。
+- `service/feishu_department.go` — 预览和发送共用通知内容构建：模型切换采用蓝色卡头，正文带当前模型和以【】标注的目标供应商系列，提醒通过模型广场选择具体模型并关注飞书后续通知；不再单独列出模型字段，动态名称按普通文本输出。非工作内容采用橙色卡头、安全风险采用红色卡头；卡片包含客户端，移除「如误告警，忽略即可」。
+- `i18n/locales/en.yaml`、`i18n/locales/zh-CN.yaml`、`i18n/locales/zh-TW.yaml` — 补充三类通知与旧通知的标题、正文和字段标签；模型切换文案分段并带当前模型及目标系列，支持英文、简体中文和繁体中文，其他界面语言回退英文。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补充模型切换、目标系列及校验提示等七语言文案。
 
 ## 2026-10-27 安全审计用户模糊筛选
 

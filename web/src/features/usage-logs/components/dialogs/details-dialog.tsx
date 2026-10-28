@@ -86,6 +86,7 @@ import {
   LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME,
   LOG_DETAILS_DIALOG_CONTENT_HEIGHT,
 } from './log-detail-layout'
+import { RequestNoticeButton } from './request-notice-button'
 
 // Maps a channel-update changed-field token (as recorded by the backend audit)
 // to its i18n label key for display in the audit details.
@@ -785,21 +786,56 @@ export function DetailsDialog(props: DetailsDialogProps) {
       contentClassName={LOG_DETAILS_DIALOG_CONTENT_CLASS_NAME}
       headerClassName='flex-row flex-wrap items-center gap-x-3 gap-y-1 max-sm:gap-x-2'
       headerTrailing={
-        showUserIdentity ? (
-          <LogUserIdentity
-            size='sm'
-            className='flex-none'
-            userId={props.log.user_id}
-            username={demoMode ? '' : props.log.username}
-            displayName={
-              demoMode ? DEMO_MODE_USERNAME_MASK : props.log.display_name
-            }
-            avatarUrl={demoMode ? undefined : props.log.avatar_url || undefined}
-            openId={demoMode ? undefined : props.log.open_id || undefined}
-            gender={props.log.gender}
-            canFetchDetails={!demoMode}
-          />
-        ) : undefined
+        <>
+          {showUserIdentity && (
+            <LogUserIdentity
+              size='sm'
+              className='flex-none'
+              userId={props.log.user_id}
+              username={demoMode ? '' : props.log.username}
+              displayName={
+                demoMode ? DEMO_MODE_USERNAME_MASK : props.log.display_name
+              }
+              avatarUrl={
+                demoMode ? undefined : props.log.avatar_url || undefined
+              }
+              openId={demoMode ? undefined : props.log.open_id || undefined}
+              gender={props.log.gender}
+              canFetchDetails={!demoMode}
+            />
+          )}
+          {props.isRoot &&
+            !demoMode &&
+            isTimingLogType(props.log.type) &&
+            props.log.user_id > 0 &&
+            props.log.request_id && (
+              <div className='mr-8 ml-auto'>
+                <RequestNoticeButton
+                  user={{
+                    id: props.log.user_id,
+                    username: props.log.username,
+                    display_name: props.log.display_name || props.log.username,
+                    avatar_url: props.log.avatar_url || undefined,
+                    open_id: props.log.open_id || undefined,
+                    gender: props.log.gender,
+                    quota: 0,
+                    used_quota: 0,
+                    sub_quota_used: 0,
+                    sub_quota_total: 0,
+                    request_count: 0,
+                    group: '',
+                    status: 1,
+                    role: 1,
+                  }}
+                  userId={props.log.user_id}
+                  requestId={props.log.request_id}
+                  modelName={props.log.model_name || ''}
+                  createdAt={props.log.created_at}
+                  client={other?.user_agent}
+                />
+              </div>
+            )}
+        </>
       }
       titleClassName='flex items-center gap-2 text-base'
       descriptionClassName='sr-only'

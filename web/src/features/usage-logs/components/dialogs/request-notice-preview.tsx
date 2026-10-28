@@ -1,4 +1,4 @@
-import { ShieldAlert } from 'lucide-react'
+import { RefreshCw, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -11,6 +11,7 @@ export function RequestNoticePreviewCard(props: {
   preview: RequestNoticePreview
 }) {
   const { t } = useTranslation()
+  const NoticeIcon = props.preview.template === 'blue' ? RefreshCw : ShieldAlert
 
   return (
     <section aria-label={t('Preview')}>
@@ -22,10 +23,7 @@ export function RequestNoticePreviewCard(props: {
           )}
         >
           <h3 className='flex items-start gap-2 text-base font-semibold'>
-            <ShieldAlert
-              className='mt-0.5 size-5 shrink-0'
-              aria-hidden='true'
-            />
+            <NoticeIcon className='mt-0.5 size-5 shrink-0' aria-hidden='true' />
             {props.preview.title}
           </h3>
         </CardHeader>
@@ -39,7 +37,8 @@ export function RequestNoticePreviewCard(props: {
                 key={field.label}
                 className={cn(
                   'min-w-0 space-y-1',
-                  index >= 2 && 'sm:col-span-2'
+                  (props.preview.template === 'blue' || index >= 2) &&
+                    'sm:col-span-2'
                 )}
               >
                 <dt className='font-semibold'>{field.label}</dt>

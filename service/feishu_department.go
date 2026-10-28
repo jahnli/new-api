@@ -299,12 +299,13 @@ func SendFeishuCardMessage(openID string, cardJSON string) error {
 }
 
 func BuildViolationNoticeCard(requestTime string, requestID string, modelName string) (string, error) {
-	return BuildRequestNoticeCard(requestTime, requestID, modelName, "", "", "")
+	return BuildRequestNoticeCard(requestTime, requestID, modelName, "", "", "", "")
 }
 
 const (
 	RequestNoticeNonWorkContent = "non_work_content"
 	RequestNoticeSecurityRisk   = "security_risk"
+	RequestNoticeModelSwitch    = "model_switch"
 )
 
 type RequestNoticeField struct {
@@ -319,7 +320,10 @@ type RequestNoticePreview struct {
 	Fields   []RequestNoticeField `json:"fields"`
 }
 
-func BuildRequestNoticePreview(requestTime string, requestID string, modelName string, notificationType string, client string, lang string) (*RequestNoticePreview, error) {
+func BuildRequestNoticePreview(requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) (*RequestNoticePreview, error) {
+	if strings.TrimSpace(modelName) == "" {
+		modelName = "-"
+	}
 	// Preserve the legacy card for clients that do not yet send a notification type.
 	title := i18n.Translate(lang, "request_notice.legacy_title")
 	content := i18n.Translate(lang, "request_notice.legacy_content")
@@ -333,32 +337,60 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 	case RequestNoticeSecurityRisk:
 		title = i18n.Translate(lang, "request_notice.security_title")
 		content = i18n.Translate(lang, "request_notice.security_content")
+	case RequestNoticeModelSwitch:
+		targetVendorName = strings.TrimSpace(targetVendorName)
+		if targetVendorName == "" {
+			return nil, common.NewMessage("Select a target model series")
+		}
+		title = i18n.Translate(lang, "request_notice.model_switch_title")
+		content = i18n.Translate(lang, "request_notice.model_switch_content", map[string]any{"Vendor": targetVendorName, "Model": modelName})
+		template = "blue"
 	default:
 		return nil, fmt.Errorf("invalid notification type")
 	}
 
-	if modelName == "" {
-		modelName = "-"
-	}
 	client = strings.TrimSpace(client)
 	if client == "" {
 		client = "-"
 	}
-	return &RequestNoticePreview{
-		Title: title, Content: content, Template: template,
-		Fields: []RequestNoticeField{
-			{Label: i18n.Translate(lang, "request_notice.request_time"), Value: requestTime},
-			{Label: i18n.Translate(lang, "request_notice.model"), Value: modelName},
-			{Label: i18n.Translate(lang, "request_notice.request_id"), Value: requestID},
-			{Label: i18n.Translate(lang, "request_notice.client"), Value: client},
-		},
-	}, nil
+	fields := []RequestNoticeField{{Label: i18n.Translate(lang, "request_notice.request_time"), Value: requestTime}}
+	if notificationType != RequestNoticeModelSwitch {
+		fields = append(fields, RequestNoticeField{Label: i18n.Translate(lang, "request_notice.model"), Value: modelName})
+	}
+	fields = append(fields,
+		RequestNoticeField{Label: i18n.Translate(lang, "request_notice.request_id"), Value: requestID},
+		RequestNoticeField{Label: i18n.Translate(lang, "request_notice.client"), Value: client},
+	)
+	return &RequestNoticePreview{Title: title, Content: content, Template: template, Fields: fields}, nil
 }
 
-func BuildRequestNoticeCard(requestTime string, requestID string, modelName string, notificationType string, client string, lang string) (string, error) {
-	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang)
+func BuildRequestNoticeCard(requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) (string, error) {
+	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName)
 	if err != nil {
 		return "", err
+	}
+
+	// Vendor names are metadata, not card markup.
+	body := map[string]any{"tag": "markdown", "content": preview.Content}
+	if notificationType == RequestNoticeModelSwitch {
+		body = map[string]any{
+			"tag":  "div",
+			"text": map[string]string{"tag": "plain_text", "content": preview.Content},
+		}
+	}
+	requestIDIndex := 2
+	if notificationType == RequestNoticeModelSwitch {
+		requestIDIndex = 1
+	}
+	firstFields := []map[string]any{{
+		"is_short": notificationType != RequestNoticeModelSwitch,
+		"text":     map[string]string{"tag": "lark_md", "content": "**" + preview.Fields[0].Label + "**\n" + preview.Fields[0].Value},
+	}}
+	if notificationType != RequestNoticeModelSwitch {
+		firstFields = append(firstFields, map[string]any{
+			"is_short": true,
+			"text":     map[string]string{"tag": "lark_md", "content": "**" + preview.Fields[1].Label + "**\n" + preview.Fields[1].Value},
+		})
 	}
 
 	card := map[string]any{
@@ -373,48 +405,30 @@ func BuildRequestNoticeCard(requestTime string, requestID string, modelName stri
 			},
 		},
 		"elements": []map[string]any{
+			body,
 			{
-				"tag":     "markdown",
-				"content": preview.Content,
+				"tag":    "div",
+				"fields": firstFields,
 			},
 			{
 				"tag": "div",
-				"fields": []map[string]any{
-					{
-						"is_short": true,
-						"text": map[string]string{
-							"tag":     "lark_md",
-							"content": "**" + preview.Fields[0].Label + "**\n" + preview.Fields[0].Value,
-						},
-					},
-					{
-						"is_short": true,
-						"text": map[string]string{
-							"tag":     "lark_md",
-							"content": "**" + preview.Fields[1].Label + "**\n" + preview.Fields[1].Value,
-						},
-					},
+				"text": map[string]string{
+					"tag":     "lark_md",
+					"content": "**" + preview.Fields[requestIDIndex].Label + "**\n" + preview.Fields[requestIDIndex].Value,
 				},
 			},
 			{
 				"tag": "div",
 				"text": map[string]string{
 					"tag":     "lark_md",
-					"content": "**" + preview.Fields[2].Label + "**\n" + preview.Fields[2].Value,
-				},
-			},
-			{
-				"tag": "div",
-				"text": map[string]string{
-					"tag":     "lark_md",
-					"content": "**" + preview.Fields[3].Label + "**",
+					"content": "**" + preview.Fields[requestIDIndex+1].Label + "**",
 				},
 				"fields": []map[string]any{
 					{
 						"is_short": false,
 						"text": map[string]string{
 							"tag":     "plain_text",
-							"content": preview.Fields[3].Value,
+							"content": preview.Fields[requestIDIndex+1].Value,
 						},
 					},
 				},
