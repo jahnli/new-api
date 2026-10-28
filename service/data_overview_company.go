@@ -280,7 +280,7 @@ func getCompanyDepartmentTree(userID int, userRole int) (*DepartmentTreeResponse
 			}
 			fullTree := buildOverviewDepartmentTree(company.Id, company.Platform, directory.Departments)
 			leaderIDs := prefixLeaderDepartmentIDs(company.Id, leaderDepartmentIDs)
-			trimmed, visibleLeaderIDs := trimTreeForUser(fullTree, userRole, user.OpenId, leaderIDs, overviewDeptIDs)
+			trimmed, visibleLeaderIDs := trimTreeForUser(fullTree, userRole, user.PlatformID(company.Platform), leaderIDs, overviewDeptIDs)
 			companyNode.Disabled = userRole < common.RoleRootUser
 			companyNode.Children = trimmed
 			results[index].leaderDeptIDs = visibleLeaderIDs
@@ -358,7 +358,7 @@ func GetCompanySubtreeNode(companyID int, userID int, userRole int) (*CompanySub
 	fullTree := buildOverviewDepartmentTree(company.Id, company.Platform, directory.Departments)
 	leaderIDs := prefixLeaderDepartmentIDs(company.Id, user.GetLeaderDepartmentIDs())
 	overviewDeptIDs := ParseOverviewDeptIDs(user.OverviewDeptIDs)
-	trimmed, visibleLeaderIDs := trimTreeForUser(fullTree, userRole, user.OpenId, leaderIDs, overviewDeptIDs)
+	trimmed, visibleLeaderIDs := trimTreeForUser(fullTree, userRole, user.PlatformID(company.Platform), leaderIDs, overviewDeptIDs)
 	companyNode.Disabled = userRole < common.RoleRootUser
 	companyNode.Children = trimmed
 	response.LeaderDeptIDs = visibleLeaderIDs
@@ -388,7 +388,7 @@ func ensureDepartmentAccessible(company *model.Company, directory *overviewDirec
 	fullTree := buildOverviewDepartmentTree(company.Id, company.Platform, directory.Departments)
 	leaders := prefixLeaderDepartmentIDs(company.Id, user.GetLeaderDepartmentIDs())
 	overviewDeptIDs := ParseOverviewDeptIDs(user.OverviewDeptIDs)
-	trimmed, _ := trimTreeForUser(fullTree, userRole, user.OpenId, leaders, overviewDeptIDs)
+	trimmed, _ := trimTreeForUser(fullTree, userRole, user.PlatformID(company.Platform), leaders, overviewDeptIDs)
 	node := findNodeByValue(trimmed, departmentNodeValue(company.Id, departmentID))
 	if node == nil || node.Disabled {
 		return ErrDepartmentAccessDenied
@@ -536,7 +536,7 @@ func buildCompanyOverviewAudience(companyID int, departmentValue string, userID 
 		if !companyRoot {
 			return nil, ErrDepartmentAccessDenied
 		}
-		users, err := queryOverviewUsers(company.Name, nil, registeredBefore)
+		users, err := queryOverviewUsers(company, nil, registeredBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -624,13 +624,17 @@ func collectCompanyMembersWithFetcher(
 	return result, firstErr
 }
 
-func queryOverviewUsers(companyName string, openIDs []string, registeredBefore int64) ([]*model.User, error) {
-	query := model.DB.Model(&model.User{}).Where("company = ?", companyName)
+func queryOverviewUsers(company *model.Company, openIDs []string, registeredBefore int64) ([]*model.User, error) {
+	query := model.DB.Model(&model.User{}).Where("company = ?", company.Name)
 	if openIDs != nil {
 		if len(openIDs) == 0 {
 			return []*model.User{}, nil
 		}
-		query = query.Where("open_id IN ?", openIDs)
+		column := "open_id"
+		if company.Platform == model.CompanyPlatformDingTalk {
+			column = "dingding_id"
+		}
+		query = query.Where(column+" IN ?", openIDs)
 	}
 	if registeredBefore > 0 {
 		query = query.Where("created_at <= ?", registeredBefore)
@@ -641,7 +645,7 @@ func queryOverviewUsers(companyName string, openIDs []string, registeredBefore i
 	}
 	exactUsers := make([]*model.User, 0, len(users))
 	for _, user := range users {
-		if user.Company == companyName {
+		if user.Company == company.Name {
 			exactUsers = append(exactUsers, user)
 		}
 	}
@@ -682,14 +686,18 @@ func matchOverviewDepartmentMembers(company *model.Company, members []overviewMe
 	for _, member := range members {
 		openIDs = append(openIDs, member.OpenID)
 	}
-	users, err := queryOverviewUsers(company.Name, openIDs, 0)
+	users, err := queryOverviewUsers(company, openIDs, 0)
 	if err != nil {
 		return nil, nil, err
 	}
 	var disabledUsers []*model.User
+	column := "open_id"
+	if company.Platform == model.CompanyPlatformDingTalk {
+		column = "dingding_id"
+	}
 	if err := model.DB.Model(&model.User{}).
 		Where("company = ? AND status = ?", company.Name, common.UserStatusDisabled).
-		Where("open_id <> ?", "").
+		Where(column+" <> ?", "").
 		Omit("password").
 		Find(&disabledUsers).Error; err != nil {
 		return nil, nil, err
@@ -705,13 +713,13 @@ func matchOverviewDepartmentMembers(company *model.Company, members []overviewMe
 	}
 	usersByOpenID := make(map[string]*model.User, len(users)+len(disabledUsers))
 	for _, user := range users {
-		if user.OpenId != "" {
-			usersByOpenID[user.OpenId] = user
+		if platformID := user.PlatformID(company.Platform); platformID != "" {
+			usersByOpenID[platformID] = user
 		}
 	}
 	for _, user := range disabledUsers {
-		if user.OpenId != "" {
-			usersByOpenID[user.OpenId] = user
+		if platformID := user.PlatformID(company.Platform); platformID != "" {
+			usersByOpenID[platformID] = user
 		}
 	}
 
@@ -774,7 +782,7 @@ func matchOverviewDepartmentMembers(company *model.Company, members []overviewMe
 	// to the cost-center supplement loop below so attribution stays consistent
 	// and dedup-by-user-id remains authoritative.
 	for _, user := range disabledUsers {
-		if seenMemberOpenIDs[user.OpenId] {
+		if seenMemberOpenIDs[user.PlatformID(company.Platform)] {
 			continue
 		}
 		if _, hasCostCenter, _ := costCenterDepartment(user); hasCostCenter {
@@ -785,7 +793,7 @@ func matchOverviewDepartmentMembers(company *model.Company, members []overviewMe
 			continue
 		}
 		matchedMembers = append(matchedMembers, overviewMember{
-			OpenID:               user.OpenId,
+			OpenID:               user.PlatformID(company.Platform),
 			ObservedDepartmentID: departmentID,
 		})
 		seenUserIDs[user.Id] = true
@@ -803,7 +811,7 @@ func matchOverviewDepartmentMembers(company *model.Company, members []overviewMe
 			continue
 		}
 		matchedMembers = append(matchedMembers, overviewMember{
-			OpenID:               user.OpenId,
+			OpenID:               user.PlatformID(company.Platform),
 			ObservedDepartmentID: departmentID,
 		})
 		seenUserIDs[user.Id] = true
@@ -839,8 +847,8 @@ func partitionMatchedMembersByPrimaryDepartment(
 
 	usersByOpenID := make(map[string]*model.User, len(parentUsers))
 	for _, user := range parentUsers {
-		if user.OpenId != "" {
-			usersByOpenID[user.OpenId] = user
+		if platformID := user.PlatformID(platform); platformID != "" {
+			usersByOpenID[platformID] = user
 		}
 	}
 	for _, member := range parentMembers {
@@ -1592,7 +1600,7 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 				memberOpenIDs = append(memberOpenIDs, member.OpenID)
 				memberDetails[member.OpenID] = feishuDeptMember{OpenID: member.OpenID, Name: member.Name}
 			}
-			companyItems := mergeDepartmentUsersWithMembers(companyAudience.users, memberOpenIDs, memberDetails, req.EndTimestamp, includeUnregistered, req.RegistrationStatus)
+			companyItems := mergeDepartmentUsersWithMembers(companyAudience.users, memberOpenIDs, memberDetails, req.EndTimestamp, includeUnregistered, req.RegistrationStatus, companyAudience.company.Platform)
 			for _, item := range companyItems {
 				if item.User != nil && item.User.Id > 0 {
 					if seenUserIDs[item.User.Id] {
@@ -1629,7 +1637,7 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 			memberOpenIDs = append(memberOpenIDs, member.OpenID)
 			memberDetails[member.OpenID] = feishuDeptMember{OpenID: member.OpenID, Name: member.Name}
 		}
-		items = mergeDepartmentUsersWithMembers(audience.users, memberOpenIDs, memberDetails, req.EndTimestamp, includeUnregistered, req.RegistrationStatus)
+		items = mergeDepartmentUsersWithMembers(audience.users, memberOpenIDs, memberDetails, req.EndTimestamp, includeUnregistered, req.RegistrationStatus, audience.company.Platform)
 	}
 
 	// Directory membership remains visible even when consumption is attributed
@@ -1637,7 +1645,7 @@ func buildCompanyDepartmentUsers(req *DepartmentUsersRequest, audience *overview
 	// summaries, rankings, logs and usage analysis retain cost-center attribution.
 	directoryOnlyCount := 0
 	if audience.company != nil && !audience.forceRegisteredOnly && len(audience.departmentIDs) > 0 {
-		companyUsers, err := queryOverviewUsers(audience.company.Name, nil, req.EndTimestamp)
+		companyUsers, err := queryOverviewUsers(audience.company, nil, req.EndTimestamp)
 		if err != nil {
 			return nil, err
 		}
@@ -1754,10 +1762,10 @@ func enrichDepartmentUserPageDisplayNames(pageItems []DepartmentUserItem, audien
 	}
 	unregisteredOpenIDs := make(map[string]bool)
 	for _, item := range pageItems {
-		if item.IsRegistered || item.User == nil || item.User.OpenId == "" {
+		if item.IsRegistered || item.User == nil || item.User.PlatformID(audience.company.Platform) == "" {
 			continue
 		}
-		unregisteredOpenIDs[item.User.OpenId] = true
+		unregisteredOpenIDs[item.User.PlatformID(audience.company.Platform)] = true
 	}
 	if len(unregisteredOpenIDs) == 0 {
 		return
@@ -1797,7 +1805,7 @@ func enrichDepartmentUserPageDisplayNames(pageItems []DepartmentUserItem, audien
 		if pageItems[index].IsRegistered || pageItems[index].User == nil {
 			continue
 		}
-		name := nameByOpenID[pageItems[index].User.OpenId]
+		name := nameByOpenID[pageItems[index].User.PlatformID(audience.company.Platform)]
 		if name == "" {
 			continue
 		}

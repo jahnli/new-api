@@ -28,6 +28,7 @@ type overviewDirectory struct {
 }
 
 type overviewMember struct {
+	// OpenID is the provider's member ID: Feishu open_id or DingTalk userid.
 	OpenID string
 	Name   string
 	// ObservedDepartmentID is the department that returned this open_id from the

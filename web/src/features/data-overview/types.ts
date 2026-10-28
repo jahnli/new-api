@@ -194,6 +194,7 @@ export interface DepartmentUser {
   custom_field_values?: string
   join_date?: string
   open_id?: string
+  dingding_id?: string
 }
 
 export interface DepartmentUsersResponse {

@@ -20,7 +20,7 @@ type LDAPUserInfo struct {
 	DisplayName    string
 	DN             string
 	Company        string
-	DingTalkUserID string // 来自 extensionAttribute12，用于钉钉同步的 open_id
+	DingTalkUserID string // 来自 extensionAttribute12，用于钉钉同步的 dingding_id
 }
 
 func dialLDAP(settings *system_setting.LDAPSettings) (*ldapv3.Conn, error) {
@@ -81,7 +81,7 @@ func AuthenticateLDAP(username, password string) (*LDAPUserInfo, error) {
 	}
 
 	filter := buildSearchFilter(settings.SearchFilter, username)
-	// 始终请求钉钉 userid 属性，钉钉同步流程从这里读取 open_id。
+	// 始终请求钉钉 userid 属性，钉钉同步流程从这里读取 dingding_id。
 	attrs := []string{"dn", dingTalkUserIDAttribute}
 	if settings.UsernameAttribute != "" {
 		attrs = append(attrs, settings.UsernameAttribute)

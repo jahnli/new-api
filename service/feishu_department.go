@@ -1661,18 +1661,23 @@ type DepartmentUserItem struct {
 	SubQuotaTotal          int64   `json:"sub_quota_total"`
 }
 
-func buildUnregisteredDepartmentUser(openID string, member feishuDeptMember) *model.User {
+func buildUnregisteredDepartmentUser(platformID string, member feishuDeptMember, platform string) *model.User {
 	displayName := member.Name
 	if displayName == "" {
 		displayName = "-"
 	}
-	return &model.User{
+	user := &model.User{
 		Id:          0,
 		Username:    displayName,
 		DisplayName: displayName,
-		OpenId:      openID,
 		Status:      0,
 	}
+	if platform == model.CompanyPlatformDingTalk {
+		user.DingdingId = platformID
+	} else {
+		user.OpenId = platformID
+	}
+	return user
 }
 
 func isDepartmentUserRegisteredAt(user *model.User, endTimestamp int64) bool {
@@ -1703,11 +1708,15 @@ func departmentUserRegistrationCounts(users []*model.User, totalUsers int, endTi
 	return registeredUsers, unregisteredUsers
 }
 
-func mergeDepartmentUsersWithMembers(users []*model.User, memberOpenIDs []string, memberDetails map[string]feishuDeptMember, endTimestamp int64, includeUnregistered bool, registrationStatus string) []DepartmentUserItem {
+func mergeDepartmentUsersWithMembers(users []*model.User, memberOpenIDs []string, memberDetails map[string]feishuDeptMember, endTimestamp int64, includeUnregistered bool, registrationStatus string, platforms ...string) []DepartmentUserItem {
+	platform := model.CompanyPlatformFeishu
+	if len(platforms) > 0 {
+		platform = platforms[0]
+	}
 	userMap := make(map[string]*model.User, len(users))
 	for _, u := range users {
-		if u.OpenId != "" {
-			userMap[u.OpenId] = u
+		if platformID := u.PlatformID(platform); platformID != "" {
+			userMap[platformID] = u
 		}
 	}
 
@@ -1740,17 +1749,17 @@ func mergeDepartmentUsersWithMembers(users []*model.User, memberOpenIDs []string
 			continue
 		}
 		result = append(result, DepartmentUserItem{
-			User:               buildUnregisteredDepartmentUser(openID, memberDetails[openID]),
+			User:               buildUnregisteredDepartmentUser(openID, memberDetails[openID], platform),
 			RegistrationStatus: departmentRegistrationStatusUnregistered,
 		})
 	}
 	// Members resolved from a cost center (or any local-only source) may carry
-	// an empty open_id and therefore never appear in memberOpenIDs. Append the
-	// registered users whose open_id is empty and were not already covered by an
-	// open_id match above, so the department user list reflects the full
+	// empty platform ID and therefore never appear in memberOpenIDs. Append the
+	// registered users whose platform ID is empty and were not already covered by
+	// a platform ID match above, so the department user list reflects the full
 	// audience resolved in matchOverviewDepartmentMembers.
 	for _, u := range users {
-		if u.OpenId != "" || u.Id <= 0 || seenUserIDs[u.Id] {
+		if u.PlatformID(platform) != "" || u.Id <= 0 || seenUserIDs[u.Id] {
 			continue
 		}
 		userRegistrationStatus := getDepartmentUserRegistrationStatus(u, endTimestamp)

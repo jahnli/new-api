@@ -370,6 +370,9 @@ type NotificationDeliveryItem struct {
 func ListNotificationDeliveryPage(ctx context.Context, record *NotificationRecord, username, status string, page, pageSize int) ([]NotificationDeliveryItem, int64, error) {
 	db := DB.WithContext(ctx)
 	identifier := "TRIM(open_id)"
+	if record.Channel == CompanyPlatformDingTalk {
+		identifier = "TRIM(dingding_id)"
+	}
 	if record.Channel == "email" {
 		identifier = "TRIM(email)"
 	}
