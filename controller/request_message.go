@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"fmt"
+	"context"
 	"strings"
 	"time"
 
@@ -156,13 +156,9 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 		targetVendorName = vendor.Name
 	}
 
-	var user model.User
-	if err := model.DB.Select("id, open_id").Where("id = ?", request.UserId).First(&user).Error; err != nil {
+	user, err := model.GetUserById(request.UserId, false)
+	if err != nil {
 		common.ApiError(c, err)
-		return
-	}
-	if strings.TrimSpace(user.OpenId) == "" {
-		common.ApiErrorMsg(c, "The user has not bound a Feishu account")
 		return
 	}
 
@@ -175,22 +171,25 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 	if lang == "" {
 		lang = i18n.StatedLang(c)
 	}
-	if previewOnly {
-		preview, err := service.BuildRequestNoticePreview(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
-		if err != nil {
-			common.ApiError(c, err)
-			return
-		}
-		common.ApiSuccess(c, preview)
-		return
-	}
-	cardJSON, err := service.BuildRequestNoticeCard(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
+	preview, err := service.BuildRequestNoticePreview(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	if err := service.SendFeishuCardMessage(user.OpenId, cardJSON); err != nil {
-		common.ApiError(c, fmt.Errorf("send request notification: %w", err))
+	if previewOnly {
+		common.ApiSuccess(c, preview)
+		return
+	}
+	message, err := service.PrepareUserRequestNotice(user, preview)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 90*time.Second)
+	defer cancel()
+	ctx = common.WithSMTPAudit(ctx, common.SMTPAuditMetadata{Purpose: "request_notice", UserID: user.Id})
+	if _, err := service.SendNotificationMessage(ctx, message, message.Recipients[0]); err != nil {
+		common.ApiError(c, err)
 		return
 	}
 
