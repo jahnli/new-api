@@ -246,8 +246,8 @@ function QuotaUsagePanel(props: {
           <span className="text-muted-foreground text-base font-normal">/</span>
           <span className="sr-only">{t("Total Quota")}</span>
           <span className="break-all">{formattedLimit}</span>
-          <span className="text-muted-foreground text-sm font-normal">
-            ({percentLabel})
+          <span className={cn("text-sm font-normal", usageColor.text)}>
+            {percentLabel}
           </span>
         </p>
         {props.limit !== null && (

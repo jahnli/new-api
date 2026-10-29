@@ -142,7 +142,7 @@ export function SubscriptionSummary(props: {
               {' / '}
               {formatPremiumQuota(premiumLimit.toString())}
             </span>
-            <span className='text-muted-foreground ml-1 text-xs font-normal'>
+            <span className={cn('ml-1 text-xs font-normal', premiumUsageColor)}>
               {premiumPercentLabel}
             </span>
           </p>
