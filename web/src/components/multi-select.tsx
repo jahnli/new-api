@@ -111,6 +111,8 @@ interface MultiSelectProps {
    * that use `<FieldLabel>`.
    */
   inputAriaLabel?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: React.AriaAttributes['aria-invalid']
 }
 
 const COMMA_REGEX = /[,，\n]/
@@ -592,6 +594,8 @@ export function MultiSelect(props: MultiSelectProps) {
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           aria-label={props.inputAriaLabel ?? placeholder}
+          aria-describedby={props['aria-describedby']}
+          aria-invalid={props['aria-invalid']}
         />
       </ComboboxChips>
 

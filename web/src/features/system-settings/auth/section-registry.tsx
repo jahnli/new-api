@@ -53,6 +53,9 @@ const AUTH_SECTIONS = [
           'ldap.start_tls': settings['ldap.start_tls'],
           'ldap.skip_tls_verify': settings['ldap.skip_tls_verify'],
           'ldap.login_label': settings['ldap.login_label'],
+          'ldap.allowed_usernames': settings['ldap.allowed_usernames'] ?? '',
+          'ldap.username_filter_enabled':
+            settings['ldap.username_filter_enabled'] ?? false,
           'ldap.company_sync_configs': settings['ldap.company_sync_configs'],
           WeChatAuthEnabled: settings.WeChatAuthEnabled,
           WeChatServerAddress: settings.WeChatServerAddress,

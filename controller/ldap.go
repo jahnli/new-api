@@ -69,11 +69,33 @@ func LDAPLogin(c *gin.Context) {
 		return
 	}
 
+	// Resolve providers using the current directory OU, including for existing
+	// users. The copy keeps the persisted company display name unchanged.
+	_, companySyncCfg, hasSyncCfg := system_setting.ResolveLDAPCompany(ldapUser.Company)
+	if hasSyncCfg {
+		syncUser := *user
+		syncUser.Company = ldapUser.Company
+		var syncErr error
+		switch companySyncCfg.SyncPlatform {
+		case system_setting.LDAPSyncPlatformDingTalk:
+			if ldapUser.DingTalkUserID == "" {
+				syncErr = errors.New("LDAP DingTalk user ID is empty")
+			} else {
+				syncErr = service.SyncDingTalkUser(&syncUser, ldapUser.DingTalkUserID)
+			}
+		case system_setting.LDAPSyncPlatformFeishu:
+			syncErr = service.SyncFeishuUser(&syncUser)
+		}
+		if syncErr != nil {
+			common.SysError(common.LogText("LDAP directory sync failed user_id=%d platform=%s", user.Id, companySyncCfg.SyncPlatform))
+		}
+	}
+
 	setupLogin(user, c)
 }
 
 // findOrCreateLDAPUser 以 username 唯一关联用户：若用户名已存在则返回已有用户，
-// 否则在注册开启时创建新用户，并在创建成功后同步平台用户信息（飞书或钉钉）。
+// 否则在注册开启时创建新用户。平台资料由登录流程统一同步。
 func findOrCreateLDAPUser(c *gin.Context, ldapUser *service.LDAPUserInfo) (*model.User, error) {
 	user := &model.User{}
 
@@ -153,25 +175,6 @@ func findOrCreateLDAPUser(c *gin.Context, ldapUser *service.LDAPUserInfo) (*mode
 		}
 	} else {
 		autoSubscribeUserAfterCreate(user.Id, user.Company, "ldap_register_auto")
-	}
-
-	switch syncPlatform {
-	case system_setting.LDAPSyncPlatformDingTalk:
-		// 钉钉同步：从 LDAP extensionAttribute12 读取 userid，同步调用以确保
-		// 登录响应中包含头像、显示名、部门、邮箱等完整信息。
-		if ldapUser.DingTalkUserID != "" {
-			if err := service.SyncDingTalkUser(user, ldapUser.DingTalkUserID); err != nil {
-				common.SysError(fmt.Sprintf("钉钉字段同步失败 user=%s: %s", user.Username, err.Error()))
-			}
-		} else {
-			common.SysError(fmt.Sprintf("钉钉 userid 为空（extensionAttribute12 未设置）user=%s", user.Username))
-		}
-	case system_setting.LDAPSyncPlatformFeishu:
-		// 飞书同步（avatar_url/open_id/display_name/departments/job_number 等）。
-		// 同步调用确保登录响应中包含飞书头像等信息，失败仅记日志不影响注册。
-		if err := service.SyncFeishuUser(user); err != nil {
-			common.SysError(fmt.Sprintf("飞书字段同步失败 user=%s: %s", user.Username, err.Error()))
-		}
 	}
 
 	return user, nil

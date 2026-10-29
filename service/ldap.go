@@ -130,6 +130,11 @@ func AuthenticateLDAP(username, password string) (*LDAPUserInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Check the directory identity, never an alias supplied in the login request.
+	// Keep the public failure indistinguishable from invalid credentials.
+	if !system_setting.IsLDAPUsernameAllowed(info.Username) {
+		return nil, fmt.Errorf("LDAP authentication failed")
+	}
 	if settings.EmailAttribute != "" {
 		info.Email = entry.GetAttributeValue(settings.EmailAttribute)
 	}

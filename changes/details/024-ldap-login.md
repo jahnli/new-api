@@ -1,6 +1,6 @@
 # 新增 LDAP 登录与飞书/钉钉用户同步
 
-**日期**: 2026-10-28
+**日期**: 2026-10-29
 
 ## 涉及文件
 
@@ -59,6 +59,25 @@
 - 使用 Python 3.14 的 `ast.parse` 检查两份变更脚本，语法检查通过；未新增、修改或运行测试。
 - PostgreSQL 18.6 上执行 `py -3.14 scripts/migrate_dingding_id.py --db postgres --host 10.16.7.77 --port 5432 --database ai-gateway --user admin --apply`，密码通过环境变量传入。执行前已备份身份字段；创建 `varchar(64)` 字段并迁移 342 条，1332 条飞书身份保持不变，用户总数仍为 1695，逐条核对无差异、原有索引保留、待迁移历史值为 0。
 - 尚未完成 SQLite、MySQL 及三库全新数据库、发布版本升级与重复迁移验证，不能据此宣称完整三库兼容验证通过。
+
+## 用户名过滤、登录同步与配置保存（2026-10-29）
+
+新增默认关闭的用户名过滤开关。关闭时允许所有通过 LDAP 认证的人员继续登录；开启后仅允许名单内的目录标准用户名登录、首次注册及绑定，匹配忽略大小写和首尾空格，空名单全部拒绝。首次注册仍受全局注册开关控制，拒绝名单外用户时沿用通用认证失败提示。创建 LDAP 登录会话前再次检查开关与名单，覆盖等待二次验证期间的配置变化；已建立的会话不因修改名单自动注销。
+
+名单复用共享多选组件，以标签形式支持回车添加、逗号或换行批量粘贴、去重、小写归一化、搜索及逐项删除，超过八项折叠；关闭过滤时仍可预先编辑名单，输入框下方不展示冗长说明。每次 LDAP 登录按当前目录公司 OU 选择已配置的飞书或钉钉同步，包括已有账号；未配置平台时跳过，同步失败不阻止登录。
+
+认证配置保存调整为先关闭待停用功能、再保存配置、最后启用，修复连接参数已填写但尚未写入后端时提前启用 LDAP 的错误；同样适用于 OIDC、微信登录与用户名过滤。
+
+### 涉及文件
+
+- `setting/system_setting/ldap.go` — 新增过滤开关、换行分隔的允许名单与服务端匹配逻辑，默认关闭。
+- `service/ldap.go` — LDAP 密码认证通过后，以目录返回的标准用户名执行名单校验。
+- `service/auth_session.go` — 创建 LDAP 会话前重新校验 LDAP 启用状态与用户名访问资格。
+- `controller/ldap.go` — 将注册时的平台同步移至统一登录流程，已有用户也使用当前 LDAP 公司 OU 选择平台，保留已存储的公司显示名称。
+- `web/src/features/system-settings/auth/oauth-section.tsx` — 新增过滤开关与标签名单，规范化名单数据、复用设置分组并调整配置保存顺序。
+- `web/src/features/system-settings/auth/index.tsx`、`web/src/features/system-settings/auth/section-registry.tsx`、`web/src/features/system-settings/types.ts` — 补齐默认值、配置回显及类型。
+- `web/src/components/multi-select.tsx` — 透传表单说明与无效状态的无障碍属性，供名单输入复用。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐过滤开关、名单及输入提示的七语言文案。
 
 ## 自 CHANGELOG 说明列迁入
 

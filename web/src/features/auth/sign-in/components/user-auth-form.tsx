@@ -78,6 +78,9 @@ export function UserAuthForm({
   const loginFailedMessage = t('Login failed')
 
   const { status } = useStatus()
+  const externalModeEnabled = Boolean(
+    status?.external_mode_enabled ?? status?.data?.external_mode_enabled
+  )
   const passkeyLoginEnabled = Boolean(
     status?.passkey_login ?? status?.data?.passkey_login
   )
@@ -115,7 +118,9 @@ export function UserAuthForm({
 
   useEffect(() => {
     if (status && activeView === null) {
-      if (hasLDAPLogin) {
+      if (externalModeEnabled && passwordLoginEnabled) {
+        setActiveView('password')
+      } else if (hasLDAPLogin) {
         setActiveView('ldap')
       } else if (hasAlternativeLogin && !passwordLoginEnabled) {
         setActiveView('oauth')
@@ -126,6 +131,7 @@ export function UserAuthForm({
   }, [
     status,
     activeView,
+    externalModeEnabled,
     hasLDAPLogin,
     hasAlternativeLogin,
     passwordLoginEnabled,
@@ -415,9 +421,11 @@ export function UserAuthForm({
       <div className='grid gap-2'>
         <div className='flex items-baseline gap-2'>
           <Label htmlFor='ldap-username'>{t('Username')}</Label>
-          <span className='text-muted-foreground text-xs'>
-            {t('Example: {{example}}', { example: 'lijiaheng' })}
-          </span>
+          {!externalModeEnabled && (
+            <span className='text-muted-foreground text-xs'>
+              {t('Example: {{example}}', { example: 'lijiaheng' })}
+            </span>
+          )}
         </div>
         <Input
           id='ldap-username'
