@@ -103,6 +103,7 @@
     "{{n}} model(s) selected": "Đã chọn {{n}} model",
     "{{name}} called {{count}} times, cost {{quota}}": "{{name}} được gọi {{count}} lần, chi phí {{quota}}",
     "{{operation}} (ID: {{id}})": "{{operation}} (ID: {{id}})",
+    "{{percent}}% of total quota": "{{percent}}% tổng hạn mức",
     "{{percent}}% OFF": "Giảm {{percent}}%",
     "{{percent}}% used": "Đã dùng {{percent}}%",
     "{{processed}} of {{total}} log entries processed.": "Đã xử lý {{processed}}/{{total}} mục nhật ký.",

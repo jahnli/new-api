@@ -103,6 +103,7 @@
     "{{n}} model(s) selected": "{{n}} 件のモデルを選択済み",
     "{{name}} called {{count}} times, cost {{quota}}": "{{name}} を {{count}} 回呼び出し、費用 {{quota}}",
     "{{operation}} (ID: {{id}})": "{{operation}}（ID: {{id}}）",
+    "{{percent}}% of total quota": "総枠の {{percent}}%",
     "{{percent}}% OFF": "{{percent}}% オフ",
     "{{percent}}% used": "{{percent}}% 使用済み",
     "{{processed}} of {{total}} log entries processed.": "{{total}} 件中 {{processed}} 件のログを処理しました。",

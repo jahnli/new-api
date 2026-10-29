@@ -103,6 +103,7 @@
     "{{n}} model(s) selected": "{{n}} modèle(s) sélectionné(s)",
     "{{name}} called {{count}} times, cost {{quota}}": "{{name}} appelé {{count}} fois, coût {{quota}}",
     "{{operation}} (ID: {{id}})": "{{operation}} (ID : {{id}})",
+    "{{percent}}% of total quota": "{{percent}} % du quota total",
     "{{percent}}% OFF": "-{{percent}} %",
     "{{percent}}% used": "{{percent}} % utilisé",
     "{{processed}} of {{total}} log entries processed.": "{{processed}} sur {{total}} entrées de journal traitées.",

@@ -103,6 +103,7 @@
     "{{n}} model(s) selected": "Выбрано моделей: {{n}}",
     "{{name}} called {{count}} times, cost {{quota}}": "{{name}}: вызовов {{count}}, стоимость {{quota}}",
     "{{operation}} (ID: {{id}})": "{{operation}} (ID: {{id}})",
+    "{{percent}}% of total quota": "{{percent}}% общей квоты",
     "{{percent}}% OFF": "Скидка {{percent}}%",
     "{{percent}}% used": "Использовано {{percent}}%",
     "{{processed}} of {{total}} log entries processed.": "Обработано {{processed}} из {{total}} записей журнала.",
