@@ -331,8 +331,8 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 		modelName = "-"
 	}
 	// Preserve the legacy card for clients that do not yet send a notification type.
-	title := i18n.Translate(lang, "request_notice.legacy_title")
-	content := i18n.Translate(lang, "request_notice.legacy_content")
+	title := i18n.TranslateRequestNotice(lang, "request_notice.legacy_title")
+	content := i18n.TranslateRequestNotice(lang, "request_notice.legacy_content")
 	template := "red"
 	imageURL := ""
 	subtitle := ""
@@ -340,26 +340,26 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 	switch notificationType {
 	case "":
 	case RequestNoticeNonWorkContent:
-		title = i18n.Translate(lang, "request_notice.non_work_title")
-		content = i18n.Translate(lang, "request_notice.non_work_content")
+		title = i18n.TranslateRequestNotice(lang, "request_notice.non_work_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.non_work_content")
 		template = "orange"
 		imageURL = "/notice/non-work/logo.png"
-		subtitle = i18n.Translate(lang, "request_notice.non_work_subtitle")
+		subtitle = i18n.TranslateRequestNotice(lang, "request_notice.non_work_subtitle")
 	case RequestNoticeSecurityRisk:
-		title = i18n.Translate(lang, "request_notice.security_title")
-		content = i18n.Translate(lang, "request_notice.security_content")
+		title = i18n.TranslateRequestNotice(lang, "request_notice.security_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.security_content")
 		imageURL = "/notice/security-alert/logo.png"
 		for _, key := range []string{"request_notice.security_check", "request_notice.security_prohibition", "request_notice.security_stop"} {
-			advice = append(advice, i18n.Translate(lang, key))
+			advice = append(advice, i18n.TranslateRequestNotice(lang, key))
 		}
 	case RequestNoticeModelSwitch:
 		targetVendorName = strings.TrimSpace(targetVendorName)
 		if targetVendorName == "" {
 			return nil, common.NewMessage("Select a target model series")
 		}
-		title = i18n.Translate(lang, "request_notice.model_switch_title")
-		content = i18n.Translate(lang, "request_notice.model_switch_content", map[string]any{"Model": modelName, "Vendor": targetVendorName})
-		advice = append(advice, i18n.Translate(lang, "request_notice.model_switch_advice"))
+		title = i18n.TranslateRequestNotice(lang, "request_notice.model_switch_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.model_switch_content", map[string]any{"Model": modelName, "Vendor": targetVendorName})
+		advice = append(advice, i18n.TranslateRequestNotice(lang, "request_notice.model_switch_advice"))
 		template = "blue"
 		imageURL = "/notice/model-switch/logo.png"
 	default:
@@ -370,11 +370,11 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 	if client == "" {
 		client = "-"
 	}
-	fields := []RequestNoticeField{{Label: i18n.Translate(lang, "request_notice.request_time"), Value: requestTime}}
-	fields = append(fields, RequestNoticeField{Label: i18n.Translate(lang, "request_notice.model"), Value: modelName})
+	fields := []RequestNoticeField{{Label: i18n.TranslateRequestNotice(lang, "request_notice.request_time"), Value: requestTime}}
+	fields = append(fields, RequestNoticeField{Label: i18n.TranslateRequestNotice(lang, "request_notice.model"), Value: modelName})
 	fields = append(fields,
-		RequestNoticeField{Label: i18n.Translate(lang, "request_notice.request_id"), Value: requestID},
-		RequestNoticeField{Label: i18n.Translate(lang, "request_notice.client"), Value: client},
+		RequestNoticeField{Label: i18n.TranslateRequestNotice(lang, "request_notice.request_id"), Value: requestID},
+		RequestNoticeField{Label: i18n.TranslateRequestNotice(lang, "request_notice.client"), Value: client},
 	)
 	return &RequestNoticePreview{Title: title, Content: content, Subtitle: subtitle, Template: template, ImageURL: imageURL, Advice: advice, Fields: fields}, nil
 }
