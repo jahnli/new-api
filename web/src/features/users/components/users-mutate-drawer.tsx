@@ -599,11 +599,6 @@ export function UsersMutateDrawer({
                             </SelectGroup>
                           </SelectContent>
                         </Select>
-                        <FormDescription>
-                          {t(
-                            'Classify this account for trial or paid operations reporting.'
-                          )}
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -643,11 +638,6 @@ export function UsersMutateDrawer({
                             </SelectGroup>
                           </SelectContent>
                         </Select>
-                        <FormDescription>
-                          {t(
-                            'Prepaid deducts from the balance before use. Postpaid is an operations label and does not change billing by itself.'
-                          )}
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
