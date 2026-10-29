@@ -152,6 +152,7 @@ type User struct {
 	AuthVersion          int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
 	AvatarUrl            string                     `json:"avatar_url" gorm:"type:varchar(512);column:avatar_url;default:''"`
 	OpenId               string                     `json:"open_id" gorm:"type:varchar(64);column:open_id;default:''"`
+	DingdingId           string                     `json:"dingding_id" gorm:"type:varchar(64);column:dingding_id;default:''"`
 	DepartmentName       string                     `json:"department_name" gorm:"type:varchar(256);column:department_name;default:''"`
 	Departments          string                     `json:"departments" gorm:"type:text;column:departments;default:'[]'"`
 	JobNumber            string                     `json:"job_number" gorm:"type:varchar(64);column:job_number;default:''"`
@@ -211,9 +212,24 @@ func (user *User) GetCostCenter() (departmentID string, companyID int, ok bool) 
 	return department.DepartmentID, department.CompanyID, true
 }
 
-// GetLeaderDepartmentIDs returns department IDs where the user's OpenId is listed as leader_id.
+// PlatformID returns the directory identity for the requested company platform.
+func (user *User) PlatformID(platform string) string {
+	if user == nil {
+		return ""
+	}
+	switch platform {
+	case CompanyPlatformDingTalk:
+		return user.DingdingId
+	case CompanyPlatformFeishu:
+		return user.OpenId
+	default:
+		return ""
+	}
+}
+
+// GetLeaderDepartmentIDs matches each leader against its platform's identity.
 func (user *User) GetLeaderDepartmentIDs() []string {
-	if user.OpenId == "" || user.Departments == "" || user.Departments == "[]" {
+	if (user.OpenId == "" && user.DingdingId == "") || user.Departments == "" || user.Departments == "[]" {
 		return nil
 	}
 	var departments []struct {
@@ -229,7 +245,11 @@ func (user *User) GetLeaderDepartmentIDs() []string {
 	seenDepartmentIDs := make(map[string]bool)
 	for _, department := range departments {
 		for _, leader := range department.Leaders {
-			isCurrentUserLeader := leader.LeaderID == user.OpenId
+			platform := CompanyPlatformDingTalk
+			if strings.HasPrefix(leader.LeaderID, "ou_") {
+				platform = CompanyPlatformFeishu
+			}
+			isCurrentUserLeader := leader.LeaderID != "" && leader.LeaderID == user.PlatformID(platform)
 			isNewDepartment := department.DepartmentID != "" && !seenDepartmentIDs[department.DepartmentID]
 			if isCurrentUserLeader && isNewDepartment {
 				seenDepartmentIDs[department.DepartmentID] = true
@@ -255,6 +275,7 @@ func (user *User) ToBaseUser() *UserBase {
 		Setting:     user.Setting,
 		Email:       user.Email,
 		OpenId:      user.OpenId,
+		DingdingId:  user.DingdingId,
 		AuthVersion: user.AuthVersion,
 		CacheSchema: userCacheSchemaVersion,
 	}
@@ -788,7 +809,7 @@ func GetSelfUserById(id int) (*User, error) {
 		"id", "username", "display_name", "role", "status", "email",
 		"oidc_id", "wechat_id", "group", "quota", "used_quota",
 		"request_count", "setting", "stripe_customer", "auth_version",
-		"avatar_url", "overview_dept_ids", "open_id", "departments",
+		"avatar_url", "overview_dept_ids", "open_id", "dingding_id", "departments",
 		"CASE WHEN password <> '' THEN 1 ELSE 0 END AS has_password",
 	}).First(&profile, "id = ?", id).Error
 	profile.User.HasPassword = profile.HasPassword

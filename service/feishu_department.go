@@ -383,7 +383,23 @@ func BuildRequestNoticeCard(requestTime string, requestID string, modelName stri
 	return buildRequestNoticeCard(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName, "", nil)
 }
 
-func SendRequestNotice(ctx context.Context, openID string, requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) error {
+func SendRequestNotice(ctx context.Context, message NotificationMessage, requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) error {
+	if message.Channel != model.CompanyPlatformFeishu {
+		_, err := SendNotificationMessage(ctx, message, message.Recipients[0])
+		return err
+	}
+	company, err := model.GetEnabledCompanyByID(message.CompanyID)
+	if err != nil || company.Platform != message.Channel {
+		return fmt.Errorf("公司已停用或通知通道已变更")
+	}
+	config, err := company.GetConfig()
+	if err != nil {
+		return err
+	}
+	token, err := feishuGetTenantAccessToken(feishuSyncConfig{AppID: config.Feishu.AppID, AppSecret: config.Feishu.AppSecret})
+	if err != nil {
+		return fmt.Errorf("获取飞书应用授权失败，请检查公司应用配置")
+	}
 	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName)
 	if err != nil {
 		return err
@@ -393,10 +409,6 @@ func SendRequestNotice(ctx context.Context, openID string, requestTime string, r
 		data, err := web.NoticeImages.ReadFile("public" + preview.ImageURL)
 		if err != nil {
 			return fmt.Errorf("read notice image: %w", err)
-		}
-		token, err := feishuGetCachedTenantAccessToken()
-		if err != nil {
-			return err
 		}
 		imageKey, err = uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: path.Base(preview.ImageURL), Data: data})
 		if err != nil {
@@ -410,10 +422,6 @@ func SendRequestNotice(ctx context.Context, openID string, requestTime string, r
 			iconDir = "security-alert"
 		} else if notificationType == RequestNoticeModelSwitch {
 			iconDir = "model-switch"
-		}
-		token, err := feishuGetCachedTenantAccessToken()
-		if err != nil {
-			return err
 		}
 		filenames := []string{"time.png", "model.png", "id.png", "client.png"}
 		if notificationType == RequestNoticeModelSwitch {
@@ -453,7 +461,22 @@ func SendRequestNotice(ctx context.Context, openID string, requestTime string, r
 	if err != nil {
 		return err
 	}
-	return SendFeishuCardMessage(openID, card)
+	body, status, err := notificationProviderRequest(ctx, http.MethodPost, feishuBaseURL+"/im/v1/messages?receive_id_type=open_id", map[string]string{
+		"receive_id": message.Recipients[0], "msg_type": "interactive", "content": card,
+	}, token, true)
+	if err != nil {
+		return err
+	}
+	var response struct {
+		Code int `json:"code"`
+	}
+	if common.Unmarshal(body, &response) != nil {
+		return fmt.Errorf("%w: 飞书响应无法解析", ErrNotificationDeliveryUnknown)
+	}
+	if status != http.StatusOK || response.Code != 0 {
+		return fmt.Errorf("飞书通知发送失败，状态码 %d，错误码 %d", status, response.Code)
+	}
+	return nil
 }
 
 func buildRequestNoticeCard(requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string, imageKey string, iconKeys []string) (string, error) {
@@ -1836,18 +1859,23 @@ type DepartmentUserItem struct {
 	SubQuotaTotal          int64   `json:"sub_quota_total"`
 }
 
-func buildUnregisteredDepartmentUser(openID string, member feishuDeptMember) *model.User {
+func buildUnregisteredDepartmentUser(platformID string, member feishuDeptMember, platform string) *model.User {
 	displayName := member.Name
 	if displayName == "" {
 		displayName = "-"
 	}
-	return &model.User{
+	user := &model.User{
 		Id:          0,
 		Username:    displayName,
 		DisplayName: displayName,
-		OpenId:      openID,
 		Status:      0,
 	}
+	if platform == model.CompanyPlatformDingTalk {
+		user.DingdingId = platformID
+	} else {
+		user.OpenId = platformID
+	}
+	return user
 }
 
 func isDepartmentUserRegisteredAt(user *model.User, endTimestamp int64) bool {
@@ -1878,11 +1906,15 @@ func departmentUserRegistrationCounts(users []*model.User, totalUsers int, endTi
 	return registeredUsers, unregisteredUsers
 }
 
-func mergeDepartmentUsersWithMembers(users []*model.User, memberOpenIDs []string, memberDetails map[string]feishuDeptMember, endTimestamp int64, includeUnregistered bool, registrationStatus string) []DepartmentUserItem {
+func mergeDepartmentUsersWithMembers(users []*model.User, memberOpenIDs []string, memberDetails map[string]feishuDeptMember, endTimestamp int64, includeUnregistered bool, registrationStatus string, platforms ...string) []DepartmentUserItem {
+	platform := model.CompanyPlatformFeishu
+	if len(platforms) > 0 {
+		platform = platforms[0]
+	}
 	userMap := make(map[string]*model.User, len(users))
 	for _, u := range users {
-		if u.OpenId != "" {
-			userMap[u.OpenId] = u
+		if platformID := u.PlatformID(platform); platformID != "" {
+			userMap[platformID] = u
 		}
 	}
 
@@ -1915,17 +1947,17 @@ func mergeDepartmentUsersWithMembers(users []*model.User, memberOpenIDs []string
 			continue
 		}
 		result = append(result, DepartmentUserItem{
-			User:               buildUnregisteredDepartmentUser(openID, memberDetails[openID]),
+			User:               buildUnregisteredDepartmentUser(openID, memberDetails[openID], platform),
 			RegistrationStatus: departmentRegistrationStatusUnregistered,
 		})
 	}
 	// Members resolved from a cost center (or any local-only source) may carry
-	// an empty open_id and therefore never appear in memberOpenIDs. Append the
-	// registered users whose open_id is empty and were not already covered by an
-	// open_id match above, so the department user list reflects the full
+	// empty platform ID and therefore never appear in memberOpenIDs. Append the
+	// registered users whose platform ID is empty and were not already covered by
+	// a platform ID match above, so the department user list reflects the full
 	// audience resolved in matchOverviewDepartmentMembers.
 	for _, u := range users {
-		if u.OpenId != "" || u.Id <= 0 || seenUserIDs[u.Id] {
+		if u.PlatformID(platform) != "" || u.Id <= 0 || seenUserIDs[u.Id] {
 			continue
 		}
 		userRegistrationStatus := getDepartmentUserRegistrationStatus(u, endTimestamp)

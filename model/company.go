@@ -190,6 +190,14 @@ func GetCompanyByID(id int) (*Company, error) {
 	return &company, nil
 }
 
+func GetCompanyByName(name string) (*Company, error) {
+	var company Company
+	if err := DB.Where("name = ?", NormalizeCompany(name)).First(&company).Error; err != nil {
+		return nil, err
+	}
+	return &company, nil
+}
+
 func IsCompanyNameTaken(name string, excludeID int) (bool, error) {
 	name = NormalizeCompany(name)
 	if name == "" {

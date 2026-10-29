@@ -9,6 +9,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -102,6 +103,17 @@ func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, 
 }
 
 func newLoginSession(userID int, authVersion int64, loginMethod, ip, userAgent string) (*model.UserSession, string, error) {
+	if strings.TrimSpace(loginMethod) == "ldap" {
+		user, err := model.GetUserCache(userID)
+		if err != nil {
+			return nil, "", err
+		}
+		// Recheck after MFA or directory sync in case access was removed while
+		// the login was pending. All login verification methods use this path.
+		if !system_setting.GetLDAPSettings().Enabled || !system_setting.IsLDAPUsernameAllowed(user.Username) {
+			return nil, "", ErrLoginSessionInvalid
+		}
+	}
 	refreshSecret, err := common.GenerateRandomCharsKey(64)
 	if err != nil {
 		return nil, "", err

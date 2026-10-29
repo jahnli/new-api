@@ -79,6 +79,9 @@ func SyncDingTalkUser(user *model.User, dingTalkUserID string) error {
 	if user == nil || user.Username == "" || dingTalkUserID == "" {
 		return nil
 	}
+	if strings.HasPrefix(dingTalkUserID, "ou_") {
+		return errors.New("DingTalk user ID must not use the Feishu ou_ prefix")
+	}
 	cfg, ok := resolveDingTalkSyncConfig(user)
 	if !ok {
 		return nil
@@ -120,7 +123,7 @@ func SyncDingTalkUser(user *model.User, dingTalkUserID string) error {
 	}
 
 	updates := map[string]any{
-		"open_id":         dingTalkUserID,
+		"dingding_id":     dingTalkUserID,
 		"avatar_url":      userDetail.Avatar,
 		"display_name":    userDetail.Name,
 		"mobile":          userDetail.Mobile,
@@ -139,14 +142,14 @@ func SyncDingTalkUser(user *model.User, dingTalkUserID string) error {
 		return err
 	}
 
-	user.OpenId = dingTalkUserID
+	user.DingdingId = dingTalkUserID
 	user.AvatarUrl = userDetail.Avatar
 	user.DisplayName = userDetail.Name
 	if email != "" {
 		user.Email = email
 	}
 
-	common.SysLog(fmt.Sprintf("钉钉字段同步完成 user_id=%d open_id=%s job_number=%s", user.Id, dingTalkUserID, userDetail.JobNumber))
+	common.SysLog(common.LogText("DingTalk user fields synced user_id=%d dingding_id=%s job_number=%s", user.Id, dingTalkUserID, userDetail.JobNumber))
 	return nil
 }
 

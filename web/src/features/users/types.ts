@@ -80,6 +80,7 @@ export const userSchema = z.object({
   job_number: z.string().optional(),
   mobile: z.string().optional(),
   open_id: z.string().optional(),
+  dingding_id: z.string().optional(),
   gender: z.number().optional(),
   description: z.string().optional(),
   background_image: z.string().optional(),
@@ -231,6 +232,7 @@ export interface UserColumnRow {
   background_image?: string
   mobile?: string
   open_id?: string
+  dingding_id?: string
   gender?: number
   company?: string
   cost_center?: string
@@ -258,6 +260,7 @@ export type UserProfile = Pick<
   | 'background_image'
   | 'mobile'
   | 'open_id'
+  | 'dingding_id'
   | 'gender'
   | 'company'
 >

@@ -26,7 +26,7 @@ func ResolveNotificationAudience(channel string, companyID int) (*NotificationAu
 	if err != nil || company.Platform != channel {
 		return nil, &NotificationValidationError{Err: errors.New("an enabled company matching the channel is required")}
 	}
-	identifiers, err := model.ListNotificationPlatformIDs(company.Name)
+	identifiers, err := model.ListNotificationPlatformIDs(company.Name, company.Platform)
 	if err != nil {
 		return nil, err
 	}

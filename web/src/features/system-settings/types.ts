@@ -167,6 +167,8 @@ export type AuthSettings = {
   'ldap.start_tls': boolean
   'ldap.skip_tls_verify': boolean
   'ldap.login_label': string
+  'ldap.allowed_usernames'?: string
+  'ldap.username_filter_enabled'?: boolean
   'ldap.company_sync_configs': string
   WeChatAuthEnabled: boolean
   WeChatServerAddress: string

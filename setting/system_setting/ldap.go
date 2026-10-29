@@ -11,19 +11,21 @@ import (
 // LDAPSettings 维护 LDAP 登录所需的全部配置。
 // 字段通过 config.GlobalConfig 以 "ldap.<field>" 的键形式持久化到数据库。
 type LDAPSettings struct {
-	Enabled              bool                    `json:"enabled"`
-	ServerURL            string                  `json:"server_url"` // ldap://host:port 或 ldaps://host:port
-	BindDN               string                  `json:"bind_dn"`    // 服务账号 DN，用于搜索目录
-	BindPassword         string                  `json:"bind_password"`
-	SearchBase           string                  `json:"search_base"`            // 搜索起始 DN
-	SearchFilter         string                  `json:"search_filter"`          // 占位符 {{username}} 会被转义后替换
-	UsernameAttribute    string                  `json:"username_attribute"`     // 用户名属性
-	EmailAttribute       string                  `json:"email_attribute"`        // 邮箱属性
-	DisplayNameAttribute string                  `json:"display_name_attribute"` // 显示名属性
-	StartTLS             bool                    `json:"start_tls"`              // 对 ldap:// 启用 StartTLS 升级
-	SkipTLSVerify        bool                    `json:"skip_tls_verify"`        // 跳过 TLS 证书校验
-	LoginLabel           string                  `json:"login_label"`            // 前端登录入口展示文案
-	CompanySyncConfigs   []LDAPCompanySyncConfig `json:"company_sync_configs"`   // 按 LDAP OU 公司名配置同步平台和套餐
+	Enabled               bool                    `json:"enabled"`
+	ServerURL             string                  `json:"server_url"` // ldap://host:port 或 ldaps://host:port
+	BindDN                string                  `json:"bind_dn"`    // 服务账号 DN，用于搜索目录
+	BindPassword          string                  `json:"bind_password"`
+	SearchBase            string                  `json:"search_base"`            // 搜索起始 DN
+	SearchFilter          string                  `json:"search_filter"`          // 占位符 {{username}} 会被转义后替换
+	UsernameAttribute     string                  `json:"username_attribute"`     // 用户名属性
+	EmailAttribute        string                  `json:"email_attribute"`        // 邮箱属性
+	DisplayNameAttribute  string                  `json:"display_name_attribute"` // 显示名属性
+	StartTLS              bool                    `json:"start_tls"`              // 对 ldap:// 启用 StartTLS 升级
+	SkipTLSVerify         bool                    `json:"skip_tls_verify"`        // 跳过 TLS 证书校验
+	LoginLabel            string                  `json:"login_label"`            // 前端登录入口展示文案
+	UsernameFilterEnabled bool                    `json:"username_filter_enabled"`
+	AllowedUsernames      string                  `json:"allowed_usernames"`    // One canonical LDAP username per line; empty denies all when filtering is enabled.
+	CompanySyncConfigs    []LDAPCompanySyncConfig `json:"company_sync_configs"` // 按 LDAP OU 公司名配置同步平台和套餐
 }
 
 // LDAPCompanySyncConfig defines company-specific behavior after LDAP login.
@@ -46,10 +48,11 @@ const (
 )
 
 var defaultLDAPSettings = LDAPSettings{
-	SearchFilter:         "(uid={{username}})",
-	UsernameAttribute:    "uid",
-	EmailAttribute:       "mail",
-	DisplayNameAttribute: "cn",
+	UsernameFilterEnabled: false,
+	SearchFilter:          "(uid={{username}})",
+	UsernameAttribute:     "uid",
+	EmailAttribute:        "mail",
+	DisplayNameAttribute:  "cn",
 }
 
 func init() {
@@ -58,6 +61,25 @@ func init() {
 
 func GetLDAPSettings() *LDAPSettings {
 	return &defaultLDAPSettings
+}
+
+// IsLDAPUsernameAllowed matches directory usernames exactly, ignoring case and
+// surrounding whitespace. An empty list denies access when filtering is enabled.
+func IsLDAPUsernameAllowed(username string) bool {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return false
+	}
+	settings := GetLDAPSettings()
+	if !settings.UsernameFilterEnabled {
+		return true
+	}
+	for allowed := range strings.SplitSeq(settings.AllowedUsernames, "\n") {
+		if strings.EqualFold(strings.TrimSpace(allowed), username) {
+			return true
+		}
+	}
+	return false
 }
 
 func GetLDAPCompanySyncConfig(company string) (LDAPCompanySyncConfig, bool) {

@@ -1,6 +1,6 @@
 # 新增 LDAP 登录与飞书/钉钉用户同步
 
-**日期**: 2026-07-20
+**日期**: 2026-10-29
 
 ## 涉及文件
 
@@ -33,6 +33,51 @@
 - `web/default/src/features/system-settings/auth/oauth-section.tsx` — OAuth 设置区适配 LDAP 平台同步配置；公司配置表单新增显示名称，读取旧配置与保存空值时自动回填 LDAP 公司名，并按飞书/钉钉选择动态展示对应凭据，支持邮箱后缀与自动订阅套餐；LDAP 页签补充底部留白，避免添加配置按钮滚到底部时被页面底部遮挡而无法点击
 - `web/default/src/features/system-settings/types.ts` — 系统设置类型新增 LDAP 字段与公司同步配置字段
 - `web/default/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 前端 7 语言翻译同步更新，补充钉钉 Client ID/Secret 与原 AppKey/AppSecret 文案
+
+## 钉钉身份字段拆分（2026-10-28）
+
+用户表新增 `dingding_id`，钉钉同步不再写入飞书的 `open_id`。部门成员匹配、负责人识别、通知收件人查询及报表筛选同步适配，避免钉钉身份被当作飞书身份使用。
+
+- `model/user.go` — 新增钉钉身份字段与按平台取值方法，负责人匹配区分身份类型，个人资料查询及基础用户转换补齐新字段。
+- `model/user_cache.go`、`model/user_auth_cache.go` — 缓存同时保存飞书与钉钉身份，提升缓存结构版本，阻止局部字段更新将旧结构误标为新版。
+- `service/dingtalk_sync.go` — 钉钉同步仅写入 `dingding_id`，拒绝带飞书 `ou_` 前缀的钉钉 ID。
+- `service/ldap.go` — 明确 LDAP `extensionAttribute12` 对应钉钉 `dingding_id`。
+- `service/data_overview_company.go` — 部门权限裁剪、成员查询、离职成员补充、子部门分桶及未注册人员姓名补齐均按公司平台选择身份字段。
+- `service/data_overview_provider.go` — 明确内部成员 ID 分别对应飞书 `open_id` 和钉钉用户 ID。
+- `service/feishu_department.go` — 部门用户合并按平台匹配，未注册钉钉成员写入独立身份字段，保留无平台身份的成本中心成员。
+- `model/notification_audience.go`、`service/notification_audience.go`、`model/notification.go` — 公司通知受众、投递记录用户名筛选及用户匹配改为按渠道读取对应身份字段。
+- `scripts/daily_usage.py` — 每日用量报表纳入 `open_id` 或 `dingding_id` 非空的用户，避免拆分后遗漏钉钉人员。
+- `web/src/features/users/types.ts`、`web/src/features/data-overview/types.ts` — 用户及部门人员类型补齐 `dingding_id`。
+- `scripts/migrate_dingding_id.py` — 新增手动迁移脚本，提供 PostgreSQL、MySQL 和 SQLite 执行路径；默认预览，指定 `--apply` 后补建缺失字段，将非空且不以字面量 `ou_` 开头的历史 `open_id` 搬迁后清空原字段，包含软删除用户；目标字段冲突时回滚数据修改，MySQL 已执行的建列操作不随数据回滚。
+
+历史数据搬迁不接入应用启动流程；模型自动建表仍可创建新字段。升级时应先停用旧版应用及目录同步，手动迁移后再启动使用新字段的版本。
+
+### 验证记录
+
+- `go build ./...`、`git diff --check` 通过，修改的 Go 文件经 `gofmt` 格式化。
+- 在 `web/` 执行 `bun x --bun tsgo -b` 与 `bun x --bun oxlint -c .oxlintrc.json src/features/users/types.ts src/features/data-overview/types.ts` 均通过；本机 Bun 1.3.14 不支持仓库的 `bun check -b`，因此使用已安装的类型检查器。
+- 使用 Python 3.14 的 `ast.parse` 检查两份变更脚本，语法检查通过；未新增、修改或运行测试。
+- PostgreSQL 18.6 上执行 `py -3.14 scripts/migrate_dingding_id.py --db postgres --host 10.16.7.77 --port 5432 --database ai-gateway --user admin --apply`，密码通过环境变量传入。执行前已备份身份字段；创建 `varchar(64)` 字段并迁移 342 条，1332 条飞书身份保持不变，用户总数仍为 1695，逐条核对无差异、原有索引保留、待迁移历史值为 0。
+- 尚未完成 SQLite、MySQL 及三库全新数据库、发布版本升级与重复迁移验证，不能据此宣称完整三库兼容验证通过。
+
+## 用户名过滤、登录同步与配置保存（2026-10-29）
+
+新增默认关闭的用户名过滤开关。关闭时允许所有通过 LDAP 认证的人员继续登录；开启后仅允许名单内的目录标准用户名登录、首次注册及绑定，匹配忽略大小写和首尾空格，空名单全部拒绝。首次注册仍受全局注册开关控制，拒绝名单外用户时沿用通用认证失败提示。创建 LDAP 登录会话前再次检查开关与名单，覆盖等待二次验证期间的配置变化；已建立的会话不因修改名单自动注销。
+
+名单复用共享多选组件，以标签形式支持回车添加、逗号或换行批量粘贴、去重、小写归一化、搜索及逐项删除，超过八项折叠；关闭过滤时仍可预先编辑名单，输入框下方不展示冗长说明。每次 LDAP 登录按当前目录公司 OU 选择已配置的飞书或钉钉同步，包括已有账号；未配置平台时跳过，同步失败不阻止登录。
+
+认证配置保存调整为先关闭待停用功能、再保存配置、最后启用，修复连接参数已填写但尚未写入后端时提前启用 LDAP 的错误；同样适用于 OIDC、微信登录与用户名过滤。
+
+### 涉及文件
+
+- `setting/system_setting/ldap.go` — 新增过滤开关、换行分隔的允许名单与服务端匹配逻辑，默认关闭。
+- `service/ldap.go` — LDAP 密码认证通过后，以目录返回的标准用户名执行名单校验。
+- `service/auth_session.go` — 创建 LDAP 会话前重新校验 LDAP 启用状态与用户名访问资格。
+- `controller/ldap.go` — 将注册时的平台同步移至统一登录流程，已有用户也使用当前 LDAP 公司 OU 选择平台，保留已存储的公司显示名称。
+- `web/src/features/system-settings/auth/oauth-section.tsx` — 新增过滤开关与标签名单，规范化名单数据、复用设置分组并调整配置保存顺序。
+- `web/src/features/system-settings/auth/index.tsx`、`web/src/features/system-settings/auth/section-registry.tsx`、`web/src/features/system-settings/types.ts` — 补齐默认值、配置回显及类型。
+- `web/src/components/multi-select.tsx` — 透传表单说明与无效状态的无障碍属性，供名单输入复用。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐过滤开关、名单及输入提示的七语言文案。
 
 ## 自 CHANGELOG 说明列迁入
 

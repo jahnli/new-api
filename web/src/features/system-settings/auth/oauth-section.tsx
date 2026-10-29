@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { CopyButton } from '@/components/copy-button'
+import { MultiSelect } from '@/components/multi-select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,6 +37,7 @@ import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
 import {
   SettingsForm,
+  SettingsControlGroup,
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
@@ -77,6 +79,8 @@ const oauthSchema = z.object({
     start_tls: z.boolean(),
     skip_tls_verify: z.boolean(),
     login_label: z.string(),
+    allowed_usernames: z.array(z.string()),
+    username_filter_enabled: z.boolean(),
     company_sync_configs: z.array(
       z.object({
         company: z.string(),
@@ -123,6 +127,8 @@ type FlatOAuthDefaults = {
   'ldap.start_tls': boolean
   'ldap.skip_tls_verify': boolean
   'ldap.login_label': string
+  'ldap.allowed_usernames'?: string
+  'ldap.username_filter_enabled'?: boolean
   'ldap.company_sync_configs': string
   WeChatAuthEnabled: boolean
   WeChatServerAddress: string
@@ -231,6 +237,12 @@ function OAuthSetupGuide(props: OAuthSetupGuideProps) {
   )
 }
 
+const normalizeLDAPAllowedUsernames = (usernames: string[]): string[] => [
+  ...new Set(
+    usernames.map((username) => username.trim().toLowerCase()).filter(Boolean)
+  ),
+]
+
 const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   oidc: {
     enabled: defaults['oidc.enabled'],
@@ -255,6 +267,10 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     start_tls: defaults['ldap.start_tls'],
     skip_tls_verify: defaults['ldap.skip_tls_verify'],
     login_label: defaults['ldap.login_label'] ?? '',
+    allowed_usernames: normalizeLDAPAllowedUsernames(
+      (defaults['ldap.allowed_usernames'] ?? '').split('\n')
+    ),
+    username_filter_enabled: defaults['ldap.username_filter_enabled'] ?? false,
     company_sync_configs: parseLDAPCompanySyncConfigs(
       defaults['ldap.company_sync_configs']
     ),
@@ -265,7 +281,9 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   WeChatAccountQRCodeImageURL: defaults.WeChatAccountQRCodeImageURL ?? '',
 })
 
-const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
+const normalizeFormValues = (
+  values: OAuthFormValues
+): Required<FlatOAuthDefaults> => ({
   'oidc.enabled': values.oidc.enabled,
   'oidc.display_name': values.oidc.display_name,
   'oidc.client_id': values.oidc.client_id,
@@ -286,6 +304,8 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'ldap.start_tls': values.ldap.start_tls,
   'ldap.skip_tls_verify': values.ldap.skip_tls_verify,
   'ldap.login_label': values.ldap.login_label,
+  'ldap.allowed_usernames': values.ldap.allowed_usernames.join('\n'),
+  'ldap.username_filter_enabled': values.ldap.username_filter_enabled,
   'ldap.company_sync_configs': JSON.stringify(
     values.ldap.company_sync_configs.map(normalizeLDAPCompanySyncConfig)
   ),
@@ -436,7 +456,26 @@ export function OAuthSection(props: OAuthSectionProps) {
       return
     }
 
-    for (const key of changedKeys) {
+    // The server validates persisted prerequisites when enabling a provider.
+    // Disable first, save its configuration, then enable only after all writes
+    // succeed. Apply the same ordering to LDAP username filtering.
+    const activationKeys = new Set<keyof FlatOAuthDefaults>([
+      'oidc.enabled',
+      'ldap.enabled',
+      'ldap.username_filter_enabled',
+      'WeChatAuthEnabled',
+    ])
+    const orderedKeys = [
+      ...changedKeys.filter(
+        (key) => activationKeys.has(key) && normalized[key] === false
+      ),
+      ...changedKeys.filter((key) => !activationKeys.has(key)),
+      ...changedKeys.filter(
+        (key) => activationKeys.has(key) && normalized[key] === true
+      ),
+    ]
+
+    for (const key of orderedKeys) {
       await updateOption.mutateAsync({
         key,
         value: normalized[key],
@@ -1117,6 +1156,59 @@ export function OAuthSection(props: OAuthSectionProps) {
                     </SettingsSwitchItem>
                   )}
                 />
+
+                <SettingsControlGroup className='lg:col-span-2'>
+                  <FormField
+                    control={form.control}
+                    name='ldap.username_filter_enabled'
+                    render={({ field }) => (
+                      <SettingsSwitchItem>
+                        <SettingsSwitchContent>
+                          <FormLabel>
+                            {t('Enable Username Filtering')}
+                          </FormLabel>
+                          <FormDescription>
+                            {t(
+                              'When disabled, all users who pass LDAP authentication can sign in. New accounts still require registration to be enabled.'
+                            )}
+                          </FormDescription>
+                        </SettingsSwitchContent>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </SettingsSwitchItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='ldap.allowed_usernames'
+                    render={({ field }) => (
+                      <FormItem className='lg:col-span-2'>
+                        <FormLabel>{t('LDAP Username Allowlist')}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={[]}
+                            selected={field.value}
+                            onChange={(usernames) =>
+                              field.onChange(
+                                normalizeLDAPAllowedUsernames(usernames)
+                              )
+                            }
+                            allowCreate
+                            maxVisibleChips={8}
+                            placeholder={t('Type a username and press Enter')}
+                            inputAriaLabel={t('LDAP Username Allowlist')}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </SettingsControlGroup>
 
                 <div className='space-y-4 rounded-md border p-4 lg:col-span-2'>
                   <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>

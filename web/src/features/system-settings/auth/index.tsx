@@ -35,6 +35,8 @@ const defaultAuthSettings: AuthSettings = {
   'ldap.start_tls': false,
   'ldap.skip_tls_verify': false,
   'ldap.login_label': '',
+  'ldap.allowed_usernames': '',
+  'ldap.username_filter_enabled': false,
   'ldap.company_sync_configs': '[]',
   WeChatAuthEnabled: false,
   WeChatServerAddress: '',

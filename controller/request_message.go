@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"fmt"
+	"context"
 	"strings"
 	"time"
 
@@ -156,13 +156,9 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 		targetVendorName = vendor.Name
 	}
 
-	var user model.User
-	if err := model.DB.Select("id, open_id").Where("id = ?", request.UserId).First(&user).Error; err != nil {
+	user, err := model.GetUserById(request.UserId, false)
+	if err != nil {
 		common.ApiError(c, err)
-		return
-	}
-	if strings.TrimSpace(user.OpenId) == "" {
-		common.ApiErrorMsg(c, "The user has not bound a Feishu account")
 		return
 	}
 
@@ -175,17 +171,25 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 	if lang == "" {
 		lang = i18n.StatedLang(c)
 	}
+	preview, err := service.BuildRequestNoticePreview(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	if previewOnly {
-		preview, err := service.BuildRequestNoticePreview(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
-		if err != nil {
-			common.ApiError(c, err)
-			return
-		}
 		common.ApiSuccess(c, preview)
 		return
 	}
-	if err := service.SendRequestNotice(c.Request.Context(), user.OpenId, requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName); err != nil {
-		common.ApiError(c, fmt.Errorf("send request notification: %w", err))
+	message, err := service.PrepareUserRequestNotice(user, preview)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 90*time.Second)
+	defer cancel()
+	ctx = common.WithSMTPAudit(ctx, common.SMTPAuditMetadata{Purpose: "request_notice", UserID: user.Id})
+	if err := service.SendRequestNotice(ctx, message, requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName); err != nil {
+		common.ApiError(c, err)
 		return
 	}
 

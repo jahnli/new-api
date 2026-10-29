@@ -5,7 +5,7 @@
 数据口径：
   - 金额依据 quota_data.quota 计算。
   - 人民币金额 = quota / QuotaPerUnit * 6.8。
-  - 仅统计 users.open_id 非空的人员。
+  - 仅统计 users.open_id 或 users.dingding_id 非空的人员。
   - 相同工号的多个用户合并为一行；无工号用户按 user_id 分开统计。
   - users 表优先使用 job_number 字段，当前数据库不存在该字段时自动使用
     employee_number 字段；导出列名统一为“工号”。
@@ -201,8 +201,8 @@ def fetch_eligible_users(
           COALESCE({job_column}, '') AS job_number,
           COALESCE(department_name, '') AS department_name
         FROM users
-        WHERE open_id IS NOT NULL
-          AND BTRIM(open_id) <> ''
+        WHERE (BTRIM(COALESCE(open_id, '')) <> ''
+          OR BTRIM(COALESCE(dingding_id, '')) <> '')
           {company_clause}
         ORDER BY id ASC
         """,
@@ -483,7 +483,7 @@ def main() -> None:
         merged_groups = sum(1 for person in people if len(person.user_ids) > 1)
         total_amount = round(sum(float(row[-1]) for row in table_rows), 2)
         print(f"\n公司筛选: users.company = {company}")
-        print(f"open_id 非空用户数: {len(users)}")
+        print(f"open_id 或 dingding_id 非空用户数: {len(users)}")
         print(f"合并后人员数: {len(people)}（其中 {merged_groups} 个工号包含多个用户）")
         print(f"总金额(人民币): {total_amount:,.2f}")
         print(f"已输出: {output.resolve()}")
