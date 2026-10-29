@@ -67,7 +67,10 @@ function AlertDialogContent({
 }) {
   return (
     <AlertDialogPortal>
-      <AlertDialogOverlay onClick={onBackdropClick} />
+      <AlertDialogOverlay
+        forceRender={!!onBackdropClick}
+        onClick={onBackdropClick}
+      />
       <AlertDialogPrimitive.Popup
         data-slot='alert-dialog-content'
         data-size={size}

@@ -49,8 +49,10 @@ import {
   maskFormattedCurrencyAmount,
 } from '@/lib/demo-mode'
 import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
+import { ROLE } from '@/lib/roles'
 import { translateServerText } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 
 import { AuditDetailFields } from '../../audit/components/audit-detail-fields'
 import type { UsageLog } from '../../data/schema'
@@ -611,6 +613,9 @@ interface DetailsDialogProps {
 export function DetailsDialog(props: DetailsDialogProps) {
   const { t } = useTranslation()
   const demoMode = useDemoMode()
+  const canSendNotice = useAuthStore(
+    (state) => (state.auth.user?.role ?? ROLE.GUEST) >= ROLE.SUPER_ADMIN
+  )
   const other = parseLogOther(props.log.other)
   const typeConfig = getLogTypeConfig(props.log.type)
 
@@ -804,7 +809,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
               canFetchDetails={!demoMode}
             />
           )}
-          {props.isRoot &&
+          {canSendNotice &&
             !demoMode &&
             isTimingLogType(props.log.type) &&
             props.log.user_id > 0 &&

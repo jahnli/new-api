@@ -184,12 +184,7 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 		common.ApiSuccess(c, preview)
 		return
 	}
-	cardJSON, err := service.BuildRequestNoticeCard(requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	if err := service.SendFeishuCardMessage(user.OpenId, cardJSON); err != nil {
+	if err := service.SendRequestNotice(c.Request.Context(), user.OpenId, requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName); err != nil {
 		common.ApiError(c, fmt.Errorf("send request notification: %w", err))
 		return
 	}

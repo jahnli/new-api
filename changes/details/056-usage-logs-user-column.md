@@ -1,6 +1,16 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-10-28（最后更新 2026-10-28）
+**日期**: 2026-09-09 ~ 2026-10-30（最后更新 2026-10-30）
+
+## 2026-10-30 请求通知卡片与个人日志入口
+
+- `service/feishu_department.go`、`controller/request_message.go` — 三类请求通知使用各自的主图和图标生成飞书卡片，安全风险提示拆分为三条说明，模型切换正文显示当前模型与所选目标系列；模型切换不展示独立模型字段，发送时上传对应图片并使用请求上下文。
+- `service/notification_image_upload.go` — 飞书图片上传遇到 HTTP 429 或 5xx 时最多重试两次，重试等待支持请求取消，最终接口错误包含图片文件名以便排查。
+- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx`、`web/src/features/usage-logs/types.ts` — 通知预览同步展示各类型图片、提示和请求信息，按类型使用独立素材目录；安全提示与模型切换提示显示专用图标。
+- `web/public/notice/non-work/`、`web/public/notice/security-alert/`、`web/public/notice/model-switch/`、`web/notice_assets.go` — 按通知类型组织图片，并将图片嵌入后端以供飞书上传。
+- `i18n/locales/en.yaml`、`i18n/locales/zh-CN.yaml`、`i18n/locales/zh-TW.yaml` — 更新三类通知文案及模型切换动态名称，提供安全风险分项提示。
+- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 超级管理员切换到「仅自己」时，符合条件的消费或错误日志详情仍显示通知入口；演示模式和其他日志可见性限制保持不变。
+- `web/src/components/ui/alert-dialog.tsx` — 允许点击遮罩关闭的确认弹框强制渲染遮罩，确保点击空白关闭可用。
 
 ## 2026-10-28 请求内容通知分类与发送前预览
 
