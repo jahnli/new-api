@@ -10,6 +10,7 @@ import { useExternalMode } from '@/hooks/use-external-mode'
 import { cn } from '@/lib/utils'
 
 import {
+  USER_CUSTOMER_TYPE,
   USER_CUSTOMER_TYPES,
   USER_SETTLEMENT_MODES,
   getRegistrationMethodOptions,
@@ -31,7 +32,12 @@ function userCustomerTypeColumn(t: (key: string) => string): ColumnDef<User> {
       />
     ),
     cell: ({ row }) => {
-      const config = USER_CUSTOMER_TYPES[row.original.customer_type ?? 'unset']
+      const customerType =
+        row.original.customer_type ?? USER_CUSTOMER_TYPE.UNSET
+      if (customerType === USER_CUSTOMER_TYPE.UNSET) {
+        return <span className='text-muted-foreground text-sm'>-</span>
+      }
+      const config = USER_CUSTOMER_TYPES[customerType]
       return (
         <BadgeCell>
           <StatusBadge
@@ -61,6 +67,14 @@ function userSettlementModeColumn(t: (key: string) => string): ColumnDef<User> {
       />
     ),
     cell: ({ row }) => {
+      const customerType =
+        row.original.customer_type ?? USER_CUSTOMER_TYPE.UNSET
+      if (
+        customerType === USER_CUSTOMER_TYPE.UNSET ||
+        customerType === USER_CUSTOMER_TYPE.TRIAL
+      ) {
+        return <span className='text-muted-foreground text-sm'>-</span>
+      }
       const config =
         USER_SETTLEMENT_MODES[row.original.settlement_mode ?? 'prepaid']
       return (

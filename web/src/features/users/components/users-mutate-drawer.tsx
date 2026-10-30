@@ -94,6 +94,7 @@ import {
   BINDING_FIELDS,
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
+  USER_CUSTOMER_TYPE,
   getUserCustomerTypeOptions,
   getUserSettlementModeOptions,
 } from '../constants'
@@ -206,6 +207,7 @@ export function UsersMutateDrawer({
 
   const currentQuotaRaw = form.watch('quota_dollars') || 0
   const selectedRole = form.watch('role')
+  const selectedCustomerType = form.watch('customer_type')
   const canEditAdminPermissions = currentUser?.role === ROLE.SUPER_ADMIN
   const targetIsAdmin = (selectedRole ?? currentRow?.role ?? 0) >= ROLE.ADMIN
   const targetRole = selectedRole ?? currentRow?.role ?? 0
@@ -604,88 +606,91 @@ export function UsersMutateDrawer({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name='settlement_mode'
-                    render={({ field }) => (
-                      <FormItem className='min-w-0'>
-                        <FormLabel>{t('Settlement Mode')}</FormLabel>
-                        <Select
-                          items={getUserSettlementModeOptions(t)}
-                          onValueChange={(value) =>
-                            value !== null && field.onChange(value)
-                          }
-                          value={field.value}
-                        >
+                  {selectedCustomerType === USER_CUSTOMER_TYPE.PAID && (
+                    <FormField
+                      control={form.control}
+                      name='settlement_mode'
+                      render={({ field }) => (
+                        <FormItem className='min-w-0'>
+                          <FormLabel>{t('Settlement Mode')}</FormLabel>
+                          <Select
+                            items={getUserSettlementModeOptions(t)}
+                            onValueChange={(value) =>
+                              value !== null && field.onChange(value)
+                            }
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger className='w-full max-w-full min-w-0'>
+                                <SelectValue
+                                  className='min-w-0 overflow-hidden text-ellipsis'
+                                  placeholder={t('Select a settlement mode')}
+                                />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent alignItemWithTrigger={false}>
+                              <SelectGroup>
+                                {getUserSettlementModeOptions(t).map(
+                                  (option) => (
+                                    <SelectItem
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </SelectItem>
+                                  )
+                                )}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {isUpdate && (
+                    <FormField
+                      control={form.control}
+                      name='sales_user_id'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Assign sales contact')}</FormLabel>
                           <FormControl>
-                            <SelectTrigger className='w-full max-w-full min-w-0'>
-                              <SelectValue
-                                className='min-w-0 overflow-hidden text-ellipsis'
-                                placeholder={t('Select a settlement mode')}
-                              />
-                            </SelectTrigger>
+                            <Combobox
+                              options={salesOptions}
+                              value={String(field.value ?? 0)}
+                              onValueChange={(value) =>
+                                field.onChange(Number(value ?? 0))
+                              }
+                              onBlur={field.onBlur}
+                              disabled={
+                                salesQuery.isPending ||
+                                salesQuery.isError ||
+                                field.value === undefined
+                              }
+                              placeholder={t('Select a sales contact')}
+                              className='w-full'
+                            />
                           </FormControl>
-                          <SelectContent alignItemWithTrigger={false}>
-                            <SelectGroup>
-                              {getUserSettlementModeOptions(t).map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          {salesQuery.isError && (
+                            <Button
+                              type='button'
+                              variant='outline'
+                              onClick={() => void salesQuery.refetch()}
+                            >
+                              {t('Retry')}
+                            </Button>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </SideDrawerSection>
               )}
 
               {/* Group & Quota Settings (Update only) */}
-              {isUpdate && externalMode && (
-                <SideDrawerSection>
-                  <FormField
-                    control={form.control}
-                    name='sales_user_id'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Assign sales contact')}</FormLabel>
-                        <FormControl>
-                          <Combobox
-                            options={salesOptions}
-                            value={String(field.value ?? 0)}
-                            onValueChange={(value) =>
-                              field.onChange(Number(value ?? 0))
-                            }
-                            onBlur={field.onBlur}
-                            disabled={
-                              salesQuery.isPending ||
-                              salesQuery.isError ||
-                              field.value === undefined
-                            }
-                            placeholder={t('Select a sales contact')}
-                            className='w-full'
-                          />
-                        </FormControl>
-                        {salesQuery.isError && (
-                          <Button
-                            type='button'
-                            variant='outline'
-                            onClick={() => void salesQuery.refetch()}
-                          >
-                            {t('Retry')}
-                          </Button>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </SideDrawerSection>
-              )}
               {isUpdate && (
                 <SideDrawerSection>
                   <h3 className='text-sm font-medium'>{t('Group & Quota')}</h3>

@@ -2,6 +2,11 @@
 
 **日期**: 2026-09-09 ~ 2026-10-30（最后更新 2026-10-30）
 
+## 2026-10-30 错误日志补记客户端信息
+
+- `service/relay_error.go` — 错误日志生成时复用现有客户端采集方法，将请求原始 User-Agent 写入 `other.user_agent`，供使用日志的客户端列直接显示；沿用最多 512 个 Unicode 字符的截断规则，未携带该请求头时不写入，仅对新日志生效。
+- 验证：`go build ./service`、`git diff --check` 通过，`gofmt -l service/relay_error.go` 无输出；未新增、修改或运行测试。
+
 ## 2026-10-30 请求通知卡片与个人日志入口
 
 - `service/feishu_department.go`、`controller/request_message.go` — 三类请求通知使用各自的主图和图标生成飞书卡片，安全风险提示拆分为三条说明，模型切换正文显示当前模型与所选目标系列；模型切换不展示独立模型字段，发送时上传对应图片并使用请求上下文。

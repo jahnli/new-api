@@ -927,6 +927,7 @@ func UpdateUser(c *gin.Context) {
 		}
 		updatedUser.SettlementMode = settlementMode
 	}
+	updatedUser.SettlementMode, _ = model.ResolveUserSettlementMode(updatedUser.CustomerType, updatedUser.SettlementMode)
 	myRole := c.GetInt("role")
 	if !canManageTargetRole(myRole, originUser.Role) {
 		common.ApiErrorT(c, "No permission to update users of same or higher permission level")
@@ -1365,7 +1366,7 @@ func CreateUser(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-	settlementMode, ok := model.NormalizeSettlementMode(user.SettlementMode)
+	settlementMode, ok := model.ResolveUserSettlementMode(customerType, user.SettlementMode)
 	if !ok {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return

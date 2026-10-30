@@ -9,13 +9,12 @@ import {
 import { quotaUnitsToDollars } from '@/lib/format'
 import { ROLE } from '@/lib/roles'
 
-import { DEFAULT_GROUP } from '../constants'
 import {
-  userCustomerTypeSchema,
-  userSettlementModeSchema,
-  type UserFormData,
-  type User,
-} from '../types'
+  DEFAULT_GROUP,
+  USER_CUSTOMER_TYPE,
+  USER_SETTLEMENT_MODE,
+} from '../constants'
+import { userCustomerTypeSchema, type UserFormData, type User } from '../types'
 
 export interface CostCenterSelection {
   value: string
@@ -40,7 +39,7 @@ export const userFormSchema = z.object({
   password: z.string().optional(),
   role: z.number().optional(),
   customer_type: userCustomerTypeSchema,
-  settlement_mode: userSettlementModeSchema,
+  settlement_mode: z.enum(['prepaid', 'postpaid']),
   sales_user_id: z.number().int().min(0).optional(),
   overview_dept_ids: z.array(z.string()).optional(),
   cost_center: z
@@ -135,7 +134,10 @@ export function transformFormDataToPayload(
   payload.cost_center = serializeCostCenter(data.cost_center)
   if (externalMode) {
     payload.customer_type = data.customer_type
-    payload.settlement_mode = data.settlement_mode
+    payload.settlement_mode =
+      data.customer_type === USER_CUSTOMER_TYPE.PAID
+        ? data.settlement_mode
+        : USER_SETTLEMENT_MODE.UNSET
   }
 
   // Only send the permission matrix when the target is an admin and the catalog
@@ -173,7 +175,10 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
     password: '',
     role: user.role,
     customer_type: user.customer_type ?? 'unset',
-    settlement_mode: user.settlement_mode ?? 'prepaid',
+    settlement_mode:
+      user.settlement_mode === USER_SETTLEMENT_MODE.POSTPAID
+        ? USER_SETTLEMENT_MODE.POSTPAID
+        : USER_SETTLEMENT_MODE.PREPAID,
     sales_user_id: user.sales_user_id ?? 0,
     overview_dept_ids: user.overview_dept_ids ?? [],
     cost_center: parseStoredCostCenter(user.cost_center),

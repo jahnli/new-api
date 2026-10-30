@@ -136,10 +136,9 @@ export const USER_CUSTOMER_TYPES: Record<
   },
   trial: {
     labelKey: 'Trial',
-    variant: 'info',
+    variant: 'neutral',
     icon: Sparkles,
-    className:
-      'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300',
+    className: 'border-border/70 bg-muted/50 text-muted-foreground',
   },
   paid: {
     labelKey: 'Paid',
@@ -157,6 +156,7 @@ export const getUserCustomerTypeOptions = (t: (key: string) => string) => [
 ]
 
 export const USER_SETTLEMENT_MODE = {
+  UNSET: 'unset',
   PREPAID: 'prepaid',
   POSTPAID: 'postpaid',
 } as const satisfies Record<string, UserSettlementMode>
@@ -165,6 +165,12 @@ export const USER_SETTLEMENT_MODES: Record<
   UserSettlementMode,
   UserCommercialAttributeConfig
 > = {
+  unset: {
+    labelKey: 'Not set',
+    variant: 'neutral',
+    icon: CircleDashed,
+    className: 'border-border/70 bg-muted/50 text-muted-foreground',
+  },
   prepaid: {
     labelKey: 'Prepaid',
     variant: 'info',

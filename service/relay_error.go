@@ -80,6 +80,9 @@ func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		tokenId := c.GetInt("token_id")
 		userGroup := c.GetString("group")
 		other := model.NewLogOther()
+		if clientApp := relaycommon.DetectClientApp(c); clientApp != "" {
+			other.SetPublic("user_agent", clientApp)
+		}
 		if c.Request != nil && c.Request.URL != nil {
 			other.SetPublic("request_path", c.Request.URL.Path)
 		}
