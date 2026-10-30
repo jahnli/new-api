@@ -67,6 +67,12 @@ func PrepareUserRequestNotice(user *model.User, preview *RequestNoticePreview) (
 	escape := strings.NewReplacer("\\", "\\\\", "`", "\\`", "*", "\\*", "_", "\\_", "~", "\\~", "[", "\\[", "]", "\\]", "<", "&lt;", ">", "&gt;", "#", "\\#", "+", "\\+", "-", "\\-", "!", "\\!", "|", "\\|", ".", "\\.")
 	var content strings.Builder
 	content.WriteString(escape.Replace(preview.Content))
+	if preview.Subtitle != "" {
+		content.WriteString("\n\n" + escape.Replace(preview.Subtitle))
+	}
+	for _, advice := range preview.Advice {
+		content.WriteString("\n\n" + escape.Replace(advice))
+	}
 	for _, field := range preview.Fields {
 		fmt.Fprintf(&content, "\n\n**%s**\n\n%s", escape.Replace(field.Label), escape.Replace(field.Value))
 	}

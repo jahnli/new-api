@@ -221,7 +221,7 @@ function QuotaUsagePanel(props: {
             variant="secondary"
             className="bg-primary/10 text-primary h-auto px-2.5 py-1 text-sm tabular-nums"
           >
-            {t("Share {{percent}}%", {
+            {t("{{percent}}% of total quota", {
               percent: formatNumber(props.allocationPercent, locale, {
                 minimumFractionDigits: 1,
                 maximumFractionDigits: 1,
@@ -246,6 +246,9 @@ function QuotaUsagePanel(props: {
           <span className="text-muted-foreground text-base font-normal">/</span>
           <span className="sr-only">{t("Total Quota")}</span>
           <span className="break-all">{formattedLimit}</span>
+          <span className={cn("text-sm font-normal", usageColor.text)}>
+            {percentLabel}
+          </span>
         </p>
         {props.limit !== null && (
           <Progress

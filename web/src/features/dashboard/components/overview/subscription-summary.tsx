@@ -36,15 +36,26 @@ export function SubscriptionSummary(props: {
   }
   const premiumUsed = BigInt(props.premiumQuota?.premium_amount_used ?? '0')
   const premiumLimit = BigInt(props.premiumQuota?.premium_limit ?? '0')
+  const premiumPercent =
+    premiumLimit > 0n ? Number((premiumUsed * 10000n) / premiumLimit) / 100 : 0
+  const premiumPercentLabel =
+    premiumLimit === 0n && premiumUsed > 0n
+      ? t('Over quota')
+      : t('{{percent}}% used', {
+          percent: formatNumber(premiumPercent, locale),
+        })
   let premiumUsageColor = 'text-emerald-500'
+  let premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-emerald-500'
   if (premiumLimit === 0n && premiumUsed > 0n) {
     premiumUsageColor = 'text-red-500'
+    premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
   } else if (premiumLimit > 0n) {
-    const premiumPercent = Number((premiumUsed * 10000n) / premiumLimit) / 100
     if (premiumPercent >= 80) {
       premiumUsageColor = 'text-red-500'
+      premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
     } else if (premiumPercent >= 50) {
       premiumUsageColor = 'text-amber-500'
+      premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-amber-500'
     }
   }
 
@@ -114,7 +125,7 @@ export function SubscriptionSummary(props: {
               variant='secondary'
               className='bg-primary/10 dark:bg-secondary h-auto px-2 py-0.5 text-xs tabular-nums'
             >
-              {t('Share {{percent}}%', {
+              {t('{{percent}}% of total quota', {
                 percent: formatNumber(
                   props.premiumQuota.effective_percent,
                   locale,
@@ -131,7 +142,23 @@ export function SubscriptionSummary(props: {
               {' / '}
               {formatPremiumQuota(premiumLimit.toString())}
             </span>
+            <span className={cn('ml-1 text-xs font-normal', premiumUsageColor)}>
+              {premiumPercentLabel}
+            </span>
           </p>
+          <Progress
+            value={
+              premiumLimit === 0n && premiumUsed > 0n
+                ? 100
+                : Math.min(100, Math.max(0, premiumPercent))
+            }
+            aria-label={t('Advanced model quota')}
+            aria-valuetext={premiumPercentLabel}
+            className={cn(
+              '[&_[data-slot=progress-track]]:h-1.5',
+              premiumProgressColor
+            )}
+          />
         </div>
       )}
 

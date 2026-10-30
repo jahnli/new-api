@@ -569,7 +569,10 @@ export type RequestNotificationType =
 export interface RequestNoticePreview {
   title: string
   content: string
+  subtitle?: string
   template: 'orange' | 'red' | 'blue'
+  image_url?: string
+  advice?: string[]
   fields: { label: string; value: string }[]
 }
 

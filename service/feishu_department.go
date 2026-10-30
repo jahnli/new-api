@@ -1,9 +1,11 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/http"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
+	"github.com/QuantumNous/new-api/web"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -316,7 +319,10 @@ type RequestNoticeField struct {
 type RequestNoticePreview struct {
 	Title    string               `json:"title"`
 	Content  string               `json:"content"`
+	Subtitle string               `json:"subtitle,omitempty"`
 	Template string               `json:"template"`
+	ImageURL string               `json:"image_url,omitempty"`
+	Advice   []string             `json:"advice,omitempty"`
 	Fields   []RequestNoticeField `json:"fields"`
 }
 
@@ -325,26 +331,37 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 		modelName = "-"
 	}
 	// Preserve the legacy card for clients that do not yet send a notification type.
-	title := i18n.Translate(lang, "request_notice.legacy_title")
-	content := i18n.Translate(lang, "request_notice.legacy_content")
+	title := i18n.TranslateRequestNotice(lang, "request_notice.legacy_title")
+	content := i18n.TranslateRequestNotice(lang, "request_notice.legacy_content")
 	template := "red"
+	imageURL := ""
+	subtitle := ""
+	var advice []string
 	switch notificationType {
 	case "":
 	case RequestNoticeNonWorkContent:
-		title = i18n.Translate(lang, "request_notice.non_work_title")
-		content = i18n.Translate(lang, "request_notice.non_work_content")
+		title = i18n.TranslateRequestNotice(lang, "request_notice.non_work_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.non_work_content")
 		template = "orange"
+		imageURL = "/notice/non-work/logo.png"
+		subtitle = i18n.TranslateRequestNotice(lang, "request_notice.non_work_subtitle")
 	case RequestNoticeSecurityRisk:
-		title = i18n.Translate(lang, "request_notice.security_title")
-		content = i18n.Translate(lang, "request_notice.security_content")
+		title = i18n.TranslateRequestNotice(lang, "request_notice.security_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.security_content")
+		imageURL = "/notice/security-alert/logo.png"
+		for _, key := range []string{"request_notice.security_check", "request_notice.security_prohibition", "request_notice.security_stop"} {
+			advice = append(advice, i18n.TranslateRequestNotice(lang, key))
+		}
 	case RequestNoticeModelSwitch:
 		targetVendorName = strings.TrimSpace(targetVendorName)
 		if targetVendorName == "" {
 			return nil, common.NewMessage("Select a target model series")
 		}
-		title = i18n.Translate(lang, "request_notice.model_switch_title")
-		content = i18n.Translate(lang, "request_notice.model_switch_content", map[string]any{"Vendor": targetVendorName, "Model": modelName})
+		title = i18n.TranslateRequestNotice(lang, "request_notice.model_switch_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.model_switch_content", map[string]any{"Model": modelName, "Vendor": targetVendorName})
+		advice = append(advice, i18n.TranslateRequestNotice(lang, "request_notice.model_switch_advice"))
 		template = "blue"
+		imageURL = "/notice/model-switch/logo.png"
 	default:
 		return nil, fmt.Errorf("invalid notification type")
 	}
@@ -353,25 +370,199 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 	if client == "" {
 		client = "-"
 	}
-	fields := []RequestNoticeField{{Label: i18n.Translate(lang, "request_notice.request_time"), Value: requestTime}}
-	if notificationType != RequestNoticeModelSwitch {
-		fields = append(fields, RequestNoticeField{Label: i18n.Translate(lang, "request_notice.model"), Value: modelName})
-	}
+	fields := []RequestNoticeField{{Label: i18n.TranslateRequestNotice(lang, "request_notice.request_time"), Value: requestTime}}
+	fields = append(fields, RequestNoticeField{Label: i18n.TranslateRequestNotice(lang, "request_notice.model"), Value: modelName})
 	fields = append(fields,
-		RequestNoticeField{Label: i18n.Translate(lang, "request_notice.request_id"), Value: requestID},
-		RequestNoticeField{Label: i18n.Translate(lang, "request_notice.client"), Value: client},
+		RequestNoticeField{Label: i18n.TranslateRequestNotice(lang, "request_notice.request_id"), Value: requestID},
+		RequestNoticeField{Label: i18n.TranslateRequestNotice(lang, "request_notice.client"), Value: client},
 	)
-	return &RequestNoticePreview{Title: title, Content: content, Template: template, Fields: fields}, nil
+	return &RequestNoticePreview{Title: title, Content: content, Subtitle: subtitle, Template: template, ImageURL: imageURL, Advice: advice, Fields: fields}, nil
 }
 
 func BuildRequestNoticeCard(requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) (string, error) {
+	return buildRequestNoticeCard(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName, "", nil)
+}
+
+func SendRequestNotice(ctx context.Context, message NotificationMessage, requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) error {
+	if message.Channel != model.CompanyPlatformFeishu {
+		_, err := SendNotificationMessage(ctx, message, message.Recipients[0])
+		return err
+	}
+	company, err := model.GetEnabledCompanyByID(message.CompanyID)
+	if err != nil || company.Platform != message.Channel {
+		return fmt.Errorf("公司已停用或通知通道已变更")
+	}
+	config, err := company.GetConfig()
+	if err != nil {
+		return err
+	}
+	token, err := feishuGetTenantAccessToken(feishuSyncConfig{AppID: config.Feishu.AppID, AppSecret: config.Feishu.AppSecret})
+	if err != nil {
+		return fmt.Errorf("获取飞书应用授权失败，请检查公司应用配置")
+	}
+	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName)
+	if err != nil {
+		return err
+	}
+	imageKey := ""
+	if preview.ImageURL != "" {
+		data, err := web.NoticeImages.ReadFile("public" + preview.ImageURL)
+		if err != nil {
+			return fmt.Errorf("read notice image: %w", err)
+		}
+		imageKey, err = uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: path.Base(preview.ImageURL), Data: data})
+		if err != nil {
+			return fmt.Errorf("upload notice image: %w", err)
+		}
+	}
+	var iconKeys []string
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch {
+		iconDir := "non-work"
+		if notificationType == RequestNoticeSecurityRisk {
+			iconDir = "security-alert"
+		} else if notificationType == RequestNoticeModelSwitch {
+			iconDir = "model-switch"
+		}
+		filenames := []string{"time.png", "model.png", "id.png", "client.png"}
+		if notificationType == RequestNoticeModelSwitch {
+			filenames[1] = ""
+		}
+		if notificationType == RequestNoticeSecurityRisk {
+			filenames = append(filenames, "key.png", "prohibition.png", "security.png")
+		}
+		for _, filename := range filenames {
+			if filename == "" {
+				iconKeys = append(iconKeys, "")
+				continue
+			}
+			data, err := web.NoticeImages.ReadFile("public/notice/" + iconDir + "/" + filename)
+			if err != nil {
+				return fmt.Errorf("read notice icon: %w", err)
+			}
+			key, err := uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: filename, Data: data})
+			if err != nil {
+				return fmt.Errorf("upload notice icon: %w", err)
+			}
+			iconKeys = append(iconKeys, key)
+		}
+		if notificationType == RequestNoticeModelSwitch {
+			data, err := web.NoticeImages.ReadFile("public/notice/model-switch/alarm.png")
+			if err != nil {
+				return fmt.Errorf("read notice icon: %w", err)
+			}
+			key, err := uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: "alarm.png", Data: data})
+			if err != nil {
+				return fmt.Errorf("upload notice icon: %w", err)
+			}
+			iconKeys = append(iconKeys, key)
+		}
+	}
+	card, err := buildRequestNoticeCard(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName, imageKey, iconKeys)
+	if err != nil {
+		return err
+	}
+	body, status, err := notificationProviderRequest(ctx, http.MethodPost, feishuBaseURL+"/im/v1/messages?receive_id_type=open_id", map[string]string{
+		"receive_id": message.Recipients[0], "msg_type": "interactive", "content": card,
+	}, token, true)
+	if err != nil {
+		return err
+	}
+	var response struct {
+		Code int `json:"code"`
+	}
+	if common.Unmarshal(body, &response) != nil {
+		return fmt.Errorf("%w: 飞书响应无法解析", ErrNotificationDeliveryUnknown)
+	}
+	if status != http.StatusOK || response.Code != 0 {
+		return fmt.Errorf("飞书通知发送失败，状态码 %d，错误码 %d", status, response.Code)
+	}
+	return nil
+}
+
+func buildRequestNoticeCard(requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string, imageKey string, iconKeys []string) (string, error) {
 	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName)
 	if err != nil {
 		return "", err
 	}
 
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch {
+		textColumn := map[string]any{
+			"tag": "column", "width": "weighted", "weight": 3, "vertical_align": "center",
+			"elements": []map[string]any{
+				{"tag": "markdown", "content": "**" + preview.Content + "**", "text_size": "heading"},
+			},
+		}
+		if notificationType == RequestNoticeModelSwitch {
+			textColumn["elements"] = []map[string]any{{"tag": "div", "text": map[string]string{"tag": "plain_text", "content": preview.Content, "text_size": "heading"}}}
+		}
+		if preview.Subtitle != "" {
+			textColumn["elements"] = append(textColumn["elements"].([]map[string]any), map[string]any{"tag": "div", "text": map[string]string{"tag": "plain_text", "content": preview.Subtitle, "text_color": "grey"}})
+		}
+		for i, text := range preview.Advice {
+			adviceColumns := []map[string]any{}
+			if i+4 < len(iconKeys) {
+				iconSize := "24px 24px"
+				if notificationType == RequestNoticeModelSwitch {
+					iconSize = "20px 20px"
+				}
+				adviceColumns = append(adviceColumns, map[string]any{"tag": "column", "width": "auto", "elements": []map[string]any{{"tag": "img", "img_key": iconKeys[i+4], "alt": map[string]string{"tag": "plain_text", "content": text}, "transparent": true, "preview": false, "scale_type": "crop_center", "size": iconSize}}})
+			}
+			adviceColumns = append(adviceColumns, map[string]any{"tag": "column", "width": "weighted", "weight": 1, "vertical_align": "center", "elements": []map[string]any{{"tag": "div", "text": map[string]string{"tag": "plain_text", "content": text}}}})
+			textColumn["elements"] = append(textColumn["elements"].([]map[string]any), map[string]any{"tag": "column_set", "columns": adviceColumns})
+		}
+		columns := []map[string]any{textColumn}
+		if imageKey != "" {
+			columns = append([]map[string]any{{
+				"tag": "column", "width": "weighted", "weight": 1, "vertical_align": "center",
+				"elements": []map[string]any{{"tag": "img", "img_key": imageKey, "alt": map[string]string{"tag": "plain_text", "content": preview.Title}, "transparent": true, "preview": false}},
+			}}, columns...)
+		}
+		fields := make([][]map[string]any, 0, len(preview.Fields))
+		for i, field := range preview.Fields {
+			content := []map[string]any{
+				{"tag": "markdown", "content": "**" + field.Label + "**"},
+				{"tag": "div", "text": map[string]string{"tag": "plain_text", "content": field.Value}},
+			}
+			if i < len(iconKeys) && iconKeys[i] != "" {
+				content = []map[string]any{{"tag": "column_set", "columns": []map[string]any{
+					{"tag": "column", "width": "auto", "vertical_align": "top", "elements": []map[string]any{{"tag": "img", "img_key": iconKeys[i], "alt": map[string]string{"tag": "plain_text", "content": field.Label}, "transparent": true, "preview": false, "scale_type": "crop_center", "size": "28px 28px"}}},
+					{"tag": "column", "width": "weighted", "weight": 1, "vertical_align": "top", "elements": content},
+				}}}
+			}
+			fields = append(fields, content)
+		}
+		card := map[string]any{
+			"schema": "2.0",
+			"config": map[string]any{"wide_screen_mode": true},
+			"header": map[string]any{"template": preview.Template, "title": map[string]string{"tag": "plain_text", "content": preview.Title}},
+			"body": map[string]any{"elements": []map[string]any{
+				{"tag": "column_set", "flex_mode": "none", "columns": columns},
+				{"tag": "column_set", "flex_mode": "bisect", "columns": []map[string]any{
+					{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[0]},
+					{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[1]},
+				}},
+				{"tag": "column_set", "columns": []map[string]any{{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[2]}}},
+				{"tag": "column_set", "columns": []map[string]any{{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[3]}}},
+			}},
+		}
+		if notificationType == RequestNoticeModelSwitch {
+			body := card["body"].(map[string]any)
+			elements := body["elements"].([]map[string]any)
+			elements[1] = map[string]any{"tag": "column_set", "columns": []map[string]any{{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[0]}}}
+		}
+		data, err := common.Marshal(card)
+		if err != nil {
+			return "", err
+		}
+		return string(data), nil
+	}
+
 	// Vendor names are metadata, not card markup.
-	body := map[string]any{"tag": "markdown", "content": preview.Content}
+	bodyContent := preview.Content
+	if preview.Subtitle != "" {
+		bodyContent += "\n\n" + preview.Subtitle
+	}
+	body := map[string]any{"tag": "markdown", "content": bodyContent}
 	if notificationType == RequestNoticeModelSwitch {
 		body = map[string]any{
 			"tag":  "div",
@@ -434,6 +625,13 @@ func BuildRequestNoticeCard(requestTime string, requestID string, modelName stri
 				},
 			},
 		},
+	}
+	if imageKey != "" {
+		elements := card["elements"].([]map[string]any)
+		card["elements"] = append([]map[string]any{{
+			"tag": "img", "img_key": imageKey,
+			"alt": map[string]string{"tag": "plain_text", "content": preview.Title},
+		}}, elements...)
 	}
 
 	data, err := common.Marshal(card)

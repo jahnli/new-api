@@ -41,7 +41,7 @@ func Init() error {
 		bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
 
 		// Load embedded translation files
-		files := []string{"locales/zh-CN.yaml", "locales/zh-TW.yaml", "locales/en.yaml"}
+		files := []string{"locales/zh-CN.yaml", "locales/zh-TW.yaml", "locales/en.yaml", "locales/fr.yaml", "locales/ru.yaml", "locales/ja.yaml", "locales/vi.yaml"}
 		for _, file := range files {
 			_, err := bundle.LoadMessageFileFS(localeFS, file)
 			if err != nil {
@@ -54,6 +54,9 @@ func Init() error {
 		localizers[LangZhCN] = i18n.NewLocalizer(bundle, LangZhCN)
 		localizers[LangZhTW] = i18n.NewLocalizer(bundle, LangZhTW)
 		localizers[LangEn] = i18n.NewLocalizer(bundle, LangEn)
+		for _, lang := range []string{"fr", "ru", "ja", "vi"} {
+			localizers[lang] = i18n.NewLocalizer(bundle, lang, LangEn)
+		}
 
 		// Set the TranslateMessage function in common package
 		common.TranslateMessage = T
@@ -111,6 +114,27 @@ func Translate(lang, key string, args ...map[string]any) string {
 	msg, err := loc.Localize(config)
 	if err != nil {
 		// Return key as fallback if translation not found
+		return key
+	}
+	return msg
+}
+
+// TranslateRequestNotice supports the console's additional languages without
+// changing language selection for other backend messages.
+func TranslateRequestNotice(lang, key string, args ...map[string]any) string {
+	base, _, _ := strings.Cut(strings.ToLower(strings.ReplaceAll(strings.TrimSpace(lang), "_", "-")), "-")
+	if !slices.Contains([]string{"fr", "ru", "ja", "vi"}, base) {
+		return Translate(lang, key, args...)
+	}
+	config := &i18n.LocalizeConfig{MessageID: key}
+	if len(args) > 0 {
+		config.TemplateData = args[0]
+	}
+	mu.RLock()
+	loc := localizers[base]
+	mu.RUnlock()
+	msg, err := loc.Localize(config)
+	if err != nil {
 		return key
 	}
 	return msg

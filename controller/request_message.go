@@ -188,7 +188,7 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 90*time.Second)
 	defer cancel()
 	ctx = common.WithSMTPAudit(ctx, common.SMTPAuditMetadata{Purpose: "request_notice", UserID: user.Id})
-	if _, err := service.SendNotificationMessage(ctx, message, message.Recipients[0]); err != nil {
+	if err := service.SendRequestNotice(ctx, message, requestTime, request.RequestId, request.ModelName, request.NotificationType, request.Client, lang, targetVendorName); err != nil {
 		common.ApiError(c, err)
 		return
 	}
