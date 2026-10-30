@@ -17,7 +17,7 @@ export type UserRole = z.infer<typeof userRoleSchema>
 export const userCustomerTypeSchema = z.enum(['unset', 'trial', 'paid'])
 export type UserCustomerType = z.infer<typeof userCustomerTypeSchema>
 
-export const userSettlementModeSchema = z.enum(['prepaid', 'postpaid'])
+export const userSettlementModeSchema = z.enum(['unset', 'prepaid', 'postpaid'])
 export type UserSettlementMode = z.infer<typeof userSettlementModeSchema>
 
 export interface SalesUser {

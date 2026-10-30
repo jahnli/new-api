@@ -399,6 +399,20 @@ func migrateDB() error {
 	if err != nil {
 		return err
 	}
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Model(&User{}).
+			Where("customer_type IN ? OR customer_type IS NULL", []string{"", CustomerTypeUnset, CustomerTypeTrial}).
+			Where("settlement_mode <> ? OR settlement_mode IS NULL", SettlementModeUnset).
+			UpdateColumn("settlement_mode", SettlementModeUnset).Error; err != nil {
+			return err
+		}
+		return tx.Unscoped().Model(&User{}).
+			Where("customer_type = ?", CustomerTypePaid).
+			Where("settlement_mode IN ? OR settlement_mode IS NULL", []string{"", SettlementModeUnset}).
+			UpdateColumn("settlement_mode", SettlementModePrepaid).Error
+	}); err != nil {
+		return fmt.Errorf("normalize user settlement modes: %w", err)
+	}
 	if err := InitializeUserAuthVersions(); err != nil {
 		return err
 	}

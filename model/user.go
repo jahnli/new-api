@@ -23,6 +23,7 @@ const (
 	CustomerTypeTrial = "trial"
 	CustomerTypePaid  = "paid"
 
+	SettlementModeUnset    = "unset"
 	SettlementModePrepaid  = "prepaid"
 	SettlementModePostpaid = "postpaid"
 )
@@ -40,13 +41,27 @@ func NormalizeCustomerType(value string) (string, bool) {
 
 func NormalizeSettlementMode(value string) (string, bool) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "", SettlementModePrepaid:
-		return SettlementModePrepaid, true
-	case SettlementModePostpaid:
-		return SettlementModePostpaid, true
+	case "", SettlementModeUnset:
+		return SettlementModeUnset, true
+	case SettlementModePrepaid, SettlementModePostpaid:
+		return strings.ToLower(strings.TrimSpace(value)), true
 	default:
 		return "", false
 	}
+}
+
+func ResolveUserSettlementMode(customerType, value string) (string, bool) {
+	settlementMode, ok := NormalizeSettlementMode(value)
+	if !ok {
+		return "", false
+	}
+	if customerType != CustomerTypePaid {
+		return SettlementModeUnset, true
+	}
+	if settlementMode == SettlementModeUnset {
+		return SettlementModePrepaid, true
+	}
+	return settlementMode, true
 }
 
 var userSortColumns = map[string]string{
@@ -126,7 +141,7 @@ type User struct {
 	DisplayName          string                     `json:"display_name" gorm:"index" validate:"max=20"`
 	Role                 int                        `json:"role" gorm:"type:int;default:1"`
 	CustomerType         string                     `json:"customer_type" gorm:"type:varchar(16);not null;default:'unset';index"`
-	SettlementMode       string                     `json:"settlement_mode" gorm:"type:varchar(16);not null;default:'prepaid';index"`
+	SettlementMode       string                     `json:"settlement_mode" gorm:"type:varchar(16);not null;default:'unset';index"`
 	SalesUserID          int                        `json:"sales_user_id" gorm:"column:sales_user_id;default:0;not null;index"`
 	SalesUser            *SalesUser                 `json:"sales_user,omitempty" gorm:"-:all"`
 	OverviewDeptIDs      []string                   `json:"overview_dept_ids" gorm:"type:text;serializer:json;column:overview_dept_ids;default:'[]'"`
@@ -165,6 +180,20 @@ type User struct {
 	CustomFieldValues    string                     `json:"custom_field_values" gorm:"type:text;column:custom_field_values;default:'{}'"`
 	JoinDate             string                     `json:"join_date" gorm:"type:varchar(16);column:join_date;default:''"`
 	AdminPermissions     map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
+}
+
+func (user *User) BeforeCreate(_ *gorm.DB) error {
+	customerType, ok := NormalizeCustomerType(user.CustomerType)
+	if !ok {
+		return gorm.ErrInvalidData
+	}
+	settlementMode, ok := ResolveUserSettlementMode(customerType, user.SettlementMode)
+	if !ok {
+		return gorm.ErrInvalidData
+	}
+	user.CustomerType = customerType
+	user.SettlementMode = settlementMode
+	return nil
 }
 
 // GetPrimaryDepartmentID returns the first department ID stored by directory sync.
