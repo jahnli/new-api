@@ -132,7 +132,7 @@ test.each(['/system-settings/model-square', '/model-square-settings'])(
     ).toBe(true)
     const i18n = createInstance()
     await i18n.init({ lng: 'en', resources: { en: { translation: {} } } })
-    const modelsGroup = SYSTEM_SETTINGS_VIEW.getNavGroups(i18n.t)
+    const modelsGroup = SYSTEM_SETTINGS_VIEW.getNavGroups(i18n.t, {})
       .flatMap((group) => group.items)
       .find((entry) => entry.title === 'Models & Routing')
     expect(

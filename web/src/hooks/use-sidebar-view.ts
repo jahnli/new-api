@@ -3,7 +3,12 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
-import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
+import type {
+  NavGroup,
+  ResolvedSidebarView,
+  SidebarBadges,
+} from '@/components/layout/types'
+import { useModelPricingIssueBadge } from '@/features/system-settings/models/pricing-issues'
 import { hasPermission } from '@/lib/admin-permissions'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
@@ -57,7 +62,9 @@ export function useSidebarView(): ResolvedSidebarView {
   const { t } = useTranslation()
   const pathname = useLocation({ select: (l) => l.pathname })
   const user = useAuthStore((s) => s.auth.user)
-  const rootSidebarData = useSidebarData()
+  const modelPricingBadge = useModelPricingIssueBadge()
+  const badges: SidebarBadges = { modelPricing: modelPricingBadge }
+  const rootSidebarData = useSidebarData(badges)
   const configFilteredRoot = useSidebarConfig(rootSidebarData.navGroups)
 
   const rootNavGroups = useMemo<NavGroup[]>(
@@ -71,7 +78,7 @@ export function useSidebarView(): ResolvedSidebarView {
     return {
       key: view.id,
       view,
-      navGroups: view.getNavGroups(t),
+      navGroups: view.getNavGroups(t, badges),
     }
   }
 
