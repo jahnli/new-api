@@ -22,13 +22,18 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import { getImageFailures } from '../lib/image-failures'
 import {
   copyImageToClipboard,
   downloadImage,
   downloadImagesAsZip,
   imageFileName,
 } from '../lib/image-utils'
-import type { GeneratedImage, GenerationRecord } from '../types'
+import type {
+  GeneratedImage,
+  GenerationRecord,
+  ImageGenerationError,
+} from '../types'
 
 type ResultGridProps = {
   record: GenerationRecord | null
@@ -40,6 +45,7 @@ type ResultGridProps = {
   isGenerating: boolean
   pendingImageCount: number
   imageErrors: string[]
+  imageFailures?: ImageGenerationError[]
 }
 
 function UsageBar({ record }: { record: GenerationRecord }) {
@@ -151,11 +157,18 @@ export function ResultGrid({
   isGenerating,
   pendingImageCount,
   imageErrors,
+  imageFailures,
 }: ResultGridProps) {
   const { t } = useTranslation()
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(
     null
   )
+  const currentFailures =
+    imageFailures ??
+    getImageFailures({
+      id: 'pending-generation',
+      imageErrors,
+    })
 
   if (error) {
     return (
@@ -182,10 +195,10 @@ export function ResultGrid({
     if (isGenerating || imageErrors.length > 0) {
       return (
         <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'>
-          {imageErrors.map((message) => (
+          {currentFailures.map((failure) => (
             <ImageErrorSlot
-              key={message}
-              message={message}
+              key={failure.id}
+              message={failure.message || t('Image generation failed')}
               onRetry={onRetry}
               retryDisabled={isGenerating}
             />
@@ -238,11 +251,9 @@ export function ResultGrid({
     }
   }
 
-  const visibleImageErrors = isGenerating ? imageErrors : record.imageErrors
-  const genericFailedImageCount =
-    !isGenerating && visibleImageErrors === undefined
-      ? (record.failedImageCount ?? 0)
-      : 0
+  const visibleFailures = isGenerating
+    ? currentFailures
+    : getImageFailures(record)
 
   return (
     <div className='flex flex-col gap-3'>
@@ -326,35 +337,15 @@ export function ResultGrid({
               slotIndex={index}
             />
           ))}
-        {visibleImageErrors?.map((message, errorIndex) =>
-          retryingImageErrorIndexes.includes(errorIndex) ? (
-            <LoadingImageSlot
-              key={`retrying-image-error-${message}`}
-              slotIndex={record.images.length + errorIndex}
-            />
+        {visibleFailures.map((failure) =>
+          retryingImageErrorIndexes.includes(failure.retryIndex) ? (
+            <LoadingImageSlot key={failure.id} slotIndex={failure.retryIndex} />
           ) : (
             <ImageErrorSlot
-              key={`image-error-${message}`}
-              message={message}
-              onRetry={() => onRetryImage(errorIndex)}
+              key={failure.id}
+              message={failure.message || t('Image generation failed')}
+              onRetry={() => onRetryImage(failure.retryIndex)}
               retryDisabled={isGenerating}
-            />
-          )
-        )}
-        {Array.from({ length: genericFailedImageCount }, (_, index) =>
-          retryingImageErrorIndexes.includes(index) ? (
-            // oxlint-disable-next-line react/no-array-index-key -- Generic failure slots have no backend identity.
-            <LoadingImageSlot
-              key={`retrying-failed-image-${index}`}
-              slotIndex={record.images.length + index}
-            />
-          ) : (
-            // oxlint-disable-next-line react/no-array-index-key -- Generic failure slots have no backend identity.
-            <ImageErrorSlot
-              key={`failed-image-${index}`}
-              message={t('Image generation failed')}
-              onRetry={() => onRetryImage(index)}
-              retryDisabled={false}
             />
           )
         )}

@@ -57,8 +57,11 @@ export function ImageStudio() {
   } = useGenerationHistory()
   const {
     isGenerating,
+    isBusy,
+    isBusyNow,
     pendingImageCount,
     imageErrors,
+    imageFailures,
     retryingImageErrorIndexes,
     generationError,
     setGenerationError,
@@ -102,7 +105,7 @@ export function ImageStudio() {
         runtimeLimits.maxTotalImages)
 
   const canGenerate =
-    !isGenerating &&
+    !isBusy &&
     !isLoadingHistory &&
     Boolean(config.model) &&
     prompt.trim().length > 0 &&
@@ -119,7 +122,7 @@ export function ImageStudio() {
     generationError !== null
 
   const handleGenerate = useCallback(() => {
-    if (!canGenerate) return
+    if (!canGenerate || isBusyNow()) return
     setActiveRecordId(null)
     setGenerationError(null)
     void generate({
@@ -130,6 +133,7 @@ export function ImageStudio() {
     })
   }, [
     canGenerate,
+    isBusyNow,
     setActiveRecordId,
     setGenerationError,
     generate,
@@ -141,6 +145,7 @@ export function ImageStudio() {
 
   const handleRestore = useCallback(
     (record: GenerationRecord) => {
+      if (isBusyNow()) return
       setActiveRecordId(record.id)
       setGenerationError(null)
       setPrompt(record.prompt)
@@ -151,7 +156,13 @@ export function ImageStudio() {
         updateParameters(record.parameterSnapshot)
       }
     },
-    [setActiveRecordId, setGenerationError, updateModel, updateParameters]
+    [
+      isBusyNow,
+      setActiveRecordId,
+      setGenerationError,
+      updateModel,
+      updateParameters,
+    ]
   )
 
   const handleEditImage = useCallback(
@@ -193,23 +204,26 @@ export function ImageStudio() {
 
   const handleDelete = useCallback(
     (id: string) => {
+      if (isBusyNow()) return
       if (id === activeRecordId) setActiveRecordId(null)
       removeRecord(id)
     },
-    [activeRecordId, removeRecord, setActiveRecordId]
+    [activeRecordId, isBusyNow, removeRecord, setActiveRecordId]
   )
 
   const handleReset = useCallback(() => {
+    if (isBusyNow()) return
     setActiveRecordId(null)
     setGenerationError(null)
     setPrompt('')
     setReferenceImages([])
-  }, [setActiveRecordId, setGenerationError])
+  }, [isBusyNow, setActiveRecordId, setGenerationError])
 
   const handleClear = useCallback(() => {
+    if (isBusyNow()) return
     setActiveRecordId(null)
     clearHistory()
-  }, [clearHistory, setActiveRecordId])
+  }, [clearHistory, isBusyNow, setActiveRecordId])
 
   return (
     <div className='flex size-full min-h-0 flex-col gap-4 p-4 lg:grid lg:h-full lg:grid-cols-[280px_minmax(0,1fr)_300px] lg:gap-0 lg:p-0'>
@@ -224,7 +238,7 @@ export function ImageStudio() {
           groups={groups}
           models={models}
           isLoadingModels={isLoadingModels}
-          disabled={isGenerating}
+          disabled={isBusy}
         />
       </ScrollArea>
 
@@ -248,13 +262,13 @@ export function ImageStudio() {
           onPromptChange={setPrompt}
           referenceImages={referenceImages}
           onReferenceImagesChange={setReferenceImages}
-          isGenerating={isGenerating}
+          isGenerating={isBusy}
           estimateMs={estimateDurationMs(config.model)}
           onGenerate={handleGenerate}
           onStop={stopGeneration}
           onReset={handleReset}
           canGenerate={canGenerate}
-          canReset={canReset}
+          canReset={canReset && !isBusy}
         />
         <ScrollArea className='min-h-0 flex-1'>
           <ResultGrid
@@ -269,7 +283,8 @@ export function ImageStudio() {
             onEditImage={handleEditImage}
             isGenerating={isGenerating}
             pendingImageCount={pendingImageCount}
-            imageErrors={imageErrors}
+            imageErrors={isGenerating ? imageErrors : []}
+            imageFailures={isGenerating ? imageFailures : []}
           />
         </ScrollArea>
       </div>
@@ -283,7 +298,7 @@ export function ImageStudio() {
           onDelete={handleDelete}
           onClear={handleClear}
           onToggleFavorite={toggleFavorite}
-          disabled={isGenerating}
+          disabled={isBusy}
         />
       </div>
       <span className='sr-only'>{t('Online Image Generation')}</span>

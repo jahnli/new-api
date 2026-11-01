@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   appendImageStudioGenerationImage,
@@ -9,6 +9,7 @@ import {
   storeImageStudioGeneration,
 } from '../api'
 import { DEFAULT_ESTIMATE_MS, ESTIMATE_SAMPLE_SIZE } from '../constants'
+import { getImageFailures } from '../lib/image-failures'
 import {
   buildImageGenerationPayload,
   getImageModelRuntimeLimits,
@@ -18,6 +19,7 @@ import {
 import type {
   GeneratedImage,
   GenerationRecord,
+  ImageGenerationError,
   ImageStudioConfig,
   ImageStudioGenerationRecord,
   ReferenceImage,
@@ -69,6 +71,7 @@ export interface GenerateArgs {
 
 export interface RetryImageArgs {
   record: GenerationRecord
+  /** The failure's immutable retryIndex, not its current array position. */
   errorIndex: number
 }
 
@@ -85,21 +88,38 @@ export function useImageGeneration({
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [pendingImageCount, setPendingImageCount] = useState(0)
-  const [imageErrors, setImageErrors] = useState<string[]>([])
+  const [imageFailures, setImageFailures] = useState<ImageGenerationError[]>([])
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null)
   const [retryingImageErrorIndexes, setRetryingImageErrorIndexes] = useState<
     number[]
   >([])
-  const retryingImageIndexesRef = useRef(new Set<number>())
   const retryBatchRef = useRef<{
     recordId: string
-    errors: string[]
-    successfulIndexes: Set<number>
+    failures: ImageGenerationError[]
     latestImages: GeneratedImage[]
     transient: boolean
+    controllers: Map<string, AbortController>
+    persistenceQueue: Promise<void>
   } | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const generationRunningRef = useRef(false)
+  const isBusyNow = useCallback(
+    () =>
+      generationRunningRef.current ||
+      (retryBatchRef.current?.controllers.size ?? 0) > 0,
+    []
+  )
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+      for (const controller of retryBatchRef.current?.controllers.values() ??
+        []) {
+        controller.abort()
+      }
+    }
+  }, [])
 
   /** moving average of recent generation durations for the model */
   const estimateDurationMs = useCallback(
@@ -117,10 +137,21 @@ export function useImageGeneration({
 
   const stopGeneration = useCallback(() => {
     abortRef.current?.abort()
+    for (const controller of retryBatchRef.current?.controllers.values() ??
+      []) {
+      controller.abort()
+    }
   }, [])
 
   const generate = useCallback(
     async ({ config, prompt, mode, referenceImages }: GenerateArgs) => {
+      if (
+        generationRunningRef.current ||
+        (retryBatchRef.current?.controllers.size ?? 0) > 0
+      ) {
+        return null
+      }
+
       const payload = buildImageGenerationPayload(
         config,
         prompt,
@@ -137,9 +168,11 @@ export function useImageGeneration({
       )
       const controller = new AbortController()
       abortRef.current = controller
+      generationRunningRef.current = true
+      retryBatchRef.current = null
       setIsGenerating(true)
       setPendingImageCount(requestedImageCount)
-      setImageErrors([])
+      setImageFailures([])
       setGenerationError(null)
 
       const startedAt = Date.now()
@@ -147,6 +180,7 @@ export function useImageGeneration({
       let activeRecord: GenerationRecord | null = null
       const successfulRequests: Array<{ requestId: string }> = []
       const requestErrors: string[] = []
+      const requestFailures: ImageGenerationError[] = []
       let accumulatedDurationMs = 0
       let persistenceQueue = Promise.resolve()
 
@@ -268,33 +302,41 @@ export function useImageGeneration({
         }
 
         await Promise.all(
-          Array.from({ length: requestedImageCount }, async () => {
-            const requestStartedAt = Date.now()
-            let durationRecorded = false
-            try {
-              const requestResult = await send(payload, controller.signal)
-              const requestDurationMs = Date.now() - requestStartedAt
-              accumulatedDurationMs += requestDurationMs
-              durationRecorded = true
-              await handleCompletedRequest(requestResult, accumulatedDurationMs)
-            } catch (error) {
-              if (!controller.signal.aborted) {
-                if (!durationRecorded) {
-                  accumulatedDurationMs += Date.now() - requestStartedAt
+          Array.from(
+            { length: requestedImageCount },
+            async (_, requestIndex) => {
+              const requestStartedAt = Date.now()
+              let durationRecorded = false
+              try {
+                const requestResult = await send(payload, controller.signal)
+                const requestDurationMs = Date.now() - requestStartedAt
+                accumulatedDurationMs += requestDurationMs
+                durationRecorded = true
+                await handleCompletedRequest(
+                  requestResult,
+                  accumulatedDurationMs
+                )
+              } catch (error) {
+                if (!controller.signal.aborted) {
+                  if (!durationRecorded) {
+                    accumulatedDurationMs += Date.now() - requestStartedAt
+                  }
+                  const errorMessage = extractApiErrorMessage(error)
+                  requestFailures.push({
+                    id: `${recordId}-request-${requestIndex}`,
+                    retryIndex: requestFailures.length,
+                    message: errorMessage,
+                  })
+                  requestErrors.push(errorMessage)
+                  setImageFailures([...requestFailures])
                 }
-                const errorMessage = extractApiErrorMessage(error)
-                requestErrors.push(errorMessage)
-                setImageErrors((currentErrors) => [
-                  ...currentErrors,
-                  errorMessage,
-                ])
+              } finally {
+                setPendingImageCount((currentCount) =>
+                  Math.max(0, currentCount - 1)
+                )
               }
-            } finally {
-              setPendingImageCount((currentCount) =>
-                Math.max(0, currentCount - 1)
-              )
             }
-          })
+          )
         )
         if (controller.signal.aborted) return null
         if (activeRecord === null) {
@@ -315,6 +357,7 @@ export function useImageGeneration({
             images: [],
             failedImageCount: requestErrors.length,
             imageErrors: requestErrors,
+            imageFailures: [...requestFailures],
             usage: { durationMs: accumulatedDurationMs },
             referenceImages,
           }
@@ -329,6 +372,7 @@ export function useImageGeneration({
           ...completedRecord,
           failedImageCount: requestErrors.length,
           imageErrors: requestErrors,
+          imageFailures: [...requestFailures],
           usage: { durationMs },
         }
         patchRecordLocally(record.id, record)
@@ -377,6 +421,7 @@ export function useImageGeneration({
         return null
       } finally {
         abortRef.current = null
+        generationRunningRef.current = false
         setIsGenerating(false)
         setPendingImageCount(0)
       }
@@ -386,6 +431,14 @@ export function useImageGeneration({
 
   const retryImage = useCallback(
     async ({ record, errorIndex }: RetryImageArgs): Promise<void> => {
+      if (generationRunningRef.current) return
+      if (
+        retryBatchRef.current?.recordId !== record.id &&
+        (retryBatchRef.current?.controllers.size ?? 0) > 0
+      ) {
+        return
+      }
+
       const parameters = restoreParametersFromRecord(record)
       const runtimeLimits = getImageModelRuntimeLimits(record.model)
       const referenceImages = record.referenceImages ?? []
@@ -393,20 +446,25 @@ export function useImageGeneration({
         record.mode === 'edit' && referenceImages.length === 0
       if (!parameters || !runtimeLimits || editReferencesUnavailable) return
 
-      if (retryingImageIndexesRef.current.has(errorIndex)) return
-      retryingImageIndexesRef.current.add(errorIndex)
       if (
         retryBatchRef.current === null ||
         retryBatchRef.current.recordId !== record.id
       ) {
         retryBatchRef.current = {
           recordId: record.id,
-          errors: [...(record.imageErrors ?? imageErrors)],
-          successfulIndexes: new Set<number>(),
+          failures: getImageFailures(record),
           latestImages: record.images,
           transient: Boolean(record.transient),
+          controllers: new Map(),
+          persistenceQueue: Promise.resolve(),
         }
       }
+      // Capture this batch. Async responses must never mutate a later batch.
+      const retryBatch = retryBatchRef.current
+      const failure = retryBatch.failures.find(
+        (item) => item.retryIndex === errorIndex
+      )
+      if (!failure || retryBatch.controllers.has(failure.id)) return
 
       const retryConfig: ImageStudioConfig = {
         model: record.model,
@@ -424,7 +482,9 @@ export function useImageGeneration({
           ? editImages
           : generateImages
       const controller = new AbortController()
-      abortRef.current = controller
+      retryBatch.controllers.set(failure.id, controller)
+      // Normalize old history once, before any successful retry removes a failure.
+      patchRecordLocally(record.id, { imageFailures: retryBatch.failures })
       setRetryingImageErrorIndexes((currentIndexes) => [
         ...currentIndexes,
         errorIndex,
@@ -433,6 +493,7 @@ export function useImageGeneration({
       try {
         const setting = await getImageStudioSetting(controller.signal)
         const requestResult = await send(payload, controller.signal)
+        if (controller.signal.aborted) return
         const responseImage = requestResult.response.data?.find(
           (image) => image.b64_json || image.url
         )
@@ -443,121 +504,118 @@ export function useImageGeneration({
         const imageSource = responseImage.b64_json
           ? `data:${imageMimeTypeForOutputFormat(outputFormat)};base64,${responseImage.b64_json}`
           : (responseImage.url ?? '')
-        let storedRecord: ImageStudioGenerationRecord | null = null
-        if (
-          setting.history_enabled &&
-          !record.transient &&
-          !retryBatchRef.current?.transient
-        ) {
-          if (
-            record.images.length > 0 &&
-            record.images.every((image) => image.storageId)
-          ) {
-            storedRecord = await appendImageStudioGenerationImage(
-              record.id,
-              {
-                src: imageSource,
-                revised_prompt: responseImage.revised_prompt,
-              },
-              controller.signal
-            )
-          } else {
-            storedRecord = await storeImageStudioGeneration(
-              {
-                id: record.id,
-                created_at: record.createdAt,
-                mode: record.mode,
-                prompt: record.prompt,
-                model: record.model,
-                group: record.group,
-                parameter_snapshot: { ...parameters },
-                size: record.size,
-                quality: record.quality,
-                moderation: record.moderation,
-                output_format: record.outputFormat,
-                n: record.n,
-                duration_ms: record.usage?.durationMs ?? 0,
-                images: [
-                  ...record.images.map((image) => ({
-                    src: image.src,
-                    revised_prompt: image.revisedPrompt,
-                  })),
-                  {
-                    src: imageSource,
-                    revised_prompt: responseImage.revised_prompt,
-                  },
-                ],
-              },
-              controller.signal
-            )
-          }
-        }
-        const retryBatch = retryBatchRef.current
-        if (retryBatch && retryBatch.recordId === record.id) {
-          retryBatch.successfulIndexes.add(errorIndex)
-          if (storedRecord) {
-            const images = new Map(
-              retryBatch.latestImages.map((image) => [image.id, image])
-            )
-            for (const image of mapStoredImages(storedRecord)) {
-              images.set(image.id, image)
+        // Generation may run concurrently; storage must use the latest committed
+        // image list, so only the first successful retry creates the record.
+        const persistence = retryBatch.persistenceQueue.then(async () => {
+          if (controller.signal.aborted) return
+          let storedRecord: ImageStudioGenerationRecord | null = null
+          if (setting.history_enabled && !retryBatch.transient) {
+            if (
+              retryBatch.latestImages.length > 0 &&
+              retryBatch.latestImages.every((image) => image.storageId)
+            ) {
+              storedRecord = await appendImageStudioGenerationImage(
+                record.id,
+                {
+                  src: imageSource,
+                  revised_prompt: responseImage.revised_prompt,
+                },
+                controller.signal
+              )
+            } else {
+              storedRecord = await storeImageStudioGeneration(
+                {
+                  id: record.id,
+                  created_at: record.createdAt,
+                  mode: record.mode,
+                  prompt: record.prompt,
+                  model: record.model,
+                  group: record.group,
+                  parameter_snapshot: { ...parameters },
+                  size: record.size,
+                  quality: record.quality,
+                  moderation: record.moderation,
+                  output_format: record.outputFormat,
+                  n: record.n,
+                  duration_ms: record.usage?.durationMs ?? 0,
+                  images: [
+                    ...retryBatch.latestImages.map((image) => ({
+                      src: image.src,
+                      revised_prompt: image.revisedPrompt,
+                    })),
+                    {
+                      src: imageSource,
+                      revised_prompt: responseImage.revised_prompt,
+                    },
+                  ],
+                },
+                controller.signal
+              )
             }
-            retryBatch.latestImages = [...images.values()]
+          }
+          if (controller.signal.aborted) return
+          if (storedRecord) {
+            retryBatch.latestImages = mapStoredImages(storedRecord)
           } else {
             retryBatch.transient = true
             retryBatch.latestImages = [
               ...retryBatch.latestImages,
               {
-                id: `${record.id}-retry-${errorIndex}-${Date.now()}`,
+                id: `${failure.id}-image`,
                 src: imageSource,
                 revisedPrompt: responseImage.revised_prompt,
               },
             ]
           }
-          const remainingErrors = retryBatch.errors.filter(
-            (_message, index) => !retryBatch.successfulIndexes.has(index)
+          retryBatch.failures = retryBatch.failures.filter(
+            (item) => item.id !== failure.id
+          )
+          const remainingErrors = retryBatch.failures.map(
+            (item) => item.message
           )
           patchRecordLocally(record.id, {
             transient: retryBatch.transient,
             images: retryBatch.latestImages,
+            imageFailures: retryBatch.failures,
             imageErrors: remainingErrors,
-            failedImageCount: remainingErrors.length,
+            failedImageCount: retryBatch.failures.length,
           })
-          setImageErrors(remainingErrors)
-        }
+          setImageFailures(retryBatch.failures)
+        })
+        retryBatch.persistenceQueue = persistence.catch(() => undefined)
+        await persistence
       } catch (error) {
         if (controller.signal.aborted) return
         const retryErrorMessage = extractApiErrorMessage(error)
-        const retryBatch = retryBatchRef.current
-        if (retryBatch && retryBatch.recordId === record.id) {
-          retryBatch.errors[errorIndex] = retryErrorMessage
-          const remainingErrors = retryBatch.errors.filter(
-            (_message, index) => !retryBatch.successfulIndexes.has(index)
-          )
-          patchRecordLocally(record.id, {
-            imageErrors: remainingErrors,
-            failedImageCount: remainingErrors.length,
-          })
-          setImageErrors(remainingErrors)
-        }
+        retryBatch.failures = retryBatch.failures.map((item) =>
+          item.id === failure.id
+            ? { ...item, message: retryErrorMessage }
+            : item
+        )
+        const remainingErrors = retryBatch.failures.map((item) => item.message)
+        patchRecordLocally(record.id, {
+          imageFailures: retryBatch.failures,
+          imageErrors: remainingErrors,
+          failedImageCount: retryBatch.failures.length,
+        })
+        setImageFailures(retryBatch.failures)
       } finally {
-        retryingImageIndexesRef.current.delete(errorIndex)
+        retryBatch.controllers.delete(failure.id)
         setRetryingImageErrorIndexes((currentIndexes) =>
           currentIndexes.filter((index) => index !== errorIndex)
         )
-        if (retryingImageIndexesRef.current.size === 0) {
-          retryBatchRef.current = null
-          abortRef.current = null
-        }
       }
     },
-    [imageErrors, patchRecordLocally]
+    [patchRecordLocally]
   )
 
   return {
     isGenerating,
+    isBusy: isGenerating || retryingImageErrorIndexes.length > 0,
+    isBusyNow,
     pendingImageCount,
-    imageErrors,
+    imageErrors: imageFailures.map((failure) => failure.message),
+    imageFailures,
     retryingImageErrorIndexes,
     generationError,
     setGenerationError,

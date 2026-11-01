@@ -52,6 +52,8 @@ export interface GenerationUsage {
 export interface ImageGenerationError {
   id: string
   message: string
+  /** Assigned once per record, never renumbered when another retry succeeds. */
+  retryIndex: number
 }
 
 export interface GenerationRecord {
@@ -74,6 +76,8 @@ export interface GenerationRecord {
   images: GeneratedImage[]
   failedImageCount?: number
   imageErrors?: string[]
+  /** Stable failure identities for the current page session. */
+  imageFailures?: ImageGenerationError[]
   usage?: GenerationUsage
   channelId?: number
   favorite?: boolean
