@@ -1,46 +1,46 @@
-import { useTranslation } from 'react-i18next'
+import { useTranslation } from "react-i18next";
 
-import { BadgeCell } from '@/components/data-table'
-import { GroupBadge } from '@/components/group-badge'
-import { StatusBadge } from '@/components/status-badge'
+import { BadgeCell } from "@/components/data-table";
+import { GroupBadge } from "@/components/group-badge";
+import { StatusBadge } from "@/components/status-badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { useMediaQuery } from '@/hooks'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/tooltip";
+import { useMediaQuery } from "@/hooks";
+import { cn } from "@/lib/utils";
 
-import { GroupRatioBadge, type GroupRatio } from './auto-group-visuals'
+import { GroupRatioBadge, type GroupRatio } from "./auto-group-visuals";
 
 type ApiKeyGroupCellProps = {
-  crossGroupRetry: boolean
-  group: string
-  ratio?: GroupRatio
-  shouldReduceMotion: boolean
-}
+  crossGroupRetry: boolean;
+  group: string;
+  ratio?: GroupRatio;
+  shouldReduceMotion: boolean;
+};
 
 export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
-  const { t } = useTranslation()
-  const isMobile = useMediaQuery('(max-width: 640px)')
+  const { t } = useTranslation();
+  const isMobile = useMediaQuery("(max-width: 640px)");
 
-  const group = props.group?.trim() || ''
-  if (group !== 'auto') {
+  const group = props.group?.trim() || "";
+  if (group !== "auto") {
     const ratio =
-      group && typeof props.ratio === 'number' ? props.ratio : undefined
+      group && typeof props.ratio === "number" ? props.ratio : undefined;
     return (
-      <div className={cn('min-w-0 truncate', isMobile ? 'w-full' : 'max-w-50')}>
+      <div className={cn("min-w-0 truncate", isMobile ? "w-full" : "max-w-50")}>
         <GroupBadge
           group={group}
           showTooltip={false}
           ratio={ratio}
-          ratioLabel={group ? undefined : t('Inherited')}
-          type='text'
-          className='px-0'
-          containerClassName={cn('gap-3', isMobile && 'w-full justify-between')}
+          ratioLabel={group ? undefined : t("Inherited")}
+          className="pr-0.5 text-[12px] [&>span]:text-[12px]"
+          containerClassName={cn("gap-0.5", isMobile && "w-full justify-between")}
+          ratioClassName="h-4 min-w-0 rounded-sm border-transparent bg-muted/70 px-1 text-[12px] text-muted-foreground [&>span]:text-[12px]"
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -48,20 +48,20 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
       <TooltipTrigger
         render={
           <BadgeCell
-            data-api-key-group-cell='auto'
+            data-api-key-group-cell="auto"
             tabIndex={0}
             className={cn(
-              'ml-0 gap-3 overflow-visible text-xs',
-              isMobile ? 'w-full justify-between' : 'max-w-50'
+              "ml-0 gap-3 overflow-visible text-xs",
+              isMobile ? "w-full justify-between" : "max-w-50",
             )}
           />
         }
       >
         <StatusBadge
-          label={t('Cross-group')}
-          variant='info'
+          label={t("Cross-group")}
+          variant="info"
           copyable={false}
-          className='px-0'
+          className="px-0"
         />
         <GroupRatioBadge
           ratio={props.ratio}
@@ -70,12 +70,12 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
         />
       </TooltipTrigger>
       <TooltipContent>
-        <span className='text-xs'>
+        <span className="text-xs">
           {t(
-            'Automatically selects the best available group with circuit breaker mechanism'
+            "Automatically selects the best available group with circuit breaker mechanism",
           )}
         </span>
       </TooltipContent>
     </Tooltip>
-  )
+  );
 }
