@@ -106,16 +106,23 @@ export async function ldapLogin(payload: LoginPayload) {
   return res.data
 }
 
-interface LogoutRuntime {
+interface LogoutResult {
+  revoked_sid?: string
+  cookie_cleared?: boolean
+  logout_url?: string
+  single_sign_out_unavailable?: boolean
+}
+
+interface LogoutRuntime<T = unknown> {
   getExpectedSID: () => string | undefined
-  request: (expectedSID?: string) => Promise<ApiResponse>
+  request: (expectedSID?: string) => Promise<ApiResponse<T>>
   refresh: () => Promise<RefreshOutcome>
 }
 
-export async function executeLogout(
-  runtime: LogoutRuntime,
+export async function executeLogout<T = unknown>(
+  runtime: LogoutRuntime<T>,
   allowMismatchRecovery = true
-): Promise<ApiResponse> {
+): Promise<ApiResponse<T>> {
   try {
     return await runtime.request(runtime.getExpectedSID())
   } catch (error: unknown) {
@@ -141,15 +148,22 @@ export async function executeLogout(
 }
 
 // User logout
-export async function logout(): Promise<ApiResponse> {
-  return executeLogout({
+export async function logout(
+  singleSignOut = false
+): Promise<ApiResponse<LogoutResult>> {
+  return executeLogout<LogoutResult>({
     getExpectedSID: () => useAuthStore.getState().auth.session?.sid,
     request: async (sid) => {
-      const res = await api.post('/api/user/auth/logout', undefined, {
-        headers: sid ? { 'X-Auth-Session': sid } : undefined,
-        skipAuthRefresh: true,
-        skipErrorHandler: true,
-      })
+      const res = await api.post<ApiResponse<LogoutResult>>(
+        '/api/user/auth/logout',
+        undefined,
+        {
+          params: singleSignOut ? { single_sign_out: true } : undefined,
+          headers: sid ? { 'X-Auth-Session': sid } : undefined,
+          skipAuthRefresh: true,
+          skipErrorHandler: true,
+        }
+      )
       return res.data
     },
     refresh: refreshAuthentication,

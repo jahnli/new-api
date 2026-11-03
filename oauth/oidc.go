@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -84,7 +83,7 @@ func (p *OIDCProvider) ExchangeToken(ctx context.Context, code string, c *gin.Co
 	logger.LogDebug(ctx, "[OAuth-OIDC] ExchangeToken response status: %d", res.StatusCode)
 
 	var oidcResponse oidcOAuthResponse
-	err = json.NewDecoder(res.Body).Decode(&oidcResponse)
+	err = common.DecodeJson(res.Body, &oidcResponse)
 	if err != nil {
 		logger.LogError(ctx, common.LogText("[OAuth-OIDC] ExchangeToken decode error: %s", err.Error()))
 		return nil, err
@@ -98,6 +97,9 @@ func (p *OIDCProvider) ExchangeToken(ctx context.Context, code string, c *gin.Co
 	logger.LogDebug(ctx, "[OAuth-OIDC] ExchangeToken success: scope=%s", oidcResponse.Scope)
 
 	return &OAuthToken{
+		ClientID:     settings.ClientId,
+		DiscoveryURL: settings.WellKnown,
+		Nonce:        c.Query("state"),
 		AccessToken:  oidcResponse.AccessToken,
 		TokenType:    oidcResponse.TokenType,
 		RefreshToken: oidcResponse.RefreshToken,
@@ -109,6 +111,47 @@ func (p *OIDCProvider) ExchangeToken(ctx context.Context, code string, c *gin.Co
 
 func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAuthUser, error) {
 	settings := system_setting.GetOIDCSettings()
+	var binding model.OIDCSessionBinding
+	var subject string
+	// Existing manually configured OAuth endpoints remain usable. Back-channel
+	// logout requires discovery so issuer and signing keys have a trusted source.
+	if token.DiscoveryURL != "" {
+		claims, err := verifyOIDCToken(ctx, token.IDToken, token.DiscoveryURL, token.ClientID, false)
+		if err != nil {
+			return nil, NewOAuthError(common.NewMessage(msgGetUserFailed))
+		}
+		subject, _ = claims["sub"].(string)
+		nonce, _ := claims["nonce"].(string)
+		sid, _ := claims["sid"].(string)
+		audience, _ := claims.GetAudience()
+		azp, hasAZP := claims["azp"]
+		if subject == "" || len(subject) > 2048 || len(sid) > 2048 || token.Nonce == "" || nonce != token.Nonce ||
+			(hasAZP && azp != token.ClientID) || (len(audience) > 1 && !hasAZP) {
+			return nil, NewOAuthError(common.NewMessage(msgGetUserFailed))
+		}
+		if _, present := claims["sid"]; present && sid == "" {
+			return nil, NewOAuthError(common.NewMessage(msgGetUserFailed))
+		}
+		issuer, _ := claims.GetIssuer()
+		iat, _ := claims.GetIssuedAt()
+		binding = model.OIDCSessionBinding{
+			SubjectKey: model.OIDCIdentityKey(issuer, token.ClientID, "sub", subject),
+			SessionKey: model.OIDCIdentityKey(issuer, token.ClientID, "sid", sid),
+			IssuedAt:   iat.Unix(),
+		}
+		hint, err := common.Marshal(oidcLogoutHint{
+			IDToken: token.IDToken, Issuer: issuer, ClientID: token.ClientID, DiscoveryURL: token.DiscoveryURL,
+		})
+		if err != nil {
+			return nil, err
+		}
+		binding.LogoutHint, err = common.EncryptAESGCM(hint, common.SessionSecret, []byte("oidc-logout:"+binding.SubjectKey))
+		if err != nil {
+			// Logout hints are optional. Keep login available when encryption
+			// is unavailable, without ever persisting the original token as plaintext.
+			logger.LogWarn(ctx, common.LogText("OIDC logout hint encryption failed; SESSION_SECRET must contain at least 32 bytes"))
+		}
+	}
 
 	logger.LogDebug(ctx, "[OAuth-OIDC] GetUserInfo: userinfo_endpoint=%s", settings.UserInfoEndpoint)
 
@@ -136,7 +179,7 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 	}
 
 	var oidcUser oidcUser
-	err = json.NewDecoder(res.Body).Decode(&oidcUser)
+	err = common.DecodeJson(res.Body, &oidcUser)
 	if err != nil {
 		logger.LogError(ctx, common.LogText("[OAuth-OIDC] GetUserInfo decode error: %s", err.Error()))
 		return nil, err
@@ -146,10 +189,14 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 		logger.LogError(ctx, common.LogText("[OAuth-OIDC] GetUserInfo failed: empty fields (sub=%s, email=%s)", oidcUser.OpenID, oidcUser.Email))
 		return nil, NewOAuthError(common.NewMessage(msgUserInfoEmpty, map[string]any{"provider": "OIDC"}))
 	}
+	if subject != "" && oidcUser.OpenID != subject {
+		return nil, NewOAuthError(common.NewMessage(msgGetUserFailed))
+	}
 
 	logger.LogDebug(ctx, "[OAuth-OIDC] GetUserInfo success: sub=%s, username=%s, name=%s, email=%s", oidcUser.OpenID, oidcUser.PreferredUsername, oidcUser.Name, oidcUser.Email)
 
 	return &OAuthUser{
+		OIDC:           binding,
 		ProviderUserID: oidcUser.OpenID,
 		Username:       oidcUser.PreferredUsername,
 		DisplayName:    oidcUser.Name,
