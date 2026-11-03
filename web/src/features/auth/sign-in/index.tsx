@@ -10,7 +10,7 @@ import { UserAuthForm } from './components/user-auth-form'
 
 export function SignIn() {
   const { t } = useTranslation()
-  const { redirect } = useSearch({ from: '/(auth)/sign-in' })
+  const { redirect, auto_login } = useSearch({ from: '/(auth)/sign-in' })
   const { status } = useStatus()
   const [loginTitleKey, setLoginTitleKey] = useState('Account sign in')
 
@@ -25,6 +25,7 @@ export function SignIn() {
 
         <UserAuthForm
           redirectTo={redirect}
+          autoLogin={auto_login !== false}
           onLoginTitleChange={setLoginTitleKey}
         />
 

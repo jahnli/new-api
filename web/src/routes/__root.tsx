@@ -10,6 +10,10 @@ import { useEffect } from 'react'
 import { NavigationProgress } from '@/components/navigation-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeCustomizationProvider } from '@/context/theme-customization-provider'
+import {
+  resetOIDCAutoLogin,
+  suspendOIDCAutoLogin,
+} from '@/features/auth/lib/oidc-auto-login'
 import { GeneralError } from '@/features/errors/general-error'
 import { NotFoundError } from '@/features/errors/not-found-error'
 import { getSetupStatus } from '@/features/setup/api'
@@ -49,6 +53,7 @@ function RootComponent() {
 
         if (event.kind === 'authenticated') {
           if (event.sid === currentSID) return
+          resetOIDCAutoLogin()
           if (currentSID) {
             clearAuthentication(false)
           }
@@ -57,8 +62,13 @@ function RootComponent() {
         }
 
         if (currentSID && event.sid === currentSID) {
+          suspendOIDCAutoLogin()
           clearAuthenticatedClientState(queryClient, false)
-          void navigate({ to: '/sign-in', replace: true })
+          void navigate({
+            to: '/sign-in',
+            search: { auto_login: false },
+            replace: true,
+          })
         }
       }),
     [navigate, queryClient]

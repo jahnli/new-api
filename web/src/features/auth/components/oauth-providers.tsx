@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { IconWeChat } from '@/assets/brand-icons'
+import { LoadingState } from '@/components/loading-state'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +16,7 @@ type OAuthProvidersProps = {
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
   redirectTo?: string
+  autoLogin?: boolean
 }
 
 type ProviderButton = {
@@ -32,12 +34,15 @@ export function OAuthProviders({
   onWeChatLogin,
   isWeChatLoading = false,
   redirectTo,
+  autoLogin = false,
 }: OAuthProvidersProps) {
   const { t } = useTranslation()
-  const { isLoading, handleOIDCLogin, handleCustomOAuthLogin } = useOAuthLogin(
-    status,
-    redirectTo
-  )
+  const {
+    isLoading,
+    isAutoLoggingIn,
+    handleOIDCLogin,
+    handleCustomOAuthLogin,
+  } = useOAuthLogin(status, redirectTo, autoLogin && !disabled)
 
   const providerButtons: ProviderButton[] = []
 
@@ -78,6 +83,14 @@ export function OAuthProviders({
 
   return (
     <div className={cn('space-y-3', className)}>
+      {isAutoLoggingIn && (
+        <LoadingState
+          inline
+          message={t('Signing you in with {{provider}}', {
+            provider: status?.oidc_display_name?.trim() || 'OIDC',
+          })}
+        />
+      )}
       <div className='relative'>
         <div className='absolute inset-0 flex items-center'>
           <span className='w-full border-t' />
