@@ -33,7 +33,7 @@
 | 027 | 2026-06-23 | 用户头像改用 avatar_url 字段：后端 API 下发 avatar_url，前端头像组件优先展示图片、无图时回退首字母 | [详情](details/028-avatar-url.md) |
 | 028 | 2026-06-23 | LDAP 注册时飞书同步改为同步调用，确保首次登录响应即包含头像；SyncFeishuUser 回写 user 指针字段 | `controller/ldap.go`、`service/feishu_sync.go` |
 | 029 | 2026-06-23 | 前端类型检查改为 git pre-commit hook 自动执行，移除 Cursor Hook 方案，适用于所有 git 客户端 | `.githooks/pre-commit`、`.cursor/hooks.json`、`web/default/AGENTS.md` |
-| 029 | 2026-06-23 | 移除 GitHub、Discord、Telegram、LinuxDO OAuth 登录：删除 User 表 4 个 ID 字段、后端提供商实现、前端设置/登录/绑定界面及所有语言翻译 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
+| 029 | 2026-11-03 | OAuth 登录调整：移除 GitHub、Discord、Telegram、LinuxDO 登录及相关数据与界面；新增 OIDC 后端通道登出和主动请求登录中心登出，补齐地址展示、令牌校验、会话失效与七语言提示，修复 PostgreSQL 空标识填充导致的会话校验错误 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
 | 030 | 2026-06-23 | 修复 LDAP 系统设置不回显配置，并在保存 LDAP 登录状态后刷新前端状态缓存 | `web/default/src/features/system-settings/auth/section-registry.tsx`、`web/default/src/features/system-settings/hooks/use-update-option.ts` |
 | 031 | 2026-06-23 | 清理认证系统设置中已移除 OAuth 提供商的残留前端参数 | `web/default/src/features/system-settings/auth/section-registry.tsx` |
 | 032 | 2026-09-05 | 飞书支持联系人入口：后端通过 FEISHU_SUPPORT_OPEN_ID 暴露 openId，首页与错误页复用联系卡片并动态构造 applink；未配置时隐藏 | [详情](details/032-feishu-support-contact.md) |

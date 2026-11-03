@@ -18,7 +18,7 @@ const (
 	UserSessionStatusRevoking = "revoking"
 	UserSessionStatusRevoked  = "revoked"
 
-	userSessionCacheSchema      = 1
+	userSessionCacheSchema      = 2
 	userSessionListLimit        = 100
 	userSessionRevokeBatchSize  = 500
 	userSessionCleanupScanLimit = 1000
@@ -56,6 +56,8 @@ type UserSession struct {
 	ExpiresAt           int64  `json:"expires_at" gorm:"type:bigint;not null;column:expires_at;index:idx_user_sessions_user_status_expiry,priority:3;index:idx_user_sessions_expires_at"`
 	RevokedAt           int64  `json:"revoked_at,omitempty" gorm:"type:bigint;not null;default:0;column:revoked_at;index:idx_user_sessions_status_revoked,priority:2"`
 	RevokedReason       string `json:"revoked_reason,omitempty" gorm:"type:varchar(64);column:revoked_reason"`
+
+	OIDC OIDCSessionBinding `json:"-" gorm:"embedded;embeddedPrefix:oidc_"`
 }
 
 func (UserSession) TableName() string {
@@ -64,10 +66,15 @@ func (UserSession) TableName() string {
 
 func (session *UserSession) AfterFind(_ *gorm.DB) error {
 	session.PreviousRefreshHash = strings.TrimSpace(session.PreviousRefreshHash)
+	session.OIDC.SubjectKey = strings.TrimSpace(session.OIDC.SubjectKey)
+	session.OIDC.SessionKey = strings.TrimSpace(session.OIDC.SessionKey)
 	return nil
 }
 
 type userSessionCacheEntry struct {
+	OIDCSubjectKey  string
+	OIDCSessionKey  string
+	OIDCIssuedAt    int64
 	SID             string
 	UserID          int
 	Version         int64
@@ -86,6 +93,9 @@ type userSessionCacheEntry struct {
 
 func (session *UserSession) cacheEntry() *userSessionCacheEntry {
 	return &userSessionCacheEntry{
+		OIDCSubjectKey:  session.OIDC.SubjectKey,
+		OIDCSessionKey:  session.OIDC.SessionKey,
+		OIDCIssuedAt:    session.OIDC.IssuedAt,
 		SID:             session.SID,
 		UserID:          session.UserID,
 		Version:         session.Version,
@@ -105,6 +115,7 @@ func (session *UserSession) cacheEntry() *userSessionCacheEntry {
 
 func (entry *userSessionCacheEntry) session() *UserSession {
 	return &UserSession{
+		OIDC:            OIDCSessionBinding{SubjectKey: entry.OIDCSubjectKey, SessionKey: entry.OIDCSessionKey, IssuedAt: entry.OIDCIssuedAt},
 		SID:             entry.SID,
 		UserID:          entry.UserID,
 		Version:         entry.Version,
@@ -132,7 +143,15 @@ func userSessionCacheDeadline() time.Time {
 
 func CreateUserSession(session *UserSession) error {
 	cacheDeadline := userSessionCacheDeadline()
-	if err := createUserSessionWithTx(DB, session); err != nil {
+	var err error
+	if session != nil && session.OIDC.LogoutHint != "" {
+		err = DB.Transaction(func(tx *gorm.DB) error {
+			return createUserSessionWithTx(tx, session)
+		})
+	} else {
+		err = createUserSessionWithTx(DB, session)
+	}
+	if err != nil {
 		return err
 	}
 	return publishCreatedUserSession(session, cacheDeadline)
@@ -158,10 +177,27 @@ func createUserSessionWithTx(tx *gorm.DB, session *UserSession) error {
 	if session.CreatedAt == 0 {
 		session.CreatedAt = now
 	}
-	return tx.Create(session).Error
+	if err := CheckOIDCSessionActive(tx, session.OIDC); err != nil {
+		return err
+	}
+	if err := tx.Create(session).Error; err != nil {
+		return err
+	}
+	if session.OIDC.LogoutHint != "" {
+		_, _, err := createAuthFlowWithTx(tx, AuthFlowCreate{
+			Purpose: AuthFlowPurposeOIDCLogoutHint, Provider: "oidc",
+			UserId: session.UserID, SessionId: session.SID,
+			Payload: session.OIDC.LogoutHint, ExpiresAt: time.Unix(session.ExpiresAt, 0),
+		})
+		return err
+	}
+	return nil
 }
 
 func publishCreatedUserSession(session *UserSession, cacheDeadline time.Time) error {
+	if err := CheckOIDCSessionActive(DB, session.OIDC); err != nil {
+		return err
+	}
 	if err := writeUserSessionCache(session.cacheEntry(), cacheDeadline); err != nil {
 		if errors.Is(err, errUserSessionCacheObservationStale) {
 			return confirmUserSessionActiveSnapshot(session)
@@ -217,6 +253,17 @@ func GetUserSessionBySID(sid string) (*UserSession, error) {
 // GetUserSessionCached validates cached state first and falls back to the
 // database on a miss or Redis read failure. A deny tombstone never falls back.
 func GetUserSessionCached(sid string) (*UserSession, error) {
+	session, err := loadUserSessionSnapshot(sid)
+	if err != nil {
+		return nil, err
+	}
+	if err := CheckOIDCSessionActive(DB, session.OIDC); err != nil {
+		return nil, err
+	}
+	return session, nil
+}
+
+func loadUserSessionSnapshot(sid string) (*UserSession, error) {
 	if sid == "" {
 		return nil, ErrUserSessionInvalid
 	}
@@ -333,7 +380,8 @@ redis.call('HSET', KEYS[1],
   'UserAuthVersion', ARGV[4], 'Status', ARGV[5],
   'LoginMethod', ARGV[6], 'IP', ARGV[7], 'UserAgent', ARGV[8],
   'CreatedAt', ARGV[9], 'LastActiveAt', ARGV[10], 'ExpiresAt', ARGV[11],
-  'RevokedAt', ARGV[12], 'RevokedReason', ARGV[13], 'CacheSchema', ARGV[14])
+  'RevokedAt', ARGV[12], 'RevokedReason', ARGV[13], 'CacheSchema', ARGV[14],
+  'OIDCSubjectKey', ARGV[16], 'OIDCSessionKey', ARGV[17], 'OIDCIssuedAt', ARGV[18])
 if ARGV[5] == 'active' then
   redis.call('PEXPIREAT', KEYS[1], ARGV[15])
 else
@@ -344,6 +392,7 @@ return 1`
 		entry.SID, entry.UserID, entry.Version, entry.UserAuthVersion, entry.Status,
 		entry.LoginMethod, entry.IP, entry.UserAgent, entry.CreatedAt, entry.LastActiveAt,
 		entry.ExpiresAt, entry.RevokedAt, entry.RevokedReason, entry.CacheSchema, redisExpiration,
+		entry.OIDCSubjectKey, entry.OIDCSessionKey, entry.OIDCIssuedAt,
 	).Int()
 	if err != nil {
 		return err

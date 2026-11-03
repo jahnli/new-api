@@ -26,6 +26,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { logout } from '@/features/auth/api'
 import { clearAuthenticatedClientState } from '@/lib/auth-session'
 import { handleServerError } from '@/lib/handle-server-error'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface SignOutDialogProps {
   open: boolean
@@ -37,18 +38,41 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const isOIDCSession = useAuthStore(
+    (state) => state.auth.session?.login_method === 'oauth:oidc'
+  )
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
     try {
-      const response = await logout()
+      const response = await logout(true)
       if (!response.success) {
         handleServerError(response, t('Failed to sign out session'))
         return
       }
 
       clearAuthenticatedClientState(queryClient)
-      toast.success(t('Signed out'))
+      if (response.data?.logout_url && URL.canParse(response.data.logout_url)) {
+        const logoutURL = new URL(response.data.logout_url)
+        if (
+          logoutURL.protocol === 'https:' &&
+          !logoutURL.username &&
+          !logoutURL.password &&
+          !logoutURL.hash
+        ) {
+          window.location.assign(logoutURL.href)
+          return
+        }
+      }
+      if (response.data?.single_sign_out_unavailable || isOIDCSession) {
+        toast.warning(
+          t(
+            'Signed out locally. Single sign-out is unavailable; you may still be signed in to your identity provider.'
+          )
+        )
+      } else {
+        toast.success(t('Signed out'))
+      }
       void navigate({ to: '/sign-in', replace: true })
     } catch (error: unknown) {
       handleServerError(error, t('Failed to sign out session'))
@@ -62,9 +86,15 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
       open={open}
       onOpenChange={onOpenChange}
       title={t('Sign out')}
-      desc={t(
-        'Are you sure you want to sign out? You will need to sign in again to access your account.'
-      )}
+      desc={
+        isOIDCSession
+          ? t(
+              'Signing out will also request sign-out from your identity provider and may sign you out of other connected applications.'
+            )
+          : t(
+              'Are you sure you want to sign out? You will need to sign in again to access your account.'
+            )
+      }
       confirmText={t('Sign out')}
       handleConfirm={handleSignOut}
       isLoading={isSigningOut}
