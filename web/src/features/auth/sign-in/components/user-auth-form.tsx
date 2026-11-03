@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import type { z } from 'zod'
 
 import { Dialog } from '@/components/dialog'
+import { LoadingState } from '@/components/loading-state'
 import { PasswordInput } from '@/components/password-input'
 import { Turnstile } from '@/components/turnstile'
 import { Button } from '@/components/ui/button'
@@ -47,12 +48,14 @@ import { getLoginViewTitleKey, type LoginView } from '../lib/login-view'
 
 type UserAuthFormProps = AuthFormProps & {
   onLoginTitleChange?: (loginTitleKey: string) => void
+  autoLogin?: boolean
 }
 
 export function UserAuthForm({
   className,
   redirectTo,
   onLoginTitleChange,
+  autoLogin = false,
   ...props
 }: UserAuthFormProps) {
   const { t } = useTranslation()
@@ -77,7 +80,7 @@ export function UserAuthForm({
   const legalConsentErrorMessage = t('Please agree to the legal terms first')
   const loginFailedMessage = t('Login failed')
 
-  const { status } = useStatus()
+  const { status, ready: statusReady, error: statusError } = useStatus()
   const externalModeEnabled = Boolean(
     status?.external_mode_enabled ?? status?.data?.external_mode_enabled
   )
@@ -117,8 +120,10 @@ export function UserAuthForm({
     passkeyLoginEnabled || hasWeChatLogin || hasOAuthLogin
 
   useEffect(() => {
-    if (status && activeView === null) {
-      if (externalModeEnabled && passwordLoginEnabled) {
+    if (status && (statusReady || statusError) && activeView === null) {
+      if (autoLogin && status.oidc_enabled) {
+        setActiveView('oauth')
+      } else if (externalModeEnabled && passwordLoginEnabled) {
         setActiveView('password')
       } else if (hasLDAPLogin) {
         setActiveView('ldap')
@@ -130,6 +135,9 @@ export function UserAuthForm({
     }
   }, [
     status,
+    statusReady,
+    statusError,
+    autoLogin,
     activeView,
     externalModeEnabled,
     hasLDAPLogin,
@@ -144,11 +152,9 @@ export function UserAuthForm({
   }, [activeView, onLoginTitleChange])
 
   useEffect(() => {
-    if (requiresLegalConsent) {
-      setAgreedToLegal(false)
-    } else {
-      setAgreedToLegal(true)
-    }
+    // Consent must come from the checkbox, including when fresh settings add
+    // terms that were absent in the cached status used for the first render.
+    setAgreedToLegal(false)
   }, [requiresLegalConsent])
 
   useEffect(() => {
@@ -576,8 +582,13 @@ export function UserAuthForm({
 
       <OAuthProviders
         status={status}
+        autoLogin={autoLogin && statusReady}
         redirectTo={redirectTo}
-        disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
+        disabled={
+          isLoading ||
+          isPasskeyLoading ||
+          (requiresLegalConsent && !agreedToLegal)
+        }
         onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
         isWeChatLoading={isWeChatSubmitting}
       />
@@ -591,6 +602,7 @@ export function UserAuthForm({
         className={cn('grid gap-4', className)}
         {...props}
       >
+        {activeView === null && <LoadingState inline />}
         {activeView === 'ldap' && renderLdapForm()}
         {activeView === 'password' && renderPasswordForm()}
         {activeView === 'oauth' && renderOAuthView()}

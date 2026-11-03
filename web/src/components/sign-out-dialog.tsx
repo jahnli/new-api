@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { logout } from '@/features/auth/api'
+import { suspendOIDCAutoLogin } from '@/features/auth/lib/oidc-auto-login'
 import { clearAuthenticatedClientState } from '@/lib/auth-session'
 import { handleServerError } from '@/lib/handle-server-error'
 import { useAuthStore } from '@/stores/auth-store'
@@ -51,6 +52,7 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
         return
       }
 
+      suspendOIDCAutoLogin()
       clearAuthenticatedClientState(queryClient)
       if (response.data?.logout_url && URL.canParse(response.data.logout_url)) {
         const logoutURL = new URL(response.data.logout_url)
@@ -73,7 +75,11 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
       } else {
         toast.success(t('Signed out'))
       }
-      void navigate({ to: '/sign-in', replace: true })
+      void navigate({
+        to: '/sign-in',
+        search: { auto_login: false },
+        replace: true,
+      })
     } catch (error: unknown) {
       handleServerError(error, t('Failed to sign out session'))
     } finally {

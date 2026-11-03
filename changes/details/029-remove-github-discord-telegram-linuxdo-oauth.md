@@ -1,4 +1,4 @@
-# OAuth 登录调整与 OIDC 单点登出
+# OAuth 登录调整与 OIDC 自动登录、单点登出
 
 **日期**: 2026-11-03
 
@@ -92,3 +92,32 @@
 主动请求登录中心登出需要发现配置提供 HTTPS `end_session_endpoint`，身份提供方登记网关的 `/sign-in` 返回地址，并在升级后重新进行 OIDC 登录以保存登出凭据；凭据加密使用至少 32 字节的 `SESSION_SECRET`。关闭 OIDC 不会跳过数据库迁移、缓存结构升级或定期清理。
 
 已完成 Go 编译、前端类型检查、相关文件静态检查与生产构建；未运行测试，三种数据库的完整迁移兼容验证与登录中心实际登出联调尚未完成。
+
+## 2026-11-03：首页与登录页自动发起 OIDC 登录
+
+启用 OIDC 且配置授权端点和客户端标识后，未登录用户访问首页会进入登录流程，登录页自动跳转登录中心；同一浏览器已有可复用的登录中心会话且无需额外交互时，可免输入密码完成登录并返回原目标页面。登录中心没有有效会话时展示其登录页面，保留条款确认和服务端 MFA 流程。
+
+自动登录等待服务端站点配置就绪，不根据本地缓存占位数据提前跳转，也不会主动注销本地会话。复用现有 OAuth 登录组件和加载组件，避免重复发起授权请求，组件卸载或切换登录方式后停止过期请求触发的跳转。首页预加载、已有登录态、配置获取失败或会话恢复发生临时错误时不自动跳转。
+
+登录失败及本地退出后的登录页使用 `auto_login=false` 保留手动入口；主动退出和跨标签页退出通知同步暂停自动登录。标签页内的防循环标记有效期为 60 秒，旧的永久标记自动视为过期，登录成功后清除标记；浏览器存储不可用时保留手动登录。可通过 `/sign-in?auto_login=false` 直接进入手动登录页面。
+
+### 涉及文件
+
+- `web/src/routes/index.tsx` — 首页读取站点配置并确认本地会话，符合条件时进入自动登录流程，保留原访问地址。
+- `web/src/routes/(auth)/sign-in.tsx` — 校验关闭自动登录的查询参数。
+- `web/src/features/auth/sign-in/index.tsx` — 将自动登录开关传入登录表单。
+- `web/src/features/auth/sign-in/components/user-auth-form.tsx` — 等待配置就绪后优先展示 OIDC 登录方式，保留用户实际勾选条款的要求，并在 Passkey 登录期间暂停自动跳转。
+- `web/src/features/auth/components/oauth-providers.tsx` — 扩展现有登录组件，接入自动登录并复用 `LoadingState` 和已有七语言提示。
+- `web/src/features/auth/hooks/use-oauth-login.ts` — 自动创建授权流程，保留登录后返回地址，处理请求复用、失败提示与过期跳转取消。
+- `web/src/features/auth/lib/oidc-auto-login.ts` — 管理标签页内的 60 秒防循环冷却、旧标记兼容及存储不可用时的降级行为。
+- `web/src/features/auth/hooks/use-auth-redirect.ts` — 登录成功后清除自动登录暂停标记，MFA 仍经原有流程完成。
+- `web/src/hooks/use-status.ts` — 暴露站点配置是否已完成获取，区分服务端结果与本地缓存占位数据。
+- `web/src/routes/oauth/$provider.tsx` — 登录回调失败后返回手动登录页并保留安全的目标地址，避免重复回调重新设置成功登录已清除的标记。
+- `web/src/components/sign-out-dialog.tsx` — 本地退出成功后暂停自动登录，本地返回登录页时关闭自动跳转。
+- `web/src/routes/__root.tsx` — 跨标签页登录通知清除暂停标记，退出通知暂停自动登录并返回手动入口。
+
+### 配置与验证范围
+
+浏览器访问入口、网关配置的站点地址和身份提供方登记的回调地址应保持一致；登录回调为 `/oauth/oidc`，退出后的返回地址为 `/sign-in`。
+
+本次前端改动已在 `web/` 执行 `bunx --no-install tsgo -b`、对修改文件执行 `bunx --no-install oxlint -c .oxlintrc.json` 和 `bunx --no-install oxfmt --check`，均通过；`bun run build` 生产构建成功，`git diff --check` 通过。当前 Bun 1.3.14 无法执行项目脚本中的 `bun check -b`，本地旧版 `tsc` 也不支持现有配置，因此类型检查使用可用的 `tsgo` 完成。未运行测试，真实 Casdoor 跨系统登录与退出后的完整流程尚未联调验证。

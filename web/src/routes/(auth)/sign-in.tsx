@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
+  auto_login: z.literal(false).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/(auth)/sign-in')({
