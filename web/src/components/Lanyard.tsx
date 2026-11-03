@@ -10,6 +10,7 @@ type Finish = 'glossy' | 'matte' | 'holographic' | 'metallic'
 type Metal = 'graphite' | 'silver' | 'gold'
 type Anchor = 'left' | 'center' | 'right'
 type ImageFit = 'cover' | 'contain'
+type ImageSource = string | HTMLImageElement
 type Rgb = [number, number, number]
 type Point = { clientX: number; clientY: number }
 
@@ -29,8 +30,8 @@ interface PathLike {
 export interface LanyardProps {
   onReady?: () => void
   onUnavailable?: () => void
-  frontImage?: string
-  backImage?: string
+  frontImage?: ImageSource
+  backImage?: ImageSource
   imageFit?: ImageFit
   cardColor?: string
   orientation?: Orientation
@@ -54,8 +55,8 @@ export interface LanyardProps {
 }
 
 interface Settings {
-  frontImage?: string
-  backImage?: string
+  frontImage?: ImageSource
+  backImage?: ImageSource
   imageFit: ImageFit
   cardColor: string
   orientation: Orientation
@@ -159,7 +160,12 @@ interface Physics {
 interface Applied {
   layoutKey?: string
   framingKey?: string
-  imageKey?: string
+  imageSources?: [
+    ImageSource | undefined,
+    ImageSource | undefined,
+    string | undefined,
+  ]
+  foil?: boolean
   faceKey?: string
   strapColor?: string
   strapScale?: number
@@ -415,9 +421,10 @@ const traceRoundedRect = (
 
 const loadImage = (
   cache: Map<string, Promise<HTMLImageElement | null>>,
-  url?: string
+  url?: ImageSource
 ): Promise<HTMLImageElement | null> => {
   if (!url) return Promise.resolve(null)
+  if (typeof url !== 'string') return Promise.resolve(url)
   const cached = cache.get(url)
   if (cached) return cached
   const promise = new Promise<HTMLImageElement | null>((resolve) => {
@@ -1160,6 +1167,7 @@ const Lanyard = ({
       foilTop: { value: new THREE.Vector3() },
     }
     const injectFoil = (shader: THREE.WebGLProgramParametersWithUniforms) => {
+      if (settingsRef.current.finish !== 'holographic') return
       Object.assign(shader.uniforms, foilUniforms)
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>\n${FOIL_VERTEX_HEAD}`)
@@ -1190,6 +1198,8 @@ const Lanyard = ({
     })
     frontMaterial.onBeforeCompile = injectFoil
     backMaterial.onBeforeCompile = injectFoil
+    frontMaterial.customProgramCacheKey = backMaterial.customProgramCacheKey =
+      () => (settingsRef.current.finish === 'holographic' ? 'foil' : 'plain')
     const edgeMaterial = new THREE.MeshPhysicalMaterial()
     const metalMaterial = new THREE.MeshStandardMaterial({ metalness: 1 })
     const bandMaterial = new THREE.MeshPhysicalMaterial({
@@ -1359,8 +1369,17 @@ const Lanyard = ({
         }
       }
 
-      const imageKey = `${s.frontImage}|${s.backImage}|${s.strapImage}`
-      if (imageKey !== applied.imageKey) {
+      const imageSources: Applied['imageSources'] = [
+        s.frontImage,
+        s.backImage,
+        s.strapImage,
+      ]
+      if (
+        imageSources.some(
+          (source, index) => source !== applied.imageSources?.[index]
+        ) ||
+        !applied.imageSources
+      ) {
         const token = ++imageToken
         Promise.all([
           loadImage(imageCache, s.frontImage),
@@ -1394,6 +1413,11 @@ const Lanyard = ({
       if (s.strapColor !== applied.strapColor) repaintStrap()
 
       const finish = FINISHES[s.finish] || FINISHES.glossy
+      const foil = finish.foil > 0
+      if (foil !== applied.foil) {
+        frontMaterial.needsUpdate = true
+        backMaterial.needsUpdate = true
+      }
       const card = parseColor(s.cardColor, [1, 1, 1])
       ;[frontMaterial, backMaterial].forEach((material) => {
         // Keep matte portrait/text faces flat so grain does not disturb ink edges.
@@ -1429,7 +1453,8 @@ const Lanyard = ({
       applied = {
         layoutKey,
         framingKey,
-        imageKey,
+        imageSources,
+        foil,
         faceKey,
         strapColor: s.strapColor,
         strapScale,

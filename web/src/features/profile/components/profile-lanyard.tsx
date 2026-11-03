@@ -17,7 +17,8 @@ import { getDisplayName } from '../lib'
 import { createProfileCardTexture } from '../lib/lanyard-texture'
 import type { UserProfile } from '../types'
 
-const Lanyard = lazy(() => import('@/components/Lanyard'))
+const loadLanyard = () => import('@/components/Lanyard')
+const Lanyard = lazy(loadLanyard)
 
 // A failed optional 3D chunk must not take down the account settings page.
 class LanyardBoundary extends Component<
@@ -46,6 +47,11 @@ export function ProfileLanyard(props: { profile: UserProfile }) {
     url: string
     image: HTMLImageElement
   } | null>(null)
+  useEffect(() => {
+    if (reducedMotion) return
+    // Download the 3D chunk alongside the avatar instead of waiting for it.
+    void loadLanyard().catch(() => setUnavailable(true))
+  }, [reducedMotion])
   useEffect(() => {
     if (!avatarUrl) return
     const image = new Image()
@@ -77,8 +83,9 @@ export function ProfileLanyard(props: { profile: UserProfile }) {
     if (avatarUrl && failedAvatarUrl !== avatarUrl) return undefined
     return createProfileCardTexture({ name, username, initials, role, userId })
   }, [name, username, initials, role, userId, avatarUrl, failedAvatarUrl])
-  // Pass the original image through: Lanyard performs the only cover resample.
+  // Reuse the loaded image in WebGL without another image load/decode cycle.
   const texture = avatar?.src || placeholderTexture
+  const imageSource = avatar || placeholderTexture
   const fallback = (
     <div className='flex h-full flex-col items-center' aria-hidden='true'>
       <div className='h-12 w-5 shrink-0 bg-[#2979ff]' />
@@ -107,8 +114,8 @@ export function ProfileLanyard(props: { profile: UserProfile }) {
             <div className='relative h-full' aria-hidden='true'>
               <Suspense fallback={null}>
                 <Lanyard
-                  frontImage={texture}
-                  backImage={texture}
+                  frontImage={imageSource}
+                  backImage={imageSource}
                   cardColor='#f8fafc'
                   strapColor='#2979ff'
                   size={0.72}
