@@ -69,7 +69,7 @@ func captureImageResponseSources(c *gin.Context, info *relaycommon.RelayInfo, re
 		return
 	}
 
-	data := gjson.GetBytes(responseBody, "data")
+	data := ojson.GetBytes(responseBody, "data")
 	if !data.IsArray() && !data.IsObject() {
 		return
 	}
