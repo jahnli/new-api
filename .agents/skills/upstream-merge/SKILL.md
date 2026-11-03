@@ -149,14 +149,6 @@ git diff --cached --name-status --diff-filter=A   # 上游新增
 
 对比必须先于动手：不得先改代码再回填理由，也不得只写"保留本地更稳"这类无依据结论。每个方案都要落到具体后果——编译是否通过、哪项二开功能消失、哪些上游修复拿不到。单文件采用 ours/theirs 前必须核实整份文件，防止丢掉冲突区域以外的改动。
 
-```go
-<<<<<<< HEAD
-		if tableColumn.CasdoorName != "Id" && !isRemovedUserMetric(tableColumn.CasdoorName) {
-=======
-		if tableColumn.CasdoorName != "Id" {
->>>>>>> upstream/master
-```
-
 解决：保留本地的 `isRemovedUserMetric` 守卫，同时接入上游在同一循环内新增的其他处理；结论记为"上游去掉旧字段过滤，按 001 保留守卫"。反向情况——上游删除、本地保留——只有在本地功能被上游替代实现完整覆盖时才跟随删除。
 
 重复直到 `git diff --name-only --diff-filter=U` 为空。需确认的文件按确认边界处理并保持未解决，不阻塞无依赖的文件。
@@ -196,7 +188,7 @@ git diff <upstream-tip> -- <file-path>
 - 新增定义与调用必须同时接入，不能因单文件保留本地而漏掉上游必要重构。
 - 旧实现被替代时核实入口、任务调度和调用链，避免新旧实现重复运行。
 - 核实新增文件、依赖声明及锁文件；同一文件中的品牌定制与功能改动拆开审查。
-- 遵守不迁移功能（AI assistant、Web3）与只读目录（`web-old/`），不恢复已主动移除的功能。
+- 遵守不迁移功能（AI assistant、Web3）的约定，不恢复已删除的旧前端目录（`web-old/`）或已主动移除的功能。
 
 ### 第 9 步：复盘与上线交接（不可跳过）
 
@@ -204,7 +196,7 @@ git diff <upstream-tip> -- <file-path>
 
 复盘依据 merge commit 与共同基线核对最终代码，不得只复述上游 commit message；报告只读，不为上游同步新增二开 CHANGELOG 条目。
 
-### 第 10 步：分支清理（不可跳过）
+### 第 10 步：分支及合并记录清理（不可跳过）
 
 `v1` 成功推送到 `origin/v1` 后才可删除本次合并分支，删除前四项须同时成立：`v1` 与 `origin/v1` 为同一提交；本地合并分支 tip 已包含在 `v1`；同名远端分支 tip 已包含在 `origin/v1`；当前不在待删分支上。
 
@@ -217,6 +209,8 @@ git branch -d merge/upstream-YYYY-MM-DD
 ```
 
 只能用 `git branch -d`；Git 判断未合并时禁止改用 `-D`，先查明遗漏提交。删除后用 `git branch --list` 和 `git branch -r --list` 确认引用消失，并在交付中记录清理结果。
+
+分支清理完成后，核对本次合并创建的进度、冲突决策等临时 Markdown 记录，并清理属于本次合并的记录；记录混有其他任务内容时，只删除本次合并部分，保留其他内容。不得删除业务文档、二开 CHANGELOG 或其他任务的记录。清理前确认复盘和交付所需信息已保存；在交付中说明已清理或保留的记录及原因。`v1` 尚未成功推送或分支清理条件未满足时，保留这些记录供续接。
 
 ## 交付格式
 
