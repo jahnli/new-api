@@ -45,7 +45,7 @@
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
 | 039 | 2026-10-27 | 用户管理与共享交互增强：完善统计筛选、成本中心、分组联动与跨页选择，统一悬停提示并精简重复说明；新增注册方式列，按密码是否为空区分 LDAP 与手动，支持列标题旁单选筛选及分页统计联动；恢复用户删除入口与确认弹窗，接入删除专用身份验证，成功后刷新列表，并禁用超级管理员账户的删除入口；新增批量启用、禁用、删除与修改分组，操作按钮显示图标和文字，沿用逐用户安全验证并汇总处理结果，保留失败及未处理项勾选 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |
-| 041 | 2026-06-25 | 飞书同步改用 directory/v1/employees/mget 单接口，并重构 User 表飞书字段（employee_number→job_number，新增部门、职务、入职日期等字段） | [详情](details/041-feishu-field-refactor.md) |
+| 041 | 2026-11-03 | 飞书同步改用 directory/v1/employees/mget 单接口，并重构 User 表飞书字段（employee_number→job_number，新增部门、职务、入职日期等字段）；头像优先使用 avatar_640，缺失时回退 avatar_240 | [详情](details/041-feishu-field-refactor.md) |
 | 042 | 2026-08-05 | 用户管理表格头像悬停资料卡片：飞书风格展示职级、部门、入职日期等资料字段，敏感字段仅超级管理员可见，并支持公司名称、性别图标与自定义字段解析 | [详情](details/042-user-profile-hover-card.md) |
 | 043 | 2026-10-06 | 数据总览增强：完善部门统计、使用分析、排行、日志、导出与权限裁剪，支持模型系列单价趋势与多公司数据隔离；超级管理员新增跨公司总览与公司统计，BP 和部门领导保持原授权范围；使用分析独立加载费用分布，补齐图表悬浮指标、人数单位及调用占比；子部门统计列按对外模式拆分为独立 hooks，并在对外模式增加带倍率的分组列和销售列；部门人员列表新增成本中心列，人员原部门保留展示但消费数据不重复统计；移除平均响应时间、错误率及对应日志聚合，导出同步移除，保留原两行布局和响应时间空位；日期范围桌面端按完整时间撑开，修复结束时间截断 | [详情](details/043-data-overview.md) |
 | 044 | 2026-07-08 | 新增「事业部 AI BP」（role=2）和「中心 AI BP」（role=3）两个用户角色，用户编辑界面支持角色修改，6 语言翻译 | [详情](details/044-add-bp-roles.md) |
@@ -55,7 +55,7 @@
 | 048 | 2026-08-17 | 数据总览导出功能增强：支持导出当前部门统计数据与图表为 Excel，涵盖子部门详情与用户列表；补充飞书未注册员工姓名、人民币汇率换算及模型系列图表 | [详情](details/048-data-overview-export.md) |
 | 049 | 2026-10-27 | 模型定价编辑器支持本地货币输入及超级管理员跨设备同步货币偏好，保留价格精度与档位名称原样回显；所有定价规则卡片默认展开，保留手动折叠 | [详情](details/049-model-pricing-local-currency.md) |
 | 050 | 2026-07-01 | 渠道表格移除「已使用 / 剩余」列及卡片视图中的余额展示，清理相关翻译 | [详情](details/050-remove-channel-balance-column.md) |
-| 051 | 2026-07-02 | 个人资料页设置调整：移除邮箱旁分组显示、用户 ID 徽章改为默认色、API 请求数万前加空格；记录使用和错误日志 IP 地址默认开启，且仅超级管理员可见并可切换 | [详情](details/051-profile-settings.md) |
+| 051 | 2026-11-03 | 个人资料页优化：左侧使用可拖动、点击翻转的双面照片挂绳头像，右侧整合身份信息与账户统计，移除重复头像并将用户编号简化为 #ID；适配移动端、暗色主题与静态降级，照片和首帧就绪后展示且加载区域保持透明；保留邮箱旁不显示分组、API 请求数万前加空格，以及仅超级管理员可切换且默认开启的日志 IP 记录设置 | [详情](details/051-profile-settings.md) |
 | 052 | 2026-07-01 | 全站进度条分阶段变色统一：阈值统一为 50%/80%（绿→橙→红），涉及概览订阅、用户表格、数据总览；修复子部门统计 formatCNY 传入 undefined 导致崩溃 | [详情](details/052-progress-bar-color-unify.md) |
 | 053 | 2026-10-15 | 新增或编辑未设置定价的模型时，补全价格和缓存读取价格默认开启；表达式定价草稿默认包含零值缓存读取价格，已有表达式保持原配置，并补充定价通道初始化测试 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/__tests__/pricing-initialization.test.ts`、`web/src/features/system-settings/models/model-pricing-sheet.tsx` |
 | 054 | 2026-07-01 | 模型广场与模型定价编辑器默认分页大小从 20 改为 100 | `web/default/src/features/pricing/constants.ts`、`web/default/src/features/system-settings/models/model-ratio-visual-editor.tsx` |

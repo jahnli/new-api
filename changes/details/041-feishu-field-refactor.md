@@ -1,10 +1,10 @@
 # 飞书同步接口与 User 表飞书字段重构
 
-**日期**: 2026-06-25
+**日期**: 2026-11-03
 
 ## 涉及文件
 
-- `service/feishu_sync.go`
+- `service/feishu_sync.go` — 同步头像时优先保存飞书返回的 `avatar_640`，该字段为空时回退到 `avatar_240`；数据库与当前用户对象使用同一地址，不读取 `avatar_origin`。已有头像地址需下一次飞书资料同步后更新。
 - `model/user.go`
 - `controller/ldap.go`
 

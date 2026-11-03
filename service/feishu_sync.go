@@ -44,6 +44,7 @@ type feishuDirectoryData struct {
 	Employees []struct {
 		BaseInfo struct {
 			Avatar struct {
+				Avatar640 string `json:"avatar_640"`
 				Avatar240 string `json:"avatar_240"`
 			} `json:"avatar"`
 			BackgroundImage   string          `json:"background_image"`
@@ -204,8 +205,13 @@ func SyncFeishuUser(user *model.User) error {
 		}
 	}
 
+	// Prefer the 640px avatar for large profile badges.
+	avatarURL := strings.TrimSpace(base.Avatar.Avatar640)
+	if avatarURL == "" {
+		avatarURL = base.Avatar.Avatar240
+	}
 	updates := map[string]any{
-		"avatar_url":          base.Avatar.Avatar240,
+		"avatar_url":          avatarURL,
 		"background_image":    base.BackgroundImage,
 		"open_id":             openId,
 		"display_name":        base.Name.Name.DefaultValue,
@@ -224,7 +230,7 @@ func SyncFeishuUser(user *model.User) error {
 		return err
 	}
 
-	user.AvatarUrl = base.Avatar.Avatar240
+	user.AvatarUrl = avatarURL
 	user.DisplayName = base.Name.Name.DefaultValue
 	common.SysLog(fmt.Sprintf("飞书字段同步完成 user_id=%d open_id=%s job_number=%s", user.Id, openId, work.JobNumber))
 	return nil
