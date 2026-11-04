@@ -26,6 +26,7 @@ import {
   DataTablePage,
   DataTableRow,
   useDataTable,
+  type DataTablePinnedColumn,
 } from '@/components/data-table'
 import { useMediaQuery } from '@/hooks'
 import { useDemoMode } from '@/hooks/use-demo-mode'
@@ -51,6 +52,10 @@ import { UsageLogsMobileList } from './usage-logs-mobile-card'
 import { useLogsViewScope, type LogsViewAccess } from './usage-logs-provider'
 
 const route = getRouteApi('/_authenticated/usage-logs/$section')
+
+const USAGE_LOGS_PINNED_COLUMNS = [
+  { columnId: 'user', side: 'left' },
+] satisfies DataTablePinnedColumn[]
 
 const logTypeRowTint: Record<number, string> = {
   [LOG_TYPE_ENUM.ERROR]: 'bg-rose-50/40 dark:bg-rose-950/20',
@@ -243,6 +248,7 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
         skeletonKeyPrefix='usage-log-skeleton'
         applyHeaderSize
         fixedLayout
+        pinnedColumns={USAGE_LOGS_PINNED_COLUMNS}
         tableClassName={cn(
           '[&_[data-slot=table]_td]:whitespace-normal [&_[data-slot=table]_td]:[overflow-wrap:anywhere]',
           '[&_[data-slot=table]]:text-[13px] [&_[data-slot=table]_td]:text-[13px] [&_[data-slot=table]_td_*]:text-[13px] [&_[data-slot=table]_th]:text-[13px] [&_[data-slot=table]_th_*]:text-[13px]',

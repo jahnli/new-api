@@ -28,6 +28,7 @@ import {
   DISABLED_ROW_MOBILE,
   DataTablePage,
   useDataTable,
+  type DataTablePinnedColumn,
 } from '@/components/data-table'
 import { useMediaQuery } from '@/hooks'
 import { useExternalMode } from '@/hooks/use-external-mode'
@@ -78,6 +79,10 @@ const USER_COLUMN_SORT_MAP: Partial<Record<string, UserSortBy>> = {
 }
 
 const USER_COLUMN_VISIBILITY = { company: false }
+
+const USERS_PINNED_COLUMNS = [
+  { columnId: 'username', side: 'left' },
+] satisfies DataTablePinnedColumn[]
 
 export function UsersTable() {
   const { t } = useTranslation()
@@ -313,6 +318,7 @@ export function UsersTable() {
       )}
       skeletonKeyPrefix='users-skeleton'
       applyHeaderSize
+      pinnedColumns={USERS_PINNED_COLUMNS}
       toolbarProps={{
         searchPlaceholder: t('Filter by username, name or email...'),
         searchDebounceMs: 500,

@@ -140,7 +140,7 @@ export function useTaskLogsColumns(
 
             if (demoMode) {
               return (
-                <span className='text-muted-foreground truncate text-sm'>
+                <span className='text-muted-foreground/70 truncate text-sm'>
                   {displayName}
                 </span>
               )
@@ -180,7 +180,7 @@ export function useTaskLogsColumns(
                 ) : (
                   avatarElement
                 )}
-                <span className='text-muted-foreground truncate text-sm'>
+                <span className='text-muted-foreground/70 truncate text-sm'>
                   {sensitiveVisible ? displayName : '••••'}
                 </span>
               </div>

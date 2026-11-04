@@ -215,7 +215,10 @@ export function userNameColumn<T extends UserColumnRow>(
               <div className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
                 {displayName && displayName !== username ? (
                   <LongText
-                    className={cn("min-w-0 flex-1", opts?.usernameClassName)}
+                    className={cn(
+                      "text-muted-foreground/70 min-w-0 flex-1",
+                      opts?.usernameClassName,
+                    )}
                   >
                     {username}
                   </LongText>

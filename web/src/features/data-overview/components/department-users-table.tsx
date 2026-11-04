@@ -74,6 +74,7 @@ const DEPT_COLUMN_SORT_MAP: Record<string, string> = {
 }
 
 const DEPARTMENT_USERS_PINNED_COLUMNS = [
+  { columnId: 'username', side: 'left' },
   { columnId: 'actions', side: 'right' },
 ] satisfies DataTablePinnedColumn[]
 

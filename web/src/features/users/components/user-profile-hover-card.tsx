@@ -37,7 +37,7 @@ function ProfileField(props: { label: string; value?: string | null }) {
   if (!props.value) return null
   return (
     <div className='flex items-baseline gap-3 py-1.5'>
-      <span className='text-muted-foreground w-12 shrink-0 text-xs'>
+      <span className='text-muted-foreground w-14 shrink-0 text-[13px]'>
         {props.label}
       </span>
       <span className='min-w-0 text-sm break-all'>{props.value}</span>
