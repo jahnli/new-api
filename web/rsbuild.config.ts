@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -83,18 +82,7 @@ export default defineConfig(({ envMode }) => {
     server: {
       host: '0.0.0.0',
       port: 5173,
-      strictPort: process.env.DEV_HTTPS === '1',
-      https:
-        process.env.DEV_HTTPS === '1'
-          ? {
-              key: fs.readFileSync(
-                path.resolve(__dirname, '.certs/localhost-key.pem')
-              ),
-              cert: fs.readFileSync(
-                path.resolve(__dirname, '.certs/localhost.pem')
-              ),
-            }
-          : undefined,
+      strictPort: false,
       proxy: devProxy,
     },
     output: {
