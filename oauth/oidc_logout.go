@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"net"
 	"net/url"
 	"strings"
 
@@ -43,8 +44,16 @@ func BuildOIDCLogoutURL(ctx context.Context, encryptedHint, subjectKey string) (
 		return "", errors.New("OIDC logout issuer mismatch")
 	}
 	endpoint, err := url.Parse(metadata.EndSessionEndpoint)
-	if err != nil || endpoint.Scheme != "https" || endpoint.Host == "" || endpoint.User != nil || endpoint.Fragment != "" {
-		return "", errors.New("OIDC logout endpoint must be an absolute HTTPS URL")
+	if err != nil || endpoint.Host == "" || endpoint.User != nil || endpoint.Fragment != "" {
+		return "", errors.New("invalid OIDC logout endpoint URL")
+	}
+	// Match discovery's HTTP exception for local development; other hosts require TLS.
+	loopback := endpoint.Hostname() == "localhost"
+	if ip := net.ParseIP(endpoint.Hostname()); ip != nil {
+		loopback = ip.IsLoopback()
+	}
+	if endpoint.Scheme != "https" && !(endpoint.Scheme == "http" && loopback) {
+		return "", errors.New("OIDC logout endpoint requires HTTPS except for loopback HTTP URLs")
 	}
 	// Only server configuration determines the return address; request headers,
 	// query parameters and browser-provided URLs cannot become redirect targets.
