@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "rsbuild dev",
-    "dev:https": "DEV_HTTPS=1 rsbuild dev",
     "build": "rsbuild build",
     "build:check": "bun check -b && rsbuild build",
     "typecheck": "bun check -b",
