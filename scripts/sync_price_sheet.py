@@ -13,7 +13,7 @@
 仅更新“模型价格列表”工作表中现有模型行的 B/C/D/E/G 列，
 不新增模型、不改接口协议及表格排版。
 Token 价格为人民币/百万 Token；按次价格 B=￥xx/次、C=按次收费、D/E=—。
-分组名称在脚本开头的 GROUP_NAME 设置，匹配忽略大小写。
+分组名称通过 --group 指定，默认使用 GROUP_NAME，匹配忽略大小写。
 倍率优先级为用户特殊倍率 > 供应商倍率 > 分组倍率。
 汇率读取 /api/status.usd_exchange_rate，不应用充值折算。
 价格精度跟随模型广场：金额 >= 1 最多 4 位小数，< 1 最多 6 位小数；
@@ -404,6 +404,7 @@ def update_workbook(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--workbook", type=Path, default=SCRIPT_DIR / "AI Gateway 体系说明与价格表.xlsx")
+    parser.add_argument("--group", default=GROUP_NAME, help="要同步的分组名称，默认 Basic，忽略大小写")
     parser.add_argument("--official-prices", type=Path, default=SCRIPT_DIR / "official_model_prices.json")
     parser.add_argument("--base-url", help="默认 MODEL_SQUARE_BASE_URL 或 https://ai.semi-tech.com")
     parser.add_argument("--token", help="默认 MODEL_SQUARE_TOKEN，建议通过环境变量配置")
@@ -451,9 +452,12 @@ def main() -> int:
         ratios = pricing.get("group_ratio")
         if not isinstance(ratios, dict):
             raise ValueError("/api/pricing 缺少 group_ratio 对象")
-        groups = [group for group in ratios if group.casefold() == GROUP_NAME.casefold()]
+        group_name = args.group.strip()
+        if not group_name:
+            raise ValueError("--group 不能为空")
+        groups = [group for group in ratios if group.casefold() == group_name.casefold()]
         if len(groups) != 1:
-            raise ValueError(f"未找到唯一的 {GROUP_NAME} 分组，请检查分组名称和当前用户的分组权限")
+            raise ValueError(f"未找到唯一的 {group_name} 分组，请检查分组名称和当前用户的分组权限")
         if not isinstance(pricing.get("group_vendor_ratio", {}), dict) or not isinstance(pricing.get("group_special_ratios", []), list):
             raise ValueError("分组供应商倍率或特殊倍率结构无效")
         for vendor_ratios in pricing.get("group_vendor_ratio", {}).values():
