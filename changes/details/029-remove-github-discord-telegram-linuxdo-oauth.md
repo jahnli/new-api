@@ -99,7 +99,7 @@
 
 自动登录等待服务端站点配置就绪，不根据本地缓存占位数据提前跳转，也不会主动注销本地会话。复用现有 OAuth 登录组件和加载组件，避免重复发起授权请求，组件卸载或切换登录方式后停止过期请求触发的跳转。首页预加载、已有登录态、配置获取失败或会话恢复发生临时错误时不自动跳转。
 
-登录失败及本地退出后的登录页使用 `auto_login=false` 保留手动入口；主动退出和跨标签页退出通知同步暂停自动登录。标签页内的防循环标记有效期为 60 秒，旧的永久标记自动视为过期，登录成功后清除标记；浏览器存储不可用时保留手动登录。可通过 `/sign-in?auto_login=false` 直接进入手动登录页面。
+登录失败后的登录页使用 `auto_login=false` 保留手动入口，避免重复发起授权；也可通过 `/sign-in?auto_login=false` 直接进入手动登录页面。2026-11-05 已移除原有 60 秒冷却及标签页暂停标记，OIDC 退出后改为仅停留当次首页访问，刷新恢复自动登录，详见下方退出返回行为调整。
 
 ### 涉及文件
 
@@ -109,12 +109,12 @@
 - `web/src/features/auth/sign-in/components/user-auth-form.tsx` — 等待配置就绪后优先展示 OIDC 登录方式，保留用户实际勾选条款的要求，并在 Passkey 登录期间暂停自动跳转。
 - `web/src/features/auth/components/oauth-providers.tsx` — 扩展现有登录组件，接入自动登录并复用 `LoadingState` 和已有七语言提示。
 - `web/src/features/auth/hooks/use-oauth-login.ts` — 自动创建授权流程，保留登录后返回地址，处理请求复用、失败提示与过期跳转取消。
-- `web/src/features/auth/lib/oidc-auto-login.ts` — 管理标签页内的 60 秒防循环冷却、旧标记兼容及存储不可用时的降级行为。
-- `web/src/features/auth/hooks/use-auth-redirect.ts` — 登录成功后清除自动登录暂停标记，MFA 仍经原有流程完成。
+- `web/src/features/auth/lib/oidc-auto-login.ts` — 原标签页冷却模块，已于 2026-11-05 删除。
+- `web/src/features/auth/hooks/use-auth-redirect.ts` — 登录成功后处理用户信息与原页面返回，MFA 仍经原有流程完成；不再读写自动登录暂停标记。
 - `web/src/hooks/use-status.ts` — 暴露站点配置是否已完成获取，区分服务端结果与本地缓存占位数据。
-- `web/src/routes/oauth/$provider.tsx` — 登录回调失败后返回手动登录页并保留安全的目标地址，避免重复回调重新设置成功登录已清除的标记。
-- `web/src/components/sign-out-dialog.tsx` — 本地退出成功后暂停自动登录，本地返回登录页时关闭自动跳转。
-- `web/src/routes/__root.tsx` — 跨标签页登录通知清除暂停标记，退出通知暂停自动登录并返回手动入口。
+- `web/src/routes/oauth/$provider.tsx` — 登录回调失败后返回手动登录页并保留安全的目标地址，保留回调请求复用与完成状态保护。
+- `web/src/components/sign-out-dialog.tsx` — OIDC 退出请求登录中心登出，返回后进入首页；单点登出不可用时保留本地退出提示并返回首页。
+- `web/src/routes/__root.tsx` — 同步跨标签页登录状态；收到当前 OIDC 会话退出通知后清理本地状态并返回首页。
 
 ### 配置与验证范围
 
@@ -130,3 +130,27 @@
 
 - `oauth/oidc_logout.go` — 使用主机名及 IP 回环判定，为登出端点增加本地 HTTP 例外，并区分无效地址与协议限制错误。
 - `web/src/components/sign-out-dialog.tsx` — 跳转登录中心前同步允许回环 HTTP 地址，识别 `127.0.0.0/8`、`::1` 及映射到 IPv4 回环的 IPv6 地址。
+
+## 2026-11-05：取消自动登录冷却，退出返回首页后刷新可重新登录
+
+移除 OIDC 自动登录冷却及原有标签页暂停标记。普通进入或刷新首页、登录页时，满足配置、会话与条款条件即可发起授权；登录回调失败仍返回带 `auto_login=false` 的手动入口，避免循环跳转。
+
+OIDC 退出继续使用已登记的 `/sign-in` 作为登录中心返回地址，不向 Casdoor 传入 `signed_out` 参数。浏览器在跳转登出前保存一次性返回标记，返回登录页时消费标记并转到首页；单点登出不可用时的本地退出及跨标签页 OIDC 退出同步也返回首页。该标记仅控制页面导航，不作为认证或退出成功凭据。
+
+首页接收 `signed_out=true` 后通过路由替换清除地址参数，以内存状态停留在当次首页访问，离开首页或刷新后恢复自动登录资格。因此在 Casdoor 重新登录后，刷新原网关窗口即可重新发起授权，无需等待冷却或新开窗口。一次性返回标记依赖浏览器会话存储；存储不可用时仍执行登录中心登出，但无法保证返回后自动转到首页。
+
+### 涉及文件
+
+- `web/src/features/auth/lib/oidc-auto-login.ts` — 删除冷却与标签页暂停逻辑。
+- `web/src/features/auth/hooks/use-oauth-login.ts` — 移除冷却检查，保留授权请求复用和组件卸载后的跳转取消。
+- `web/src/features/auth/hooks/use-auth-redirect.ts` — 删除登录成功后的暂停标记清理。
+- `web/src/features/auth/lib/oidc-logout.ts` — 新增一次性退出返回标记的保存与消费。
+- `web/src/components/sign-out-dialog.tsx` — 登录中心登出前保存返回标记，OIDC 本地退出兜底进入首页。
+- `web/src/routes/(auth)/sign-in.tsx` — 实际进入时消费退出返回标记并转到首页，预加载不消费标记。
+- `web/src/routes/index.tsx` — 清除退出查询参数，仅在当前首页访问中抑制自动登录，刷新或离开首页后解除。
+- `web/src/routes/__root.tsx` — 按当前会话登录方式处理跨标签页退出，OIDC 会话返回首页。
+- `web/src/routes/oauth/$provider.tsx` — 删除冷却标记写入，保留失败后关闭自动登录的查询参数。
+
+### 验证范围
+
+在仓库根目录执行 `go build ./oauth`、`git diff --check`，在 `web/` 执行 `bun x --package typescript@5.9.3 tsc -b --noEmit --pretty false`、对修改文件执行 `bun x --no-install oxlint -c .oxlintrc.json` 和 `bun x --no-install oxfmt --check`，以及 `bun run build`，均通过。未运行测试，最终退出、首页停留及刷新重新登录的 Casdoor 完整流程尚未实际联调验证。

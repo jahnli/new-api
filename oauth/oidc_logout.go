@@ -57,6 +57,7 @@ func BuildOIDCLogoutURL(ctx context.Context, encryptedHint, subjectKey string) (
 	}
 	// Only server configuration determines the return address; request headers,
 	// query parameters and browser-provided URLs cannot become redirect targets.
+	// Reuse the registered sign-in URL; the browser handles the logout landing page.
 	returnURL, err := url.Parse(strings.TrimRight(system_setting.ServerAddress, "/") + "/sign-in")
 	if err != nil || (returnURL.Scheme != "https" && returnURL.Scheme != "http") || returnURL.Host == "" || returnURL.User != nil || returnURL.RawQuery != "" || returnURL.Fragment != "" {
 		return "", errors.New("invalid OIDC post-logout return address")

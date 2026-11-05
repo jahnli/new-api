@@ -28,7 +28,6 @@ import { applyAuthBundle, isAuthBundle } from '@/lib/api'
 import { AuthOperationError } from '@/lib/secure-verification'
 import { useAuthStore, type AuthBundle } from '@/stores/auth-store'
 
-import { resetOIDCAutoLogin } from '../lib/oidc-auto-login'
 import { isLoginChallenge } from '../secure-verification/api'
 
 /**
@@ -59,7 +58,6 @@ export function useAuthRedirect() {
         return
       }
       applyAuthBundle(bundle)
-      resetOIDCAutoLogin()
       const savedLang = getSavedLanguage(bundle.user)
       if (savedLang && savedLang !== i18n.language) {
         await i18n.changeLanguage(savedLang)

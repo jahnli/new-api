@@ -10,10 +10,6 @@ import { useEffect } from 'react'
 import { NavigationProgress } from '@/components/navigation-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeCustomizationProvider } from '@/context/theme-customization-provider'
-import {
-  resetOIDCAutoLogin,
-  suspendOIDCAutoLogin,
-} from '@/features/auth/lib/oidc-auto-login'
 import { GeneralError } from '@/features/errors/general-error'
 import { NotFoundError } from '@/features/errors/not-found-error'
 import { getSetupStatus } from '@/features/setup/api'
@@ -49,11 +45,11 @@ function RootComponent() {
   useEffect(
     () =>
       subscribeAuthSessionEvents((event) => {
-        const currentSID = useAuthStore.getState().auth.session?.sid
+        const currentSession = useAuthStore.getState().auth.session
+        const currentSID = currentSession?.sid
 
         if (event.kind === 'authenticated') {
           if (event.sid === currentSID) return
-          resetOIDCAutoLogin()
           if (currentSID) {
             clearAuthentication(false)
           }
@@ -62,11 +58,11 @@ function RootComponent() {
         }
 
         if (currentSID && event.sid === currentSID) {
-          suspendOIDCAutoLogin()
+          const isOIDCSession = currentSession?.login_method === 'oauth:oidc'
           clearAuthenticatedClientState(queryClient, false)
           void navigate({
-            to: '/sign-in',
-            search: { auto_login: false },
+            to: isOIDCSession ? '/' : '/sign-in',
+            search: isOIDCSession ? { signed_out: true } : {},
             replace: true,
           })
         }

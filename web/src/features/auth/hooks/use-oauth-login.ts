@@ -10,7 +10,6 @@ import { useAuthStore } from '@/stores/auth-store'
 import { createOAuthFlow, logout } from '../api'
 import { buildOIDCOAuthUrl } from '../lib/oauth'
 import { rememberOAuthLoginRedirect } from '../lib/oauth-callback-mode'
-import { beginOIDCAutoLogin } from '../lib/oidc-auto-login'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 
 /**
@@ -44,7 +43,6 @@ export function useOAuthLogin(
     }
 
     if (!automaticRequest.current) {
-      if (!beginOIDCAutoLogin()) return
       // The sign-in route has already checked the local session. Do not log
       // out here: another tab may have signed in while this page was loading.
       automaticRequest.current = createOAuthFlow('oidc', 'login')

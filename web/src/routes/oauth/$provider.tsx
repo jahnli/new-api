@@ -22,7 +22,6 @@ import {
   consumeOAuthLoginRedirect,
   resolveOAuthCallbackMode,
 } from '@/features/auth/lib/oauth-callback-mode'
-import { suspendOIDCAutoLogin } from '@/features/auth/lib/oidc-auto-login'
 import type { LoginResponse } from '@/features/auth/types'
 import { api } from '@/lib/api'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -143,7 +142,6 @@ function OAuthCallback() {
 
     // A failed manual or automatic callback must return to an interactive
     // login page instead of immediately starting another OIDC authorization.
-    suspendOIDCAutoLogin()
     const returnToLogin = () => {
       const redirect =
         sanitizeAuthRedirect(
