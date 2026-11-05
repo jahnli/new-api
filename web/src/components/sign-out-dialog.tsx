@@ -56,8 +56,15 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
       clearAuthenticatedClientState(queryClient)
       if (response.data?.logout_url && URL.canParse(response.data.logout_url)) {
         const logoutURL = new URL(response.data.logout_url)
+        // URL normalizes IP literals, including IPv4-mapped IPv6 addresses.
+        const loopback =
+          logoutURL.hostname === 'localhost' ||
+          /^127(?:\.\d{1,3}){3}$/.test(logoutURL.hostname) ||
+          logoutURL.hostname === '[::1]' ||
+          /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(logoutURL.hostname)
         if (
-          logoutURL.protocol === 'https:' &&
+          (logoutURL.protocol === 'https:' ||
+            (logoutURL.protocol === 'http:' && loopback)) &&
           !logoutURL.username &&
           !logoutURL.password &&
           !logoutURL.hash

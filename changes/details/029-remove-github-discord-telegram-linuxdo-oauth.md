@@ -1,6 +1,6 @@
 # OAuth 登录调整与 OIDC 自动登录、单点登出
 
-**日期**: 2026-11-03
+**日期**: 2026-11-05
 
 ## 涉及文件
 
@@ -121,3 +121,12 @@
 浏览器访问入口、网关配置的站点地址和身份提供方登记的回调地址应保持一致；登录回调为 `/oauth/oidc`，退出后的返回地址为 `/sign-in`。
 
 本次前端改动已在 `web/` 执行 `bunx --no-install tsgo -b`、对修改文件执行 `bunx --no-install oxlint -c .oxlintrc.json` 和 `bunx --no-install oxfmt --check`，均通过；`bun run build` 生产构建成功，`git diff --check` 通过。当前 Bun 1.3.14 无法执行项目脚本中的 `bun check -b`，本地旧版 `tsc` 也不支持现有配置，因此类型检查使用可用的 `tsgo` 完成。未运行测试，真实 Casdoor 跨系统登录与退出后的完整流程尚未联调验证。
+
+## 2026-11-05：OIDC 登出支持本地回环 HTTP 地址
+
+前后端登出地址校验允许 `localhost`、IPv4 与 IPv6 回环地址使用 HTTP，支持本地开发环境的登录中心登出；其他主机仍要求 HTTPS，继续拒绝包含用户名、密码或片段的地址。
+
+### 涉及文件
+
+- `oauth/oidc_logout.go` — 使用主机名及 IP 回环判定，为登出端点增加本地 HTTP 例外，并区分无效地址与协议限制错误。
+- `web/src/components/sign-out-dialog.tsx` — 跳转登录中心前同步允许回环 HTTP 地址，识别 `127.0.0.0/8`、`::1` 及映射到 IPv4 回环的 IPv6 地址。
