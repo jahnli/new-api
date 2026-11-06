@@ -45,8 +45,7 @@ function RootComponent() {
   useEffect(
     () =>
       subscribeAuthSessionEvents((event) => {
-        const currentSession = useAuthStore.getState().auth.session
-        const currentSID = currentSession?.sid
+        const currentSID = useAuthStore.getState().auth.session?.sid
 
         if (event.kind === 'authenticated') {
           if (event.sid === currentSID) return
@@ -58,13 +57,8 @@ function RootComponent() {
         }
 
         if (currentSID && event.sid === currentSID) {
-          const isOIDCSession = currentSession?.login_method === 'oauth:oidc'
           clearAuthenticatedClientState(queryClient, false)
-          void navigate({
-            to: isOIDCSession ? '/' : '/sign-in',
-            search: isOIDCSession ? { signed_out: true } : {},
-            replace: true,
-          })
+          void navigate({ to: '/sign-in', replace: true })
         }
       }),
     [navigate, queryClient]

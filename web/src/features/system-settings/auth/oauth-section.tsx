@@ -546,16 +546,6 @@ export function OAuthSection(props: OAuthSectionProps) {
                           'OIDC discovery can fill the endpoint fields automatically when the provider supports it.'
                         )}
                       </p>
-                      <p>
-                        {t(
-                          'Register the back-channel logout URL in your identity provider to end local OIDC sessions on single sign-out. Requires HTTPS discovery and a new sign-in after configuration.'
-                        )}
-                      </p>
-                      <p>
-                        {t(
-                          'Register the post-logout redirect URL in your identity provider. Signing out of an OIDC session also requests provider sign-out when discovery includes an HTTPS end_session_endpoint.'
-                        )}
-                      </p>
                     </div>
                   }
                   rows={[
@@ -568,16 +558,6 @@ export function OAuthSection(props: OAuthSectionProps) {
                       label: t('Redirect URL'),
                       value: oidcCallbackUrl,
                       copyLabel: t('Copy redirect URL'),
-                    },
-                    {
-                      label: t('Back-channel logout URL'),
-                      value: `${siteUrl}/api/oauth/oidc/backchannel-logout`,
-                      copyLabel: t('Copy back-channel logout URL'),
-                    },
-                    {
-                      label: t('Post-logout redirect URL'),
-                      value: `${siteUrl}/sign-in`,
-                      copyLabel: t('Copy post-logout redirect URL'),
                     },
                   ]}
                 />

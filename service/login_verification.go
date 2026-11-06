@@ -17,9 +17,8 @@ type LoginChallenge struct {
 }
 
 type loginFlowPayload struct {
-	OIDC        model.OIDCSessionBinding `json:"oidc"`
-	AuthVersion int64                    `json:"auth_version"`
-	LoginMethod string                   `json:"login_method"`
+	AuthVersion int64  `json:"auth_version"`
+	LoginMethod string `json:"login_method"`
 }
 
 // LoginVerification is server-owned state read from a primary-authenticated flow.
@@ -30,7 +29,7 @@ type LoginVerification struct {
 	payload loginFlowPayload
 }
 
-func StartLoginVerification(user *model.User, loginMethod string, oidc ...model.OIDCSessionBinding) (*LoginChallenge, error) {
+func StartLoginVerification(user *model.User, loginMethod string) (*LoginChallenge, error) {
 	if user == nil || user.Id <= 0 || user.AuthVersion <= 0 || loginMethod == "" {
 		return nil, model.ErrAuthFlowInvalid
 	}
@@ -52,14 +51,7 @@ func StartLoginVerification(user *model.User, loginMethod string, oidc ...model.
 	if !available {
 		return nil, ErrVerificationUnavailable
 	}
-	flowPayload := loginFlowPayload{AuthVersion: state.AuthVersion, LoginMethod: loginMethod}
-	if len(oidc) > 0 {
-		flowPayload.OIDC = oidc[0]
-	}
-	if err := model.CheckOIDCSessionActive(model.DB, flowPayload.OIDC); err != nil {
-		return nil, err
-	}
-	payload, err := common.Marshal(flowPayload)
+	payload, err := common.Marshal(loginFlowPayload{AuthVersion: state.AuthVersion, LoginMethod: loginMethod})
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +127,7 @@ func CompleteLoginVerification(token string, verification *LoginVerification, me
 	if verification == nil || verification.Flow == nil || verification.State == nil {
 		return nil, model.ErrAuthFlowInvalid
 	}
-	session, refreshSecret, err := newLoginSession(verification.State.UserID, verification.payload.AuthVersion, verification.payload.LoginMethod, ip, userAgent, verification.payload.OIDC)
+	session, refreshSecret, err := newLoginSession(verification.State.UserID, verification.payload.AuthVersion, verification.payload.LoginMethod, ip, userAgent)
 	if err != nil {
 		return nil, err
 	}

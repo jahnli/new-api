@@ -1,14 +1,9 @@
 package oauth
 
-import (
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/model"
-)
+import "github.com/QuantumNous/new-api/common"
 
 // OAuthToken represents the token received from OAuth provider
 type OAuthToken struct {
-	Nonce        string `json:"-"`
-	DiscoveryURL string `json:"-"`
 	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
 	RefreshToken string `json:"refresh_token,omitempty"`
@@ -20,7 +15,6 @@ type OAuthToken struct {
 
 // OAuthUser represents the user info from OAuth provider
 type OAuthUser struct {
-	OIDC model.OIDCSessionBinding
 	// ProviderUserID is the unique identifier from the OAuth provider
 	ProviderUserID string
 	// Username is the username from the OAuth provider (e.g., GitHub login)

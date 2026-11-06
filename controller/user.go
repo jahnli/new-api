@@ -146,7 +146,7 @@ func recordLoginAudit(user *model.User, c *gin.Context) {
 // setupLogin evaluates the shared login policy after primary authentication.
 // Only a completed Passkey ceremony may go directly to session issuance.
 func setupLogin(user *model.User, c *gin.Context) {
-	challenge, err := service.StartLoginVerification(user, loginMethodFromContext(c), oidcSessionBinding(c))
+	challenge, err := service.StartLoginVerification(user, loginMethodFromContext(c))
 	if err != nil {
 		writeSecurityOperationError(c, err)
 		return
@@ -177,7 +177,6 @@ func setupLoginAtAuthVersion(user *model.User, expectedAuthVersion int64, c *gin
 			loginMethodFromContext(c),
 			c.ClientIP(),
 			c.Request.UserAgent(),
-			oidcSessionBinding(c),
 		)
 	} else {
 		bundle, err = service.CreateLoginSession(

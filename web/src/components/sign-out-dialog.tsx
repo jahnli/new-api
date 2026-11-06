@@ -24,10 +24,8 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { logout } from '@/features/auth/api'
-import { rememberOIDCLogoutReturn } from '@/features/auth/lib/oidc-logout'
 import { clearAuthenticatedClientState } from '@/lib/auth-session'
 import { handleServerError } from '@/lib/handle-server-error'
-import { useAuthStore } from '@/stores/auth-store'
 
 interface SignOutDialogProps {
   open: boolean
@@ -39,54 +37,19 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const isOIDCSession = useAuthStore(
-    (state) => state.auth.session?.login_method === 'oauth:oidc'
-  )
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
     try {
-      const response = await logout(true)
+      const response = await logout()
       if (!response.success) {
         handleServerError(response, t('Failed to sign out session'))
         return
       }
 
       clearAuthenticatedClientState(queryClient)
-      if (response.data?.logout_url && URL.canParse(response.data.logout_url)) {
-        const logoutURL = new URL(response.data.logout_url)
-        // URL normalizes IP literals, including IPv4-mapped IPv6 addresses.
-        const loopback =
-          logoutURL.hostname === 'localhost' ||
-          /^127(?:\.\d{1,3}){3}$/.test(logoutURL.hostname) ||
-          logoutURL.hostname === '[::1]' ||
-          /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(logoutURL.hostname)
-        if (
-          (logoutURL.protocol === 'https:' ||
-            (logoutURL.protocol === 'http:' && loopback)) &&
-          !logoutURL.username &&
-          !logoutURL.password &&
-          !logoutURL.hash
-        ) {
-          rememberOIDCLogoutReturn()
-          window.location.assign(logoutURL.href)
-          return
-        }
-      }
-      if (response.data?.single_sign_out_unavailable || isOIDCSession) {
-        toast.warning(
-          t(
-            'Signed out locally. Single sign-out is unavailable; you may still be signed in to your identity provider.'
-          )
-        )
-      } else {
-        toast.success(t('Signed out'))
-      }
-      void navigate({
-        to: isOIDCSession ? '/' : '/sign-in',
-        search: isOIDCSession ? { signed_out: true } : {},
-        replace: true,
-      })
+      toast.success(t('Signed out'))
+      void navigate({ to: '/sign-in', replace: true })
     } catch (error: unknown) {
       handleServerError(error, t('Failed to sign out session'))
     } finally {
@@ -99,15 +62,9 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
       open={open}
       onOpenChange={onOpenChange}
       title={t('Sign out')}
-      desc={
-        isOIDCSession
-          ? t(
-              'Signing out will also request sign-out from your identity provider and may sign you out of other connected applications.'
-            )
-          : t(
-              'Are you sure you want to sign out? You will need to sign in again to access your account.'
-            )
-      }
+      desc={t(
+        'Are you sure you want to sign out? You will need to sign in again to access your account.'
+      )}
       confirmText={t('Sign out')}
       handleConfirm={handleSignOut}
       isLoading={isSigningOut}

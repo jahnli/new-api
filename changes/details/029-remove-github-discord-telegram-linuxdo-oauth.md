@@ -1,6 +1,8 @@
-# OAuth 登录调整与 OIDC 自动登录、单点登出
+# OAuth 登录调整与 OIDC 手动登录、本地退出
 
-**日期**: 2026-11-05
+**日期**: 2026-11-06
+
+当前 OIDC 行为以末尾「2026-11-06：恢复手动登录与本地退出」为准。下方 2026-11-03 和 2026-11-05 的自动登录、单点登出及相关验证说明保留为历史记录，对应扩展已撤回。
 
 ## 涉及文件
 
@@ -154,3 +156,48 @@ OIDC 退出继续使用已登记的 `/sign-in` 作为登录中心返回地址，
 ### 验证范围
 
 在仓库根目录执行 `go build ./oauth`、`git diff --check`，在 `web/` 执行 `bun x --package typescript@5.9.3 tsc -b --noEmit --pretty false`、对修改文件执行 `bun x --no-install oxlint -c .oxlintrc.json` 和 `bun x --no-install oxfmt --check`，以及 `bun run build`，均通过。未运行测试，最终退出、首页停留及刷新重新登录的 Casdoor 完整流程尚未实际联调验证。
+
+## 2026-11-06：恢复手动登录与本地退出
+
+OIDC 相关实现恢复至 `137e55e2e923675a133be8fa633c7c654ec5c117` 的功能状态。首页与登录页不再自动发起 OIDC 授权，用户通过登录按钮进入登录中心；退出仅撤销网关本地会话并返回登录页，跨标签页退出同步也返回登录页。
+
+撤回后端通道登出接口、主动请求登录中心登出、登出凭据存储、OIDC 会话关联与失效检查，以及配套身份令牌签名、签发方、受众、随机数和用户信息一致性校验；恢复原有授权码换取访问令牌、读取用户信息并进入共用登录与 MFA 流程。配置页移除两类登出地址与登记说明，前端移除自动登录状态、退出返回标记及相关查询参数处理。保留项目要求的 `common.DecodeJson` 封装。
+
+### 涉及文件
+
+- `controller/auth_session.go` — 恢复本地退出响应，移除单点登出参数与登录中心地址返回。
+- `controller/oauth.go` — 登录回调不再向共用登录流程传递 OIDC 会话绑定。
+- `controller/user.go` — 登录验证和会话创建恢复原参数，保留其他用户管理改动。
+- `controller/oidc_logout.go` — 删除后端通道登出控制器、会话绑定读取与登出响应构造。
+- `model/auth_flow.go` — 敏感操作认证恢复原有本地会话校验。
+- `model/user_session.go` — 移除 OIDC 嵌入字段、缓存字段、登出凭据写入和关联失效检查，缓存结构版本恢复为 1。
+- `model/oidc_logout.go` — 删除 OIDC 登出记录、身份摘要、重复通知处理与失效判定。
+- `model/main.go` — 移除 OIDC 登出记录表的自动迁移注册。
+- `oauth/oidc.go` — 恢复原有令牌交换和用户信息读取，移除配套身份令牌校验、身份摘要与登出凭据加密。
+- `oauth/types.go` — 移除新增的发现地址、随机数与 OIDC 会话绑定字段。
+- `oauth/oidc_tokens.go` — 删除配套发现配置、公钥缓存与身份令牌、登出令牌验证实现。
+- `oauth/oidc_logout.go` — 删除登录中心登出地址构造及其协议限制处理。
+- `router/api-router.go` — 移除 `/api/oauth/oidc/backchannel-logout` 路由。
+- `service/auth_session.go` — 恢复原有会话创建、令牌签发和错误映射，移除登出专用刷新凭据验证；保留 LDAP 用户名过滤。
+- `service/login_verification.go` — MFA 流程不再保存、传递或校验 OIDC 会话绑定。
+- `service/auth_cleanup.go` — 移除 OIDC 登出记录的定期清理。
+- `web/src/components/sign-out-dialog.tsx` — 恢复本地退出确认和成功提示，退出后进入登录页。
+- `web/src/features/auth/api.ts` — 恢复本地退出接口调用与响应类型。
+- `web/src/features/auth/components/oauth-providers.tsx` — 保留手动登录按钮，移除自动登录参数及加载提示。
+- `web/src/features/auth/hooks/use-oauth-login.ts` — 移除自动授权副作用，恢复按钮触发的登录流程。
+- `web/src/features/auth/lib/oidc-logout.ts` — 删除一次性退出返回标记。
+- `web/src/features/auth/sign-in/index.tsx` — 移除自动登录查询参数读取和表单参数传递。
+- `web/src/features/auth/sign-in/components/user-auth-form.tsx` — 恢复原有登录方式选择与条款状态处理，保留对外模式和 LDAP 展示逻辑。
+- `web/src/features/system-settings/auth/oauth-section.tsx` — 移除后端通道登出、登出后返回地址及说明，保留 LDAP 配置与保存顺序。
+- `web/src/hooks/use-status.ts` — 移除为自动登录新增的配置就绪状态。
+- `web/src/lib/oauth.ts` — 授权地址恢复原有参数，不再附加 `nonce`。
+- `web/src/routes/(auth)/sign-in.tsx` — 移除自动登录开关和退出返回标记消费。
+- `web/src/routes/__root.tsx` — 跨标签页退出统一返回登录页。
+- `web/src/routes/index.tsx` — 恢复直接展示首页，移除自动登录与退出参数处理。
+- `web/src/routes/oauth/$provider.tsx` — 登录回调失败恢复返回登录页，移除关闭自动登录的参数。
+
+### 验证范围
+
+本次代码回退已通过仓库根目录的 `go build ./...`、`git diff --check`，以及 `web/` 下的 `bun x tsgo -b`、`bun run build`；对修改的前端文件执行 `./node_modules/.bin/oxlint.exe -c .oxlintrc.json` 和 `./node_modules/.bin/oxfmt.exe --check`，退出码均为 0。`bun run typecheck` 因本地 Bun 1.3.14 缺少 `check` 命令失败，`bun x tsc -b` 因旧版编译器不支持现有配置失败，改用已安装的 `tsgo` 完成类型检查。未新增、修改或运行测试。
+
+本次仅回退代码，未执行数据库删除或数据回滚。当前环境未发现 MySQL、PostgreSQL 或 Docker，SQLite、MySQL、PostgreSQL 的完整迁移兼容验证受阻，未获得数据库版本及运行结果；真实身份提供方登录和退出流程尚未联调验证。

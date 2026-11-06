@@ -137,30 +137,20 @@ function OAuthCallback() {
       }
     }
 
-    const loginKey = `${provider}:${state}:${code}`
-    if (completedLogin.current === loginKey) return
-
-    // A failed manual or automatic callback must return to an interactive
-    // login page instead of immediately starting another OIDC authorization.
-    const returnToLogin = () => {
-      const redirect =
-        sanitizeAuthRedirect(
-          search.redirect ?? consumeOAuthLoginRedirect(state),
-          window.location.origin
-        ) ?? undefined
-      void navigate({
-        to: '/sign-in',
-        search: { redirect, auto_login: false },
-        replace: true,
-      })
+    const safeNavigate = (target: unknown, fallback = '/dashboard') => {
+      const href =
+        sanitizeAuthRedirect(target, window.location.origin) ?? fallback
+      void navigate({ href, replace: true })
     }
 
     if (!code && !search.error) {
       toast.error(i18next.t('Missing code'))
-      returnToLogin()
+      safeNavigate('/sign-in', '/sign-in')
       return
     }
 
+    const loginKey = `${provider}:${state}:${code}`
+    if (completedLogin.current === loginKey) return
     let active = true
     void (async () => {
       try {
@@ -207,7 +197,7 @@ function OAuthCallback() {
           AuthOperationError.from(error, i18next.t('OAuth failed'))
         )
       }
-      returnToLogin()
+      safeNavigate('/sign-in', '/sign-in')
     })()
     return () => {
       active = false

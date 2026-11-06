@@ -118,7 +118,7 @@ func ValidateAuthSessionWithTx(tx *gorm.DB, identity AuthSessionIdentity) error 
 	if session.Status != UserSessionStatusActive || session.RevokedAt != 0 || session.ExpiresAt <= time.Now().Unix() || session.UserAuthVersion != identity.UserAuthVersion || session.Version != identity.SessionVersion {
 		return ErrUserSessionInactive
 	}
-	return CheckOIDCSessionActive(tx, session.OIDC)
+	return nil
 }
 
 func applyAuthFlowMatch(query *gorm.DB, token string, match AuthFlowMatch) *gorm.DB {

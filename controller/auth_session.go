@@ -60,11 +60,6 @@ func AuthLogout(c *gin.Context) {
 				writeAuthSessionError(c, service.ErrLoginSessionMismatch)
 				return
 			}
-			canSignOutProvider := false
-			if c.Query("single_sign_out") == "true" {
-				_, _, err := service.ValidateLoginSession(identity)
-				canSignOutProvider = err == nil
-			}
 			if _, err := model.RevokeUserSession(identity.UserID, identity.SessionID, "logout"); err != nil {
 				writeAuthSessionError(c, err)
 				return
@@ -78,43 +73,25 @@ func AuthLogout(c *gin.Context) {
 				service.ClearRefreshCookie(c)
 				cookieCleared = true
 			}
-			data := gin.H{}
-			if canSignOutProvider {
-				data = oidcLogoutResponse(c, identity.UserID, identity.SessionID)
-			} else if c.Query("single_sign_out") == "true" {
-				data["single_sign_out_unavailable"] = true
-			}
-			data["revoked_sid"] = identity.SessionID
-			data["cookie_cleared"] = cookieCleared
 			c.JSON(http.StatusOK, gin.H{
 				"success": true,
 				"message": "",
-				"data":    data,
+				"data":    gin.H{"revoked_sid": identity.SessionID, "cookie_cleared": cookieCleared},
 			})
 			return
 		}
 	}
 	if cookieErr != nil || rawRefreshToken == "" {
 		service.ClearRefreshCookie(c)
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": gin.H{"single_sign_out_unavailable": c.Query("single_sign_out") == "true"}})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 		return
-	}
-	var logoutSession *model.UserSession
-	if c.Query("single_sign_out") == "true" {
-		logoutSession, _ = service.AuthenticateRefreshLogoutSession(rawRefreshToken)
 	}
 	if err := service.RevokeByRefreshToken(rawRefreshToken, expectedSID, "logout"); err != nil {
 		writeAuthSessionError(c, err)
 		return
 	}
 	service.ClearRefreshCookie(c)
-	data := gin.H{}
-	if logoutSession != nil {
-		data = oidcLogoutResponse(c, logoutSession.UserID, logoutSession.SID)
-	} else if c.Query("single_sign_out") == "true" {
-		data["single_sign_out_unavailable"] = true
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": data})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 }
 
 func GetLoginSessions(c *gin.Context) {
