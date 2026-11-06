@@ -16,6 +16,7 @@ const defaultAuthSettings: AuthSettings = {
   EmailDomainWhitelist: '',
   ServerAddress: '',
   'oidc.enabled': false,
+  'oidc.silent_login': false,
   'oidc.display_name': '',
   'oidc.client_id': '',
   'oidc.client_secret': '',

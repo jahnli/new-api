@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import axios from 'axios'
 
 import { api, refreshAuthentication, type RefreshOutcome } from '@/lib/api'
+import { suppressSilentOIDCLogin } from '@/lib/oidc-silent-preference'
 import { AuthOperationError } from '@/lib/secure-verification'
 import {
   getServerErrorMessageKey,
@@ -151,6 +152,7 @@ export async function executeLogout<T = unknown>(
 export async function logout(
   options: { singleSignOut?: boolean } = {}
 ): Promise<ApiResponse<LogoutResult>> {
+  suppressSilentOIDCLogin()
   return executeLogout<LogoutResult>({
     getExpectedSID: () => useAuthStore.getState().auth.session?.sid,
     request: async (sid) => {

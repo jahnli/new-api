@@ -209,6 +209,11 @@ func UpdateOption(c *gin.Context) {
 		}
 	}
 	switch option.Key {
+	case "oidc.silent_login":
+		if option.Value == "true" && system_setting.GetOIDCSettings().WellKnown == "" {
+			common.ApiErrorT(c, "Configure OIDC discovery before enabling silent sign-in.")
+			return
+		}
 	case "oidc.enabled":
 		if option.Value == "true" && system_setting.GetOIDCSettings().ClientId == "" {
 			common.ApiErrorT(c, "Cannot enable {{provider}}. Enter the {{provider}} Client ID and Client Secret first.", map[string]any{"provider": "OIDC"})

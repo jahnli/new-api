@@ -14,6 +14,18 @@ export const Route = createFileRoute('/_authenticated')({
 
     const { auth } = useAuthStore.getState()
 
+    if (
+      !auth.user &&
+      auth.pendingLoginVerification?.source === 'silent_oidc' &&
+      auth.pendingLoginVerification.challenge.expires_at * 1000 > Date.now()
+    ) {
+      auth.setPendingLoginVerification({
+        ...auth.pendingLoginVerification,
+        source: undefined,
+      })
+      throw redirect({ to: '/otp', replace: true })
+    }
+
     if (!auth.user || !auth.accessToken) {
       throw redirect({
         to: '/sign-in',

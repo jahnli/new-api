@@ -16,11 +16,20 @@ import (
 // provider logout always requires a trusted browser origin. It never adds CORS
 // response headers and must not be installed on relay routes.
 func SessionCookieOriginGuard() gin.HandlerFunc {
+	guard := BrowserOriginGuard()
 	return func(c *gin.Context) {
 		if !common.SessionCookieSecure && c.Query("single_sign_out") != "true" {
 			c.Next()
 			return
 		}
+		guard(c)
+	}
+}
+
+// BrowserOriginGuard also protects unauthenticated login completions from login
+// CSRF. Unlike the refresh compatibility mode, it enforces origins on localhost.
+func BrowserOriginGuard() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		origin, ok := requestBrowserOrigin(c.Request)
 		if !ok || !isAllowedSessionOrigin(c.Request, origin) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{

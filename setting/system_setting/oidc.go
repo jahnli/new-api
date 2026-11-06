@@ -8,6 +8,7 @@ import (
 
 type OIDCSettings struct {
 	Enabled               bool   `json:"enabled"`
+	SilentLogin           bool   `json:"silent_login"`
 	DisplayName           string `json:"display_name"`
 	ClientId              string `json:"client_id"`
 	ClientSecret          string `json:"client_secret"`
@@ -27,6 +28,13 @@ func init() {
 
 func GetOIDCSettings() *OIDCSettings {
 	return &defaultOIDCSettings
+}
+
+// Silent login requires discovery so the ID token is verified against a trusted issuer.
+func (s *OIDCSettings) IsSilentLoginEnabled() bool {
+	return s.Enabled && s.SilentLogin && s.WellKnown != "" && s.ClientId != "" &&
+		s.ClientSecret != "" && s.AuthorizationEndpoint != "" && s.TokenEndpoint != "" &&
+		s.UserInfoEndpoint != "" && ServerAddress != ""
 }
 
 // GetEffectiveDisplayName returns the admin-configured display name, or the

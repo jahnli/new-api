@@ -10,6 +10,7 @@ import { useEffect } from 'react'
 import { NavigationProgress } from '@/components/navigation-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeCustomizationProvider } from '@/context/theme-customization-provider'
+import { isOIDCSilentCallbackFrame } from '@/features/auth/lib/oidc-silent-transport'
 import { GeneralError } from '@/features/errors/general-error'
 import { NotFoundError } from '@/features/errors/not-found-error'
 import { getSetupStatus } from '@/features/setup/api'
@@ -24,6 +25,11 @@ import { resolveLegacyRoute } from '@/lib/legacy-route'
 import { useAuthStore } from '@/stores/auth-store'
 
 function RootComponent() {
+  if (isOIDCSilentCallbackFrame()) return <Outlet />
+  return <RootApplication />
+}
+
+function RootApplication() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -80,7 +86,10 @@ export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
 }>()({
   // 应用初始化与路由解析前统一校验会话
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async ({ location, context }) => {
+    // The hidden callback only passes a code to its parent. It must not refresh
+    // sessions, subscribe to tab events or recursively start another probe.
+    if (isOIDCSilentCallbackFrame()) return
     const legacyTarget = resolveLegacyRoute(location.href)
     if (legacyTarget) {
       throw redirect({ href: legacyTarget, replace: true })
@@ -112,6 +121,22 @@ export const Route = createRootRouteWithContext<{
       }
     } else {
       await authBootstrap
+    }
+
+    if (
+      !useAuthStore.getState().auth.user &&
+      !pathname.startsWith('/oauth') &&
+      ![
+        '/setup',
+        '/otp',
+        '/sign-up',
+        '/forgot-password',
+        '/reset-password',
+      ].includes(pathname)
+    ) {
+      const { trySilentOIDCLogin } =
+        await import('@/features/auth/lib/oidc-silent-login')
+      await trySilentOIDCLogin(context.queryClient, location.href)
     }
   },
   component: RootComponent,

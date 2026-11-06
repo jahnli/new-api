@@ -3,6 +3,7 @@ import axios from 'axios'
 import { t } from 'i18next'
 
 import { publishAuthSessionEvent } from '@/lib/auth-session-sync'
+import { resumeSilentOIDCLogin } from '@/lib/oidc-silent-preference'
 import { hasSessionHint } from '@/lib/session-hint'
 import {
   useAuthStore,
@@ -135,10 +136,16 @@ export function applyAuthBundle(
 ): void {
   const previousSID = useAuthStore.getState().auth.session?.sid
   authEpoch += 1
+  if (synchronizeTabs) resumeSilentOIDCLogin()
   useAuthStore.getState().auth.setBundle(bundle)
   if (synchronizeTabs && previousSID !== bundle.session.sid) {
     publishAuthSessionEvent('authenticated', bundle.session.sid)
   }
+}
+
+// Asynchronous sign-in transports must not overwrite a newer login or logout.
+export function getAuthenticationEpoch(): number {
+  return authEpoch
 }
 
 export function applyAuthRotation(value: unknown): void {

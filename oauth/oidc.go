@@ -60,6 +60,11 @@ func (p *OIDCProvider) ExchangeToken(ctx context.Context, code string, c *gin.Co
 	values.Set("code", code)
 	values.Set("grant_type", "authorization_code")
 	values.Set("redirect_uri", redirectUri)
+	nonce := c.Query("state")
+	if verifier := c.GetString("oidc_code_verifier"); verifier != "" {
+		values.Set("code_verifier", verifier)
+		nonce = c.GetString("oidc_nonce")
+	}
 
 	logger.LogDebug(ctx, "[OAuth-OIDC] ExchangeToken: token_endpoint=%s, redirect_uri=%s", settings.TokenEndpoint, redirectUri)
 
@@ -99,7 +104,7 @@ func (p *OIDCProvider) ExchangeToken(ctx context.Context, code string, c *gin.Co
 	return &OAuthToken{
 		ClientID:     settings.ClientId,
 		DiscoveryURL: settings.WellKnown,
-		Nonce:        c.Query("state"),
+		Nonce:        nonce,
 		AccessToken:  oidcResponse.AccessToken,
 		TokenType:    oidcResponse.TokenType,
 		RefreshToken: oidcResponse.RefreshToken,

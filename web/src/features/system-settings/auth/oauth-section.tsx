@@ -58,6 +58,7 @@ import {
 const oauthSchema = z.object({
   oidc: z.object({
     enabled: z.boolean(),
+    silent_login: z.boolean(),
     display_name: z.string(),
     client_id: z.string(),
     client_secret: z.string(),
@@ -108,6 +109,7 @@ type LDAPCompanySyncConfig =
 
 type FlatOAuthDefaults = {
   'oidc.enabled': boolean
+  'oidc.silent_login'?: boolean
   'oidc.display_name': string
   'oidc.client_id': string
   'oidc.client_secret': string
@@ -246,6 +248,7 @@ const normalizeLDAPAllowedUsernames = (usernames: string[]): string[] => [
 const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   oidc: {
     enabled: defaults['oidc.enabled'],
+    silent_login: defaults['oidc.silent_login'] ?? false,
     display_name: defaults['oidc.display_name'] ?? '',
     client_id: defaults['oidc.client_id'] ?? '',
     client_secret: defaults['oidc.client_secret'] ?? '',
@@ -285,6 +288,7 @@ const normalizeFormValues = (
   values: OAuthFormValues
 ): Required<FlatOAuthDefaults> => ({
   'oidc.enabled': values.oidc.enabled,
+  'oidc.silent_login': values.oidc.silent_login,
   'oidc.display_name': values.oidc.display_name,
   'oidc.client_id': values.oidc.client_id,
   'oidc.client_secret': values.oidc.client_secret,
@@ -394,6 +398,13 @@ export function OAuthSection(props: OAuthSectionProps) {
   const onSubmit = async (values: OAuthFormValues) => {
     let finalValues = values
     const wellKnown = values.oidc.well_known.trim()
+    if (values.oidc.silent_login && !wellKnown) {
+      setActiveTab('oidc')
+      form.setError('oidc.well_known', {
+        message: t('Configure OIDC discovery before enabling silent sign-in.'),
+      })
+      return
+    }
     const discoveryUrlChanged =
       wellKnown !== (baselineRef.current['oidc.well_known'] ?? '').trim()
     const enablingOIDC =
@@ -461,6 +472,7 @@ export function OAuthSection(props: OAuthSectionProps) {
     // succeed. Apply the same ordering to LDAP username filtering.
     const activationKeys = new Set<keyof FlatOAuthDefaults>([
       'oidc.enabled',
+      'oidc.silent_login',
       'ldap.enabled',
       'ldap.username_filter_enabled',
       'WeChatAuthEnabled',
@@ -591,6 +603,32 @@ export function OAuthSection(props: OAuthSectionProps) {
                         <FormLabel>{t('Enable OIDC')}</FormLabel>
                         <FormDescription>
                           {t('Allow users to sign in with OpenID Connect')}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='oidc.silent_login'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Enable silent OIDC sign-in')}</FormLabel>
+                        <FormDescription>
+                          {t(
+                            'Automatically sign in linked accounts when opening or refreshing this site. Requires OIDC discovery and a provider that supports silent authorization.'
+                          )}{' '}
+                          {t(
+                            'Use HTTPS under the same parent domain for reliable silent sign-in. If cookies or embedded pages are blocked, users can still sign in manually.'
+                          )}
                         </FormDescription>
                       </SettingsSwitchContent>
                       <FormControl>

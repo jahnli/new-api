@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 
 import { OAuthCallbackScreen } from '@/features/auth/components/oauth-callback-screen'
+import { OIDCSilentCallback } from '@/features/auth/components/oidc-silent-callback'
 import {
   OAUTH_POPUP_CALLBACK_MESSAGE,
   OAUTH_POPUP_RESULT_MESSAGE,
@@ -218,5 +219,13 @@ function OAuthCallback() {
 }
 
 export const Route = createFileRoute('/oauth/$provider')({
-  component: OAuthCallback,
+  component: OAuthCallbackRoute,
 })
+
+function OAuthCallbackRoute() {
+  const { provider } = useParams({ from: '/oauth/$provider' })
+  if (provider === 'oidc' && window.parent !== window) {
+    return <OIDCSilentCallback />
+  }
+  return <OAuthCallback />
+}

@@ -148,6 +148,7 @@ export type AuthSettings = {
   EmailDomainWhitelist: string
   ServerAddress: string
   'oidc.enabled': boolean
+  'oidc.silent_login'?: boolean
   'oidc.display_name': string
   'oidc.client_id': string
   'oidc.client_secret': string

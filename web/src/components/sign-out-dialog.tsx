@@ -26,6 +26,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { logout } from '@/features/auth/api'
 import { clearAuthenticatedClientState } from '@/lib/auth-session'
 import { handleServerError } from '@/lib/handle-server-error'
+import { prepareSilentOIDCLogoutReturn } from '@/lib/oidc-silent-preference'
 import { useAuthStore } from '@/stores/auth-store'
 
 interface SignOutDialogProps {
@@ -67,6 +68,7 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
             !logoutURL.password &&
             !logoutURL.hash
           ) {
+            prepareSilentOIDCLogoutReturn()
             window.location.assign(logoutURL.href)
             return
           }

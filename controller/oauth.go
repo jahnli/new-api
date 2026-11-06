@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -21,13 +22,16 @@ import (
 const oauthAuthFlowTTL = 10 * time.Minute
 
 type oauthStateRequest struct {
-	Provider string          `json:"provider"`
-	Intent   string          `json:"intent"`
-	Scope    string          `json:"scope,omitempty"`
-	Context  json.RawMessage `json:"context,omitempty"`
+	Provider      string          `json:"provider"`
+	Intent        string          `json:"intent"`
+	Scope         string          `json:"scope,omitempty"`
+	Context       json.RawMessage `json:"context,omitempty"`
+	Silent        bool            `json:"silent,omitempty"`
+	CodeChallenge string          `json:"code_challenge,omitempty"`
 }
 
 type oauthFlowPayload struct {
+	SilentOIDC      *silentOIDCFlow                `json:"silent_oidc,omitempty"`
 	Verification    *service.OAuthVerificationFlow `json:"verification,omitempty"`
 	SessionIdentity *service.AuthIdentity          `json:"session_identity,omitempty"`
 	Authorization   *model.AuthFlowAuthorization   `json:"authorization,omitempty"`
@@ -56,6 +60,21 @@ func GenerateOAuthCode(c *gin.Context) {
 	userID := 0
 	sessionID := ""
 	flowPayload := oauthFlowPayload{}
+	if request.Silent {
+		if request.Provider != "oidc" || request.Intent != model.AuthFlowIntentLogin ||
+			!system_setting.GetOIDCSettings().IsSilentLoginEnabled() || !validOIDCCodeChallenge(request.CodeChallenge) {
+			common.ApiErrorT(c, "Invalid parameters")
+			return
+		}
+		flowPayload.SilentOIDC = &silentOIDCFlow{
+			CodeChallenge: request.CodeChallenge,
+			ClientID:      system_setting.GetOIDCSettings().ClientId,
+			DiscoveryURL:  system_setting.GetOIDCSettings().WellKnown,
+		}
+	} else if request.CodeChallenge != "" {
+		common.ApiErrorT(c, "Invalid parameters")
+		return
+	}
 	bindingStarted := false
 	if request.Intent == model.AuthFlowIntentBind || request.Intent == model.AuthFlowIntentVerify {
 		identity, ok := middleware.GetSessionAuthIdentity(c)
@@ -95,6 +114,9 @@ func GenerateOAuthCode(c *gin.Context) {
 		return
 	}
 	expiresAt := time.Now().Add(oauthAuthFlowTTL)
+	if request.Silent {
+		expiresAt = time.Now().Add(2 * time.Minute)
+	}
 	state, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
 		Purpose:   model.AuthFlowPurposeOAuth,
 		Provider:  request.Provider,
@@ -110,6 +132,14 @@ func GenerateOAuthCode(c *gin.Context) {
 	}
 	bindingStarted = request.Intent == model.AuthFlowIntentBind
 	data := gin.H{"flow_token": state, "expires_at": expiresAt.Unix()}
+	if request.Silent {
+		authorizationURL, err := silentOIDCAuthorizationURL(state, request.CodeChallenge)
+		if err != nil {
+			common.ApiErrorT(c, "Invalid parameters")
+			return
+		}
+		data["authorization_url"] = authorizationURL
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -119,7 +149,13 @@ func GenerateOAuthCode(c *gin.Context) {
 
 // HandleOAuth handles OAuth callback for all standard OAuth providers
 func HandleOAuth(c *gin.Context) {
-	providerName := c.Param("provider")
+	handleOAuthCallback(c, c.Param("provider"), oauthCallbackRequest{
+		State: c.Query("state"), Code: c.Query("code"),
+		Error: c.Query("error"), ErrorDescription: c.Query("error_description"),
+	})
+}
+
+func handleOAuthCallback(c *gin.Context, providerName string, request oauthCallbackRequest) {
 	provider := oauth.GetProvider(providerName)
 	if provider == nil {
 		writeAccountStatusError(c, http.StatusBadRequest, "Unknown OAuth provider")
@@ -127,13 +163,23 @@ func HandleOAuth(c *gin.Context) {
 	}
 
 	// 1. Validate state (CSRF protection)
-	state := c.Query("state")
+	state := request.State
 	pendingFlow, err := model.GetAuthFlow(state, model.AuthFlowMatch{
 		Purpose:  model.AuthFlowPurposeOAuth,
 		Provider: providerName,
 	})
 	if err != nil {
 		writeAccountStatusError(c, http.StatusForbidden, "State parameter is empty or mismatched")
+		return
+	}
+	var payload oauthFlowPayload
+	if pendingFlow.Payload != "" {
+		if err := common.UnmarshalJsonStr(pendingFlow.Payload, &payload); err != nil {
+			writeSecurityOperationError(c, model.ErrAuthFlowInvalid)
+			return
+		}
+	}
+	if !validateSilentOIDCCallback(c, providerName, pendingFlow.Intent, payload.SilentOIDC, request) {
 		return
 	}
 
@@ -185,13 +231,13 @@ func HandleOAuth(c *gin.Context) {
 	}
 
 	// 4. Handle error from provider
-	errorCode := c.Query("error")
+	errorCode := request.Error
 	if errorCode != "" {
 		if _, err := model.ConsumeAuthFlow(state, consumeMatch); err != nil {
 			writeAccountStatusError(c, http.StatusForbidden, "State parameter is empty or mismatched")
 			return
 		}
-		errorDescription := c.Query("error_description")
+		errorDescription := request.ErrorDescription
 		if errorDescription == "" {
 			errorDescription = errorCode
 		}
@@ -202,7 +248,7 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 	// 5. Exchange code for token
-	code := c.Query("code")
+	code := request.Code
 	token, err := provider.ExchangeToken(c.Request.Context(), code, c)
 	if err != nil {
 		handleOAuthError(c, err)
@@ -355,7 +401,8 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	}
 
 	// User doesn't exist, create new user if registration is enabled
-	if !common.RegisterEnabled {
+	// A background probe must not register an account without an explicit login.
+	if !common.RegisterEnabled || c.GetBool("oidc_silent_login") {
 		return nil, &OAuthRegistrationDisabledError{}
 	}
 

@@ -1,8 +1,8 @@
-# OAuth 登录调整与 OIDC 手动登录、双向退出联动
+# OAuth 登录调整与 OIDC 静默登录、双向退出联动
 
 **日期**: 2026-11-06
 
-当前 OIDC 行为以末尾「2026-11-06：手动登录下的双向退出联动」为准。前面的实现和回退说明保留为历史记录；当前保持手动登录，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
+当前 OIDC 行为以末尾「2026-11-06：可选静默登录与回调加载优化」及此前双向退出联动说明为准。前面的实现和回退说明保留为历史记录；当前保留手动登录，支持默认关闭的静默登录，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
 
 ## 涉及文件
 
@@ -241,3 +241,44 @@ Casdoor 向 `/api/oauth/oidc/backchannel-logout` 发送签名退出通知后，�
 此前本轮实现已通过根目录 `go build ./...`、`git diff --check`，以及 `web/` 下 `bun x tsgo -b`、`bun run build`、`bun run i18n:sync`；对修改的五个 TypeScript/TSX 文件执行 `bun x oxlint -c .oxlintrc.json` 和 `bun x oxfmt --check`，退出码均为 0。未新增、修改或运行测试。本次日志更新仅进行差异与格式检查。
 
 本地 Casdoor 发现配置已声明支持后端退出通知及会话标识，真实登录退出链路尚未完整联调。新增会话关联字段、索引及退出记录表；由于本机未发现 MySQL、PostgreSQL 或 Docker 运行环境，三库新建、升级及重复迁移验证仍受阻，没有可报告的数据库版本和运行结果，未完成数据库兼容验证。
+
+## 2026-11-06：可选静默登录与回调加载优化
+
+系统设置的身份认证 → OAuth 新增默认关闭的「启用 OIDC 静默登录」。配置 OIDC 发现地址并启用后，未登录用户打开或刷新符合条件的页面时，通过隐藏框架请求 `prompt=none` 授权；登录中心已有有效会话、网关账户已关联且无需额外交互时，自动恢复登录，主页面无需跳转登录中心。沿用 `/oauth/oidc` 回调地址，未登录、浏览器阻止嵌入或授权失败时保留手动入口；不通过后台探测自动注册账户，必要的 MFA 仍进入原验证流程。
+
+授权流程使用短期一次性状态、随机数及 S256 PKCE，校验材料保留在父页面内存；回调消息校验来源、窗口及状态，父页面通过受来源校验保护的接口完成登录。每个页面最多探测一次，支持跨标签页互斥及会话变更取消，失效流程返回的新会话会被撤销，避免覆盖后续登录或退出。
+
+分离授权等待与后端完成请求的超时，修复后端交换尚未结束就被整体超时判定为失效、成功会话随即撤销的问题。跨系统退出仅抑制返回后的当次页面，之后在 Casdoor 重新登录并刷新网关可再次探测；仅本地退出继续暂停静默登录，显式登录成功后恢复，并清理旧版永久暂停标记。
+
+隐藏回调在入口直接转交授权结果，不再加载整套 React 应用、路由、样式及站点初始化请求；正常页面按需加载原应用入口。保留身份令牌校验、会话关联与双向退出行为。
+
+### 涉及文件
+
+- `controller/oidc_silent.go` — 新增静默授权地址构造、完成接口与 PKCE、客户端及发现配置匹配校验。
+- `controller/oauth.go` — 扩展授权状态请求与载荷，静默流程有效期为两分钟；复用登录回调并禁止静默自动注册。
+- `controller/misc.go` — 站点状态返回静默登录实际可用状态。
+- `controller/option.go` — 启用静默登录前要求配置发现地址。
+- `middleware/auth_origin.go` — 提取严格浏览器来源校验，静默登录完成接口在本地开发环境也执行校验。
+- `oauth/oidc.go` — 令牌交换传递 PKCE 校验材料及静默流程随机数，沿用身份令牌校验。
+- `router/api-router.go` — 注册 `/api/oauth/oidc/silent`，接入来源检查、限流、禁用缓存与请求体限制。
+- `setting/system_setting/oidc.go` — 新增静默登录配置及完整配置可用性判断。
+- `web/src/features/system-settings/auth/index.tsx`、`web/src/features/system-settings/auth/section-registry.tsx`、`web/src/features/system-settings/types.ts` — 接入开关默认值、配置传递与类型。
+- `web/src/features/system-settings/auth/oauth-section.tsx` — 新增开关及说明，校验发现地址，并在相关配置保存后启用功能。
+- `web/src/features/auth/types.ts` — 扩展站点状态类型。
+- `web/src/features/auth/lib/oidc-silent-login.ts` — 实现状态读取、授权探测、跨标签页互斥、分阶段超时、会话竞态处理及 MFA 衔接。
+- `web/src/features/auth/lib/oidc-silent-transport.ts` — 管理隐藏框架、回调转交、消息校验与资源清理。
+- `web/src/features/auth/components/oidc-silent-callback.tsx` — 路由回调复用轻量消息转交逻辑。
+- `web/src/main.tsx`、`web/src/bootstrap.tsx` — 拆分轻量入口与原应用初始化，静默回调跳过完整应用加载。
+- `web/src/routes/__root.tsx` — 本地会话恢复后发起符合条件的静默探测，隐藏回调跳过常规初始化。
+- `web/src/routes/oauth/$provider.tsx` — 区分隐藏 OIDC 回调与普通 OAuth 回调。
+- `web/src/routes/(auth)/sign-in.tsx`、`web/src/routes/_authenticated/route.tsx`、`web/src/stores/auth-store.ts` — 识别静默登录产生的待验证状态并进入既有 MFA 页面。
+- `web/src/lib/oidc-silent-preference.ts` — 管理本地退出暂停、跨系统退出一次性返回标记与旧标记迁移。
+- `web/src/components/sign-out-dialog.tsx`、`web/src/features/auth/api.ts` — 退出时暂停探测，在跳转至验证过的登录中心退出地址前设置返回标记。
+- `web/src/lib/auth-session.ts` — 显式登录成功后恢复探测资格，提供认证版本用于排除过期结果。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐静默登录开关、发现地址校验及浏览器兼容说明。
+
+### 配置与验证范围
+
+网关站点地址应与浏览器实际访问入口一致，并在身份提供方登记该地址下的 `/oauth/oidc` 回调。需要身份提供方支持静默授权及浏览器允许相应 Cookie 与嵌入页面；线上建议使用同一主域名下的 HTTPS 地址。
+
+本轮实现此前通过根目录 `go build ./...`；回调加载优化后，在 `web/` 执行 `bunx --no-install tsgo -b`、`bunx --no-install oxlint -c .oxlintrc.json src/main.tsx src/bootstrap.tsx src/features/auth/lib/oidc-silent-transport.ts src/features/auth/components/oidc-silent-callback.tsx`、对这四个文件执行 `bunx --no-install oxfmt -c .oxfmtrc.json --check`，以及 `bun run build`，均通过，`git diff --check` 通过。未新增、修改或运行测试；生产产物确认隐藏回调仅加载约 38 KB 的入口脚本，尚未进行优化后的浏览器端耗时实测。

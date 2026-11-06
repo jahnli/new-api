@@ -76,6 +76,7 @@ export interface SystemStatus {
     system_name?: string
     logo?: string
     oidc_enabled?: boolean
+    oidc_silent_login?: boolean
     oidc_authorization_endpoint?: string
     oidc_client_id?: string
     oidc_display_name?: string
@@ -117,6 +118,7 @@ export interface SystemStatus {
   system_name?: string
   logo?: string
   oidc_enabled?: boolean
+  oidc_silent_login?: boolean
   oidc_authorization_endpoint?: string
   oidc_client_id?: string
   oidc_display_name?: string
