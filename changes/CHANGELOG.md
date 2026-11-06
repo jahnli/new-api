@@ -7,7 +7,7 @@
 | 001 | 2026-07-05 | 默认前端固定为 default 并彻底移除 classic：清理后端主题切换、classic embed、Docker 构建阶段与前端 workspace | [详情](details/001-default-frontend-only.md) |
 | 002 | 2026-07-09 | 全局品牌重命名 New API → AI Gateway，清理后端中继、文档、Electron 与前端脚本中的品牌残留 | [详情](details/002-brand-rename.md) |
 | 003 | 2026-09-02 | 首页定制：移除 Footer/开源卡片/CTA 推广区等区块，替换模型标签，优化三步上手与 Hero 轨道动画，并新增统计微光动画、glass 卡片 UI 与飞书联系信息 | [详情](details/003-homepage-customization.md) |
-| 004 | 2026-06-19 | 修复前端 dev server 端口冲突 | `web/default/rsbuild.config.ts` |
+| 004 | 2026-11-06 | 修复前端 dev server 端口冲突；移除开发模式 HTTPS 启动命令与证书读取配置，统一使用 HTTP，端口占用时允许自动切换 | `web/rsbuild.config.ts`、`web/package.json`、`web/.gitignore` |
 | 005 | 2026-06-19 | 移除开发环境 devtools 面板 | `web/default/src/routes/__root.tsx` |
 | 006 | 2026-06-19 | 删除 About 页面及所有相关引用 | [详情](details/007-remove-about.md) |
 | 007 | 2026-06-19 | 删除兑换码管理界面及前端引用 | [详情](details/008-remove-redemption-frontend.md) |
@@ -85,3 +85,4 @@
 | 080 | 2026-09-19 | 模型管理的新增、补充资料、编辑与定价操作统一改为居中弹框 | [详情](details/080-model-mutate-dialog.md) |
 | 081 | 2026-09-22 | 移除用户签到功能：删除每日签到与随机额度奖励、个人资料签到日历、后台签到配置及相关接口和数据模型 | [详情](details/081-remove-checkin.md) |
 | 082 | 2026-10-28 | 清空多个渠道的内置模型列表，并移除 AWS 模型名称映射及跨区域支持配置 | [详情](details/082-channel-model-lists.md) |
+| 083 | 2026-11-06 | 报价表同步脚本支持通过 --group 指定分组，默认沿用 Basic，忽略大小写并去除首尾空白；拒绝空分组或无法唯一匹配的分组 | `scripts/sync_price_sheet.py` |
