@@ -25,7 +25,8 @@ export default defineConfig(({ envMode }) => {
   const devProxy = Object.fromEntries(
     (['/api', '/v1', '/mj', '/pg'] as const).map((key) => [
       key,
-      { target: serverUrl, changeOrigin: true },
+      // Preserve the browser-facing Host for backend session Origin checks.
+      { target: serverUrl, changeOrigin: false },
     ])
   ) as Record<string, { target: string; changeOrigin: boolean }>
 

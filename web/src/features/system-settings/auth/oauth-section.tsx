@@ -546,6 +546,16 @@ export function OAuthSection(props: OAuthSectionProps) {
                           'OIDC discovery can fill the endpoint fields automatically when the provider supports it.'
                         )}
                       </p>
+                      <p>
+                        {t(
+                          'To sign out of Casdoor when signing out here, configure the Discovery URL and register the post-logout redirect URL in Casdoor. Your Casdoor version must support logout using the browser session without an ID token.'
+                        )}
+                      </p>
+                      <p>
+                        {t(
+                          'To sign out here after signing out of Casdoor, configure the Discovery URL and set the back-channel logout URL in the Casdoor application. Use an HTTPS address reachable from the Casdoor server or container; localhost is only for testing on the same host. Sign in again after updating to link the sessions.'
+                        )}
+                      </p>
                     </div>
                   }
                   rows={[
@@ -558,6 +568,16 @@ export function OAuthSection(props: OAuthSectionProps) {
                       label: t('Redirect URL'),
                       value: oidcCallbackUrl,
                       copyLabel: t('Copy redirect URL'),
+                    },
+                    {
+                      label: t('Post-logout redirect URL'),
+                      value: `${siteUrl}/sign-in`,
+                      copyLabel: t('Copy post-logout redirect URL'),
+                    },
+                    {
+                      label: t('Back-channel logout URL'),
+                      value: `${siteUrl}/api/oauth/oidc/backchannel-logout`,
+                      copyLabel: t('Copy back-channel logout URL'),
                     },
                   ]}
                 />

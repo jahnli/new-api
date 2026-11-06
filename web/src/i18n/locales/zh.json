@@ -7397,6 +7397,8 @@
     "To OpenAI Responses": "转 OpenAI Responses",
     "to override billing when a user in one group uses a token of another group.": "当一个分组中的用户使用另一个分组的令牌时，用于覆盖计费。",
     "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.": "用于替换该供应商模型的分组基础倍率。供应商 ID 来自模型供应商表。",
+    "To sign out here after signing out of Casdoor, configure the Discovery URL and set the back-channel logout URL in the Casdoor application. Use an HTTPS address reachable from the Casdoor server or container; localhost is only for testing on the same host. Sign in again after updating to link the sessions.": "如需在 Casdoor 退出后同步退出本站，请配置发现地址，并在 Casdoor 应用中设置后端退出通知地址。请使用 Casdoor 服务器或容器可访问的 HTTPS 地址；localhost 仅适用于同机测试。更新后请重新登录一次，以关联双方会话。",
+    "To sign out of Casdoor when signing out here, configure the Discovery URL and register the post-logout redirect URL in Casdoor. Your Casdoor version must support logout using the browser session without an ID token.": "如需退出本站时同时退出 Casdoor，请配置发现地址，并在 Casdoor 中登记退出后返回地址。所用 Casdoor 版本须支持无需 ID 令牌、通过浏览器会话退出。",
     "to the Models list so users can use them before the mapping sends traffic upstream.": "到模型列表，以便用户在映射将流量发送到上游之前可以使用它们。",
     "To Upper": "转大写",
     "To Uppercase": "转大写",

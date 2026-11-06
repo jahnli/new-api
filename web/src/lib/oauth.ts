@@ -49,6 +49,7 @@ export function buildOIDCOAuthUrl(
   url.searchParams.set('redirect_uri', `${window.location.origin}/oauth/oidc`)
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'openid profile email')
+  url.searchParams.set('nonce', state)
   url.searchParams.set('state', state)
   return url.toString()
 }

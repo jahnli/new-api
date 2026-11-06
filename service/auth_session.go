@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crypto/hmac"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 const RefreshCookieName = "new_api_refresh"
@@ -54,14 +56,14 @@ func CreateLoginSession(userID int, loginMethod, ip, userAgent string) (*AuthBun
 	return createLoginSession(userID, 0, loginMethod, ip, userAgent)
 }
 
-func CreateLoginSessionAtAuthVersion(userID int, expectedAuthVersion int64, loginMethod, ip, userAgent string) (*AuthBundle, error) {
+func CreateLoginSessionAtAuthVersion(userID int, expectedAuthVersion int64, loginMethod, ip, userAgent string, oidc ...model.OIDCSessionBinding) (*AuthBundle, error) {
 	if expectedAuthVersion <= 0 {
 		return nil, ErrLoginSessionInvalid
 	}
-	return createLoginSession(userID, expectedAuthVersion, loginMethod, ip, userAgent)
+	return createLoginSession(userID, expectedAuthVersion, loginMethod, ip, userAgent, oidc...)
 }
 
-func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, userAgent string) (*AuthBundle, error) {
+func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, userAgent string, oidc ...model.OIDCSessionBinding) (*AuthBundle, error) {
 	user, err := model.GetUserCache(userID)
 	if err != nil {
 		return nil, err
@@ -87,7 +89,7 @@ func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, 
 	if issuanceCount >= int64(common.UserSessionIssuanceLimit) {
 		return nil, model.ErrUserSessionIssuanceLimit
 	}
-	session, refreshSecret, err := newLoginSession(userID, user.AuthVersion, loginMethod, ip, userAgent)
+	session, refreshSecret, err := newLoginSession(userID, user.AuthVersion, loginMethod, ip, userAgent, oidc...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +104,7 @@ func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, 
 	return bundle, nil
 }
 
-func newLoginSession(userID int, authVersion int64, loginMethod, ip, userAgent string) (*model.UserSession, string, error) {
+func newLoginSession(userID int, authVersion int64, loginMethod, ip, userAgent string, oidc ...model.OIDCSessionBinding) (*model.UserSession, string, error) {
 	if strings.TrimSpace(loginMethod) == "ldap" {
 		user, err := model.GetUserCache(userID)
 		if err != nil {
@@ -133,6 +135,9 @@ func newLoginSession(userID int, authVersion int64, loginMethod, ip, userAgent s
 		LastActiveAt:    now,
 		ExpiresAt:       time.Unix(now, 0).Add(LoginSessionTTL).Unix(),
 	}
+	if len(oidc) > 0 {
+		session.OIDC = oidc[0]
+	}
 	if session.LoginMethod == "" {
 		session.LoginMethod = "unknown"
 	}
@@ -142,7 +147,7 @@ func newLoginSession(userID int, authVersion int64, loginMethod, ip, userAgent s
 func ValidateLoginSession(identity AuthIdentity) (*model.UserSession, *model.UserBase, error) {
 	session, err := model.GetUserSessionCached(identity.SessionID)
 	if err != nil {
-		if errors.Is(err, model.ErrUserSessionInactive) {
+		if errors.Is(err, model.ErrUserSessionInactive) || errors.Is(err, model.ErrUserSessionInvalid) {
 			return nil, nil, ErrLoginSessionRevoked
 		}
 		return nil, nil, err
@@ -253,10 +258,13 @@ func RefreshLoginSession(rawRefreshToken, expectedSID, ip, userAgent string) (*A
 	}
 	session, err := model.GetUserSessionCached(sid)
 	if err != nil {
-		if errors.Is(err, model.ErrUserSessionInactive) {
+		if errors.Is(err, model.ErrUserSessionInactive) || errors.Is(err, model.ErrUserSessionInvalid) {
 			return nil, nil, ErrLoginSessionRevoked
 		}
-		return nil, nil, ErrRefreshTokenInvalid
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, ErrRefreshTokenInvalid
+		}
+		return nil, nil, err
 	}
 	if session.Status != model.UserSessionStatusActive || session.RevokedAt != 0 || session.ExpiresAt <= time.Now().Unix() {
 		return nil, nil, ErrLoginSessionRevoked
@@ -285,7 +293,7 @@ func RefreshLoginSession(rawRefreshToken, expectedSID, ip, userAgent string) (*A
 			}
 			return bundle, currentUser, nil
 		}
-		if errors.Is(err, model.ErrUserSessionRefreshReuse) {
+		if errors.Is(err, model.ErrUserSessionRefreshReuse) || errors.Is(err, model.ErrUserSessionInactive) || errors.Is(err, model.ErrUserSessionInvalid) {
 			return nil, nil, ErrLoginSessionRevoked
 		}
 		if errors.Is(err, model.ErrUserSessionRefreshInvalid) {
@@ -315,6 +323,31 @@ func RevokeByRefreshToken(rawRefreshToken, expectedSID, reason string) error {
 	}
 	_, err := model.RevokeUserSessionByRefreshHash(sid, hashRefreshSecret(secret), reason)
 	return err
+}
+
+// AuthenticateRefreshLogoutSession verifies the cookie secret before allowing
+// provider logout. Do not infer authentication from a SID or a no-op revocation.
+func AuthenticateRefreshLogoutSession(rawRefreshToken string) (*model.UserSession, error) {
+	sid, secret, ok := splitRefreshToken(rawRefreshToken)
+	if !ok {
+		return nil, ErrRefreshTokenInvalid
+	}
+	session, err := model.GetUserSessionBySID(sid)
+	if err != nil {
+		return nil, err
+	}
+	presented := hashRefreshSecret(secret)
+	validCurrent := hmac.Equal([]byte(session.RefreshHash), []byte(presented))
+	validPrevious := session.PreviousRefreshHash != "" && time.Now().Unix() <= session.PreviousValidUntil &&
+		hmac.Equal([]byte(session.PreviousRefreshHash), []byte(presented))
+	if !validCurrent && !validPrevious {
+		return nil, ErrRefreshTokenInvalid
+	}
+	validated, _, err := ValidateLoginSession(AuthIdentity{
+		UserID: session.UserID, SessionID: session.SID,
+		UserAuthVersion: session.UserAuthVersion, SessionVersion: session.Version,
+	})
+	return validated, err
 }
 
 func RefreshTokenSID(rawRefreshToken string) (string, bool) {
@@ -413,6 +446,12 @@ func clearSessionHintCookie(c *gin.Context) {
 }
 
 func issueAuthBundle(session *model.UserSession, rawRefreshToken string, current bool) (*AuthBundle, error) {
+	if err := model.CheckOIDCSessionActive(model.DB, session.OIDC); err != nil {
+		if errors.Is(err, model.ErrUserSessionInactive) || errors.Is(err, model.ErrUserSessionInvalid) {
+			return nil, ErrLoginSessionRevoked
+		}
+		return nil, err
+	}
 	identity := AuthIdentity{
 		UserID:          session.UserID,
 		SessionID:       session.SID,
@@ -484,7 +523,7 @@ func authSessionErrorCode(err error) (int, string) {
 		return http.StatusConflict, "AUTH_REFRESH_RACE"
 	case errors.Is(err, ErrAuthTokenExpired):
 		return http.StatusUnauthorized, "AUTH_TOKEN_EXPIRED"
-	case errors.Is(err, ErrLoginSessionRevoked):
+	case errors.Is(err, ErrLoginSessionRevoked), errors.Is(err, model.ErrUserSessionInactive), errors.Is(err, model.ErrUserSessionInvalid):
 		return http.StatusUnauthorized, "AUTH_SESSION_REVOKED"
 	case errors.Is(err, ErrRefreshTokenInvalid), errors.Is(err, ErrAuthTokenInvalid):
 		return http.StatusUnauthorized, "AUTH_UNAUTHORIZED"

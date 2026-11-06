@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/oauth"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -60,6 +61,10 @@ func AuthLogout(c *gin.Context) {
 				writeAuthSessionError(c, service.ErrLoginSessionMismatch)
 				return
 			}
+			var logoutSession *model.UserSession
+			if c.Query("single_sign_out") == "true" {
+				logoutSession, _, _ = service.ValidateLoginSession(identity)
+			}
 			if _, err := model.RevokeUserSession(identity.UserID, identity.SessionID, "logout"); err != nil {
 				writeAuthSessionError(c, err)
 				return
@@ -73,25 +78,56 @@ func AuthLogout(c *gin.Context) {
 				service.ClearRefreshCookie(c)
 				cookieCleared = true
 			}
+			data := oidcLogoutResponse(c, logoutSession)
+			data["revoked_sid"] = identity.SessionID
+			data["cookie_cleared"] = cookieCleared
 			c.JSON(http.StatusOK, gin.H{
 				"success": true,
 				"message": "",
-				"data":    gin.H{"revoked_sid": identity.SessionID, "cookie_cleared": cookieCleared},
+				"data":    data,
 			})
 			return
 		}
 	}
 	if cookieErr != nil || rawRefreshToken == "" {
 		service.ClearRefreshCookie(c)
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": oidcLogoutResponse(c, nil)})
 		return
+	}
+	var logoutSession *model.UserSession
+	if c.Query("single_sign_out") == "true" {
+		logoutSession, _ = service.AuthenticateRefreshLogoutSession(rawRefreshToken)
 	}
 	if err := service.RevokeByRefreshToken(rawRefreshToken, expectedSID, "logout"); err != nil {
 		writeAuthSessionError(c, err)
 		return
 	}
 	service.ClearRefreshCookie(c)
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": oidcLogoutResponse(c, logoutSession)})
+}
+
+// Called only after local logout succeeds. Provider failures must not restore
+// the local session, and the browser decides neither the provider nor the URL.
+func oidcLogoutResponse(c *gin.Context, session *model.UserSession) gin.H {
+	data := gin.H{}
+	if c.Query("single_sign_out") != "true" {
+		return data
+	}
+	if session == nil {
+		data["single_sign_out_unavailable"] = true
+		return data
+	}
+	if session.LoginMethod != "oauth:oidc" {
+		return data
+	}
+	logoutURL, err := oauth.BuildOIDCLogoutURL(c.Request.Context())
+	if err != nil {
+		logger.LogWarn(c.Request.Context(), common.LogText("OIDC provider logout is unavailable: %s", err.Error()))
+		data["single_sign_out_unavailable"] = true
+		return data
+	}
+	data["logout_url"] = logoutURL
+	return data
 }
 
 func GetLoginSessions(c *gin.Context) {

@@ -1,8 +1,8 @@
-# OAuth 登录调整与 OIDC 手动登录、本地退出
+# OAuth 登录调整与 OIDC 手动登录、双向退出联动
 
 **日期**: 2026-11-06
 
-当前 OIDC 行为以末尾「2026-11-06：恢复手动登录与本地退出」为准。下方 2026-11-03 和 2026-11-05 的自动登录、单点登出及相关验证说明保留为历史记录，对应扩展已撤回。
+当前 OIDC 行为以末尾「2026-11-06：手动登录下的双向退出联动」为准。前面的实现和回退说明保留为历史记录；当前保持手动登录，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
 
 ## 涉及文件
 
@@ -201,3 +201,43 @@ OIDC 相关实现恢复至 `137e55e2e923675a133be8fa633c7c654ec5c117` 的功能�
 本次代码回退已通过仓库根目录的 `go build ./...`、`git diff --check`，以及 `web/` 下的 `bun x tsgo -b`、`bun run build`；对修改的前端文件执行 `./node_modules/.bin/oxlint.exe -c .oxlintrc.json` 和 `./node_modules/.bin/oxfmt.exe --check`，退出码均为 0。`bun run typecheck` 因本地 Bun 1.3.14 缺少 `check` 命令失败，`bun x tsc -b` 因旧版编译器不支持现有配置失败，改用已安装的 `tsgo` 完成类型检查。未新增、修改或运行测试。
 
 本次仅回退代码，未执行数据库删除或数据回滚。当前环境未发现 MySQL、PostgreSQL 或 Docker，SQLite、MySQL、PostgreSQL 的完整迁移兼容验证受阻，未获得数据库版本及运行结果；真实身份提供方登录和退出流程尚未联调验证。
+
+
+## 2026-11-06：手动登录下的双向退出联动
+
+网关主动退出 OIDC 登录时，先撤销本地会话，再通过浏览器跳转至发现配置提供的登出端点，携带客户端标识及固定的 `/sign-in` 返回地址。该方式使用 Casdoor 浏览器会话，不持久保存身份令牌；登录中心退出不可用时保留本地退出结果并提示。内部默认退出调用仍只注销网关会话。
+
+Casdoor 向 `/api/oauth/oidc/backchannel-logout` 发送签名退出通知后，网关按会话或用户范围撤销对应 OIDC 会话；刷新页面时，现有会话恢复机制收到认证失败响应并清除登录状态。通知验证签名、签发方、接收方、时间及事件字段，持久化退出记录支持幂等处理，并在登录、MFA、刷新和认证阶段阻止已退出会话恢复。新登录校验身份令牌、随机数及用户信息一致性，保存身份摘要用于关联。
+
+主动跨系统退出始终检查请求来源。开发代理保留浏览器 Host，修复 `localhost:5173` 转发至 `localhost:3000` 后来源不匹配导致的退出 403。配置页复用已有配置指引与复制按钮，展示两类退出地址及七语言说明。
+
+### 涉及文件
+
+- `controller/auth_session.go` — 主动退出前验证会话凭据，撤销成功后返回 Casdoor 登出地址或不可用标记。
+- `controller/oidc_logout.go` — 限制表单大小、验证签名退出通知并撤销会话，审计不记录原始令牌。
+- `controller/oauth.go`、`controller/user.go` — 将验证后的 OIDC 身份关联传入共用登录流程。
+- `middleware/auth_origin.go` — 主动跨系统退出始终执行来源校验。
+- `model/auth_flow.go` — 事务内的敏感操作授权检查 OIDC 会话失效状态。
+- `model/main.go` — 将退出记录表注册到主数据库迁移，独立日志库不变。
+- `model/oidc_logout.go` — 保存身份摘要及退出记录，按用户或会话匹配撤销，处理重复通知并清理过期记录。
+- `model/user_session.go` — 扩展会话关联字段与索引，升级缓存结构，在会话创建和读取时检查退出记录。
+- `oauth/oidc.go`、`oauth/types.go` — 校验身份令牌与用户信息一致性，传递发现地址、随机数及会话身份摘要。
+- `oauth/oidc_logout.go` — 构造使用浏览器会话的登录中心退出地址，支持本机回环 HTTP 开发地址。
+- `oauth/oidc_tokens.go` — 读取发现配置及公钥，验证身份令牌与退出令牌，限制算法、请求大小、时间和重定向，并支持密钥轮换。
+- `router/api-router.go` — 注册后端退出通知接口，接入限流及禁用缓存中间件。
+- `service/auth_session.go` — 传递会话关联、验证退出凭据，签发和刷新时检查失效状态，统一返回认证失败，存储故障保留服务端错误。
+- `service/login_verification.go` — MFA 流程保存并传递 OIDC 会话关联，防止退出后完成验证恢复会话。
+- `service/auth_cleanup.go` — 定期清理过期退出记录。
+- `web/rsbuild.config.ts` — 开发代理关闭 Host 改写，使后端来源校验与浏览器请求一致。
+- `web/src/components/sign-out-dialog.tsx`、`web/src/features/auth/api.ts` — 主动 OIDC 退出请求跨系统登出，校验地址后跳转，保留本地退出提示与兜底。
+- `web/src/features/system-settings/auth/oauth-section.tsx` — 复用 `OAuthSetupGuide`、`CopyButton` 展示两类退出地址及配置说明。
+- `web/src/lib/oauth.ts` — OIDC 授权请求携带当前登录流程的随机数。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐双向退出的七语言配置说明。
+
+### 配置与验证范围
+
+需要配置网关 OIDC 发现地址，在 Casdoor 登记网关的 `/sign-in` 返回地址与 `/api/oauth/oidc/backchannel-logout` 后端通知地址。本机直接运行可将通知地址设为 `http://localhost:3000/api/oauth/oidc/backchannel-logout`；线上 Docker 部署使用 Casdoor 容器可访问的网关 HTTPS 地址。更新后需重新通过 OIDC 登录一次，旧会话缺少关联信息。主动退出要求 Casdoor 支持不携带身份令牌、通过浏览器会话退出。
+
+此前本轮实现已通过根目录 `go build ./...`、`git diff --check`，以及 `web/` 下 `bun x tsgo -b`、`bun run build`、`bun run i18n:sync`；对修改的五个 TypeScript/TSX 文件执行 `bun x oxlint -c .oxlintrc.json` 和 `bun x oxfmt --check`，退出码均为 0。未新增、修改或运行测试。本次日志更新仅进行差异与格式检查。
+
+本地 Casdoor 发现配置已声明支持后端退出通知及会话标识，真实登录退出链路尚未完整联调。新增会话关联字段、索引及退出记录表；由于本机未发现 MySQL、PostgreSQL 或 Docker 运行环境，三库新建、升级及重复迁移验证仍受阻，没有可报告的数据库版本和运行结果，未完成数据库兼容验证。

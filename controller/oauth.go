@@ -276,7 +276,8 @@ func handleOAuthLogin(c *gin.Context, provider oauth.Provider, oauthUser *oauth.
 		return
 	}
 
-	// 9. Setup login
+	// 9. Setup login; carry verified OIDC identity through the shared MFA policy.
+	c.Set("oidc_session_binding", oauthUser.OIDC)
 	setupLogin(user, c)
 }
 

@@ -7397,6 +7397,8 @@
     "To OpenAI Responses": "OpenAI Responses へ",
     "to override billing when a user in one group uses a token of another group.": "あるグループのユーザーが別のグループのトークンを使用する場合に、請求を上書きするため。",
     "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.": "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.",
+    "To sign out here after signing out of Casdoor, configure the Discovery URL and set the back-channel logout URL in the Casdoor application. Use an HTTPS address reachable from the Casdoor server or container; localhost is only for testing on the same host. Sign in again after updating to link the sessions.": "Casdoor からのログアウトをこのサイトにも反映するには、ディスカバリー URL を設定し、Casdoor アプリケーションにバックチャネルログアウト URL を登録してください。Casdoor サーバーまたはコンテナーからアクセスできる HTTPS アドレスを使用してください。localhost は同一ホストでのテスト専用です。更新後に再ログインすると、双方のセッションが関連付けられます。",
+    "To sign out of Casdoor when signing out here, configure the Discovery URL and register the post-logout redirect URL in Casdoor. Your Casdoor version must support logout using the browser session without an ID token.": "このサイトからのログアウト時に Casdoor からもログアウトするには、ディスカバリー URL を設定し、ログアウト後のリダイレクト URL を Casdoor に登録してください。ID トークンなしでブラウザーのセッションを使ってログアウトできる Casdoor のバージョンが必要です。",
     "to the Models list so users can use them before the mapping sends traffic upstream.": "マッピングがトラフィックをアップストリームに送信する前にユーザーが使用できるように、モデルリストに追加します。",
     "To Upper": "大文字に変換",
     "To Uppercase": "大文字化",

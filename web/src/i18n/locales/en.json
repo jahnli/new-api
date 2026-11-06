@@ -7397,6 +7397,8 @@
     "To OpenAI Responses": "To OpenAI Responses",
     "to override billing when a user in one group uses a token of another group.": "to override billing when a user in one group uses a token of another group.",
     "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.": "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.",
+    "To sign out here after signing out of Casdoor, configure the Discovery URL and set the back-channel logout URL in the Casdoor application. Use an HTTPS address reachable from the Casdoor server or container; localhost is only for testing on the same host. Sign in again after updating to link the sessions.": "To sign out here after signing out of Casdoor, configure the Discovery URL and set the back-channel logout URL in the Casdoor application. Use an HTTPS address reachable from the Casdoor server or container; localhost is only for testing on the same host. Sign in again after updating to link the sessions.",
+    "To sign out of Casdoor when signing out here, configure the Discovery URL and register the post-logout redirect URL in Casdoor. Your Casdoor version must support logout using the browser session without an ID token.": "To sign out of Casdoor when signing out here, configure the Discovery URL and register the post-logout redirect URL in Casdoor. Your Casdoor version must support logout using the browser session without an ID token.",
     "to the Models list so users can use them before the mapping sends traffic upstream.": "to the Models list so users can use them before the mapping sends traffic upstream.",
     "To Upper": "To Upper",
     "To Uppercase": "To Uppercase",

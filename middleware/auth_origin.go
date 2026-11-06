@@ -12,12 +12,12 @@ import (
 
 // SessionCookieOriginGuard protects cookie-authenticated refresh/logout
 // endpoints when secure cookie mode is enabled. In insecure local development
-// mode it preserves the legacy behavior and intentionally performs no Origin
-// validation. It never adds CORS response headers and must not be installed on
-// relay routes.
+// mode it preserves the legacy behavior for local-only operations. Explicit
+// provider logout always requires a trusted browser origin. It never adds CORS
+// response headers and must not be installed on relay routes.
 func SessionCookieOriginGuard() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !common.SessionCookieSecure {
+		if !common.SessionCookieSecure && c.Query("single_sign_out") != "true" {
 			c.Next()
 			return
 		}
