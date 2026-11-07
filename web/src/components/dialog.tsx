@@ -44,6 +44,10 @@ type DialogProps = React.ComponentProps<typeof DialogRoot> & {
   contentHeight?: React.CSSProperties['height']
   contentClassName?: string
   overlayClassName?: string
+  /** Render a backdrop for nested dialogs so outside clicks can dismiss them. */
+  forceRenderOverlay?: React.ComponentProps<
+    typeof DialogContent
+  >['forceRenderOverlay']
   headerClassName?: string
   titleClassName?: string
   descriptionClassName?: string
@@ -70,6 +74,7 @@ export function Dialog({
   contentHeight = 'auto',
   contentClassName,
   overlayClassName,
+  forceRenderOverlay,
   headerClassName,
   titleClassName,
   descriptionClassName,
@@ -91,6 +96,7 @@ export function Dialog({
           contentClassName
         )}
         overlayClassName={overlayClassName}
+        forceRenderOverlay={forceRenderOverlay}
         keepMounted={keepMounted}
         initialFocus={initialFocus}
         showCloseButton={showCloseButton}

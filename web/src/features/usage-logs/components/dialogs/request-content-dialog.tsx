@@ -83,6 +83,7 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
     <Dialog
       open={props.open}
       onOpenChange={props.onOpenChange}
+      forceRenderOverlay
       title={t('Request Content')}
       contentClassName='w-[65vw] max-w-[65vw] sm:max-w-[65vw]'
       contentHeight={LOG_DETAILS_DIALOG_CONTENT_HEIGHT}
