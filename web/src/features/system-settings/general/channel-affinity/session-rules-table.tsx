@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   ArrowLeftRight,
   Edit,
+  Eraser,
   FileText,
   Link2Off,
   ListFilter,
@@ -34,18 +35,13 @@ import {
 } from '@/components/data-table'
 import { EmptyState } from '@/components/empty-state'
 import { StatusBadge, StatusBadgeList } from '@/components/status-badge'
+import { TextTooltip } from '@/components/text-tooltip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { toIntlLocale } from '@/i18n/languages'
 import { formatNumber } from '@/lib/format'
 
@@ -55,6 +51,7 @@ import type { AffinityRule, CacheStats, SessionMode } from './types'
 interface SessionRulesTableProps {
   rules: AffinityRule[]
   cacheStats: CacheStats | null
+  cacheBusy: boolean
   enabled?: boolean
   globalSessionMode?: SessionMode | ''
   onEdit: (rule: AffinityRule) => void
@@ -93,7 +90,7 @@ export function SessionRulesTable(props: SessionRulesTableProps) {
         tabIndex: 0,
       }}
       tableProps={{ withContainer: false }}
-      tableClassName='min-w-[960px] table-fixed [&_th]:px-4 [&_th]:text-muted-foreground [&_td]:px-4 [&_td]:py-4 [&_code]:font-mono!'
+      tableClassName='min-w-[1120px] table-fixed [&_th]:px-4 [&_th]:text-muted-foreground [&_td]:px-4 [&_td]:py-4 [&_code]:font-mono!'
       headerRowClassName='bg-muted/35 hover:bg-muted/35'
       data={props.rules}
       getRowKey={(rule) => rule.id ?? rule.name}
@@ -230,15 +227,54 @@ export function SessionRulesTable(props: SessionRulesTableProps) {
         },
         {
           id: 'cache',
-          header: t('Cache'),
-          className: 'w-16 text-right',
+          header: t('Cache Entries'),
+          className: 'w-44 text-right',
           cellClassName: 'text-right tabular-nums',
           cell: (rule) => {
-            if (!rule.include_rule_name) return t('N/A')
-            if (!props.cacheStats) return '—'
-            return formatNumber(
-              props.cacheStats.by_rule_name?.[rule.name] || 0,
-              locale
+            const ruleName = rule.name.trim()
+            const count = props.cacheStats?.by_rule_name?.[ruleName]
+            let unavailableReason = ''
+            if (!rule.include_rule_name) {
+              unavailableReason = t(
+                'This rule shares its cache and cannot be cleared separately.'
+              )
+            } else if (!props.cacheStats) {
+              unavailableReason = t(
+                'Cache statistics are unavailable. Refresh to try again.'
+              )
+            } else if (count === undefined) {
+              unavailableReason = t('Save this rule before clearing its cache.')
+            }
+            let countLabel = '—'
+            if (!rule.include_rule_name) countLabel = t('N/A')
+            else if (count !== undefined) {
+              countLabel = formatNumber(count, locale)
+            }
+            return (
+              <div className='flex flex-wrap items-center justify-end gap-2'>
+                <span>{countLabel}</span>
+                <TextTooltip
+                  content={unavailableReason || t('Clear cache for this rule')}
+                >
+                  <span
+                    className='inline-flex'
+                    tabIndex={unavailableReason ? 0 : undefined}
+                  >
+                    <Button
+                      variant='destructive'
+                      size='sm'
+                      aria-label={t('Clear cache for {{name}}', {
+                        name: rule.name,
+                      })}
+                      disabled={Boolean(unavailableReason) || props.cacheBusy}
+                      onClick={() => props.onClearCache(ruleName)}
+                    >
+                      <Eraser aria-hidden='true' />
+                      {t('Clear cache')}
+                    </Button>
+                  </span>
+                </TextTooltip>
+              </div>
             )
           },
         },
@@ -252,34 +288,18 @@ export function SessionRulesTable(props: SessionRulesTableProps) {
               aria-label={t('Actions for {{name}}', { name: rule.name })}
               className='flex items-center justify-end gap-0.5'
             >
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      aria-label={t('Edit Rule')}
-                      onClick={() => props.onEdit(rule)}
-                    >
-                      <Edit aria-hidden='true' />
-                    </Button>
-                  }
-                />
-                <TooltipContent>{t('Edit Rule')}</TooltipContent>
-              </Tooltip>
+              <TextTooltip content={t('Edit Rule')}>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  aria-label={t('Edit Rule')}
+                  onClick={() => props.onEdit(rule)}
+                >
+                  <Edit aria-hidden='true' />
+                </Button>
+              </TextTooltip>
               <DataTableRowActionMenu ariaLabel={t('More actions')}>
                 <DropdownMenuGroup>
-                  {rule.include_rule_name ? (
-                    <>
-                      <DropdownMenuItem
-                        onClick={() => props.onClearCache(rule.name)}
-                      >
-                        <Trash2 aria-hidden='true' />
-                        {t('Clear cache for this rule')}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  ) : null}
                   <DropdownMenuItem
                     variant='destructive'
                     onClick={() => props.onDelete(rule)}

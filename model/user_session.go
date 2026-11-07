@@ -89,6 +89,8 @@ type userSessionCacheEntry struct {
 	RevokedAt       int64
 	RevokedReason   string
 	CacheSchema     int
+	CacheExpiresAt  int64
+	CacheMAC        string `json:"-"`
 }
 
 func (session *UserSession) cacheEntry() *userSessionCacheEntry {
@@ -297,6 +299,10 @@ func getUserSessionCache(sid string) (*userSessionCacheEntry, error) {
 	if entry.CacheSchema != userSessionCacheSchema || entry.SID != sid || entry.UserID <= 0 || entry.Version <= 0 || entry.UserAuthVersion <= 0 {
 		return nil, fmt.Errorf("user session cache schema is stale")
 	}
+	mac, err := authCacheMAC(userSessionCacheKey(sid), entry)
+	if err != nil || !validAuthCacheMAC(mac, entry.CacheMAC, entry.CacheExpiresAt) {
+		return nil, fmt.Errorf("user session cache integrity check failed")
+	}
 	if entry.Status != UserSessionStatusActive || entry.RevokedAt != 0 || entry.ExpiresAt <= time.Now().Unix() {
 		return nil, ErrUserSessionInactive
 	}
@@ -336,6 +342,7 @@ func writeUserSessionCache(entry *userSessionCacheEntry, cacheDeadline time.Time
 			return errUserSessionCacheObservationStale
 		}
 		redisExpiration = cacheExpiresAt.UnixMilli()
+		entry.CacheExpiresAt = redisExpiration
 	} else {
 		ttl := min(sessionTTL, time.Duration(userCacheTTLSeconds())*time.Second)
 		if ttl <= 0 {
@@ -345,8 +352,13 @@ func writeUserSessionCache(entry *userSessionCacheEntry, cacheDeadline time.Time
 		if redisExpiration <= 0 {
 			redisExpiration = 1
 		}
+		entry.CacheExpiresAt = now.UnixMilli() + redisExpiration
 	}
 	entry.CacheSchema = userSessionCacheSchema
+	mac, err := authCacheMAC(userSessionCacheKey(entry.SID), entry)
+	if err != nil {
+		return err
+	}
 	const script = `
 local current_status = redis.call('HGET', KEYS[1], 'Status')
 local current_version = tonumber(redis.call('HGET', KEYS[1], 'Version') or '0')
@@ -362,7 +374,8 @@ redis.call('HSET', KEYS[1],
   'LoginMethod', ARGV[6], 'IP', ARGV[7], 'UserAgent', ARGV[8],
   'CreatedAt', ARGV[9], 'LastActiveAt', ARGV[10], 'ExpiresAt', ARGV[11],
   'RevokedAt', ARGV[12], 'RevokedReason', ARGV[13], 'CacheSchema', ARGV[14],
-  'OIDCSubjectKey', ARGV[16], 'OIDCSessionKey', ARGV[17], 'OIDCIssuedAt', ARGV[18])
+  'OIDCSubjectKey', ARGV[16], 'OIDCSessionKey', ARGV[17], 'OIDCIssuedAt', ARGV[18],
+  'CacheExpiresAt', ARGV[19], 'CacheMAC', ARGV[20])
 if ARGV[5] == 'active' then
   redis.call('PEXPIREAT', KEYS[1], ARGV[15])
 else
@@ -374,6 +387,7 @@ return 1`
 		entry.LoginMethod, entry.IP, entry.UserAgent, entry.CreatedAt, entry.LastActiveAt,
 		entry.ExpiresAt, entry.RevokedAt, entry.RevokedReason, entry.CacheSchema, redisExpiration,
 		entry.OIDCSubjectKey, entry.OIDCSessionKey, entry.OIDCIssuedAt,
+		entry.CacheExpiresAt, mac,
 	).Int()
 	if err != nil {
 		return err

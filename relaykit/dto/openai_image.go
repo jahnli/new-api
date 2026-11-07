@@ -43,6 +43,8 @@ type ImageRequest struct {
 	Images                           json.RawMessage `json:"images,omitempty"`
 	Mask                             json.RawMessage `json:"mask,omitempty"`
 	InputFidelity                    json.RawMessage `json:"input_fidelity,omitempty"`
+	Markup                           json.RawMessage `json:"markup,omitempty"`
+	Svg                              json.RawMessage `json:"svg,omitempty"`
 	Watermark                        *bool           `json:"watermark,omitempty"`
 	SequentialImageGeneration        json.RawMessage `json:"sequential_image_generation,omitempty"`
 	SequentialImageGenerationOptions json.RawMessage `json:"sequential_image_generation_options,omitempty"`

@@ -755,6 +755,8 @@ func writeRawImageEditFields(writer *multipart.Writer, request dto.ImageRequest)
 		"partial_images":     request.PartialImages,
 		"input_fidelity":     request.InputFidelity,
 		"mask":               request.Mask,
+		"markup":             request.Markup,
+		"svg":                request.Svg,
 	}
 	for fieldName, rawValue := range rawFields {
 		fieldValue, ok := stringFromRawJSONValue(rawValue)
