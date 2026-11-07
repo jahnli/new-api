@@ -3316,6 +3316,7 @@
     "Get one here": "点此获取",
     "Get started": "开始使用",
     "Get Started": "开始使用",
+    "GIF does not support masks, streaming, or compression": "GIF 不支持蒙版、流式输出或压缩",
     "GIF output does not support masks": "GIF 输出不支持蒙版",
     "GIF width and height must be positive multiples of 16. The provider validates its GIF pixel limits.": "GIF 的宽高必须为 16 的正整数倍。GIF 像素限制由提供商校验。",
     "GitHub": "GitHub",

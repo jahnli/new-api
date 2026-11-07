@@ -3316,6 +3316,7 @@
     "Get one here": "Nhận tại đây",
     "Get started": "Bắt đầu",
     "Get Started": "Bắt đầu",
+    "GIF does not support masks, streaming, or compression": "GIF không hỗ trợ mặt nạ, xuất dạng luồng hoặc nén",
     "GIF output does not support masks": "Đầu ra GIF không hỗ trợ mặt nạ",
     "GIF width and height must be positive multiples of 16. The provider validates its GIF pixel limits.": "Chiều rộng và chiều cao GIF phải là bội số dương của 16. Nhà cung cấp kiểm tra giới hạn pixel của GIF.",
     "GitHub": "GitHub",

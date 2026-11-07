@@ -3316,6 +3316,7 @@
     "Get one here": "Получить здесь",
     "Get started": "Начало работы",
     "Get Started": "Начать",
+    "GIF does not support masks, streaming, or compression": "GIF не поддерживает маски, потоковый вывод и сжатие",
     "GIF output does not support masks": "Вывод в формате GIF не поддерживает маски",
     "GIF width and height must be positive multiples of 16. The provider validates its GIF pixel limits.": "Ширина и высота GIF должны быть положительными числами, кратными 16. Ограничения числа пикселей GIF проверяет провайдер.",
     "GitHub": "GitHub",

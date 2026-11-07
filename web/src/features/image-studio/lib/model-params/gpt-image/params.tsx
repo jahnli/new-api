@@ -384,9 +384,7 @@ export function GptImageParams(props: GptImageParamsProps) {
               }
             />
             <p className='text-muted-foreground text-xs'>
-              {t(
-                'Frame duration is rounded to the nearest 10 ms. GIF does not support masks, streaming, or compression.'
-              )}
+              {t('GIF does not support masks, streaming, or compression')}
             </p>
           </div>
         </>

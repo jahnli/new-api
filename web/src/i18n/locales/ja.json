@@ -3316,6 +3316,7 @@
     "Get one here": "こちらから取得",
     "Get started": "はじめる",
     "Get Started": "開始する",
+    "GIF does not support masks, streaming, or compression": "GIFはマスク、ストリーミング出力、圧縮に対応していません",
     "GIF output does not support masks": "GIF 出力はマスクに対応していません",
     "GIF width and height must be positive multiples of 16. The provider validates its GIF pixel limits.": "GIF の幅と高さは 16 の正の倍数にする必要があります。GIF のピクセル数制限はプロバイダーが検証します。",
     "GitHub": "GitHub",
