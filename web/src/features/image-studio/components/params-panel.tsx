@@ -8,7 +8,12 @@ import { GptImageParams } from '../lib/model-params/gpt-image/params'
 import type { GptImageConfigUpdater } from '../lib/model-params/gpt-image/types'
 import { SeedreamParams } from '../lib/model-params/seedream/params'
 import type { SeedreamConfigUpdater } from '../lib/model-params/seedream/types'
-import type { GroupOption, ImageStudioConfig, ModelOption } from '../types'
+import type {
+  GroupOption,
+  ImageStudioConfig,
+  ModelOption,
+  StudioMode,
+} from '../types'
 
 interface ParamsPanelProps {
   config: ImageStudioConfig
@@ -20,6 +25,7 @@ interface ParamsPanelProps {
   models: ModelOption[]
   isLoadingModels: boolean
   disabled: boolean
+  mode?: StudioMode
 }
 
 export function ParamsPanel(props: ParamsPanelProps) {
@@ -33,6 +39,8 @@ export function ParamsPanel(props: ParamsPanelProps) {
   ) {
     modelParameters = (
       <GptImageParams
+        model={props.config.model}
+        mode={props.mode}
         config={props.config.parameters}
         updateConfig={props.updateGptImageConfig}
         disabled={props.disabled}

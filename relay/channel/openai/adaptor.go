@@ -544,7 +544,7 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 		// 写入所有非文件字段
 		if mf != nil {
 			for key, values := range mf.Value {
-				if key == "model" {
+				if key == "model" || (key == "group" && info.IsPlayground) {
 					continue
 				}
 				for _, value := range values {
@@ -601,42 +601,49 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 
 				part, err := writer.CreatePart(h)
 				if err != nil {
+					_ = file.Close()
 					return nil, fmt.Errorf("create form part failed for image %d: %w", i, err)
 				}
 
-				if _, err := io.Copy(part, file); err != nil {
-					return nil, fmt.Errorf("copy file failed for image %d: %w", i, err)
-				}
-
+				_, copyErr := io.Copy(part, file)
 				// 复制完立即关闭，避免在循环内使用 defer 占用资源
 				_ = file.Close()
+				if copyErr != nil {
+					return nil, fmt.Errorf("copy file failed for image %d: %w", i, copyErr)
+				}
 			}
 
-			// Handle mask file if present
-			if maskFiles, exists := mf.File["mask"]; exists && len(maskFiles) > 0 {
-				maskFile, err := maskFiles[0].Open()
-				if err != nil {
-					return nil, errors.New("failed to open mask file")
+			// Forward the first file for each optional image editing field.
+			for _, fieldName := range []string{"mask", "markup"} {
+				files := mf.File[fieldName]
+				if len(files) == 0 {
+					continue
 				}
-				// 复制完立即关闭，避免在循环内使用 defer 占用资源
+				fileHeader := files[0]
+				file, err := fileHeader.Open()
+				if err != nil {
+					return nil, fmt.Errorf("failed to open %s file: %w", fieldName, err)
+				}
 
-				// Determine MIME type for mask file
-				mimeType := detectImageMimeType(maskFiles[0].Filename)
+				mimeType := detectImageMimeType(fileHeader.Filename)
 
 				// Create a form file with the appropriate content type
 				h := make(textproto.MIMEHeader)
-				h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="mask"; filename="%s"`, maskFiles[0].Filename))
+				h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, fieldName, fileHeader.Filename))
 				h.Set("Content-Type", mimeType)
 
-				maskPart, err := writer.CreatePart(h)
+				part, err := writer.CreatePart(h)
 				if err != nil {
-					return nil, errors.New("create form file failed for mask")
+					_ = file.Close()
+					return nil, fmt.Errorf("create form file failed for %s: %w", fieldName, err)
 				}
 
-				if _, err := io.Copy(maskPart, maskFile); err != nil {
-					return nil, errors.New("copy mask file failed")
+				_, copyErr := io.Copy(part, file)
+				// 复制完立即关闭，避免在循环内使用 defer 占用资源
+				_ = file.Close()
+				if copyErr != nil {
+					return nil, fmt.Errorf("copy %s file failed: %w", fieldName, copyErr)
 				}
-				_ = maskFile.Close()
 			}
 		} else {
 			return nil, errors.New("no multipart form data found")
@@ -714,6 +721,25 @@ func writeOptionalImageEditFields(writer *multipart.Writer, request dto.ImageReq
 	}
 	if request.ResponseFormat != "" {
 		if err := writer.WriteField("response_format", request.ResponseFormat); err != nil {
+			return err
+		}
+	}
+	if request.Complexity != nil {
+		if err := writer.WriteField("complexity", *request.Complexity); err != nil {
+			return err
+		}
+	}
+	for _, field := range []struct {
+		name  string
+		value *uint
+	}{
+		{"frame_count", request.FrameCount},
+		{"frame_duration_ms", request.FrameDurationMS},
+	} {
+		if field.value == nil {
+			continue
+		}
+		if err := writer.WriteField(field.name, fmt.Sprintf("%d", *field.value)); err != nil {
 			return err
 		}
 	}

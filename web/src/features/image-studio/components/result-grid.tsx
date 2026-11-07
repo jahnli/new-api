@@ -21,6 +21,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { toIntlLocale } from '@/i18n/languages'
+import { formatNumber } from '@/lib/format'
 
 import { getImageFailures } from '../lib/image-failures'
 import {
@@ -46,13 +48,19 @@ type ResultGridProps = {
   pendingImageCount: number
   imageErrors: string[]
   imageFailures?: ImageGenerationError[]
+  partialImage?: string | null
 }
 
 function UsageBar({ record }: { record: GenerationRecord }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const usage = record.usage
   const firstImage = record.images[0]
   const fileSize = formatImageFileSize(firstImage?.sizeBytes)
+  const imageSize =
+    firstImage?.width && firstImage.height
+      ? `${firstImage.width}×${firstImage.height}`
+      : t(record.size).replace('x', '×')
   return (
     <div className='text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
       <Badge variant='secondary'>{record.model}</Badge>
@@ -64,14 +72,32 @@ function UsageBar({ record }: { record: GenerationRecord }) {
           })}
         </span>
       )}
-      <span>{t(record.size)}</span>
+      <span className='tabular-nums'>{imageSize}</span>
       {record.quality && <span>{t(record.quality)}</span>}
-      {firstImage?.width && firstImage.height && (
-        <span className='tabular-nums'>
-          {firstImage.width}×{firstImage.height}
+      {record.background && <span>{t(record.background)}</span>}
+      {fileSize && <span className='tabular-nums'>{fileSize}</span>}
+      {record.imageUsage && (
+        <>
+          <span>
+            {t('Input tokens')}:{' '}
+            {formatNumber(record.imageUsage.input_tokens, locale)}
+          </span>
+          <span>
+            {t('Output tokens')}:{' '}
+            {formatNumber(record.imageUsage.output_tokens, locale)}
+          </span>
+          <span>
+            {t('Total tokens')}:{' '}
+            {formatNumber(record.imageUsage.total_tokens, locale)}
+          </span>
+        </>
+      )}
+      {record.svgUsage && (
+        <span>
+          SVG {t('Total tokens')}:{' '}
+          {formatNumber(record.svgUsage.total_tokens, locale)}
         </span>
       )}
-      {fileSize && <span className='tabular-nums'>{fileSize}</span>}
     </div>
   )
 }
@@ -82,8 +108,32 @@ function formatImageFileSize(sizeBytes?: number): string | null {
   return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
-function LoadingImageSlot({ slotIndex }: { slotIndex: number }) {
+function LoadingImageSlot({
+  slotIndex,
+  preview,
+}: {
+  slotIndex: number
+  preview?: string | null
+}) {
   const { t } = useTranslation()
+  if (preview) {
+    return (
+      <div
+        className='relative overflow-hidden rounded-lg border'
+        role='status'
+        aria-label={t('Generating...')}
+      >
+        <img
+          src={preview}
+          alt={t('Partial image preview')}
+          className='aspect-square w-full object-contain'
+        />
+        <span className='bg-background/80 absolute inset-x-0 bottom-0 p-2 text-center text-xs'>
+          {t('Generating...')}
+        </span>
+      </div>
+    )
+  }
   return (
     <div
       className='bg-muted/30 text-muted-foreground flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border'
@@ -158,6 +208,7 @@ export function ResultGrid({
   pendingImageCount,
   imageErrors,
   imageFailures,
+  partialImage,
 }: ResultGridProps) {
   const { t } = useTranslation()
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(
@@ -207,6 +258,7 @@ export function ResultGrid({
             <LoadingImageSlot
               key={`pending-image-${index}`}
               slotIndex={index}
+              preview={index === 0 ? partialImage : null}
             />
           ))}
         </div>
@@ -335,6 +387,7 @@ export function ResultGrid({
             <LoadingImageSlot
               key={`pending-image-${index}`}
               slotIndex={index}
+              preview={index === 0 ? partialImage : null}
             />
           ))}
         {visibleFailures.map((failure) =>

@@ -1,3 +1,4 @@
+import { t } from 'i18next'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
@@ -13,6 +14,7 @@ import { getImageFailures } from '../lib/image-failures'
 import {
   buildImageGenerationPayload,
   getImageModelRuntimeLimits,
+  normalizeConfigForModel,
   resolveParameterSize,
   restoreParametersFromRecord,
 } from '../lib/model-params'
@@ -29,6 +31,8 @@ import type {
 function imageMimeTypeForOutputFormat(outputFormat: string): string {
   if (outputFormat === 'jpeg') return 'image/jpeg'
   if (outputFormat === 'webp') return 'image/webp'
+  if (outputFormat === 'gif') return 'image/gif'
+  if (outputFormat === 'svg') return 'image/svg+xml'
   return 'image/png'
 }
 
@@ -67,6 +71,8 @@ export interface GenerateArgs {
   prompt: string
   mode: StudioMode
   referenceImages: ReferenceImage[]
+  editMask?: ReferenceImage
+  editMarkup?: ReferenceImage
 }
 
 export interface RetryImageArgs {
@@ -88,6 +94,7 @@ export function useImageGeneration({
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [pendingImageCount, setPendingImageCount] = useState(0)
+  const [partialImage, setPartialImage] = useState<string | null>(null)
   const [imageFailures, setImageFailures] = useState<ImageGenerationError[]>([])
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null)
@@ -144,7 +151,14 @@ export function useImageGeneration({
   }, [])
 
   const generate = useCallback(
-    async ({ config, prompt, mode, referenceImages }: GenerateArgs) => {
+    async ({
+      config: rawConfig,
+      prompt,
+      mode,
+      referenceImages,
+      editMask,
+      editMarkup,
+    }: GenerateArgs) => {
       if (
         generationRunningRef.current ||
         (retryBatchRef.current?.controllers.size ?? 0) > 0
@@ -152,11 +166,15 @@ export function useImageGeneration({
         return null
       }
 
+      const config = normalizeConfigForModel(rawConfig, mode)
+      if (!config) return null
       const payload = buildImageGenerationPayload(
         config,
         prompt,
         mode,
-        referenceImages
+        referenceImages,
+        editMask,
+        editMarkup
       )
       const runtimeLimits = getImageModelRuntimeLimits(config.model)
       if (!runtimeLimits) {
@@ -172,6 +190,7 @@ export function useImageGeneration({
       retryBatchRef.current = null
       setIsGenerating(true)
       setPendingImageCount(requestedImageCount)
+      setPartialImage(null)
       setImageFailures([])
       setGenerationError(null)
 
@@ -186,19 +205,22 @@ export function useImageGeneration({
 
       try {
         const setting = await getImageStudioSetting(controller.signal)
-        let saveHistory = setting.history_enabled
+        // SVG storage does not yet preserve its format correctly; keep these results in this session.
+        let saveHistory =
+          setting.history_enabled && payload.output_format !== 'svg'
         const send =
           mode === 'edit' && !runtimeLimits.usesGenerationEndpointForEdits
             ? editImages
             : generateImages
-        const imageMimeType = imageMimeTypeForOutputFormat(
-          payload.output_format ?? 'png'
-        )
-
         const handleCompletedRequest = async (
           requestResult: Awaited<ReturnType<typeof send>>,
           durationMs: number
         ) => {
+          const outputFormat =
+            requestResult.response.output_format ??
+            payload.output_format ??
+            'png'
+          const imageMimeType = imageMimeTypeForOutputFormat(outputFormat)
           const imageOutputs = (requestResult.response.data ?? [])
             .map((item) => ({
               src: item.b64_json
@@ -211,7 +233,13 @@ export function useImageGeneration({
             throw new Error('empty image response')
           }
 
-          successfulRequests.push({ requestId: requestResult.requestId })
+          if (
+            !successfulRequests.some(
+              (request) => request.requestId === requestResult.requestId
+            )
+          ) {
+            successfulRequests.push({ requestId: requestResult.requestId })
+          }
           const persistImageOutputs = async () => {
             for (const imageOutput of imageOutputs) {
               let storedRecord: ImageStudioGenerationRecord | null = null
@@ -225,10 +253,12 @@ export function useImageGeneration({
                     model: config.model,
                     group: config.group,
                     parameter_snapshot: { ...config.parameters },
-                    size: resolveParameterSize(config.parameters),
-                    quality: payload.quality,
+                    size:
+                      requestResult.response.size ??
+                      resolveParameterSize(config.parameters),
+                    quality: requestResult.response.quality ?? payload.quality,
                     moderation: payload.moderation,
-                    output_format: payload.output_format,
+                    output_format: outputFormat,
                     n: requestedImageCount,
                     duration_ms: durationMs,
                     images: [
@@ -274,16 +304,23 @@ export function useImageGeneration({
                 parameterSnapshot: storedRecord?.parameter_snapshot ?? {
                   ...config.parameters,
                 },
-                size: resolveParameterSize(config.parameters),
-                quality: payload.quality,
+                size:
+                  requestResult.response.size ??
+                  resolveParameterSize(config.parameters),
+                quality: requestResult.response.quality ?? payload.quality,
                 moderation: payload.moderation,
-                outputFormat: payload.output_format,
+                outputFormat,
                 n: requestedImageCount,
                 images,
                 usage: { durationMs },
                 favorite: storedRecord?.favorite,
                 channelId: storedRecord?.channel_id,
                 referenceImages,
+                editMask,
+                editMarkup,
+                imageUsage: requestResult.response.usage,
+                background: requestResult.response.background,
+                svgUsage: requestResult.response.svg_usage,
               }
 
               if (activeRecord === null) {
@@ -293,6 +330,11 @@ export function useImageGeneration({
                 patchRecordLocally(nextRecord.id, nextRecord)
               }
               activeRecord = nextRecord
+              if (payload.stream) {
+                setPendingImageCount(
+                  Math.max(0, requestedImageCount - images.length)
+                )
+              }
             }
           }
 
@@ -303,36 +345,78 @@ export function useImageGeneration({
 
         await Promise.all(
           Array.from(
-            { length: requestedImageCount },
+            {
+              length:
+                config.parameters.family === 'gpt-image'
+                  ? 1
+                  : requestedImageCount,
+            },
             async (_, requestIndex) => {
               const requestStartedAt = Date.now()
               let durationRecorded = false
               try {
-                const requestResult = await send(payload, controller.signal)
+                const requestResult = await send(
+                  payload,
+                  controller.signal,
+                  setPartialImage,
+                  payload.stream
+                    ? (result) =>
+                        handleCompletedRequest(
+                          result,
+                          Date.now() - requestStartedAt
+                        )
+                    : undefined
+                )
                 const requestDurationMs = Date.now() - requestStartedAt
                 accumulatedDurationMs += requestDurationMs
                 durationRecorded = true
-                await handleCompletedRequest(
-                  requestResult,
-                  accumulatedDurationMs
-                )
+                if (!payload.stream) {
+                  await handleCompletedRequest(
+                    requestResult,
+                    accumulatedDurationMs
+                  )
+                }
+                if (
+                  config.parameters.family === 'gpt-image' &&
+                  ((activeRecord as GenerationRecord | null)?.images.length ??
+                    0) < requestedImageCount
+                ) {
+                  throw new Error(t('Image generation failed'))
+                }
               } catch (error) {
                 if (!controller.signal.aborted) {
                   if (!durationRecorded) {
                     accumulatedDurationMs += Date.now() - requestStartedAt
                   }
                   const errorMessage = extractApiErrorMessage(error)
-                  requestFailures.push({
-                    id: `${recordId}-request-${requestIndex}`,
-                    retryIndex: requestFailures.length,
-                    message: errorMessage,
-                  })
-                  requestErrors.push(errorMessage)
+                  const failedCount =
+                    config.parameters.family === 'gpt-image'
+                      ? Math.max(
+                          0,
+                          requestedImageCount -
+                            ((activeRecord as GenerationRecord | null)?.images
+                              .length ?? 0)
+                        )
+                      : 1
+                  for (let index = 0; index < failedCount; index += 1) {
+                    requestFailures.push({
+                      id: `${recordId}-request-${requestIndex}-${index}`,
+                      retryIndex: requestFailures.length,
+                      message: errorMessage,
+                    })
+                    requestErrors.push(errorMessage)
+                  }
                   setImageFailures([...requestFailures])
                 }
               } finally {
                 setPendingImageCount((currentCount) =>
-                  Math.max(0, currentCount - 1)
+                  Math.max(
+                    0,
+                    currentCount -
+                      (config.parameters.family === 'gpt-image'
+                        ? requestedImageCount
+                        : 1)
+                  )
                 )
               }
             }
@@ -360,6 +444,8 @@ export function useImageGeneration({
             imageFailures: [...requestFailures],
             usage: { durationMs: accumulatedDurationMs },
             referenceImages,
+            editMask,
+            editMarkup,
           }
           addRecord(failedRecord)
           setActiveRecordId(failedRecord.id)
@@ -424,6 +510,7 @@ export function useImageGeneration({
         generationRunningRef.current = false
         setIsGenerating(false)
         setPendingImageCount(0)
+        setPartialImage(null)
       }
     },
     [addRecord, patchRecord, patchRecordLocally]
@@ -475,7 +562,9 @@ export function useImageGeneration({
         retryConfig,
         record.prompt,
         record.mode,
-        referenceImages
+        referenceImages,
+        record.editMask,
+        record.editMarkup
       )
       const send =
         record.mode === 'edit' && !runtimeLimits.usesGenerationEndpointForEdits
@@ -500,7 +589,10 @@ export function useImageGeneration({
         if (!responseImage) throw new Error('empty image response')
 
         const outputFormat =
-          payload.output_format ?? record.outputFormat ?? 'png'
+          requestResult.response.output_format ??
+          payload.output_format ??
+          record.outputFormat ??
+          'png'
         const imageSource = responseImage.b64_json
           ? `data:${imageMimeTypeForOutputFormat(outputFormat)};base64,${responseImage.b64_json}`
           : (responseImage.url ?? '')
@@ -614,6 +706,7 @@ export function useImageGeneration({
     isBusy: isGenerating || retryingImageErrorIndexes.length > 0,
     isBusyNow,
     pendingImageCount,
+    partialImage,
     imageErrors: imageFailures.map((failure) => failure.message),
     imageFailures,
     retryingImageErrorIndexes,

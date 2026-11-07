@@ -35,6 +35,9 @@ type ImageRequest struct {
 	Moderation                       json.RawMessage `json:"moderation,omitempty"`
 	OutputFormat                     json.RawMessage `json:"output_format,omitempty"`
 	OutputCompression                json.RawMessage `json:"output_compression,omitempty"`
+	Complexity                       *string         `json:"complexity,omitempty"`
+	FrameCount                       *uint           `json:"frame_count,omitempty"`
+	FrameDurationMS                  *uint           `json:"frame_duration_ms,omitempty"`
 	PartialImages                    json.RawMessage `json:"partial_images,omitempty"`
 	Stream                           *bool           `json:"stream,omitempty"`
 	Images                           json.RawMessage `json:"images,omitempty"`

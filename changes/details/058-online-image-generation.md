@@ -1,6 +1,27 @@
 # 在线生图与图片审计管理
 
-**日期**: 2026-09-27
+**日期**: 2026-11-07
+
+## 2026-11-07：GPT Image 参数、流式预览与编辑扩展
+
+以下内容更新此前 GPT Image 多张生成不发送 `n`、并行单图请求的实现记录；Seedream 保留原有请求方式。
+
+- `web/src/features/image-studio/lib/model-params/gpt-image/config.ts`、`web/src/features/image-studio/lib/model-params/gpt-image/types.ts` — 按明确的模型名称区分 GPT Image 1.5、1-mini、2、2.5 与 2.6 等型号的能力，分别归一化尺寸、品质、透明背景、压缩、输入保真度和复杂度；GPT Image 单次最多请求 10 张、最多使用 16 张参考图，SVG 限单张；补充自定义静态图尺寸校验与 GIF 帧数、帧时长配置。
+- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx`、`web/src/features/image-studio/components/params-panel.tsx` — 按模型和生成/编辑模式显示可用参数，尺寸选项展示分辨率档位、像素与宽高比；新增流式输出、中间预览数量、GIF 帧参数及 SVG/复杂度等适用控件。
+- `web/src/features/image-studio/lib/model-params/index.ts`、`web/src/features/image-studio/hooks/use-image-studio-state.ts` — 模型切换、配置恢复和请求构建使用当前型号的能力约束，传递编辑模式并按支持情况携带蒙版或标注图层。
+- `web/src/features/image-studio/lib/model-params/gpt-image/edit-input.ts` — 新增参考图与编辑图层校验：参考图须为小于 50 MB 的 PNG、JPEG 或 WebP；图层须为与首张参考图同尺寸的透明 PNG，蒙版要求首张参考图为 PNG，标注图层另校验像素上限与实际透明像素，并限制可用模型。
+- `web/src/features/image-studio/lib/model-params/gpt-image/edit-layer.tsx` — 新增蒙版与标注图层上传、缩略图和移除操作，复用共享 `Button`、`Input`、`Label` 与错误处理，补充图层用途及互斥说明。
+- `web/src/features/image-studio/components/generate-panel.tsx`、`web/src/features/image-studio/index.tsx` — GPT Image 参考图上传增加格式、大小限制与数量说明，提示词限制为 32,000 字符；编辑面板按模型及格式展示互斥的蒙版/标注入口，首张参考图变化或重置时清理图层，生成期间禁用相关操作。
+- `web/src/features/image-studio/api.ts` — GPT Image 编辑请求改用 multipart 上传参考图与可选图层；流式请求解析生成/编辑中间图片及完成事件，支持即时预览、逐张完成回调、取消与流错误提示，并检查蒙版、标注和 GIF 的组合约束。
+- `web/src/features/image-studio/hooks/use-image-studio.ts` — GPT Image 改为携带 `n` 的批量请求，流式完成图片逐张展示与保存，并按未完成数量生成失败占位；记录上游实际尺寸、品质、格式、背景及用量，支持 GIF/SVG MIME 类型，SVG 因存储格式兼容限制仅在当前会话展示，不写入历史。
+- `web/src/features/image-studio/components/result-grid.tsx` — 生成过程中展示中间预览图；结果信息优先使用实际图片尺寸，补充背景、图像 Token 与 SVG Token 用量，并复用语言相关数字格式化。
+- `web/src/features/image-studio/lib/image-utils.ts`、`web/src/features/image-studio/types.ts` — 补齐 GIF/SVG 下载扩展名、批量与流式请求参数、编辑图层及上游用量和结果元数据类型。
+- `relaykit/dto/openai_image.go` — 图片请求新增可省略的指针字段 `complexity`、`frame_count`、`frame_duration_ms`，保留字段缺省与显式值的区别。
+- `relay/helper/valid_request.go` — multipart 解析补齐输出格式、复杂度和帧参数，拒绝重复或非法帧参数，限制帧数为 2–16、帧时长为 20–2000 毫秒并要求 GIF 格式；适用的 GIF 请求禁止流式、中间预览和蒙版。
+- `relay/channel/openai/adaptor.go` — multipart 编辑转发支持 `markup` 图层及复杂度、帧参数，过滤 Playground 内部 `group` 字段，并在创建上传分段或复制失败时及时关闭文件。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充模型参数、流式预览、编辑图层、格式限制与上传校验的七语言文案。
+
+本次仅根据工作区差异更新变更日志，未执行构建、测试或真实生图联调；下文历史验证记录对应此前改动。
 
 ## 涉及文件
 

@@ -8,9 +8,8 @@ import type {
   StudioMode,
 } from '../../types'
 import {
-  DEFAULT_GPT_IMAGE_PARAMETERS,
   GPT_IMAGE_PARAMETERS,
-  isGptImageModel,
+  getGptImageCapabilities,
 } from './gpt-image/config'
 import type { GptImageConfig } from './gpt-image/types'
 import {
@@ -46,11 +45,12 @@ export type ImageModelAdapter = GptImageAdapter | SeedreamAdapter
 export function resolveImageModelAdapter(
   model: string
 ): ImageModelAdapter | null {
-  if (isGptImageModel(model)) {
+  const gptCapabilities = getGptImageCapabilities(model)
+  if (gptCapabilities) {
     return {
       family: 'gpt-image',
-      defaultParameters: DEFAULT_GPT_IMAGE_PARAMETERS,
-      runtimeLimits: GPT_IMAGE_PARAMETERS.runtimeLimits,
+      defaultParameters: gptCapabilities.defaultParameters,
+      runtimeLimits: gptCapabilities.runtimeLimits,
     }
   }
   if (isSeedreamModel(model)) {
@@ -81,7 +81,8 @@ export function createDefaultParametersForModel(
 }
 
 export function normalizeConfigForModel(
-  config: ImageStudioConfig
+  config: ImageStudioConfig,
+  mode: StudioMode = 'generate'
 ): ImageStudioConfig | null {
   const adapter = resolveImageModelAdapter(config.model)
   if (!adapter) return null
@@ -92,7 +93,11 @@ export function normalizeConfigForModel(
         : adapter.defaultParameters
     return {
       ...config,
-      parameters: GPT_IMAGE_PARAMETERS.normalizeParameters(sourceParameters),
+      parameters: GPT_IMAGE_PARAMETERS.normalizeParameters(
+        sourceParameters,
+        config.model,
+        mode
+      ),
     }
   }
   const sourceParameters =
@@ -109,7 +114,10 @@ export function isCustomSizeValid(config: ImageStudioConfig): boolean {
   const adapter = resolveImageModelAdapter(config.model)
   if (!adapter || adapter.family !== config.parameters.family) return false
   if (config.parameters.family === 'gpt-image') {
-    return GPT_IMAGE_PARAMETERS.isCustomSizeValid(config.parameters)
+    return GPT_IMAGE_PARAMETERS.isCustomSizeValid(
+      config.parameters,
+      config.model
+    )
   }
   return SEEDREAM_PARAMETERS.isCustomSizeValid(config.parameters)
 }
@@ -125,7 +133,9 @@ export function buildImageGenerationPayload(
   config: ImageStudioConfig,
   prompt: string,
   mode: StudioMode,
-  referenceImages: ReferenceImage[]
+  referenceImages: ReferenceImage[],
+  editMask?: ReferenceImage,
+  editMarkup?: ReferenceImage
 ): ImageGenerationPayload {
   const adapter = resolveImageModelAdapter(config.model)
   if (!adapter || adapter.family !== config.parameters.family) {
@@ -133,7 +143,11 @@ export function buildImageGenerationPayload(
   }
   let modelPayload: Partial<ImageGenerationPayload>
   if (config.parameters.family === 'gpt-image') {
-    modelPayload = GPT_IMAGE_PARAMETERS.buildPayload(config.parameters, mode)
+    modelPayload = GPT_IMAGE_PARAMETERS.buildPayload(
+      config.parameters,
+      mode,
+      config.model
+    )
   } else {
     modelPayload = SEEDREAM_PARAMETERS.buildPayload(config.parameters)
   }
@@ -144,9 +158,15 @@ export function buildImageGenerationPayload(
     ...modelPayload,
   }
   const size = resolveParameterSize(config.parameters)
-  if (size && size !== 'auto') payload.size = size
+  if (config.parameters.family === 'seedream' && size && size !== 'auto') {
+    payload.size = size
+  }
   if (mode === 'edit') {
     payload.image = referenceImages.map((image) => image.dataUrl)
+    if (config.parameters.family === 'gpt-image') {
+      payload.mask = editMask?.dataUrl
+      payload.markup = editMarkup?.dataUrl
+    }
   }
   return payload
 }
@@ -160,7 +180,10 @@ export function restoreParametersFromRecord(
     record.parameterSnapshot?.family === 'gpt-image' &&
     adapter.family === 'gpt-image'
   ) {
-    return GPT_IMAGE_PARAMETERS.normalizeParameters(record.parameterSnapshot)
+    return GPT_IMAGE_PARAMETERS.normalizeParameters(
+      record.parameterSnapshot,
+      record.model
+    )
   }
   if (
     record.parameterSnapshot?.family === 'seedream' &&
@@ -169,15 +192,18 @@ export function restoreParametersFromRecord(
     return SEEDREAM_PARAMETERS.normalizeParameters(record.parameterSnapshot)
   }
   if (adapter.family === 'gpt-image') {
-    return GPT_IMAGE_PARAMETERS.normalizeParameters({
-      ...adapter.defaultParameters,
-      size: record.size || adapter.defaultParameters.size,
-      quality: record.quality ?? adapter.defaultParameters.quality,
-      moderation: record.moderation ?? adapter.defaultParameters.moderation,
-      outputFormat:
-        record.outputFormat ?? adapter.defaultParameters.outputFormat,
-      n: record.n,
-    })
+    return GPT_IMAGE_PARAMETERS.normalizeParameters(
+      {
+        ...adapter.defaultParameters,
+        size: record.size || adapter.defaultParameters.size,
+        quality: record.quality ?? adapter.defaultParameters.quality,
+        moderation: record.moderation ?? adapter.defaultParameters.moderation,
+        outputFormat:
+          record.outputFormat ?? adapter.defaultParameters.outputFormat,
+        n: record.n,
+      },
+      record.model
+    )
   }
   return SEEDREAM_PARAMETERS.normalizeParameters({
     ...adapter.defaultParameters,

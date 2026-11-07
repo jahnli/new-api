@@ -82,6 +82,11 @@ export interface GenerationRecord {
   channelId?: number
   favorite?: boolean
   referenceImages?: ReferenceImage[]
+  editMask?: ReferenceImage
+  editMarkup?: ReferenceImage
+  imageUsage?: ImageApiUsage
+  background?: string
+  svgUsage?: ImageSvgUsage
 }
 
 export interface ImageGenerationPayload {
@@ -100,6 +105,15 @@ export interface ImageGenerationPayload {
   sequential_image_generation_options?: { max_images: number }
   optimize_prompt_options?: { mode: 'standard' | 'fast' }
   image?: string[]
+  mask?: string
+  markup?: string
+  n?: number
+  stream?: boolean
+  partial_images?: number
+  input_fidelity?: string
+  complexity?: string
+  frame_count?: number
+  frame_duration_ms?: number
 }
 
 export interface ImageApiResponseData {
@@ -111,6 +125,29 @@ export interface ImageApiResponseData {
 export interface ImageApiResponse {
   created?: number
   data?: ImageApiResponseData[]
+  background?: string
+  output_format?: string
+  quality?: string
+  size?: string
+  usage?: ImageApiUsage
+  svg_usage?: ImageSvgUsage
+  safety_identifier?: string | null
+}
+
+export interface ImageSvgUsage {
+  model: string
+  input_tokens: number
+  output_tokens: number
+  reasoning_tokens: number
+  total_tokens: number
+}
+
+export interface ImageApiUsage {
+  input_tokens: number
+  input_tokens_details?: { image_tokens: number; text_tokens: number }
+  output_tokens: number
+  total_tokens: number
+  output_tokens_details?: { image_tokens: number; text_tokens: number }
 }
 
 export interface StoredImageAsset {

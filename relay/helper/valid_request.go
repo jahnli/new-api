@@ -229,6 +229,35 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			}
 			imageRequest.Quality = formData.Get("quality")
 			imageRequest.Size = formData.Get("size")
+			if formData.Has("output_format") {
+				imageRequest.OutputFormat, _ = common.Marshal(formData.Get("output_format"))
+			}
+			if values, exists := formData["complexity"]; exists {
+				if len(values) != 1 {
+					return nil, errors.New("complexity must be provided once")
+				}
+				imageRequest.Complexity = common.GetPointer(values[0])
+			}
+			for _, field := range []struct {
+				name   string
+				target **uint
+			}{
+				{"frame_count", &imageRequest.FrameCount},
+				{"frame_duration_ms", &imageRequest.FrameDurationMS},
+			} {
+				values, exists := formData[field.name]
+				if !exists {
+					continue
+				}
+				if len(values) != 1 {
+					return nil, fmt.Errorf("%s must be provided once", field.name)
+				}
+				value, err := strconv.ParseUint(strings.TrimSpace(values[0]), 10, strconv.IntSize)
+				if err != nil {
+					return nil, fmt.Errorf("%s must be an unsigned integer", field.name)
+				}
+				*field.target = common.GetPointer(uint(value))
+			}
 			if parameters := formData.Get("parameters"); parameters != "" {
 				imageRequest.Extra = map[string]json.RawMessage{"parameters": json.RawMessage(parameters)}
 			}
@@ -293,6 +322,55 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 
 		if imageRequest.N == nil || *imageRequest.N == 0 {
 			imageRequest.N = common.GetPointer(uint(1))
+		}
+	}
+
+	if imageRequest.Complexity != nil {
+		switch *imageRequest.Complexity {
+		case "low", "medium", "high":
+		default:
+			return nil, errors.New("complexity must be one of: low, medium, high")
+		}
+	}
+	var outputFormat string
+	_ = common.Unmarshal(imageRequest.OutputFormat, &outputFormat)
+	for _, field := range []struct {
+		name  string
+		value *uint
+		min   uint
+		max   uint
+	}{
+		{"frame_count", imageRequest.FrameCount, 2, 16},
+		{"frame_duration_ms", imageRequest.FrameDurationMS, 20, 2000},
+	} {
+		if field.value == nil {
+			continue
+		}
+		if *field.value < field.min || *field.value > field.max {
+			return nil, fmt.Errorf("%s must be an integer between %d and %d", field.name, field.min, field.max)
+		}
+		if outputFormat != "gif" {
+			return nil, fmt.Errorf("%s requires output_format=gif", field.name)
+		}
+	}
+	// The provider applies defaults and rounds GIF frame durations to 10 ms.
+	// Preserve the supplied values in both JSON and multipart forwarding.
+	isGPTImage26 := imageRequest.Model == "gpt-image-2.6" || strings.HasPrefix(imageRequest.Model, "gpt-image-2.6-")
+	if outputFormat == "gif" && (isGPTImage26 || imageRequest.FrameCount != nil || imageRequest.FrameDurationMS != nil) {
+		if imageRequest.Stream != nil && *imageRequest.Stream {
+			return nil, errors.New("stream is not supported for GIF output")
+		}
+		hasPartialImages := len(imageRequest.PartialImages) > 0 && string(imageRequest.PartialImages) != "null"
+		hasMask := len(imageRequest.Mask) > 0 && string(imageRequest.Mask) != "null"
+		if form := c.Request.MultipartForm; form != nil {
+			hasPartialImages = hasPartialImages || len(form.Value["partial_images"]) > 0
+			hasMask = hasMask || len(form.Value["mask"]) > 0 || len(form.File["mask"]) > 0
+		}
+		if hasPartialImages {
+			return nil, errors.New("partial_images is not supported for GIF output")
+		}
+		if hasMask {
+			return nil, errors.New("mask is not supported for GIF output")
 		}
 	}
 

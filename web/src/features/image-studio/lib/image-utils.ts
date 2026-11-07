@@ -32,6 +32,7 @@ function extensionForMime(mime: string): string {
   if (mime.includes('webp')) return 'webp'
   if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg'
   if (mime.includes('gif')) return 'gif'
+  if (mime.includes('svg')) return 'svg'
   return 'png'
 }
 
@@ -41,6 +42,7 @@ function extensionForOutputFormat(
   if (outputFormat === 'webp') return 'webp'
   if (outputFormat === 'jpeg' || outputFormat === 'jpg') return 'jpg'
   if (outputFormat === 'png') return 'png'
+  if (outputFormat === 'gif' || outputFormat === 'svg') return outputFormat
   return null
 }
 

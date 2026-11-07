@@ -1,6 +1,15 @@
-import { api } from '@/lib/api'
+import { t } from 'i18next'
+
+import { api, getFreshAuthHeaders } from '@/lib/api'
+import { createServerError } from '@/lib/server-error-message'
 
 import { API_ENDPOINTS, DEFAULT_HISTORY_DISPLAY_LIMIT } from './constants'
+import { isGptImageModel } from './lib/model-params/gpt-image/config'
+import {
+  supportsGptImageMarkup,
+  validateGptImageEditLayer,
+  validateGptImageReference,
+} from './lib/model-params/gpt-image/edit-input'
 import type {
   GroupOption,
   ImageApiResponse,
@@ -20,15 +29,176 @@ export interface ImageRequestResult {
   requestId: string
 }
 
+export type ImagePreviewCallback = (src: string | null) => void
+export type ImageCompletedCallback = (
+  result: ImageRequestResult
+) => Promise<void>
+
 async function postImageRequest(
   endpoint: string,
   payload: ImageGenerationPayload,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onPreview?: ImagePreviewCallback,
+  onCompleted?: ImageCompletedCallback
 ): Promise<ImageRequestResult> {
-  const res = await api.post(endpoint, payload, {
+  let body: ImageGenerationPayload | FormData = payload
+  if (
+    endpoint === API_ENDPOINTS.IMAGE_EDITS &&
+    isGptImageModel(payload.model)
+  ) {
+    const references = (payload.image ?? []).map((dataUrl) => ({
+      id: '',
+      name: '',
+      dataUrl,
+    }))
+    if (references.length < 1 || references.length > 16) {
+      throw new Error(
+        t('Image edits require between 1 and 16 reference images')
+      )
+    }
+    for (const image of references) validateGptImageReference(image)
+    if (payload.mask && payload.markup) {
+      throw new Error(t('Mask and markup cannot be combined'))
+    }
+    if (payload.mask && payload.output_format === 'gif') {
+      throw new Error(t('GIF output does not support masks'))
+    }
+    if (payload.markup && !supportsGptImageMarkup(payload.model)) {
+      throw new Error(t('This image model does not support markup'))
+    }
+    for (const key of ['mask', 'markup'] as const) {
+      if (payload[key]) {
+        await validateGptImageEditLayer(
+          { id: '', name: '', dataUrl: payload[key] },
+          references[0],
+          key
+        )
+      }
+    }
+    const form = new FormData()
+    for (const [key, value] of Object.entries(payload)) {
+      if (
+        value === undefined ||
+        key === 'image' ||
+        key === 'mask' ||
+        key === 'markup'
+      ) {
+        continue
+      }
+      form.append(key, String(value))
+    }
+    for (const [index, src] of (payload.image ?? []).entries()) {
+      const blob = await (await fetch(src, { signal })).blob()
+      form.append('image[]', blob, `image-${index}.${blob.type.split('/')[1]}`)
+    }
+    for (const key of ['mask', 'markup'] as const) {
+      if (!payload[key]) continue
+      const blob = await (await fetch(payload[key], { signal })).blob()
+      form.append(key, blob, `${key}.png`)
+    }
+    body = form
+  }
+  if (payload.stream) {
+    const headers = new Headers(await getFreshAuthHeaders())
+    headers.set('Accept', 'text/event-stream')
+    if (body instanceof FormData) headers.delete('Content-Type')
+    else headers.set('Content-Type', 'application/json')
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+      body: body instanceof FormData ? body : JSON.stringify(body),
+      signal,
+    })
+    if (!res.ok || !res.body) {
+      throw createServerError(
+        await res.json().catch(() => ({ status: res.status }))
+      )
+    }
+    const requestId = res.headers.get('x-oneapi-request-id') ?? ''
+    if (!res.headers.get('content-type')?.includes('text/event-stream')) {
+      const response = (await res.json()) as ImageApiResponse
+      await onCompleted?.({ response, requestId })
+      return { response, requestId }
+    }
+    const response: ImageApiResponse = { data: [] }
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        buffer += done
+          ? decoder.decode()
+          : decoder.decode(value, { stream: true })
+        const events = buffer.split(/\r?\n\r?\n/)
+        buffer = done ? '' : (events.pop() ?? '')
+        for (const event of events) {
+          const lines = event.split(/\r?\n/)
+          const data = lines
+            .filter((line) => line.startsWith('data:'))
+            .map((line) => line.slice(5).trimStart())
+            .join('\n')
+          if (!data || data === '[DONE]') continue
+          const item = JSON.parse(data) as ImageApiResponse & {
+            type?: string
+            b64_json?: string
+            error?: unknown
+            message?: string
+          }
+          const eventType =
+            item.type ??
+            lines
+              .find((line) => line.startsWith('event:'))
+              ?.slice(6)
+              .trim()
+          if (item.error || eventType === 'error') throw createServerError(item)
+          if (
+            eventType !== 'image_generation.partial_image' &&
+            eventType !== 'image_edit.partial_image' &&
+            eventType !== 'image_generation.completed' &&
+            eventType !== 'image_edit.completed'
+          ) {
+            continue
+          }
+          if (!item.b64_json) continue
+          if (eventType.endsWith('.partial_image')) {
+            const format = item.output_format ?? payload.output_format ?? 'png'
+            onPreview?.(`data:image/${format};base64,${item.b64_json}`)
+            continue
+          }
+          response.data?.push({ b64_json: item.b64_json })
+          response.created = item.created
+          response.background = item.background
+          response.output_format = item.output_format ?? payload.output_format
+          response.quality = item.quality
+          response.size = item.size
+          response.usage = item.usage ?? response.usage
+          await onCompleted?.({
+            response: { ...response, data: [{ b64_json: item.b64_json }] },
+            requestId,
+          })
+          onPreview?.(null)
+        }
+        if (done) break
+      }
+      if (!response.data?.length) {
+        throw new Error(t('Image stream ended without a completed image'))
+      }
+      return { response, requestId }
+    } finally {
+      await reader.cancel().catch(() => undefined)
+      reader.releaseLock()
+      onPreview?.(null)
+    }
+  }
+  const res = await api.post(endpoint, body, {
     signal,
     skipErrorHandler: true,
-  } as Record<string, unknown>)
+    ...(body instanceof FormData
+      ? { headers: { 'Content-Type': undefined } }
+      : {}),
+  })
   return {
     response: res.data as ImageApiResponse,
     requestId: String(res.headers?.['x-oneapi-request-id'] ?? ''),
@@ -37,16 +207,32 @@ async function postImageRequest(
 
 export function generateImages(
   payload: ImageGenerationPayload,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onPreview?: ImagePreviewCallback,
+  onCompleted?: ImageCompletedCallback
 ): Promise<ImageRequestResult> {
-  return postImageRequest(API_ENDPOINTS.IMAGE_GENERATIONS, payload, signal)
+  return postImageRequest(
+    API_ENDPOINTS.IMAGE_GENERATIONS,
+    payload,
+    signal,
+    onPreview,
+    onCompleted
+  )
 }
 
 export function editImages(
   payload: ImageGenerationPayload,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onPreview?: ImagePreviewCallback,
+  onCompleted?: ImageCompletedCallback
 ): Promise<ImageRequestResult> {
-  return postImageRequest(API_ENDPOINTS.IMAGE_EDITS, payload, signal)
+  return postImageRequest(
+    API_ENDPOINTS.IMAGE_EDITS,
+    payload,
+    signal,
+    onPreview,
+    onCompleted
+  )
 }
 
 interface ApiEnvelope<T> {

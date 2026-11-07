@@ -5,6 +5,7 @@ import { DEFAULT_GROUP, DEFAULT_IMAGE_MODEL } from '../constants'
 import {
   createDefaultParametersForModel,
   isSupportedImageModel,
+  normalizeConfigForModel,
   resolveImageModelAdapter,
 } from '../lib/model-params'
 import type {
@@ -62,7 +63,13 @@ export function useImageStudioState() {
           ? cachedParameters
           : createDefaultParametersForModel(model)
       if (!parameters) return previousConfig
-      return { ...previousConfig, model, parameters: { ...parameters } }
+      return (
+        normalizeConfigForModel({
+          ...previousConfig,
+          model,
+          parameters: { ...parameters },
+        }) ?? previousConfig
+      )
     })
   }, [])
 
@@ -72,8 +79,13 @@ export function useImageStudioState() {
       if (!adapter || adapter.family !== parameters.family) {
         return previousConfig
       }
-      parameterCacheRef.current[parameters.family] = parameters
-      return { ...previousConfig, parameters }
+      const nextConfig = normalizeConfigForModel({
+        ...previousConfig,
+        parameters,
+      })
+      if (!nextConfig) return previousConfig
+      parameterCacheRef.current[parameters.family] = nextConfig.parameters
+      return nextConfig
     })
   }, [])
 
@@ -87,8 +99,13 @@ export function useImageStudioState() {
           ...previousConfig.parameters,
           [key]: value,
         }
-        parameterCacheRef.current['gpt-image'] = parameters
-        return { ...previousConfig, parameters }
+        const nextConfig = normalizeConfigForModel({
+          ...previousConfig,
+          parameters,
+        })
+        if (!nextConfig) return previousConfig
+        parameterCacheRef.current['gpt-image'] = nextConfig.parameters
+        return nextConfig
       })
     },
     []
@@ -164,11 +181,13 @@ export function useImageStudioState() {
               ? cachedParameters
               : createDefaultParametersForModel(nextModel.value)
           if (!parameters) return { ...previousConfig, model: '' }
-          return {
-            ...previousConfig,
-            model: nextModel.value,
-            parameters: { ...parameters },
-          }
+          return (
+            normalizeConfigForModel({
+              ...previousConfig,
+              model: nextModel.value,
+              parameters: { ...parameters },
+            }) ?? previousConfig
+          )
         })
       })
       .catch(() => undefined)
