@@ -1,6 +1,15 @@
 # 在线生图与图片审计管理
 
-**日期**: 2026-11-07
+**日期**: 2026-11-08
+
+## 2026-11-08：GIF 尺寸选项与结果信息优化
+
+- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx` — GIF 输出的尺寸菜单隐藏静态图片预设，仅保留“自动”和“自定义尺寸”，选择自定义后继续展示宽高输入框；保留其他输出格式的尺寸菜单，补充 GIF 尺寸、帧数与生成数量组合限制及失败时的调整建议。
+- `web/src/features/image-studio/lib/model-params/gpt-image/config.ts` — GIF 历史或缓存中的具体尺寸字符串统一转换为自定义宽高，包括原静态预设值，避免菜单隐藏预设后无法回显；GIF 自定义宽高校验正整数及 16 的倍数，不套用静态图片的最小像素数和宽高比限制，最终组合是否可用仍由上游判定。
+- `web/src/features/image-studio/components/result-grid.tsx` — 结果栏在品质值前增加“品质”标签，避免“低／中／高”等孤立文字被误认为尺寸单位。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充 GIF 自定义尺寸提示的七语言翻译；变更日志只记录提示用途，不将界面文案中的数值表述作为已经完成官方 GIF 规则验证的结论。
+
+本次依据当前未提交差异记录以上行为；`web/src/features/image-studio/hooks/use-image-studio-state.ts` 的差异为格式变化，不单独记为功能调整。当前代码没有“切换 GIF 时强制重置尺寸为自动”的逻辑，故本节不声明该行为。
 
 ## 2026-11-07：GPT Image 参数、流式预览与编辑扩展
 

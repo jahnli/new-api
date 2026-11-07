@@ -153,7 +153,7 @@ export const GPT_IMAGE_PARAMETERS: GptImageParameterConfig = {
     if (
       supportsCustomSize &&
       dimensions &&
-      !capabilities.sizePresets.includes(size)
+      (isGif || !capabilities.sizePresets.includes(size))
     ) {
       size = CUSTOM_SIZE
       customWidth = Number(dimensions[1])
@@ -222,10 +222,15 @@ export const GPT_IMAGE_PARAMETERS: GptImageParameterConfig = {
   isCustomSizeValid(parameters, model = 'gpt-image-2') {
     const capabilities = getGptImageCapabilities(model)
     if (!capabilities) return false
+    const isGif = parameters.outputFormat === 'gif'
+    if (
+      isGif &&
+      parameters.size !== 'auto' &&
+      parameters.size !== CUSTOM_SIZE
+    ) {
+      return false
+    }
     if (parameters.size !== CUSTOM_SIZE) return true
-    const isGif =
-      parameters.outputFormat === 'gif' &&
-      capabilities.outputFormatOptions.includes('gif')
     if (!capabilities.supportsCustomSize && !isGif) return false
     const validDimensions =
       Number.isSafeInteger(parameters.customWidth) &&
@@ -235,7 +240,7 @@ export const GPT_IMAGE_PARAMETERS: GptImageParameterConfig = {
       parameters.customWidth % 16 === 0 &&
       parameters.customHeight % 16 === 0
     if (!validDimensions) return false
-    // OpenAI does not publish the GIF pixel budget; do not apply still-image limits.
+    // GIF frame sizes have a separate provider budget; do not apply still-image pixel limits.
     if (isGif) return true
     const aspectRatio = parameters.customWidth / parameters.customHeight
     const pixels = parameters.customWidth * parameters.customHeight

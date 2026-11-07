@@ -73,7 +73,11 @@ function UsageBar({ record }: { record: GenerationRecord }) {
         </span>
       )}
       <span className='tabular-nums'>{imageSize}</span>
-      {record.quality && <span>{t(record.quality)}</span>}
+      {record.quality && (
+        <span>
+          {t('Quality')}: {t(record.quality)}
+        </span>
+      )}
       {record.background && <span>{t(record.background)}</span>}
       {fileSize && <span className='tabular-nums'>{fileSize}</span>}
       {record.imageUsage && (
