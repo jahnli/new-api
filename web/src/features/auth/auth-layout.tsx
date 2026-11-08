@@ -79,12 +79,12 @@ export function AuthLayout({
             <div className='login-workspace-orb-shadow' />
             <div className='login-workspace-orb' />
           </div>
-          <div className='relative max-w-md'>
-            <p className='mb-4 translate-y-3 text-[13px] font-semibold tracking-[0.28em] text-blue-800/70'>
+          <div className='relative max-w-md -translate-x-[20px] translate-y-[10px]'>
+            <p className='translate-y-3 text-[13px] font-semibold tracking-[0.28em] text-blue-800/70'>
               AI WORKSPACE
             </p>
             <div
-              className='mt-7 h-px w-16 translate-y-2 bg-blue-600/25'
+              className='mt-3 h-px w-16 translate-y-2 bg-blue-600/25'
               aria-hidden='true'
             />
           </div>
