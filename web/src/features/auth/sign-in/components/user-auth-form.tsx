@@ -109,6 +109,7 @@ export function UserAuthForm({
     !passkeySupported ||
     (requiresLegalConsent && !agreedToLegal)
   const hasWeChatLogin = Boolean(status?.wechat_login)
+  const hasEnterpriseLogin = Boolean(status?.oidc_enabled)
   const hasLDAPLogin = Boolean(status?.ldap_enabled)
   const hasOAuthLogin = Boolean(
     status?.oidc_enabled || (status?.custom_oauth_providers?.length ?? 0) > 0
@@ -118,7 +119,9 @@ export function UserAuthForm({
 
   useEffect(() => {
     if (status && activeView === null) {
-      if (externalModeEnabled && passwordLoginEnabled) {
+      if (hasEnterpriseLogin) {
+        setActiveView('oauth')
+      } else if (externalModeEnabled && passwordLoginEnabled) {
         setActiveView('password')
       } else if (hasLDAPLogin) {
         setActiveView('ldap')
@@ -132,6 +135,7 @@ export function UserAuthForm({
     status,
     activeView,
     externalModeEnabled,
+    hasEnterpriseLogin,
     hasLDAPLogin,
     hasAlternativeLogin,
     passwordLoginEnabled,
@@ -139,9 +143,15 @@ export function UserAuthForm({
 
   useEffect(() => {
     if (activeView !== null) {
-      onLoginTitleChange?.(getLoginViewTitleKey(activeView))
+      let titleKey: string = getLoginViewTitleKey(activeView)
+      if (hasEnterpriseLogin && activeView === 'oauth') {
+        titleKey = 'Enterprise unified login'
+      } else if (activeView === 'password') {
+        titleKey = 'Username and password sign in'
+      }
+      onLoginTitleChange?.(titleKey)
     }
-  }, [activeView, onLoginTitleChange])
+  }, [activeView, hasEnterpriseLogin, onLoginTitleChange])
 
   useEffect(() => {
     if (requiresLegalConsent) {
@@ -361,7 +371,7 @@ export function UserAuthForm({
   const switchLinks = useMemo(() => {
     const links: { label: string; view: LoginView; icon?: React.ReactNode }[] =
       []
-    if (activeView !== 'ldap' && hasLDAPLogin) {
+    if (activeView !== 'ldap' && hasLDAPLogin && !hasEnterpriseLogin) {
       links.push({
         label: t('Enterprise account sign in'),
         view: 'ldap',
@@ -370,19 +380,31 @@ export function UserAuthForm({
     }
     if (activeView !== 'password' && passwordLoginEnabled) {
       links.push({
-        label: t('Sign in with username or email'),
+        label: t('Username and password sign in'),
         view: 'password',
         icon: <UserRound className='h-4 w-4' />,
       })
     }
     if (activeView !== 'oauth' && hasAlternativeLogin) {
       links.push({
-        label: t('Other sign in options'),
+        label: hasEnterpriseLogin
+          ? t('Enterprise unified login')
+          : t('Other sign in options'),
         view: 'oauth',
+        icon: hasEnterpriseLogin ? (
+          <Building2 className='h-4 w-4' />
+        ) : undefined,
       })
     }
     return links
-  }, [activeView, hasLDAPLogin, passwordLoginEnabled, hasAlternativeLogin, t])
+  }, [
+    activeView,
+    hasLDAPLogin,
+    hasEnterpriseLogin,
+    passwordLoginEnabled,
+    hasAlternativeLogin,
+    t,
+  ])
 
   const renderSwitchLinks = () => {
     if (switchLinks.length === 0) return null
@@ -404,7 +426,7 @@ export function UserAuthForm({
               key={link.view}
               type='button'
               variant='outline'
-              className='w-full justify-center gap-2'
+              className='h-auto min-h-9 w-full justify-center gap-2 whitespace-normal'
               onClick={() => setActiveView(link.view)}
             >
               {link.icon}
@@ -492,6 +514,7 @@ export function UserAuthForm({
             <FormControl>
               <Input
                 placeholder={t('Enter your username or email')}
+                autoComplete='username'
                 {...field}
               />
             </FormControl>
@@ -507,7 +530,11 @@ export function UserAuthForm({
           <FormItem className='relative'>
             <FormLabel>{t('Password')}</FormLabel>
             <FormControl>
-              <PasswordInput placeholder={t('Enter password')} {...field} />
+              <PasswordInput
+                placeholder={t('Enter password')}
+                autoComplete='current-password'
+                {...field}
+              />
             </FormControl>
             <FormMessage />
             <Link
@@ -576,6 +603,7 @@ export function UserAuthForm({
 
       <OAuthProviders
         status={status}
+        enterprisePrimary={hasEnterpriseLogin}
         redirectTo={redirectTo}
         disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
         onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}

@@ -15,7 +15,7 @@ export function SignIn() {
   const [loginTitleKey, setLoginTitleKey] = useState('Account sign in')
 
   return (
-    <AuthLayout>
+    <AuthLayout animatedBackground>
       <div className='w-full space-y-8'>
         <div>
           <h2 className='text-2xl font-semibold tracking-tight'>

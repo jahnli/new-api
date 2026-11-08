@@ -1,3 +1,4 @@
+import { Building2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -15,6 +16,7 @@ type OAuthProvidersProps = {
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
   redirectTo?: string
+  enterprisePrimary?: boolean
 }
 
 type ProviderButton = {
@@ -32,6 +34,7 @@ export function OAuthProviders({
   onWeChatLogin,
   isWeChatLoading = false,
   redirectTo,
+  enterprisePrimary = false,
 }: OAuthProvidersProps) {
   const { t } = useTranslation()
   const { isLoading, handleOIDCLogin, handleCustomOAuthLogin } = useOAuthLogin(
@@ -52,13 +55,11 @@ export function OAuthProviders({
   }
 
   if (status?.oidc_enabled) {
-    const oidcDisplayName = status.oidc_display_name?.trim() || 'OIDC'
     providerButtons.push({
       key: 'oidc',
-      label: t('Continue with {{name}}', {
-        name: oidcDisplayName,
-      }),
+      label: t('Enterprise unified login'),
       onClick: handleOIDCLogin,
+      icon: <Building2 className='h-4 w-4' aria-hidden='true' />,
     })
   }
 
@@ -78,27 +79,31 @@ export function OAuthProviders({
 
   return (
     <div className={cn('space-y-3', className)}>
-      <div className='relative'>
-        <div className='absolute inset-0 flex items-center'>
-          <span className='w-full border-t' />
+      {!enterprisePrimary && (
+        <div className='relative'>
+          <div className='absolute inset-0 flex items-center'>
+            <span className='w-full border-t' />
+          </div>
+          <div className='relative flex justify-center text-xs uppercase'>
+            <span className='bg-background text-muted-foreground px-2'>
+              {t('Or continue with')}
+            </span>
+          </div>
         </div>
-        <div className='relative flex justify-center text-xs uppercase'>
-          <span className='bg-background text-muted-foreground px-2'>
-            {t('Or continue with')}
-          </span>
-        </div>
-      </div>
+      )}
 
       <div className='flex flex-col gap-2'>
         {providerButtons.map(
           ({ key, label, onClick, icon, disabled: extraDisabled }) => (
             <Button
               key={key}
-              variant='outline'
+              variant={
+                enterprisePrimary && key === 'oidc' ? 'default' : 'outline'
+              }
               type='button'
               disabled={disabled || isLoading || extraDisabled}
               onClick={onClick}
-              className='h-11 w-full justify-center gap-2 rounded-lg'
+              className='h-auto min-h-11 w-full justify-center gap-2 rounded-lg whitespace-normal'
             >
               {icon}
               {label}

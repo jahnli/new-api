@@ -1,0 +1,14 @@
+.login-aurora {
+  mask-image: linear-gradient(to bottom, #000 0, #000 12svh, transparent 40svh);
+  background:
+    radial-gradient(ellipse at 18% 0%, #bedbf51a, transparent 58%),
+    radial-gradient(ellipse at 50% -8%, #1249e533, transparent 68%),
+    radial-gradient(ellipse at 86% 0%, #17366b49, transparent 58%);
+}
+
+.dark .login-aurora {
+  background:
+    radial-gradient(ellipse at 18% 0%, #bedbf526, transparent 58%),
+    radial-gradient(ellipse at 50% -8%, #1249e552, transparent 68%),
+    radial-gradient(ellipse at 86% 0%, #17366b73, transparent 58%);
+}
