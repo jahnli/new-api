@@ -25,13 +25,13 @@ export function SubscriptionSummary(props: {
   const isUnlimited = total === 0n
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const usedPercent = total > 0n ? Number((used * 10000n) / total) / 100 : 0
-  let usageColor = 'text-emerald-700 dark:text-emerald-400'
+  let usageColor = 'text-emerald-500'
   let progressColor = '[&_[data-slot=progress-indicator]]:bg-emerald-500'
   if (usedPercent >= 80) {
-    usageColor = 'text-red-600 dark:text-red-400'
+    usageColor = 'text-red-500'
     progressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
   } else if (usedPercent >= 50) {
-    usageColor = 'text-amber-700 dark:text-amber-400'
+    usageColor = 'text-amber-500'
     progressColor = '[&_[data-slot=progress-indicator]]:bg-amber-500'
   }
   const premiumUsed = BigInt(props.premiumQuota?.premium_amount_used ?? '0')
@@ -44,17 +44,17 @@ export function SubscriptionSummary(props: {
       : t('{{percent}}% used', {
           percent: formatNumber(premiumPercent, locale),
         })
-  let premiumUsageColor = 'text-emerald-700 dark:text-emerald-400'
+  let premiumUsageColor = 'text-emerald-500'
   let premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-emerald-500'
   if (premiumLimit === 0n && premiumUsed > 0n) {
-    premiumUsageColor = 'text-red-600 dark:text-red-400'
+    premiumUsageColor = 'text-red-500'
     premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
   } else if (premiumLimit > 0n) {
     if (premiumPercent >= 80) {
-      premiumUsageColor = 'text-red-600 dark:text-red-400'
+      premiumUsageColor = 'text-red-500'
       premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
     } else if (premiumPercent >= 50) {
-      premiumUsageColor = 'text-amber-700 dark:text-amber-400'
+      premiumUsageColor = 'text-amber-500'
       premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-amber-500'
     }
   }
@@ -98,7 +98,7 @@ export function SubscriptionSummary(props: {
             <dt className='text-muted-foreground text-xs'>
               {t('Total Quota')}
             </dt>
-            <dd className='text-2xl leading-tight font-semibold tracking-tight break-all tabular-nums'>
+            <dd className='text-muted-foreground text-2xl leading-tight font-semibold tracking-tight break-all tabular-nums'>
               {isUnlimited
                 ? t('Unlimited')
                 : formatPremiumQuota(total.toString())}
@@ -173,7 +173,7 @@ export function SubscriptionSummary(props: {
               <dt className='text-muted-foreground text-xs'>
                 {t('Total Quota')}
               </dt>
-              <dd className='text-sm font-medium break-all tabular-nums'>
+              <dd className='text-muted-foreground text-sm font-medium break-all tabular-nums'>
                 {formatPremiumQuota(premiumLimit.toString())}
               </dd>
             </div>

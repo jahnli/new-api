@@ -103,7 +103,13 @@ export function OAuthProviders({
               type='button'
               disabled={disabled || isLoading || extraDisabled}
               onClick={onClick}
-              className='h-auto min-h-11 w-full justify-center gap-2 rounded-lg whitespace-normal'
+              className={cn(
+                'h-auto min-h-11 w-full justify-center gap-2 rounded-lg whitespace-normal',
+                enterprisePrimary && 'min-h-13 rounded-xl text-sm font-medium',
+                enterprisePrimary &&
+                  key === 'oidc' &&
+                  'shadow-md shadow-primary/15'
+              )}
             >
               {icon}
               {label}
