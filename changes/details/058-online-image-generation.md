@@ -1,6 +1,10 @@
 # 在线生图与图片审计管理
 
-**日期**: 2026-11-08
+**日期**: 2026-11-09
+
+## 2026-11-09：GIF 提示文案补充记录
+
+- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — GIF 提示移除“帧时长按 10 毫秒取整”的说明，保留不支持蒙版、流式输出和压缩的提示，同步七语言文案。
 
 ## 2026-11-08：GIF 尺寸选项与结果信息优化
 

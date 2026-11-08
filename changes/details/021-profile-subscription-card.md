@@ -1,6 +1,14 @@
 # 个人资料页订阅卡片优化
 
-**日期**: 2026-09-24
+**日期**: 2026-11-09
+
+## 2026-11-09：订阅额度布局与高级模型反馈优化
+
+- `web/src/features/subscriptions/components/subscription-quota-breakdown.tsx` — 改用容器查询适配卡片宽度，宽卡片并排展示剩余订阅额度圆环与高级模型额度面板，窄卡片纵向排列；高级额度的已用、总额分列，进度条与使用百分比同行。额度分类区域保留高级模型额度，不再单列标准模型额度；总额度继续由圆环和额度明细展示。
+- `web/src/features/subscriptions/components/subscription-premium-models.tsx` — 加载期间不再显示占位文字；失败和空配置分别明确提示“高级模型列表加载失败”和“未配置高级模型”，避免与普通模型列表混淆。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充高级模型列表失败与空配置提示的七语言翻译。
+
+此前的标准与高级额度双分区布局由上述布局替代，额度计算与限制口径保持原有实现。
 
 ## 涉及文件
 
