@@ -1,6 +1,6 @@
 # 模型定价编辑器支持本地货币输入、档位名称原样回显与规则默认展开
 
-**日期**: 2026-10-27
+**日期**: 2026-11-08
 
 ## 涉及文件
 
@@ -30,8 +30,14 @@
 - `web/src/features/model-pricing/pricing-currency-selector.tsx` — 货币选择器调用个人信息接口保存选择，保存期间禁用重复操作
 - `web/src/features/system-settings/models/model-pricing-sheet.tsx` — 定价编辑器改用当前用户设置中的货币偏好
 - `web/src/stores/pricing-preferences-store.ts` — 从认证用户设置读取及更新货币偏好，停用浏览器本地偏好的读写
+- `web/src/features/system-settings/models/price-change-diff.tsx` — 价格变更摘要与对比详情统一使用站点货币，覆盖普通价格、表达式档位与插件价格，站点货币配置无效时回退美元
 
 ## 变更说明
+
+### 2026-11-08：价格变更对比使用站点货币
+
+- 价格变更摘要和对比详情按系统配置的站点货币换算并展示，变更前后价格使用同一货币口径，覆盖普通价格、表达式档位与插件价格。
+- 站点货币配置无效时回退美元；此调整仅影响价格对比展示，不改变保存的定价数据。
 
 ### 2026-10-27：定价规则默认展开
 

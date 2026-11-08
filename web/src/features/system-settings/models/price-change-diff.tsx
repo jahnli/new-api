@@ -23,7 +23,14 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StaticDataTable } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import {
+  getSitePricingCurrency,
+  isValidPricingCurrency,
+  USD_PRICING_CURRENCY,
+  type PricingCurrency,
+} from '@/features/model-pricing/currency'
 import { combineBillingExpr } from '@/features/pricing/lib/billing-expr'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import type { PricingSyncValues } from '../types'
 import {
@@ -77,9 +84,10 @@ type PriceGroup = { key: string; title?: string; lines: PriceLine[] }
 function getExpressionGroups(
   expression: string,
   t: Translate,
+  currency: PricingCurrency,
   provider = ''
 ): PriceGroup[] {
-  const parsed = getSyncExpressionPricing(expression, t)
+  const parsed = getSyncExpressionPricing(expression, t, currency)
   if (!parsed || parsed.tiers.every((tier) => tier.lines.length === 0)) {
     return [
       {
@@ -112,7 +120,8 @@ function getExpressionGroups(
 
 function getPriceGroups(
   snapshot: ModelPricingSnapshot | undefined,
-  t: Translate
+  t: Translate,
+  currency: PricingCurrency
 ): PriceGroup[] {
   if (!snapshot) return []
   const groups: PriceGroup[] = []
@@ -123,7 +132,8 @@ function getPriceGroups(
           snapshot.billingExpr,
           snapshot.requestRuleExpr ?? ''
         ),
-        t
+        t,
+        currency
       )
     )
   } else {
@@ -131,14 +141,14 @@ function getPriceGroups(
     for (const [from, to] of SYNC_FIELDS) {
       if (hasPricingValue(snapshot[from])) values[to] = Number(snapshot[from])
     }
-    const lines = getSyncPriceLines(values, t)
+    const lines = getSyncPriceLines(values, t, currency)
     if (lines.length > 0) groups.push({ key: '', lines })
   }
   const providers = Object.entries(snapshot.pluginBillingExpr ?? {}).sort(
     ([a], [b]) => a.localeCompare(b)
   )
   for (const [plugin, expression] of providers) {
-    groups.push(...getExpressionGroups(expression, t, plugin))
+    groups.push(...getExpressionGroups(expression, t, currency, plugin))
   }
   return groups
 }
@@ -148,10 +158,11 @@ const priceLineKey = (group: PriceGroup, line: PriceLine) =>
 
 function getPriceLineValues(
   snapshot: ModelPricingSnapshot | undefined,
-  t: Translate
+  t: Translate,
+  currency: PricingCurrency
 ) {
   return new Map(
-    getPriceGroups(snapshot, t).flatMap((group) =>
+    getPriceGroups(snapshot, t, currency).flatMap((group) =>
       group.lines.map((line) => [priceLineKey(group, line), line.value])
     )
   )
@@ -160,13 +171,19 @@ function getPriceLineValues(
 /** The changed prices of a modified row as old → new, at most two. */
 export function PriceChangeSummary(props: { row: ModelRow }) {
   const { t } = useTranslation()
-  const before = getPriceLineValues(props.row.saved, t)
-  const changes = getPriceGroups(props.row.draft, t).flatMap((group) =>
-    group.lines.flatMap((line) => {
-      const key = priceLineKey(group, line)
-      const old = before.get(key)
-      return old === line.value ? [] : [{ ...line, key, old }]
-    })
+  const currencyConfig = useSystemConfigStore((state) => state.config.currency)
+  const siteCurrency = getSitePricingCurrency(currencyConfig)
+  const currency = isValidPricingCurrency(siteCurrency)
+    ? siteCurrency
+    : USD_PRICING_CURRENCY
+  const before = getPriceLineValues(props.row.saved, t, currency)
+  const changes = getPriceGroups(props.row.draft, t, currency).flatMap(
+    (group) =>
+      group.lines.flatMap((line) => {
+        const key = priceLineKey(group, line)
+        const old = before.get(key)
+        return old === line.value ? [] : [{ ...line, key, old }]
+      })
   )
   if (changes.length === 0) return null
   const hidden = changes.length - 2
@@ -197,12 +214,17 @@ function PriceValues(props: {
   compareTo?: ModelPricingSnapshot
 }) {
   const { t } = useTranslation()
-  const groups = getPriceGroups(props.snapshot, t)
+  const currencyConfig = useSystemConfigStore((state) => state.config.currency)
+  const siteCurrency = getSitePricingCurrency(currencyConfig)
+  const currency = isValidPricingCurrency(siteCurrency)
+    ? siteCurrency
+    : USD_PRICING_CURRENCY
+  const groups = getPriceGroups(props.snapshot, t, currency)
   if (groups.length === 0) {
     return <span className='text-muted-foreground'>{t('Unset price')}</span>
   }
   const compared = props.compareTo
-    ? getPriceLineValues(props.compareTo, t)
+    ? getPriceLineValues(props.compareTo, t, currency)
     : undefined
   return (
     <div className='space-y-2'>
