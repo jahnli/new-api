@@ -30,7 +30,7 @@ export function SignIn() {
             <h2 className='text-foreground text-[34px] leading-tight font-normal tracking-tight sm:text-[38px]'>
               {t('Welcome back')}
             </h2>
-            <p className='text-muted-foreground text-base leading-relaxed'>
+            <p className='text-muted-foreground text-lg leading-relaxed'>
               {t(loginTitleKey)}
             </p>
           </CardHeader>

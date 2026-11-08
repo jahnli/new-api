@@ -105,7 +105,7 @@ export function OAuthProviders({
               onClick={onClick}
               className={cn(
                 'h-auto min-h-11 w-full justify-center gap-2 rounded-lg whitespace-normal',
-                enterprisePrimary && 'min-h-13 rounded-xl text-sm font-medium',
+                enterprisePrimary && 'min-h-13 rounded-xl text-[15px] font-medium',
                 enterprisePrimary &&
                   key === 'oidc' &&
                   'shadow-md shadow-primary/15'

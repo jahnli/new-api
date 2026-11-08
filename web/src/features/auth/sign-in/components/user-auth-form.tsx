@@ -426,7 +426,7 @@ export function UserAuthForm({
               key={link.view}
               type='button'
               variant='outline'
-              className='h-auto min-h-9 w-full justify-center gap-2 whitespace-normal'
+              className='h-auto min-h-9 w-full justify-center gap-2 text-[15px] whitespace-normal'
               onClick={() => setActiveView(link.view)}
             >
               {link.icon}
