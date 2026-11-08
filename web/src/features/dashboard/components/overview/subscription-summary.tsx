@@ -25,13 +25,13 @@ export function SubscriptionSummary(props: {
   const isUnlimited = total === 0n
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const usedPercent = total > 0n ? Number((used * 10000n) / total) / 100 : 0
-  let usageColor = 'text-emerald-500'
+  let usageColor = 'text-emerald-700 dark:text-emerald-400'
   let progressColor = '[&_[data-slot=progress-indicator]]:bg-emerald-500'
   if (usedPercent >= 80) {
-    usageColor = 'text-red-500'
+    usageColor = 'text-red-600 dark:text-red-400'
     progressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
   } else if (usedPercent >= 50) {
-    usageColor = 'text-amber-500'
+    usageColor = 'text-amber-700 dark:text-amber-400'
     progressColor = '[&_[data-slot=progress-indicator]]:bg-amber-500'
   }
   const premiumUsed = BigInt(props.premiumQuota?.premium_amount_used ?? '0')
@@ -44,70 +44,96 @@ export function SubscriptionSummary(props: {
       : t('{{percent}}% used', {
           percent: formatNumber(premiumPercent, locale),
         })
-  let premiumUsageColor = 'text-emerald-500'
+  let premiumUsageColor = 'text-emerald-700 dark:text-emerald-400'
   let premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-emerald-500'
   if (premiumLimit === 0n && premiumUsed > 0n) {
-    premiumUsageColor = 'text-red-500'
+    premiumUsageColor = 'text-red-600 dark:text-red-400'
     premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
   } else if (premiumLimit > 0n) {
     if (premiumPercent >= 80) {
-      premiumUsageColor = 'text-red-500'
+      premiumUsageColor = 'text-red-600 dark:text-red-400'
       premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-red-500'
     } else if (premiumPercent >= 50) {
-      premiumUsageColor = 'text-amber-500'
+      premiumUsageColor = 'text-amber-700 dark:text-amber-400'
       premiumProgressColor = '[&_[data-slot=progress-indicator]]:bg-amber-500'
     }
   }
 
   return (
-    <div className='flex min-w-0 flex-col gap-4'>
-      <div className='flex items-center justify-between gap-2'>
-        <span className='flex items-center gap-3'>
-          <IconBadge size='md' tone='primary' className='bg-primary/5'>
-            <Crown className='text-amber-500' />
+    <section
+      className='flex min-w-0 flex-col gap-3'
+      aria-label={t('Current Subscription')}
+    >
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <div className='flex min-w-0 items-center gap-2'>
+          <IconBadge size='sm' tone='warning'>
+            <Crown />
           </IconBadge>
-          <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
-            {t('Current Subscription')}
-          </span>
-        </span>
+          <h3 className='text-sm font-semibold'>{t('Current Subscription')}</h3>
+        </div>
         {props.planTitle && (
           <Badge
-            variant='secondary'
-            className='bg-primary/10 dark:bg-secondary h-auto max-w-36 border-0 px-3 py-1 text-sm'
+            variant='outline'
+            className='bg-primary/10 text-primary border-primary/15 h-auto max-w-full rounded-md px-2 py-0.5 text-xs break-words whitespace-normal'
           >
-            <span className='truncate'>{props.planTitle}</span>
+            {props.planTitle}
           </Badge>
         )}
       </div>
 
-      <div className='space-y-1.5'>
-        <p className='text-2xl leading-tight font-semibold tracking-tight break-all tabular-nums'>
-          <span className={usageColor}>
-            {formatPremiumQuota(used.toString())}
-          </span>
-          <span className='dark:text-foreground text-[#152547]'>
-            {` / ${isUnlimited ? t('Unlimited') : formatPremiumQuota(total.toString())}`}
-          </span>
-        </p>
+      <div className='space-y-2'>
+        <dl className='flex flex-wrap items-end justify-between gap-x-4 gap-y-2'>
+          <div className='min-w-0 space-y-1'>
+            <dt className='text-muted-foreground text-xs'>{t('Used')}</dt>
+            <dd
+              className={cn(
+                'text-2xl leading-tight font-semibold tracking-tight break-all tabular-nums',
+                usageColor
+              )}
+            >
+              {formatPremiumQuota(used.toString())}
+            </dd>
+          </div>
+          <div className='min-w-0 space-y-1'>
+            <dt className='text-muted-foreground text-xs'>
+              {t('Total Quota')}
+            </dt>
+            <dd className='text-2xl leading-tight font-semibold tracking-tight break-all tabular-nums'>
+              {isUnlimited
+                ? t('Unlimited')
+                : formatPremiumQuota(total.toString())}
+            </dd>
+          </div>
+        </dl>
         {!isUnlimited && (
-          <Progress
-            value={Math.min(100, usedPercent)}
-            aria-label={t('Total Quota')}
-            aria-valuetext={t('{{percent}}% used', {
-              percent: formatNumber(usedPercent, locale),
-            })}
-            className={cn('[&_[data-slot=progress-track]]:h-2', progressColor)}
-          />
+          <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+            <Progress
+              value={Math.min(100, usedPercent)}
+              aria-label={t('Total Quota')}
+              aria-valuetext={t('{{percent}}% used', {
+                percent: formatNumber(usedPercent, locale),
+              })}
+              className={cn(
+                'min-w-12 flex-1 [&_[data-slot=progress-track]]:h-1.5',
+                progressColor
+              )}
+            />
+            <p className={cn('text-xs tabular-nums', usageColor)}>
+              {t('{{percent}}% used', {
+                percent: formatNumber(usedPercent, locale),
+              })}
+            </p>
+          </div>
         )}
       </div>
 
       {props.premiumQuota?.enabled && (
-        <div className='bg-primary/5 min-w-0 space-y-1 rounded-lg px-2.5 py-2'>
-          <div className='flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-sm'>
+        <div className='bg-background/60 border-border/70 min-w-0 space-y-2 rounded-xl border p-3'>
+          <div className='flex flex-wrap items-center justify-between gap-x-2 gap-y-1'>
             <div className='flex items-center gap-1'>
-              <span className='dark:text-foreground text-sm font-semibold text-[#152547]'>
+              <h4 className='text-sm font-medium'>
                 {t('Advanced model quota')}
-              </span>
+              </h4>
               <SubscriptionQuotaDetailsPopover
                 title={t('Advanced model quota')}
                 used={formatPremiumQuota(premiumUsed.toString())}
@@ -121,10 +147,7 @@ export function SubscriptionSummary(props: {
                 showPremiumModels
               />
             </div>
-            <Badge
-              variant='secondary'
-              className='bg-primary/10 dark:bg-secondary h-auto px-2 py-0.5 text-xs tabular-nums'
-            >
+            <p className='text-muted-foreground ml-auto text-right text-xs tabular-nums'>
               {t('{{percent}}% of total quota', {
                 percent: formatNumber(
                   props.premiumQuota.effective_percent,
@@ -132,45 +155,67 @@ export function SubscriptionSummary(props: {
                   { minimumFractionDigits: 1, maximumFractionDigits: 1 }
                 ),
               })}
-            </Badge>
+            </p>
           </div>
-          <p
-            className={`text-base font-semibold break-all tabular-nums ${premiumUsageColor}`}
-          >
-            {formatPremiumQuota(premiumUsed.toString())}
-            <span className='dark:text-foreground font-semibold text-[#152547]'>
-              {' / '}
-              {formatPremiumQuota(premiumLimit.toString())}
-            </span>
-            <span className={cn('ml-1 text-xs font-normal', premiumUsageColor)}>
+          <dl className='flex flex-wrap justify-between gap-x-3 gap-y-2'>
+            <div className='min-w-0 space-y-1'>
+              <dt className='text-muted-foreground text-xs'>{t('Used')}</dt>
+              <dd
+                className={cn(
+                  'text-sm font-semibold break-all tabular-nums',
+                  premiumUsageColor
+                )}
+              >
+                {formatPremiumQuota(premiumUsed.toString())}
+              </dd>
+            </div>
+            <div className='min-w-0 space-y-1'>
+              <dt className='text-muted-foreground text-xs'>
+                {t('Total Quota')}
+              </dt>
+              <dd className='text-sm font-medium break-all tabular-nums'>
+                {formatPremiumQuota(premiumLimit.toString())}
+              </dd>
+            </div>
+          </dl>
+          <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+            <Progress
+              value={
+                premiumLimit === 0n && premiumUsed > 0n
+                  ? 100
+                  : Math.min(100, Math.max(0, premiumPercent))
+              }
+              aria-label={t('Advanced model quota')}
+              aria-valuetext={premiumPercentLabel}
+              className={cn(
+                'min-w-12 flex-1 [&_[data-slot=progress-track]]:h-1',
+                premiumProgressColor
+              )}
+            />
+            <p className={cn('text-xs tabular-nums', premiumUsageColor)}>
               {premiumPercentLabel}
-            </span>
-          </p>
-          <Progress
-            value={
-              premiumLimit === 0n && premiumUsed > 0n
-                ? 100
-                : Math.min(100, Math.max(0, premiumPercent))
-            }
-            aria-label={t('Advanced model quota')}
-            aria-valuetext={premiumPercentLabel}
-            className={cn(
-              '[&_[data-slot=progress-track]]:h-1.5',
-              premiumProgressColor
-            )}
-          />
+            </p>
+          </div>
         </div>
       )}
 
       {props.nextResetTime > 0 && (
-        <div className='dark:text-foreground flex items-center gap-1.5 text-sm text-[#152547]'>
-          <CalendarClock className='size-4 shrink-0' aria-hidden='true' />
-          <span>
-            {t('Next reset')}:{' '}
-            {dayjs(props.nextResetTime * 1000).format('YYYY/M/D HH:mm:ss')}
-          </span>
+        <div className='text-muted-foreground -my-1 flex items-start gap-2 text-xs'>
+          <CalendarClock
+            className='mt-0.5 size-3.5 shrink-0'
+            aria-hidden='true'
+          />
+          <div className='flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1'>
+            <p>{t('Next reset')}</p>
+            <time
+              className='text-foreground block font-medium tabular-nums'
+              dateTime={dayjs(props.nextResetTime * 1000).toISOString()}
+            >
+              {dayjs(props.nextResetTime * 1000).format('YYYY/M/D HH:mm:ss')}
+            </time>
+          </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }

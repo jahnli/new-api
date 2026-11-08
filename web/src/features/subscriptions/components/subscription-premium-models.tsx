@@ -14,17 +14,19 @@ export function SubscriptionPremiumModels() {
   })
 
   if (query.isPending) {
-    return <p className='text-muted-foreground text-sm'>{t('Loading...')}</p>
+    return null
   }
   if (query.isError) {
     return (
-      <p className='text-muted-foreground text-sm'>{t('Failed to load')}</p>
+      <p className='text-sm text-current opacity-80'>
+        {t('Failed to load advanced model list')}
+      </p>
     )
   }
   if (!query.data?.length) {
     return (
-      <p className='text-muted-foreground text-sm'>
-        {t('No available models')}
+      <p className='text-sm text-current opacity-80'>
+        {t('No advanced models configured')}
       </p>
     )
   }
