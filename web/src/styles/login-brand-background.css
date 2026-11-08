@@ -45,12 +45,13 @@
   }
 
   .login-workspace-art {
-    position: relative;
+    position: absolute;
+    top: calc(50% + 12px);
+    left: 50%;
     display: block;
     width: 260px;
     height: 260px;
-    margin: 18px auto 64px;
-    flex-shrink: 0;
+    transform: translate(-50%, -50%);
   }
 }
 
@@ -74,7 +75,8 @@
     inset -8px -12px 24px #507bc54d,
     inset 10px 8px 24px #ffffff99,
     0 20px 50px -18px #6895d54d;
-  animation: login-workspace-float 7s ease-in-out infinite;
+  transform: translate(var(--orb-x, 0px), var(--orb-y, 0px));
+  transition: transform var(--orb-duration, 5s) ease-in-out;
 }
 
 .login-workspace-orb::before {
@@ -86,6 +88,7 @@
   background: linear-gradient(160deg, #ffffffb3, #ffffff00 65%);
   filter: blur(1px);
   transform: rotate(-28deg);
+  animation: login-orb-highlight 6s ease-in-out infinite;
 }
 
 .login-workspace-orb::after {
@@ -102,6 +105,7 @@
   );
   box-shadow: 0 -12px 30px #ffffff66;
   transform: rotate(-32deg);
+  animation: login-orb-refraction 9s ease-in-out infinite;
 }
 
 .login-workspace-orb-shadow {
@@ -113,15 +117,32 @@
   border-radius: 50%;
   background: #668dce33;
   filter: blur(14px);
+  transform: translateX(var(--orb-x, 0px)) scaleX(var(--orb-shadow-scale, 1));
+  opacity: var(--orb-shadow-opacity, 0.85);
+  transition:
+    transform var(--orb-duration, 5s) ease-in-out,
+    opacity var(--orb-duration, 5s) ease-in-out;
 }
 
-@keyframes login-workspace-float {
+@keyframes login-orb-highlight {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translate(-4%, -3%) rotate(-28deg);
+    opacity: 0.7;
   }
   50% {
-    transform: translateY(-12px);
+    transform: translate(7%, 9%) rotate(-12deg);
+    opacity: 1;
+  }
+}
+
+@keyframes login-orb-refraction {
+  0%,
+  100% {
+    transform: translate(-5%, 8%) rotate(-32deg);
+  }
+  50% {
+    transform: translate(4%, -18%) rotate(-58deg);
   }
 }
 
@@ -192,6 +213,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .login-workspace-orb,
+  .login-workspace-orb-shadow {
+    transform: none;
+    transition: none;
+  }
+
+  .login-workspace-orb,
+  .login-workspace-orb::before,
+  .login-workspace-orb::after,
+  .login-workspace-orb-shadow,
   .login-brand-background::before {
     animation: none;
   }

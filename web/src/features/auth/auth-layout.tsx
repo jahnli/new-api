@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Skeleton } from '@/components/ui/skeleton'
@@ -21,6 +22,39 @@ export function AuthLayout({
 }: AuthLayoutProps) {
   const { t } = useTranslation()
   const { systemName, logo, loading } = useSystemConfig()
+  const artworkRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const artwork = artworkRef.current
+    if (!animatedBackground || !artwork) return
+    const media = window.matchMedia(
+      '(max-width: 1023px), (prefers-reduced-motion: reduce)'
+    )
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const drift = () => {
+      clearTimeout(timer)
+      if (media.matches || document.hidden) return
+      const x = Math.random() * 40 - 20
+      const y = Math.random() * 36 - 24
+      const duration = 2000 + Math.random() * 2000
+      artwork.style.setProperty('--orb-x', `${x}px`)
+      artwork.style.setProperty('--orb-y', `${y}px`)
+      artwork.style.setProperty('--orb-duration', `${duration}ms`)
+      artwork.style.setProperty('--orb-shadow-scale', `${0.85 + y / 120}`)
+      artwork.style.setProperty('--orb-shadow-opacity', `${0.7 + y / 120}`)
+      timer = setTimeout(drift, duration)
+    }
+
+    timer = setTimeout(drift, 100)
+    media.addEventListener('change', drift)
+    document.addEventListener('visibilitychange', drift)
+    return () => {
+      clearTimeout(timer)
+      media.removeEventListener('change', drift)
+      document.removeEventListener('visibilitychange', drift)
+    }
+  }, [animatedBackground])
 
   return (
     <div
@@ -37,18 +71,22 @@ export function AuthLayout({
           >
             <LoginAurora isDark={false} />
           </div>
-          <div className='login-workspace-art' aria-hidden='true'>
+          <div
+            ref={artworkRef}
+            className='login-workspace-art'
+            aria-hidden='true'
+          >
             <div className='login-workspace-orb-shadow' />
             <div className='login-workspace-orb' />
           </div>
           <div className='relative max-w-md'>
-            <p className='mb-4 text-[11px] font-semibold tracking-[0.28em] text-blue-800/70'>
+            <p className='mb-4 translate-y-3 text-[13px] font-semibold tracking-[0.28em] text-blue-800/70'>
               AI WORKSPACE
             </p>
-            <p className='text-3xl leading-tight font-normal tracking-tight text-balance sm:text-4xl lg:text-[42px] lg:leading-[1.18]'>
-              {t('Connect models, unleash creativity')}
-            </p>
-            <div className='mt-7 h-px w-16 bg-blue-600/25' aria-hidden='true' />
+            <div
+              className='mt-7 h-px w-16 translate-y-2 bg-blue-600/25'
+              aria-hidden='true'
+            />
           </div>
         </aside>
       )}
