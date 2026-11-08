@@ -38,13 +38,8 @@ export function AuthLayout({
             <LoginAurora isDark={false} />
           </div>
           <div className='login-workspace-art' aria-hidden='true'>
-            <div className='login-workspace-sheet login-workspace-sheet-back' />
-            <div className='login-workspace-sheet login-workspace-sheet-middle' />
-            <div className='login-workspace-sheet login-workspace-sheet-front'>
-              <span className='login-workspace-monogram'>AI</span>
-              <span className='login-workspace-art-line' />
-              <span className='login-workspace-art-line' />
-            </div>
+            <div className='login-workspace-orb-shadow' />
+            <div className='login-workspace-orb' />
           </div>
           <div className='relative max-w-md'>
             <p className='mb-4 text-[11px] font-semibold tracking-[0.28em] text-blue-800/70'>
