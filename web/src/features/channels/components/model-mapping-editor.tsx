@@ -476,7 +476,6 @@ export function ModelMappingEditor(props: ModelMappingEditorProps) {
                     onValueChange={(value) =>
                       handleRowChange(row.id, 'from', value)
                     }
-                    placeholder='gpt-3.5-turbo'
                     emptyText='No matching items'
                     allowCustomValue
                     disabled={props.disabled}
@@ -489,7 +488,6 @@ export function ModelMappingEditor(props: ModelMappingEditorProps) {
                     onValueChange={(value) =>
                       handleRowChange(row.id, 'to', value)
                     }
-                    placeholder='gpt-3.5-turbo-0125'
                     emptyText='No matching items'
                     allowCustomValue
                     disabled={props.disabled}
