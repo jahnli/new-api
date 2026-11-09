@@ -119,6 +119,7 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 
 	var binding model.OIDCSessionBinding
 	var subject string
+	var employeeClaims map[string]any
 	// Existing manually configured OAuth endpoints remain usable. Back-channel
 	// logout requires discovery so issuer and signing keys have a trusted source.
 	if token.DiscoveryURL != "" {
@@ -144,6 +145,28 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 			SubjectKey: model.OIDCIdentityKey(issuer, token.ClientID, "sub", subject),
 			SessionKey: model.OIDCIdentityKey(issuer, token.ClientID, "sid", sid),
 			IssuedAt:   iat.Unix(),
+		}
+		// Casdoor's standard UserInfo omits its employee extensions. Read them
+		// only after all ID-token checks, and never forward unrelated claims
+		// (roles, credentials, quotas, etc.) to registration.
+		employeeClaims = make(map[string]any)
+		for _, key := range []string{"affiliation", "avatar", "phone", "gender", "birthday", "bio"} {
+			if value, present := claims[key]; present {
+				employeeClaims[key] = value
+			}
+		}
+		if properties, ok := claims["properties"].(map[string]any); ok {
+			selected := make(map[string]any)
+			for _, key := range []string{"department", "department_value", "job_number", "job_type", "job_level", "job_date", "open_id", "job_description", "ethnicity"} {
+				if value, present := properties[key]; present {
+					selected[key] = value
+				}
+			}
+			employeeClaims["properties"] = selected
+		} else if value, present := claims["properties"]; present {
+			// Defer profile validation to first registration, so malformed
+			// employee data cannot interrupt an existing user's sign-in.
+			employeeClaims["properties"] = value
 		}
 	}
 
@@ -196,11 +219,13 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 	logger.LogDebug(ctx, "[OAuth-OIDC] GetUserInfo success: sub=%s, username=%s, name=%s, email=%s", oidcUser.OpenID, oidcUser.PreferredUsername, oidcUser.Name, oidcUser.Email)
 
 	return &OAuthUser{
-		OIDC:           binding,
-		ProviderUserID: oidcUser.OpenID,
-		Username:       oidcUser.PreferredUsername,
-		DisplayName:    oidcUser.Name,
-		Email:          oidcUser.Email,
+		OIDC:               binding,
+		OIDCEmployeeClaims: employeeClaims,
+		AvatarURL:          oidcUser.Picture,
+		ProviderUserID:     oidcUser.OpenID,
+		Username:           oidcUser.PreferredUsername,
+		DisplayName:        oidcUser.Name,
+		Email:              oidcUser.Email,
 	}, nil
 }
 

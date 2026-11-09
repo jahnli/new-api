@@ -21,6 +21,10 @@ type OAuthToken struct {
 // OAuthUser represents the user info from OAuth provider
 type OAuthUser struct {
 	OIDC model.OIDCSessionBinding
+	// OIDCEmployeeClaims contains only employee attributes from a verified ID
+	// token. Registration consumes these; login and account binding do not.
+	OIDCEmployeeClaims map[string]any
+	AvatarURL          string
 	// ProviderUserID is the unique identifier from the OAuth provider
 	ProviderUserID string
 	// Username is the username from the OAuth provider (e.g., GitHub login)

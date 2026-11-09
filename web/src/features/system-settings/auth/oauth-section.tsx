@@ -1,7 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import {
+  useFieldArray,
+  useForm,
+  type UseFieldArrayReturn,
+  type UseFormReturn,
+} from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -890,6 +895,19 @@ export function OAuthSection(props: OAuthSectionProps) {
                     </FormItem>
                   )}
                 />
+                <Alert className='lg:col-span-2'>
+                  <AlertDescription>
+                    {t(
+                      'Casdoor employee profiles and the company subscription are applied only on first registration. Later sign-ins and company changes do not update profiles or grant another subscription. Configure OIDC discovery and include affiliation and properties in the signed ID token.'
+                    )}
+                  </AlertDescription>
+                </Alert>
+                <CompanyRegistrationSettings
+                  form={form}
+                  configs={companySyncConfigs}
+                  plans={plans}
+                  planTitleById={planTitleById}
+                />
               </TabsContent>
 
               <TabsContent value='wechat' className={oauthTabContentClassName}>
@@ -1337,315 +1355,12 @@ export function OAuthSection(props: OAuthSectionProps) {
                   />
                 </SettingsControlGroup>
 
-                <div className='space-y-4 rounded-md border p-4 lg:col-span-2'>
-                  <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-                    <div className='space-y-1'>
-                      <FormLabel>{t('Company Sync Configurations')}</FormLabel>
-                      <FormDescription>
-                        {t(
-                          'Map LDAP company OUs to directory sync providers and default subscription plans'
-                        )}
-                      </FormDescription>
-                    </div>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      onClick={() =>
-                        companySyncConfigs.append(emptyLDAPCompanySyncConfig())
-                      }
-                    >
-                      {t('Add Configuration')}
-                    </Button>
-                  </div>
-
-                  {companySyncConfigs.fields.length === 0 ? (
-                    <p className='text-muted-foreground text-sm'>
-                      {t('No company sync configurations added')}
-                    </p>
-                  ) : null}
-
-                  <div className='space-y-4'>
-                    {companySyncConfigs.fields.map((item, index) => (
-                      <div
-                        key={item.id}
-                        className='grid gap-4 rounded-md border p-4 lg:grid-cols-2'
-                      >
-                        <FormField
-                          control={form.control}
-                          name={`ldap.company_sync_configs.${index}.company`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t('Company')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder={t('Company OU name')}
-                                  autoComplete='off'
-                                  value={field.value ?? ''}
-                                  onChange={(event) =>
-                                    field.onChange(event.target.value)
-                                  }
-                                  name={field.name}
-                                  onBlur={field.onBlur}
-                                  ref={field.ref}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`ldap.company_sync_configs.${index}.display_name`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t('Display Name')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder={t('Display Name')}
-                                  autoComplete='off'
-                                  value={field.value ?? ''}
-                                  onChange={(event) =>
-                                    field.onChange(event.target.value)
-                                  }
-                                  name={field.name}
-                                  onBlur={field.onBlur}
-                                  ref={field.ref}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`ldap.company_sync_configs.${index}.sync_platform`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t('Sync Platform')}</FormLabel>
-                              <FormControl>
-                                <select
-                                  className='border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50'
-                                  value={field.value}
-                                  onChange={(event) =>
-                                    field.onChange(event.target.value)
-                                  }
-                                  name={field.name}
-                                  onBlur={field.onBlur}
-                                  ref={field.ref}
-                                >
-                                  <option value='none'>{t('None')}</option>
-                                  <option value='feishu'>{t('Feishu')}</option>
-                                  <option value='dingtalk'>
-                                    {t('DingTalk')}
-                                  </option>
-                                </select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {form.watch(
-                          `ldap.company_sync_configs.${index}.sync_platform`
-                        ) === 'feishu' ? (
-                          <>
-                            <FormField
-                              control={form.control}
-                              name={`ldap.company_sync_configs.${index}.feishu_app_id`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('Application ID')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      autoComplete='off'
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                      name={field.name}
-                                      onBlur={field.onBlur}
-                                      ref={field.ref}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name={`ldap.company_sync_configs.${index}.feishu_app_secret`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    {t('Application Secret')}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      type='password'
-                                      autoComplete='new-password'
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                      name={field.name}
-                                      onBlur={field.onBlur}
-                                      ref={field.ref}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name={`ldap.company_sync_configs.${index}.feishu_email_suffix`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    {t('Feishu Email Suffix')}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder='@example.com'
-                                      autoComplete='off'
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                      name={field.name}
-                                      onBlur={field.onBlur}
-                                      ref={field.ref}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </>
-                        ) : null}
-
-                        {form.watch(
-                          `ldap.company_sync_configs.${index}.sync_platform`
-                        ) === 'dingtalk' ? (
-                          <>
-                            <FormField
-                              control={form.control}
-                              name={`ldap.company_sync_configs.${index}.dingtalk_client_id`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    {t('DingTalk Client ID')}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      autoComplete='off'
-                                      placeholder={t('Original AppKey')}
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                      name={field.name}
-                                      onBlur={field.onBlur}
-                                      ref={field.ref}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name={`ldap.company_sync_configs.${index}.dingtalk_client_secret`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>
-                                    {t('DingTalk Client Secret')}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      type='password'
-                                      autoComplete='new-password'
-                                      placeholder={t('Original AppSecret')}
-                                      value={field.value ?? ''}
-                                      onChange={(event) =>
-                                        field.onChange(event.target.value)
-                                      }
-                                      name={field.name}
-                                      onBlur={field.onBlur}
-                                      ref={field.ref}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </>
-                        ) : null}
-
-                        <FormField
-                          control={form.control}
-                          name={`ldap.company_sync_configs.${index}.auto_subscribe_plan_id`}
-                          render={({ field }) => {
-                            const selectedPlanLabel = field.value
-                              ? planTitleById.get(field.value) || t('Loading')
-                              : t('No auto-subscription')
-
-                            return (
-                              <FormItem>
-                                <FormLabel>
-                                  {t('Auto-subscribe plan after registration')}
-                                </FormLabel>
-                                <Select
-                                  value={String(field.value || 0)}
-                                  onValueChange={(value) =>
-                                    field.onChange(Number(value))
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className='h-9 w-full'>
-                                      <span className='line-clamp-1 min-w-0 flex-1 text-left'>
-                                        {selectedPlanLabel}
-                                      </span>
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value='0'>
-                                      {t('No auto-subscription')}
-                                    </SelectItem>
-                                    {plans.map((item) => (
-                                      <SelectItem
-                                        key={item.plan.id}
-                                        value={String(item.plan.id)}
-                                      >
-                                        {item.plan.title}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )
-                          }}
-                        />
-
-                        <div className='flex items-end justify-end'>
-                          <Button
-                            type='button'
-                            variant='outline'
-                            onClick={() => companySyncConfigs.remove(index)}
-                          >
-                            {t('Remove')}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CompanyRegistrationSettings
+                  form={form}
+                  configs={companySyncConfigs}
+                  plans={plans}
+                  planTitleById={planTitleById}
+                />
 
                 <FormItem className='lg:col-span-2'>
                   <Button
@@ -1666,5 +1381,311 @@ export function OAuthSection(props: OAuthSectionProps) {
         </Form>
       </SettingsSection>
     </>
+  )
+}
+
+function CompanyRegistrationSettings(props: {
+  form: UseFormReturn<OAuthFormValues>
+  configs: UseFieldArrayReturn<OAuthFormValues, 'ldap.company_sync_configs'>
+  plans: PlanRecord[]
+  planTitleById: Map<number, string>
+}) {
+  const { t } = useTranslation()
+  return (
+    <div className='space-y-4 rounded-md border p-4 lg:col-span-2'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='space-y-1'>
+          <FormLabel>{t('Company Sync Configurations')}</FormLabel>
+          <FormDescription>
+            {t(
+              'LDAP and OIDC share these company names and registration subscription plans. Changes here apply to both. Directory providers are used for LDAP sync and platform ID mapping; OIDC reads employee profiles from Casdoor only.'
+            )}
+          </FormDescription>
+        </div>
+        <Button
+          type='button'
+          variant='outline'
+          onClick={() => props.configs.append(emptyLDAPCompanySyncConfig())}
+        >
+          {t('Add Configuration')}
+        </Button>
+      </div>
+
+      {props.configs.fields.length === 0 ? (
+        <p className='text-muted-foreground text-sm'>
+          {t('No company sync configurations added')}
+        </p>
+      ) : null}
+
+      <div className='space-y-4'>
+        {props.configs.fields.map((item, index) => (
+          <div
+            key={item.id}
+            className='grid gap-4 rounded-md border p-4 lg:grid-cols-2'
+          >
+            <FormField
+              control={props.form.control}
+              name={`ldap.company_sync_configs.${index}.company`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Company')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t('LDAP company OU or Casdoor affiliation')}
+                      autoComplete='off'
+                      value={field.value ?? ''}
+                      onChange={(event) => field.onChange(event.target.value)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={props.form.control}
+              name={`ldap.company_sync_configs.${index}.display_name`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Display Name')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t('Display Name')}
+                      autoComplete='off'
+                      value={field.value ?? ''}
+                      onChange={(event) => field.onChange(event.target.value)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={props.form.control}
+              name={`ldap.company_sync_configs.${index}.sync_platform`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Sync Platform')}</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger
+                        className='h-9 w-full'
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                      >
+                        <span>
+                          {field.value === 'feishu' ? t('Feishu') : null}
+                          {field.value === 'dingtalk' ? t('DingTalk') : null}
+                          {field.value === 'none' ? t('None') : null}
+                        </span>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value='none'>{t('None')}</SelectItem>
+                      <SelectItem value='feishu'>{t('Feishu')}</SelectItem>
+                      <SelectItem value='dingtalk'>{t('DingTalk')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {props.form.watch(
+              `ldap.company_sync_configs.${index}.sync_platform`
+            ) === 'feishu' ? (
+              <>
+                <FormField
+                  control={props.form.control}
+                  name={`ldap.company_sync_configs.${index}.feishu_app_id`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Application ID')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={props.form.control}
+                  name={`ldap.company_sync_configs.${index}.feishu_app_secret`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Application Secret')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          autoComplete='new-password'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={props.form.control}
+                  name={`ldap.company_sync_configs.${index}.feishu_email_suffix`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Feishu Email Suffix')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='@example.com'
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            ) : null}
+
+            {props.form.watch(
+              `ldap.company_sync_configs.${index}.sync_platform`
+            ) === 'dingtalk' ? (
+              <>
+                <FormField
+                  control={props.form.control}
+                  name={`ldap.company_sync_configs.${index}.dingtalk_client_id`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DingTalk Client ID')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          autoComplete='off'
+                          placeholder={t('Original AppKey')}
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={props.form.control}
+                  name={`ldap.company_sync_configs.${index}.dingtalk_client_secret`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DingTalk Client Secret')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          autoComplete='new-password'
+                          placeholder={t('Original AppSecret')}
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            ) : null}
+
+            <FormField
+              control={props.form.control}
+              name={`ldap.company_sync_configs.${index}.auto_subscribe_plan_id`}
+              render={({ field }) => {
+                const selectedPlanLabel = field.value
+                  ? props.planTitleById.get(field.value) || t('Loading')
+                  : t('No auto-subscription')
+
+                return (
+                  <FormItem>
+                    <FormLabel>
+                      {t('Auto-subscribe plan after registration')}
+                    </FormLabel>
+                    <Select
+                      value={String(field.value || 0)}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                    >
+                      <FormControl>
+                        <SelectTrigger className='h-9 w-full'>
+                          <span className='line-clamp-1 min-w-0 flex-1 text-left'>
+                            {selectedPlanLabel}
+                          </span>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value='0'>
+                          {t('No auto-subscription')}
+                        </SelectItem>
+                        {props.plans.map((item) => (
+                          <SelectItem
+                            key={item.plan.id}
+                            value={String(item.plan.id)}
+                          >
+                            {item.plan.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )
+              }}
+            />
+
+            <div className='flex items-end justify-end'>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={() => props.configs.remove(index)}
+              >
+                {t('Remove')}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
