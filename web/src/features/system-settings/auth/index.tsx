@@ -24,6 +24,8 @@ const defaultAuthSettings: AuthSettings = {
   'oidc.authorization_endpoint': '',
   'oidc.token_endpoint': '',
   'oidc.user_info_endpoint': '',
+  'oidc.allowed_usernames': '',
+  'oidc.username_filter_enabled': false,
   'ldap.enabled': false,
   'ldap.server_url': '',
   'ldap.bind_dn': '',

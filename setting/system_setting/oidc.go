@@ -16,6 +16,8 @@ type OIDCSettings struct {
 	AuthorizationEndpoint string `json:"authorization_endpoint"`
 	TokenEndpoint         string `json:"token_endpoint"`
 	UserInfoEndpoint      string `json:"user_info_endpoint"`
+	UsernameFilterEnabled bool   `json:"username_filter_enabled"`
+	AllowedUsernames      string `json:"allowed_usernames"` // One preferred_username per line; empty denies all when filtering is enabled.
 }
 
 // 默认配置
@@ -28,6 +30,25 @@ func init() {
 
 func GetOIDCSettings() *OIDCSettings {
 	return &defaultOIDCSettings
+}
+
+// IsOIDCUsernameAllowed matches provider usernames exactly, ignoring case and
+// surrounding whitespace. Missing usernames fail closed only when filtering is enabled.
+func IsOIDCUsernameAllowed(username string) bool {
+	settings := GetOIDCSettings()
+	if !settings.UsernameFilterEnabled {
+		return true
+	}
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return false
+	}
+	for allowed := range strings.SplitSeq(settings.AllowedUsernames, "\n") {
+		if strings.EqualFold(strings.TrimSpace(allowed), username) {
+			return true
+		}
+	}
+	return false
 }
 
 // Silent login requires discovery so the ID token is verified against a trusted issuer.

@@ -33,7 +33,7 @@
 | 027 | 2026-06-23 | 用户头像改用 avatar_url 字段：后端 API 下发 avatar_url，前端头像组件优先展示图片、无图时回退首字母 | [详情](details/028-avatar-url.md) |
 | 028 | 2026-06-23 | LDAP 注册时飞书同步改为同步调用，确保首次登录响应即包含头像；SyncFeishuUser 回写 user 指针字段 | `controller/ldap.go`、`service/feishu_sync.go` |
 | 029 | 2026-06-23 | 前端类型检查改为 git pre-commit hook 自动执行，移除 Cursor Hook 方案，适用于所有 git 客户端 | `.githooks/pre-commit`、`.cursor/hooks.json`、`web/default/AGENTS.md` |
-| 029 | 2026-11-06 | OAuth 登录调整：移除 GitHub、Discord、Telegram、LinuxDO 登录及相关数据与界面；OIDC 支持手动登录、可选静默登录与 Casdoor 双向退出联动，补充令牌校验、会话关联及七语言配置说明；静默登录沿用原回调并保留 MFA，修复超时误撤销和退出后重新登录受阻，精简隐藏回调加载；修复开发代理导致的退出 403 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
+| 029 | 2026-11-09 | OAuth 登录调整：移除 GitHub、Discord、Telegram、LinuxDO 登录及相关数据与界面；OIDC 支持手动登录、可选静默登录与 Casdoor 双向退出联动，补充令牌校验、会话关联及七语言配置说明；静默登录沿用原回调并保留 MFA，修复超时误撤销和退出后重新登录受阻，精简隐藏回调加载；修复开发代理导致的退出 403；新增默认关闭的 OIDC 用户名白名单，普通登录、静默登录及绑定统一过滤，MFA 完成时按当前名单复核 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
 | 030 | 2026-06-23 | 修复 LDAP 系统设置不回显配置，并在保存 LDAP 登录状态后刷新前端状态缓存 | `web/default/src/features/system-settings/auth/section-registry.tsx`、`web/default/src/features/system-settings/hooks/use-update-option.ts` |
 | 031 | 2026-06-23 | 清理认证系统设置中已移除 OAuth 提供商的残留前端参数 | `web/default/src/features/system-settings/auth/section-registry.tsx` |
 | 032 | 2026-09-05 | 飞书支持联系人入口：后端通过 FEISHU_SUPPORT_OPEN_ID 暴露 openId，首页与错误页复用联系卡片并动态构造 applink；未配置时隐藏 | [详情](details/032-feishu-support-contact.md) |
