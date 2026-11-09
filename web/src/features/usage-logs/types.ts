@@ -610,7 +610,11 @@ export interface UserInfo {
   role?: number
   status?: number
   department_name?: string
-  custom_field_values?: string
+  job_level?: string
+  job_description?: string
+  birthday?: string
+  hometown?: string
+  ethnicity?: string
   join_date?: string
   job_number?: string
   job_title?: string

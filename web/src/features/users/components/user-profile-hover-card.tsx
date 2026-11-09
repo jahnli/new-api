@@ -17,11 +17,7 @@ import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { USER_ROLE, USER_ROLES } from '../constants'
-import {
-  type UserProfile,
-  parseCustomFields,
-  CUSTOM_FIELD_KEYS,
-} from '../types'
+import type { UserProfile } from '../types'
 
 interface UserProfileHoverCardProps {
   user: UserProfile
@@ -89,7 +85,6 @@ export function UserProfileHoverCard(props: UserProfileHoverCardProps) {
   const RoleIcon = roleConfig?.icon
   const genderLabel = user.gender === 2 ? '女' : '男'
   const roleLabel = ROLE_TOOLTIP_LABELS[user.role]
-  const customFields = parseCustomFields(user.custom_field_values)
   const isRoot = useAuthStore((s) => s.auth.user?.role) === USER_ROLE.ROOT
 
   const bannerStyle: React.CSSProperties = user.background_image
@@ -105,15 +100,15 @@ export function UserProfileHoverCard(props: UserProfileHoverCardProps) {
         { label: t('Mobile'), value: user.mobile },
         {
           label: t('Birthday'),
-          value: customFields?.[CUSTOM_FIELD_KEYS.BIRTHDAY],
+          value: user.birthday,
         },
         {
           label: t('Ethnicity'),
-          value: customFields?.[CUSTOM_FIELD_KEYS.ETHNICITY],
+          value: user.ethnicity,
         },
         {
           label: t('Hometown'),
-          value: customFields?.[CUSTOM_FIELD_KEYS.HOMETOWN],
+          value: user.hometown,
         },
       ]
     : []
@@ -122,7 +117,7 @@ export function UserProfileHoverCard(props: UserProfileHoverCardProps) {
     { label: t('Department'), value: user.department_name },
     {
       label: t('Job Level'),
-      value: customFields?.[CUSTOM_FIELD_KEYS.JOB_LEVEL],
+      value: user.job_level,
     },
     { label: t('Join Date'), value: user.join_date },
     { label: t('Email'), value: user.email },
@@ -130,7 +125,7 @@ export function UserProfileHoverCard(props: UserProfileHoverCardProps) {
     { label: t('Job Title'), value: user.job_title },
     {
       label: t('Job Description'),
-      value: customFields?.[CUSTOM_FIELD_KEYS.JOB_DESCRIPTION],
+      value: user.job_description,
     },
     ...rootOnlyFields,
   ].filter((field) => Boolean(field.value))

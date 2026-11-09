@@ -177,7 +177,11 @@ type User struct {
 	Mobile               string                     `json:"mobile" gorm:"type:varchar(32);column:mobile;default:''"`
 	JobTitle             string                     `json:"job_title" gorm:"type:varchar(128);column:job_title;default:''"`
 	BackgroundImage      string                     `json:"background_image" gorm:"type:varchar(512);column:background_image;default:''"`
-	CustomFieldValues    string                     `json:"custom_field_values" gorm:"type:text;column:custom_field_values;default:'{}'"`
+	JobLevel             string                     `json:"job_level" gorm:"type:text;column:job_level"`
+	JobDescription       string                     `json:"job_description" gorm:"type:text;column:job_description"`
+	Birthday             string                     `json:"birthday" gorm:"type:text;column:birthday"`
+	Hometown             string                     `json:"hometown" gorm:"type:text;column:hometown"`
+	Ethnicity            string                     `json:"ethnicity" gorm:"type:text;column:ethnicity"`
 	JoinDate             string                     `json:"join_date" gorm:"type:varchar(16);column:join_date;default:''"`
 	AdminPermissions     map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }

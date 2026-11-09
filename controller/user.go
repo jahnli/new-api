@@ -355,12 +355,16 @@ func autoSubscribeUserAfterCreate(userId int, company string, source string) {
 }
 
 // stripExternalModeFields clears user fields that should not be exposed
-// when External Mode is enabled (department, job title, custom fields, join date, etc.).
+// when External Mode is enabled (department, job title, profile fields, join date, etc.).
 func stripExternalModeFields(user *model.User) {
 	user.DepartmentName = ""
 	user.Departments = "[]"
 	user.JobTitle = ""
-	user.CustomFieldValues = "{}"
+	user.JobLevel = ""
+	user.JobDescription = ""
+	user.Birthday = ""
+	user.Hometown = ""
+	user.Ethnicity = ""
 	user.JoinDate = ""
 }
 

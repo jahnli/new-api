@@ -4,8 +4,6 @@ import { createInstance } from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { describe, expect, test, vi } from 'vitest'
 
-import { CUSTOM_FIELD_KEYS } from '@/features/users/types'
-
 import type { DepartmentUsersResponse } from '../../types'
 import { DepartmentUsersTable } from '../department-users-table'
 
@@ -50,9 +48,7 @@ const initialUsers: DepartmentUsersResponse = {
       status: 1,
       role: 1,
       department_name: 'Product/AI Platform',
-      custom_field_values: JSON.stringify({
-        [CUSTOM_FIELD_KEYS.JOB_LEVEL]: 'P6',
-      }),
+      job_level: 'P6',
       join_date: '2024-03-18',
       last_login_at: 1_788_600_600,
       created_at: 1_700_000_000,

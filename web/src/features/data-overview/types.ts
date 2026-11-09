@@ -191,7 +191,11 @@ export interface DepartmentUser {
   gender?: number
   description?: string
   background_image?: string
-  custom_field_values?: string
+  job_level?: string
+  job_description?: string
+  birthday?: string
+  hometown?: string
+  ethnicity?: string
   join_date?: string
   open_id?: string
   dingding_id?: string

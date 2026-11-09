@@ -47,13 +47,18 @@ type feishuDirectoryData struct {
 				Avatar640 string `json:"avatar_640"`
 				Avatar240 string `json:"avatar_240"`
 			} `json:"avatar"`
-			BackgroundImage   string          `json:"background_image"`
-			Description       string          `json:"description"`
-			Gender            int             `json:"gender"`
-			LeaderId          string          `json:"leader_id"`
-			Mobile            string          `json:"mobile"`
-			CustomFieldValues json.RawMessage `json:"custom_field_values"`
-			Name              struct {
+			BackgroundImage string `json:"background_image"`
+			Description     string `json:"description"`
+			Gender          int    `json:"gender"`
+			LeaderId        string `json:"leader_id"`
+			Mobile          string `json:"mobile"`
+			ProfileFields   []struct {
+				FieldKey  string `json:"field_key"`
+				TextValue *struct {
+					DefaultValue string `json:"default_value"`
+				} `json:"text_value"`
+			} `json:"custom_field_values"`
+			Name struct {
 				Name struct {
 					DefaultValue string `json:"default_value"`
 				} `json:"name"`
@@ -73,7 +78,6 @@ type feishuDirectoryData struct {
 				Name struct {
 					DefaultValue string `json:"default_value"`
 				} `json:"name"`
-				CustomFieldValues json.RawMessage `json:"custom_field_values"`
 			} `json:"departments"`
 		} `json:"base_info"`
 		WorkInfo struct {
@@ -182,49 +186,53 @@ func SyncFeishuUser(user *model.User) error {
 		departmentName = strings.Join(names, " / ")
 	}
 
-	// custom_field_values：将数组结构扁平化为 {field_key: text_value} 的 map，跳过无 text_value 的条目
-	customFieldValuesStr := "{}"
-	if len(base.CustomFieldValues) > 0 && string(base.CustomFieldValues) != "null" {
-		var rawFields []struct {
-			FieldKey  string `json:"field_key"`
-			FieldType int    `json:"field_type"`
-			TextValue *struct {
-				DefaultValue string `json:"default_value"`
-			} `json:"text_value"`
-		}
-		if err := common.Unmarshal(base.CustomFieldValues, &rawFields); err == nil {
-			flat := make(map[string]string, len(rawFields))
-			for _, f := range rawFields {
-				if f.TextValue != nil {
-					flat[f.FieldKey] = f.TextValue.DefaultValue
-				}
-			}
-			if b, err := common.Marshal(flat); err == nil {
-				customFieldValuesStr = string(b)
-			}
-		}
-	}
-
 	// Prefer the 640px avatar for large profile badges.
 	avatarURL := strings.TrimSpace(base.Avatar.Avatar640)
 	if avatarURL == "" {
 		avatarURL = base.Avatar.Avatar240
 	}
 	updates := map[string]any{
-		"avatar_url":          avatarURL,
-		"background_image":    base.BackgroundImage,
-		"open_id":             openId,
-		"display_name":        base.Name.Name.DefaultValue,
-		"description":         base.Description,
-		"gender":              base.Gender,
-		"leader_id":           base.LeaderId,
-		"mobile":              base.Mobile,
-		"job_number":          work.JobNumber,
-		"job_title":           work.JobTitle.JobTitleName.DefaultValue,
-		"join_date":           work.JoinDate,
-		"departments":         string(deptsJSON),
-		"department_name":     departmentName,
-		"custom_field_values": customFieldValuesStr,
+		"avatar_url":       avatarURL,
+		"background_image": base.BackgroundImage,
+		"open_id":          openId,
+		"display_name":     base.Name.Name.DefaultValue,
+		"description":      base.Description,
+		"gender":           base.Gender,
+		"leader_id":        base.LeaderId,
+		"mobile":           base.Mobile,
+		"job_number":       work.JobNumber,
+		"job_title":        work.JobTitle.JobTitleName.DefaultValue,
+		"join_date":        work.JoinDate,
+		"departments":      string(deptsJSON),
+		"department_name":  departmentName,
+		"job_level":        "",
+		"job_description":  "",
+		"birthday":         "",
+		"hometown":         "",
+		"ethnicity":        "",
+	}
+	// Feishu returns these profile values as custom fields; persist only the
+	// dedicated columns used by the application.
+	for _, field := range base.ProfileFields {
+		if field.TextValue == nil {
+			continue
+		}
+		var column string
+		switch field.FieldKey {
+		case "C-7434714811573665793":
+			column = "job_level"
+		case "C-7439269744984244227":
+			column = "job_description"
+		case "C-7613945054108945361":
+			column = "birthday"
+		case "C-7439630416690561028":
+			column = "hometown"
+		case "C-7439269636549230620":
+			column = "ethnicity"
+		default:
+			continue
+		}
+		updates[column] = field.TextValue.DefaultValue
 	}
 	if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).Updates(updates).Error; err != nil {
 		return err
@@ -397,7 +405,6 @@ var feishuDirectoryRequiredFields = []string{
 	"base_info.departments.name",
 	"base_info.departments.leaders",
 	"base_info.departments.department_path_infos",
-	"base_info.departments.custom_field_values",
 	"work_info.job_number",
 	"work_info.join_date",
 	"work_info.positions",
