@@ -74,6 +74,14 @@ export default defineConfig(({ envMode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        // Dynamic imports need a directory context, which the package's exports
+        // do not expose. Resolve the installed package without assuming hoisting.
+        '@lobe-icon-modules': path.join(
+          path.dirname(
+            fileURLToPath(import.meta.resolve('@lobehub/icons/package.json'))
+          ),
+          'es'
+        ),
       },
     },
     html: {

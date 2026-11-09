@@ -7,7 +7,7 @@
 | 001 | 2026-07-05 | 默认前端固定为 default 并彻底移除 classic：清理后端主题切换、classic embed、Docker 构建阶段与前端 workspace | [详情](details/001-default-frontend-only.md) |
 | 002 | 2026-07-09 | 全局品牌重命名 New API → AI Gateway，清理后端中继、文档、Electron 与前端脚本中的品牌残留 | [详情](details/002-brand-rename.md) |
 | 003 | 2026-09-02 | 首页定制：移除 Footer/开源卡片/CTA 推广区等区块，替换模型标签，优化三步上手与 Hero 轨道动画，并新增统计微光动画、glass 卡片 UI 与飞书联系信息 | [详情](details/003-homepage-customization.md) |
-| 004 | 2026-11-06 | 修复前端 dev server 端口冲突；移除开发模式 HTTPS 启动命令与证书读取配置，统一使用 HTTP，端口占用时允许自动切换 | `web/rsbuild.config.ts`、`web/package.json`、`web/.gitignore` |
+| 004 | 2026-11-09 | 前端开发与构建适配：移除开发模式 HTTPS 启动命令与证书读取配置，统一使用 HTTP，端口占用时允许自动切换；Lobe 图标库升级至 6.15 系列，新增配套 UI 依赖，动态加载改用安装目录别名与 .mjs 模块路径 | [详情](details/004-frontend-build-config.md) |
 | 005 | 2026-06-19 | 移除开发环境 devtools 面板 | `web/default/src/routes/__root.tsx` |
 | 006 | 2026-06-19 | 删除 About 页面及所有相关引用 | [详情](details/007-remove-about.md) |
 | 007 | 2026-06-19 | 删除兑换码管理界面及前端引用 | [详情](details/008-remove-redemption-frontend.md) |
