@@ -84,7 +84,11 @@ export const userSchema = z.object({
   gender: z.number().optional(),
   description: z.string().optional(),
   background_image: z.string().optional(),
-  custom_field_values: z.string().optional(),
+  job_level: z.string().optional(),
+  job_description: z.string().optional(),
+  birthday: z.string().optional(),
+  hometown: z.string().optional(),
+  ethnicity: z.string().optional(),
   join_date: z.string().optional(),
   company: z.string().optional(),
   cost_center: z.string().optional(),
@@ -224,7 +228,11 @@ export interface UserColumnRow {
   last_login_at?: number
   DeletedAt?: unknown | null
   department_name?: string
-  custom_field_values?: string
+  job_level?: string
+  job_description?: string
+  birthday?: string
+  hometown?: string
+  ethnicity?: string
   join_date?: string
   job_number?: string
   job_title?: string
@@ -239,7 +247,7 @@ export interface UserColumnRow {
 }
 
 // ============================================================================
-// Custom Field Helpers
+// User Profile
 // ============================================================================
 
 export type UserProfile = Pick<
@@ -252,7 +260,11 @@ export type UserProfile = Pick<
   | 'avatar_url'
   | 'remark'
   | 'department_name'
-  | 'custom_field_values'
+  | 'job_level'
+  | 'job_description'
+  | 'birthday'
+  | 'hometown'
+  | 'ethnicity'
   | 'join_date'
   | 'job_number'
   | 'job_title'
@@ -264,30 +276,3 @@ export type UserProfile = Pick<
   | 'gender'
   | 'company'
 >
-
-export const CUSTOM_FIELD_KEYS = {
-  JOB_LEVEL: 'C-7434714811573665793',
-  JOB_DESCRIPTION: 'C-7439269744984244227',
-  BIRTHDAY: 'C-7613945054108945361',
-  HOMETOWN: 'C-7439630416690561028',
-  ETHNICITY: 'C-7439269636549230620',
-} as const
-
-export function parseCustomFields(
-  raw?: string
-): Record<string, string> | undefined {
-  if (!raw) return undefined
-  try {
-    const parsed = JSON.parse(raw)
-    if (
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      !Array.isArray(parsed)
-    ) {
-      return parsed as Record<string, string>
-    }
-  } catch {
-    // ignore
-  }
-  return undefined
-}

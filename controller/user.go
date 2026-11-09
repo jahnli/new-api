@@ -146,7 +146,13 @@ func recordLoginAudit(user *model.User, c *gin.Context) {
 // setupLogin evaluates the shared login policy after primary authentication.
 // Only a completed Passkey ceremony may go directly to session issuance.
 func setupLogin(user *model.User, c *gin.Context) {
-	challenge, err := service.StartLoginVerification(user, loginMethodFromContext(c), oidcSessionBinding(c))
+	var challenge *service.LoginChallenge
+	var err error
+	if loginMethodFromContext(c) == "oauth:oidc" {
+		challenge, err = service.StartOIDCLoginVerification(user, c.GetString("oidc_username"), oidcSessionBinding(c))
+	} else {
+		challenge, err = service.StartLoginVerification(user, loginMethodFromContext(c), oidcSessionBinding(c))
+	}
 	if err != nil {
 		writeSecurityOperationError(c, err)
 		return
@@ -349,12 +355,16 @@ func autoSubscribeUserAfterCreate(userId int, company string, source string) {
 }
 
 // stripExternalModeFields clears user fields that should not be exposed
-// when External Mode is enabled (department, job title, custom fields, join date, etc.).
+// when External Mode is enabled (department, job title, profile fields, join date, etc.).
 func stripExternalModeFields(user *model.User) {
 	user.DepartmentName = ""
 	user.Departments = "[]"
 	user.JobTitle = ""
-	user.CustomFieldValues = "{}"
+	user.JobLevel = ""
+	user.JobDescription = ""
+	user.Birthday = ""
+	user.Hometown = ""
+	user.Ethnicity = ""
 	user.JoinDate = ""
 }
 

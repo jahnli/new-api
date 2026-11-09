@@ -60,12 +60,7 @@ import {
   getUserRoleOptions,
   getUserStatusOptions,
 } from "../constants";
-import {
-  type UserColumnRow,
-  type UserProfile,
-  parseCustomFields,
-  CUSTOM_FIELD_KEYS,
-} from "../types";
+import type { UserColumnRow, UserProfile } from "../types";
 import { UserProfileHoverCard } from "./user-profile-hover-card";
 
 // ============================================================================
@@ -456,8 +451,7 @@ export function userEmploymentOverviewColumn<T extends UserColumnRow>(
     header: t("Employment Overview"),
     cell: ({ row }) => {
       const department = row.original.department_name;
-      const customFields = parseCustomFields(row.original.custom_field_values);
-      const jobLevel = customFields?.[CUSTOM_FIELD_KEYS.JOB_LEVEL];
+      const jobLevel = row.original.job_level;
       const joinDate = row.original.join_date;
 
       return (

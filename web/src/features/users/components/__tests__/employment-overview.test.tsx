@@ -6,7 +6,7 @@ import { assert, describe, expect, test, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-import { CUSTOM_FIELD_KEYS, type UserColumnRow } from '../../types'
+import type { UserColumnRow } from '../../types'
 import {
   userEmploymentOverviewColumn,
   userModelColumn,
@@ -53,9 +53,7 @@ const user: UserColumnRow = {
   status: 1,
   role: 1,
   department_name: 'Headquarters/Engineering/AI Platform',
-  custom_field_values: JSON.stringify({
-    [CUSTOM_FIELD_KEYS.JOB_LEVEL]: 'P6',
-  }),
+  job_level: 'P6',
   join_date: '2024-03-18',
 }
 

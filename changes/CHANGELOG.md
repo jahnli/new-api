@@ -33,7 +33,7 @@
 | 027 | 2026-06-23 | 用户头像改用 avatar_url 字段：后端 API 下发 avatar_url，前端头像组件优先展示图片、无图时回退首字母 | [详情](details/028-avatar-url.md) |
 | 028 | 2026-06-23 | LDAP 注册时飞书同步改为同步调用，确保首次登录响应即包含头像；SyncFeishuUser 回写 user 指针字段 | `controller/ldap.go`、`service/feishu_sync.go` |
 | 029 | 2026-06-23 | 前端类型检查改为 git pre-commit hook 自动执行，移除 Cursor Hook 方案，适用于所有 git 客户端 | `.githooks/pre-commit`、`.cursor/hooks.json`、`web/default/AGENTS.md` |
-| 029 | 2026-11-06 | OAuth 登录调整：移除 GitHub、Discord、Telegram、LinuxDO 登录及相关数据与界面；OIDC 支持手动登录、可选静默登录与 Casdoor 双向退出联动，补充令牌校验、会话关联及七语言配置说明；静默登录沿用原回调并保留 MFA，修复超时误撤销和退出后重新登录受阻，精简隐藏回调加载；修复开发代理导致的退出 403 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
+| 029 | 2026-11-09 | OAuth 登录调整：移除 GitHub、Discord、Telegram、LinuxDO 登录及相关数据与界面；OIDC 支持手动登录、可选静默登录与 Casdoor 双向退出联动，补充令牌校验、会话关联及七语言配置说明；静默登录沿用原回调并保留 MFA，修复超时误撤销和退出后重新登录受阻，精简隐藏回调加载；修复开发代理导致的退出 403；新增默认关闭的 OIDC 用户名白名单，普通登录、静默登录及绑定统一过滤，MFA 完成时按当前名单复核 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
 | 030 | 2026-06-23 | 修复 LDAP 系统设置不回显配置，并在保存 LDAP 登录状态后刷新前端状态缓存 | `web/default/src/features/system-settings/auth/section-registry.tsx`、`web/default/src/features/system-settings/hooks/use-update-option.ts` |
 | 031 | 2026-06-23 | 清理认证系统设置中已移除 OAuth 提供商的残留前端参数 | `web/default/src/features/system-settings/auth/section-registry.tsx` |
 | 032 | 2026-09-05 | 飞书支持联系人入口：后端通过 FEISHU_SUPPORT_OPEN_ID 暴露 openId，首页与错误页复用联系卡片并动态构造 applink；未配置时隐藏 | [详情](details/032-feishu-support-contact.md) |
@@ -45,8 +45,8 @@
 | 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
 | 039 | 2026-10-27 | 用户管理与共享交互增强：完善统计筛选、成本中心、分组联动与跨页选择，统一悬停提示并精简重复说明；新增注册方式列，按密码是否为空区分 LDAP 与手动，支持列标题旁单选筛选及分页统计联动；恢复用户删除入口与确认弹窗，接入删除专用身份验证，成功后刷新列表，并禁用超级管理员账户的删除入口；新增批量启用、禁用、删除与修改分组，操作按钮显示图标和文字，沿用逐用户安全验证并汇总处理结果，保留失败及未处理项勾选 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |
-| 041 | 2026-11-03 | 飞书同步改用 directory/v1/employees/mget 单接口，并重构 User 表飞书字段（employee_number→job_number，新增部门、职务、入职日期等字段）；头像优先使用 avatar_640，缺失时回退 avatar_240 | [详情](details/041-feishu-field-refactor.md) |
-| 042 | 2026-08-05 | 用户管理表格头像悬停资料卡片：飞书风格展示职级、部门、入职日期等资料字段，敏感字段仅超级管理员可见，并支持公司名称、性别图标与自定义字段解析 | [详情](details/042-user-profile-hover-card.md) |
+| 041 | 2026-11-09 | 飞书同步改用 directory/v1/employees/mget 单接口，并重构 User 表飞书字段；头像优先使用 avatar_640，缺失时回退 avatar_240；职级、职位描述、出生日期、探亲地、民族改为五个独立字段并直接同步写入，保留数据库旧列但移除其模型映射与应用读写，对外模式同步清空新字段响应 | [详情](details/041-feishu-field-refactor.md) |
+| 042 | 2026-11-09 | 用户资料悬停卡片以飞书风格展示职级、部门、入职日期等资料，敏感字段仅超级管理员可见，支持公司名称与性别图标；资料卡片和任职概览改读五个独立资料字段，移除旧 JSON 解析及字段映射，并同步数据总览、用量日志和安全审计的数据传递 | [详情](details/042-user-profile-hover-card.md) |
 | 043 | 2026-10-06 | 数据总览增强：完善部门统计、使用分析、排行、日志、导出与权限裁剪，支持模型系列单价趋势与多公司数据隔离；超级管理员新增跨公司总览与公司统计，BP 和部门领导保持原授权范围；使用分析独立加载费用分布，补齐图表悬浮指标、人数单位及调用占比；子部门统计列按对外模式拆分为独立 hooks，并在对外模式增加带倍率的分组列和销售列；部门人员列表新增成本中心列，人员原部门保留展示但消费数据不重复统计；移除平均响应时间、错误率及对应日志聚合，导出同步移除，保留原两行布局和响应时间空位；日期范围桌面端按完整时间撑开，修复结束时间截断 | [详情](details/043-data-overview.md) |
 | 044 | 2026-07-08 | 新增「事业部 AI BP」（role=2）和「中心 AI BP」（role=3）两个用户角色，用户编辑界面支持角色修改，6 语言翻译 | [详情](details/044-add-bp-roles.md) |
 | 045 | 2026-07-07 | 数据总览权限开放：BP 角色与部门负责人可访问数据总览，部门树按角色层级自动裁剪，部门负责人改为动态判定 | [详情](details/045-data-overview-access.md) |
