@@ -10,6 +10,7 @@ export function TokenBreakdownTooltipContent(props: {
   outputTokens: number
   cacheReadTokens: number
   cacheWriteTokens: number
+  cacheHitRate?: number | null
 }) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
@@ -57,6 +58,20 @@ export function TokenBreakdownTooltipContent(props: {
             </span>
           </div>
         ))}
+        {props.cacheHitRate !== undefined && (
+          <div className='flex items-baseline justify-between gap-4'>
+            <span className='font-medium'>{t('Cache Hit Rate')}</span>
+            <span>
+              {props.cacheHitRate === null
+                ? '-'
+                : formatNumber(props.cacheHitRate, locale, {
+                    style: 'percent',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

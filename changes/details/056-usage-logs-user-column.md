@@ -1,6 +1,13 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-10-30（最后更新 2026-10-30）
+**日期**: 2026-09-09 ~ 2026-11-09（最后更新 2026-11-09）
+
+## 2026-11-09 单条 Token 明细新增缓存命中率
+
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — Token 明细新增缓存命中率，按日志用量语义区分输入是否包含缓存：Anthropic 语义以输入、缓存读取和缓存写入之和为分母，OpenAI 语义以输入为分母；无显式语义的旧日志回退使用 `claude` 标记。缓存写入包含 5 分钟、1 小时及 12 小时类别，计入分母但不算命中，输出不参与计算；无输入或缓存数量超过总输入时显示 `-`。
+- `web/src/components/token-breakdown-tooltip-content.tsx` — 兼容扩展现有共享明细组件，通过可选属性在底部展示命中率，保留两位小数，复用已有七语言文案与数字格式化器；未传该属性的汇总调用保持原有展示。
+- `web/src/features/usage-logs/types.ts` — 补充日志 `usage_semantic` 字段类型，供前端识别输入统计口径。
+- 验证：`bunx --no-install tsc -b` 通过，三个修改文件的 oxlint 与 oxfmt 检查通过；`bun run typecheck` 因脚本引用不存在的 `check` 命令失败，已使用上述 TypeScript 编译器命令验证。未执行浏览器页面验证，未新增、修改或运行测试。
 
 ## 2026-10-30 错误日志补记客户端信息
 
