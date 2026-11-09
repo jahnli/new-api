@@ -107,7 +107,7 @@ export function createDefaultTaskVisualConfig(
   return {
     tiers: [
       {
-        label: 'base',
+        label: 'standard',
         conditions: [],
         constant: 0,
         unitPrices: Object.fromEntries(
@@ -139,7 +139,7 @@ export function taskMatrixRowLabel(
   const values = Object.entries(combination)
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([, value]) => value)
-  return values.length > 0 ? values.join('·') : 'base'
+  return values.length > 0 ? values.join('·') : 'standard'
 }
 
 export function taskMatrixToTiers(
@@ -160,7 +160,7 @@ export function taskMatrixToTiers(
   if (isUniform) {
     return [
       {
-        label: 'base',
+        label: 'standard',
         conditions: [],
         constant: firstRow.constant,
         unitPrices: Object.fromEntries(
@@ -329,7 +329,7 @@ export function normalizeTaskVisualConfig(
       )
       const constant = Number(tier.constant)
       return {
-        label: tier.label || (index === 0 ? 'base' : `tier_${index + 1}`),
+        label: tier.label || (index === 0 ? 'standard' : `tier_${index + 1}`),
         conditions: (tier.conditions ?? []).filter((condition) =>
           enumFields.get(condition.field)?.includes(condition.value)
         ),
