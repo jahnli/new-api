@@ -439,6 +439,16 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	}
 	user.Role = common.RoleCommonUser
 	user.Status = common.UserStatusEnabled
+	autoSubscribePlanID := 0
+	if _, isOIDC := provider.(*oauth.OIDCProvider); isOIDC {
+		user.AvatarUrl = oauthUser.AvatarURL
+		var err error
+		autoSubscribePlanID, err = service.ApplyOIDCRegistrationProfile(user, oauthUser.OIDCEmployeeClaims)
+		if err != nil {
+			common.SysError(common.LogText("OIDC registration employee profile validation failed"))
+			return nil, common.NewMessage("Failed to get user information")
+		}
+	}
 
 	// Use transaction to ensure user creation and OAuth binding are atomic
 	if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {
@@ -494,6 +504,15 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		user.FinalizeOAuthUserCreation()
 	}
 
+	// Only a newly committed OIDC registration reaches this point. Existing
+	// users return above; binding, verification and silent probes never grant.
+	if autoSubscribePlanID > 0 {
+		if _, err := model.AdminBindSubscription(user.Id, autoSubscribePlanID, "oidc_register_auto"); err != nil {
+			common.SysError(common.LogText("OIDC registration auto-subscription failed user_id=%d plan_id=%d", user.Id, autoSubscribePlanID))
+		} else {
+			common.SysLog(common.LogText("OIDC registration auto-subscription succeeded user_id=%d plan_id=%d", user.Id, autoSubscribePlanID))
+		}
+	}
 	return user, nil
 }
 

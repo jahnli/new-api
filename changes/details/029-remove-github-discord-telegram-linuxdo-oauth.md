@@ -1,8 +1,8 @@
-# OAuth 登录调整与 OIDC 静默登录、双向退出联动及用户名过滤
+# OAuth 登录调整与 OIDC 静默登录、双向退出联动、用户名过滤及注册资料同步
 
 **日期**: 2026-11-09
 
-当前 OIDC 行为以末尾「2026-11-09：用户名过滤」及「2026-11-06：可选静默登录与回调加载优化」、此前双向退出联动说明为准。前面的实现和回退说明保留为历史记录；当前保留手动登录，支持默认关闭的静默登录与用户名过滤，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
+当前 OIDC 行为以末尾「2026-11-09：首次注册同步 Casdoor 员工资料并分配公司订阅」、「2026-11-09：用户名过滤」及「2026-11-06：可选静默登录与回调加载优化」、此前双向退出联动说明为准。前面的实现和回退说明保留为历史记录；当前保留手动登录，支持默认关闭的静默登录与用户名过滤，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
 
 ## 涉及文件
 
@@ -306,3 +306,33 @@ OIDC 设置新增默认关闭的用户名过滤开关与白名单。开启后，
 ### 验证记录
 
 本轮功能实现已通过根目录 `go build ./...`、`git diff --check`，以及 `web/` 下的 `bunx --no-install tsgo -b`、`bun run build`、`bun run i18n:sync`；七种语言缺失键均为零。对本轮修改的五个 TypeScript/TSX 文件执行 `bunx oxlint -c .oxlintrc.json`，对这些文件及七个语言文件执行 `bunx oxfmt --check`，均通过。本机 Bun 1.3.14 不支持项目的 `bun check -b`，因此使用已安装的类型检查器。未新增、修改或运行测试；本次日志更新仅检查文档差异与空白格式。
+
+## 2026-11-09：首次注册同步 Casdoor 员工资料并分配公司订阅
+
+OIDC 首次注册沿用用户信息接口中的姓名、邮箱，新增保存头像，并从完成签名、签发方、受众及随机数校验的身份令牌读取员工扩展属性。字段映射参考 `sync_all_to_casdoor.py` 调用的 LDAP、飞书和钉钉同步脚本：`affiliation` 对应工作单位，`phone`、`gender`、`birthday`、`bio` 对应手机号、性别、生日和简介；`properties` 中的部门名称、完整部门结构、工号、职位、职级、入职日期、岗位描述及民族写入现有用户字段。头像优先使用用户信息接口的 `picture`，缺失时回退身份令牌中的 `avatar`。
+
+工作单位复用 LDAP 公司名称与显示名称匹配规则，注册时保存公司显示名称；按匹配规则的套餐编号调用现有订阅绑定接口，记录来源 `oidc_register_auto`。未匹配公司或未配置套餐时不自动分配；订阅绑定失败保留已创建账户并记录失败，不在后续登录时补发。`properties.open_id` 根据公司配置的平台分别写入飞书或钉钉身份字段，避免混用两类标识。已有账户登录、账户绑定、身份验证及静默探测不会更新员工资料或新增订阅，公司变化也不触发追加套餐。
+
+OIDC 与 LDAP 设置页复用原公司配置表单，提取为共享组件 `CompanyRegistrationSettings`，继续写入同一项 `ldap.company_sync_configs`；任一入口修改公司、显示名称、平台或套餐，保存后对两种注册方式共同生效。保留已有平台凭据字段，平台选择器改用项目 `Select` 组件；OIDC 资料只读取 Casdoor，不调用飞书或钉钉同步接口。配置说明及占位文案补齐七种语言。
+
+### 涉及文件
+
+- `oauth/oidc.go` — 在身份令牌校验后筛选员工字段，传递头像及员工属性，不传递角色、配额或凭据等无关声明。
+- `oauth/types.go` — 扩展内部用户信息结构，承载已验证的员工属性和头像地址。
+- `service/oidc_profile.go` — 新增注册资料映射，校验字段类型、长度、日期与部门结构，复用公司匹配规则并区分平台身份。
+- `controller/oauth.go` — 仅新建 OIDC 用户时填入员工资料，账户创建提交后按公司规则绑定订阅，并记录成功或失败。
+- `web/src/features/system-settings/auth/oauth-section.tsx` — 提取并复用公司配置组件，在 OIDC 和 LDAP 两处提供同一份规则的编辑入口，补充首次注册行为及配置说明。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐共享公司规则、工作单位及首次注册同步说明。
+
+### 配置与验证范围
+
+员工扩展属性需要网关配置 OIDC 发现地址，并由 Casdoor 在签名身份令牌中提供；仅声明支持某字段的发现文档不能替代实际令牌数据。当前应用配置已只读确认使用 `JWT` 格式，相关源码包含 `affiliation` 和 `properties`。工作单位应由管理员或同步脚本维护，本次未修改 Casdoor 权限配置。脚本未提供直属上级、背景图和籍贯，因此本次不补齐这些字段。
+
+本轮功能实现已执行并通过以下非测试检查：
+
+- 仓库根目录：`go build ./oauth ./service ./controller ./setting/system_setting`、`git diff --check`。
+- 修改的 Go 文件：执行 `gofmt -w` 后，`gofmt -l oauth/oidc.go oauth/types.go controller/oauth.go service/oidc_profile.go` 无输出。
+- `web/`：`bun x --no-install tsgo -b --noEmit --pretty false`、`bun x --no-install oxlint -c .oxlintrc.json src/features/system-settings/auth/oauth-section.tsx`、`bun x --no-install oxfmt --check src/features/system-settings/auth/oauth-section.tsx`、`bun run build` 均通过。
+- `web/`：通过临时 `scripts/add-missing-keys.mjs` 写入翻译后执行 `bun run i18n:sync`，七种语言缺失键均为零，临时脚本已清理。
+
+未新增、修改或运行测试。真实首次注册、员工资料写入与订阅分配尚未联调；未执行 SQLite、MySQL、PostgreSQL 的三库写入验证，当前环境未提供完整验证条件，没有可报告的三库验证版本及运行结果，数据库兼容验证仍受阻。本次日志更新仅执行文档差异和空白检查。
