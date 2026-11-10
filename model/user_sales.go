@@ -29,8 +29,20 @@ func GetSalesUsers() ([]SalesUser, error) {
 	return users, err
 }
 
-// LoadUserSales batches lookups and leaves missing/deleted/non-sales contacts nil.
-// The original ID remains available so administrators can reassign invalid contacts.
+// GetSalesUserIDs preserves legacy assignments until they are explicitly edited.
+// An empty, non-nil list represents an explicitly cleared assignment.
+func (user *User) GetSalesUserIDs() []int {
+	if user.SalesUserIDs != nil {
+		return user.SalesUserIDs
+	}
+	if user.SalesUserID > 0 {
+		return []int{user.SalesUserID}
+	}
+	return []int{}
+}
+
+// LoadUserSales batches lookups and omits missing/deleted/non-sales contacts.
+// Original IDs remain available so administrators can remove invalid contacts.
 func LoadUserSales(users []*User) error {
 	if !operation_setting.ExternalModeEnabled {
 		return nil
@@ -39,9 +51,13 @@ func LoadUserSales(users []*User) error {
 	seen := make(map[int]bool)
 	for _, user := range users {
 		user.SalesUser = nil
-		if user.SalesUserID > 0 && !seen[user.SalesUserID] {
-			ids = append(ids, user.SalesUserID)
-			seen[user.SalesUserID] = true
+		user.SalesUsers = nil
+		user.SalesUserIDs = user.GetSalesUserIDs()
+		for _, id := range user.SalesUserIDs {
+			if id > 0 && !seen[id] {
+				ids = append(ids, id)
+				seen[id] = true
+			}
 		}
 	}
 	contacts := make(map[int]SalesUser, len(ids))
@@ -58,8 +74,13 @@ func LoadUserSales(users []*User) error {
 		}
 	}
 	for _, user := range users {
-		if contact, ok := contacts[user.SalesUserID]; ok {
-			user.SalesUser = &contact
+		for _, id := range user.SalesUserIDs {
+			if contact, ok := contacts[id]; ok {
+				user.SalesUsers = append(user.SalesUsers, contact)
+			}
+		}
+		if len(user.SalesUsers) > 0 {
+			user.SalesUser = &user.SalesUsers[0]
 		}
 	}
 	return nil

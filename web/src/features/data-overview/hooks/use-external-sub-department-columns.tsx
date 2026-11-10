@@ -3,8 +3,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { GroupBadge } from '@/components/group-badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
+import { SalesContactsCell } from '@/features/users/components/sales-contacts-cell'
 
 import {
   useSharedSubDepartmentColumns,
@@ -49,29 +48,12 @@ export function useExternalSubDepartmentColumns(
         id: 'sales',
         header: t('Sales'),
         enableSorting: false,
-        cell: ({ row }) => {
-          const salesUser = row.original.sales_user
-          if (!salesUser) {
-            return <span className='text-muted-foreground'>-</span>
-          }
-          const name = salesUser.display_name || salesUser.username
-          return (
-            <div className='flex min-w-0 items-center gap-2'>
-              <Avatar size='sm' className='shrink-0'>
-                {salesUser.avatar_url && (
-                  <AvatarImage src={salesUser.avatar_url} alt={name} />
-                )}
-                <AvatarFallback
-                  className='text-xs font-medium text-white'
-                  style={getUserAvatarStyle(name)}
-                >
-                  {getUserAvatarFallback(name)}
-                </AvatarFallback>
-              </Avatar>
-              <span className='min-w-0 truncate'>{name}</span>
-            </div>
-          )
-        },
+        cell: ({ row }) => (
+          <SalesContactsCell
+            salesUsers={row.original.sales_users}
+            salesUser={row.original.sales_user}
+          />
+        ),
         size: 160,
       },
       columns.actions,

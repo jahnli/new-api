@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import { BadgeCell, DataTableColumnHeaderFilter } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useDemoMode } from '@/hooks/use-demo-mode'
 import { useExternalMode } from '@/hooks/use-external-mode'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +18,8 @@ import {
 } from '../constants'
 import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
-import { userNameColumn, useSharedUserColumns } from './shared-user-columns'
+import { SalesContactsCell } from './sales-contacts-cell'
+import { useSharedUserColumns } from './shared-user-columns'
 
 function userCustomerTypeColumn(t: (key: string) => string): ColumnDef<User> {
   return {
@@ -100,7 +100,6 @@ export function useUsersColumns(
 ): ColumnDef<User>[] {
   const { t } = useTranslation()
   const externalMode = useExternalMode()
-  const demoMode = useDemoMode()
 
   const sharedColumns = useSharedUserColumns<User>({
     costAccessor: 'monthly_total_amount_cny',
@@ -166,14 +165,17 @@ export function useUsersColumns(
       ...(externalMode
         ? [
             {
-              ...userNameColumn<User>(t, demoMode, {
-                getUser: (user) => user.sales_user,
-              }),
-              accessorKey: undefined,
               id: 'sales',
               header: () => t('Sales'),
+              cell: ({ row }) => (
+                <SalesContactsCell
+                  salesUsers={row.original.sales_users}
+                  salesUser={row.original.sales_user}
+                />
+              ),
+              enableHiding: false,
               enableSorting: false,
-              meta: undefined,
+              size: 170,
             } satisfies ColumnDef<User>,
             userCustomerTypeColumn(t),
             userSettlementModeColumn(t),
@@ -192,6 +194,6 @@ export function useUsersColumns(
         meta: { pinned: 'right' as const },
       } satisfies ColumnDef<User>,
     ],
-    [sharedColumns, t, externalMode, demoMode]
+    [sharedColumns, t, externalMode]
   )
 }

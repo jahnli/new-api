@@ -26,6 +26,22 @@ export interface SalesUser {
   display_name: string
 }
 
+const salesUserSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  display_name: z.string(),
+  avatar_url: z.string().optional(),
+  role: z.number(),
+  email: z.string().optional(),
+  mobile: z.string().optional(),
+  job_number: z.string().optional(),
+  description: z.string().optional(),
+  background_image: z.string().optional(),
+  company: z.string().optional(),
+  gender: z.number().optional(),
+  open_id: z.string().optional(),
+})
+
 export const userSchema = z.object({
   id: z.number(),
   username: z.string(),
@@ -51,23 +67,9 @@ export const userSchema = z.object({
   settlement_mode: userSettlementModeSchema.optional(),
   registration_method: z.enum(['ldap', 'manual']).optional(),
   sales_user_id: z.number().optional(),
-  sales_user: z
-    .object({
-      id: z.number(),
-      username: z.string(),
-      display_name: z.string(),
-      avatar_url: z.string().optional(),
-      role: z.number(),
-      email: z.string().optional(),
-      mobile: z.string().optional(),
-      job_number: z.string().optional(),
-      description: z.string().optional(),
-      background_image: z.string().optional(),
-      company: z.string().optional(),
-      gender: z.number().optional(),
-      open_id: z.string().optional(),
-    })
-    .optional(),
+  sales_user: salesUserSchema.optional(),
+  sales_user_ids: z.array(z.number()).nullable().optional(),
+  sales_users: z.array(salesUserSchema).optional(),
   overview_dept_ids: z.array(z.string()).optional(),
   created_at: z.number().optional(),
   updated_at: z.number().optional(),
@@ -166,6 +168,7 @@ export interface SearchUsersParams {
 
 export interface UserFormData {
   sales_user_id?: number
+  sales_user_ids?: number[]
   username: string
   display_name: string
   password?: string

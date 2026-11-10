@@ -30,6 +30,7 @@ import {
   sideDrawerFormClassName,
   sideDrawerHeaderClassName,
 } from '@/components/drawer-layout'
+import { MultiSelect } from '@/components/multi-select'
 import { PermissionMatrix } from '@/components/permission-matrix'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
@@ -160,25 +161,21 @@ export function UsersMutateDrawer({
     queryFn: getSalesUsers,
     enabled: open && isUpdate && externalMode,
   })
-  const selectedSalesID = form.watch('sales_user_id')
-  const salesOptions: { value: string; label: string; disabled?: boolean }[] = [
-    { value: '0', label: t('Unassigned') },
-    ...(salesQuery.data ?? []).map((sales) => ({
-      value: String(sales.id),
-      label: sales.display_name
-        ? `${sales.display_name} (${sales.username})`
-        : sales.username,
-    })),
-  ]
-  if (
-    selectedSalesID &&
-    !salesOptions.some((option) => option.value === String(selectedSalesID))
-  ) {
-    salesOptions.push({
-      value: String(selectedSalesID),
-      label: `${t('Sales contact unavailable')} (#${selectedSalesID})`,
-      disabled: true,
-    })
+  const selectedSalesIDs = form.watch('sales_user_ids') ?? []
+  const salesOptions = (salesQuery.data ?? []).map((sales) => ({
+    value: String(sales.id),
+    label: sales.display_name
+      ? `${sales.display_name} (${sales.username})`
+      : sales.username,
+  }))
+  const availableSalesIDs = new Set(salesOptions.map((option) => option.value))
+  for (const id of selectedSalesIDs) {
+    if (!availableSalesIDs.has(String(id))) {
+      salesOptions.push({
+        value: String(id),
+        label: `${t('Sales contact unavailable')} (#${id})`,
+      })
+    }
   }
 
   // Load existing data when updating
@@ -245,9 +242,9 @@ export function UsersMutateDrawer({
       if (
         isUpdate &&
         externalMode &&
-        form.getFieldState('sales_user_id').isDirty
+        form.getFieldState('sales_user_ids').isDirty
       ) {
-        payload.sales_user_id = data.sales_user_id ?? 0
+        payload.sales_user_ids = data.sales_user_ids ?? []
       }
       if (
         isUpdate &&
@@ -652,24 +649,23 @@ export function UsersMutateDrawer({
                   {isUpdate && (
                     <FormField
                       control={form.control}
-                      name='sales_user_id'
+                      name='sales_user_ids'
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('Assign sales contact')}</FormLabel>
+                          <FormLabel>{t('Assign sales contacts')}</FormLabel>
                           <FormControl>
-                            <Combobox
+                            <MultiSelect
                               options={salesOptions}
-                              value={String(field.value ?? 0)}
-                              onValueChange={(value) =>
-                                field.onChange(Number(value ?? 0))
+                              selected={(field.value ?? []).map(String)}
+                              onChange={(values) =>
+                                field.onChange(values.map(Number))
                               }
-                              onBlur={field.onBlur}
                               disabled={
                                 salesQuery.isPending ||
                                 salesQuery.isError ||
                                 field.value === undefined
                               }
-                              placeholder={t('Select a sales contact')}
+                              placeholder={t('Select sales contacts')}
                               className='w-full'
                             />
                           </FormControl>

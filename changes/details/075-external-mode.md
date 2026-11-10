@@ -1,6 +1,6 @@
 # 对外模式：隐藏内部信息、限制分流分组可见性并调整用户统计范围
 
-**日期**: 2026-09-17
+**日期**: 2026-11-10
 
 ## 说明
 
@@ -61,3 +61,26 @@
 - `web/src/features/users/components/users-table.tsx` — 两列筛选条件、查询参数与移动端筛选选项
 - `web/src/routes/_authenticated/users/index.tsx` — 路由搜索参数新增两个字段
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 七语言文案
+
+## 2026-11-10 多销售绑定与销售列展示
+
+对外模式下，用户编辑弹窗的销售选择改为多选，支持搜索、逐项移除和清空绑定。未修改销售字段时保留原绑定，已有单销售数据继续回显；服务端对提交的销售编号去重，校验正整数、账号存在及销售角色，并在同一事务内保存绑定、记录变更前后的销售编号。关闭对外模式时仍禁止修改销售绑定。
+
+用户列表的销售列逐项展示全部有效销售。对外数据总览的子部门销售列沿用原有代表用户取值规则，展示该用户绑定的全部有效销售。两处复用同一销售列表组件及用户身份展示，保留头像、资料悬浮卡片和演示模式脱敏；已删除或不再具有销售角色的账号不展示资料，编辑时保留失效编号供移除。
+
+### 涉及文件
+
+- `model/user.go` — 新增以文本列存储的销售编号数组及多销售响应字段，普通用户更新排除销售绑定字段。
+- `model/user_sales.go` — 兼容旧单销售编号，批量加载多个销售资料并保持绑定顺序。
+- `controller/user.go` — 接入多销售更新参数、去重、分批角色校验、清空绑定及数组审计，兼容旧单销售请求。
+- `service/data_overview_company.go`、`service/feishu_department.go` — 子部门统计响应增加代表用户的多销售资料列表。
+- `web/src/features/users/types.ts`、`web/src/features/users/lib/user-form.ts` — 补充多销售类型、表单校验和旧数据回显。
+- `web/src/features/users/components/users-mutate-drawer.tsx` — 复用现有多选组件，仅提交已修改的销售绑定并保留加载失败重试入口。
+- `web/src/features/users/components/users-columns.tsx`、`web/src/features/users/components/sales-contacts-cell.tsx` — 销售列逐项展示全部有效绑定，未绑定时显示占位符。
+- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/user-identity-cell.tsx` — 提取并复用用户身份展示，统一头像、资料卡片、名称截断及演示模式处理。
+- `web/src/features/data-overview/types.ts`、`web/src/features/data-overview/hooks/use-external-sub-department-columns.tsx` — 对外子部门销售列接入多销售响应并复用销售列表组件。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐销售多选标签和占位提示的七语言翻译。
+
+### 验证状态
+
+`go build ./...`、前端 `bunx tsgo -b`、`bun run build`、修改文件的 lint 与格式检查均通过，未运行测试。当前缺少三库验证环境，新增字段在 SQLite、MySQL、PostgreSQL 上的新建及升级迁移兼容验证尚未完成。

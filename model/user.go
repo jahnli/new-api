@@ -144,6 +144,8 @@ type User struct {
 	SettlementMode       string                     `json:"settlement_mode" gorm:"type:varchar(16);not null;default:'unset';index"`
 	SalesUserID          int                        `json:"sales_user_id" gorm:"column:sales_user_id;default:0;not null;index"`
 	SalesUser            *SalesUser                 `json:"sales_user,omitempty" gorm:"-:all"`
+	SalesUserIDs         []int                      `json:"sales_user_ids" gorm:"type:text;serializer:json"`
+	SalesUsers           []SalesUser                `json:"sales_users,omitempty" gorm:"-:all"`
 	OverviewDeptIDs      []string                   `json:"overview_dept_ids" gorm:"type:text;serializer:json;column:overview_dept_ids;default:'[]'"`
 	Status               int                        `json:"status" gorm:"type:int;default:1"`
 	Email                string                     `json:"email" gorm:"index" validate:"max=50"`
@@ -1049,7 +1051,7 @@ func (user *User) UpdateWithTx(tx *gorm.DB, updatePassword bool) error {
 			return err
 		}
 	}
-	if err = tx.Model(&current).Omit("quota", "used_quota", "request_count", "auth_version", "access_token", "subscription_premium_percent", "sales_user_id").Updates(newUser).Error; err != nil {
+	if err = tx.Model(&current).Omit("quota", "used_quota", "request_count", "auth_version", "access_token", "subscription_premium_percent", "sales_user_id", "sales_user_ids").Updates(newUser).Error; err != nil {
 		return err
 	}
 	return tx.First(user, user.Id).Error

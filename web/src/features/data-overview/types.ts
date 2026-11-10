@@ -1,3 +1,5 @@
+import type { UserProfile } from '@/features/users/types'
+
 export interface DeptTreeNode {
   value: string
   label: string
@@ -54,21 +56,8 @@ export interface SubDepartmentStat {
   avg_tokens_per_active_user_mt: number
   group?: string
   group_ratio?: number
-  sales_user?: {
-    id: number
-    username: string
-    display_name: string
-    avatar_url?: string
-    role: number
-    email?: string
-    mobile?: string
-    job_number?: string
-    description?: string
-    background_image?: string
-    company?: string
-    gender?: number
-    open_id?: string
-  }
+  sales_user?: UserProfile
+  sales_users?: UserProfile[]
 }
 
 export interface ModelStat {

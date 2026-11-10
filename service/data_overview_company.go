@@ -1521,6 +1521,7 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 		var group string
 		var groupRatio *float64
 		var salesUser *model.SalesUser
+		var salesUsers []model.SalesUser
 		if operation_setting.ExternalModeEnabled && len(childData[index].users) > 0 {
 			group = childData[index].users[0].Group
 			if group != "" {
@@ -1528,6 +1529,7 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 				groupRatio = &ratio
 			}
 			salesUser = childData[index].users[0].SalesUser
+			salesUsers = childData[index].users[0].SalesUsers
 		}
 		result = append(result, SubDepartmentStatItem{
 			UncachedInputTokens:      aggregates[index].uncachedInputTokens,
@@ -1549,6 +1551,7 @@ func buildCompanySubDepartmentStats(req *DepartmentStatsRequest, audience *overv
 			Group:                    group,
 			GroupRatio:               groupRatio,
 			SalesUser:                salesUser,
+			SalesUsers:               salesUsers,
 		})
 	}
 	return result, nil

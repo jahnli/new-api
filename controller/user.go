@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -889,6 +890,7 @@ func UpdateUser(c *gin.Context) {
 	var request struct {
 		model.User
 		SalesUserID    *int    `json:"sales_user_id"`
+		SalesUserIDs   *[]int  `json:"sales_user_ids"`
 		CustomerType   *string `json:"customer_type"`
 		SettlementMode *string `json:"settlement_mode"`
 	}
@@ -969,13 +971,30 @@ func UpdateUser(c *gin.Context) {
 	if originUser.DepartmentName == "" && selectedCostCenter != nil {
 		updatedUser.DepartmentName = selectedCostCenter.Name
 	}
-	if request.SalesUserID != nil && !operation_setting.ExternalModeEnabled {
+	salesChanged := request.SalesUserIDs != nil || request.SalesUserID != nil
+	if salesChanged && !operation_setting.ExternalModeEnabled {
 		common.ApiErrorI18n(c, i18n.MsgFeatureDisabled)
 		return
 	}
 	if request.SalesUserID != nil && *request.SalesUserID < 0 {
 		common.ApiErrorI18n(c, i18n.MsgInvalidSalesUser)
 		return
+	}
+	salesUserIDs := make([]int, 0)
+	if request.SalesUserIDs != nil {
+		seen := make(map[int]bool, len(*request.SalesUserIDs))
+		for _, id := range *request.SalesUserIDs {
+			if id <= 0 {
+				common.ApiErrorI18n(c, i18n.MsgInvalidSalesUser)
+				return
+			}
+			if !seen[id] {
+				salesUserIDs = append(salesUserIDs, id)
+				seen[id] = true
+			}
+		}
+	} else if request.SalesUserID != nil && *request.SalesUserID > 0 {
+		salesUserIDs = append(salesUserIDs, *request.SalesUserID)
 	}
 	invalidSalesUser := errors.New("invalid sales user")
 	updatePassword := updatedUser.Password != ""
@@ -998,20 +1017,26 @@ func UpdateUser(c *gin.Context) {
 	}
 	authzTouched := false
 	if err := model.DB.Transaction(func(tx *gorm.DB) error {
-		if request.SalesUserID != nil && *request.SalesUserID > 0 {
+		for start := 0; start < len(salesUserIDs); start += 500 {
+			batch := salesUserIDs[start:min(start+500, len(salesUserIDs))]
 			var count int64
-			if err := tx.Model(&model.User{}).Where("id = ? AND role = ?", *request.SalesUserID, common.RoleBUBP).Count(&count).Error; err != nil {
+			if err := tx.Model(&model.User{}).Where("id IN ? AND role = ?", batch, common.RoleBUBP).Count(&count).Error; err != nil {
 				return err
 			}
-			if count == 0 || (*request.SalesUserID == updatedUser.Id && updatedUser.Role != common.RoleBUBP) {
+			if count != int64(len(batch)) || (slices.Contains(batch, updatedUser.Id) && updatedUser.Role != common.RoleBUBP) {
 				return invalidSalesUser
 			}
 		}
 		if err := updatedUser.EditWithTx(tx, updatePassword); err != nil {
 			return err
 		}
-		if request.SalesUserID != nil {
-			if err := tx.Model(&model.User{}).Where("id = ?", updatedUser.Id).Update("sales_user_id", *request.SalesUserID).Error; err != nil {
+		if salesChanged {
+			assignment := model.User{SalesUserIDs: salesUserIDs}
+			if len(salesUserIDs) > 0 {
+				assignment.SalesUserID = salesUserIDs[0]
+			}
+			if err := tx.Model(&model.User{}).Where("id = ?", updatedUser.Id).
+				Select("sales_user_id", "sales_user_ids").Updates(&assignment).Error; err != nil {
 				return err
 			}
 		}
@@ -1042,9 +1067,9 @@ func UpdateUser(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	if request.SalesUserID != nil {
-		auditParams["sales_user_id"] = *request.SalesUserID
-		auditParams["previous_sales_user_id"] = originUser.SalesUserID
+	if salesChanged {
+		auditParams["sales_user_ids"] = salesUserIDs
+		auditParams["previous_sales_user_ids"] = originUser.GetSalesUserIDs()
 	}
 	if updatedUser.CustomerType != previousCustomerType {
 		auditParams["customer_type"] = updatedUser.CustomerType

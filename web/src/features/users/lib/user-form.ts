@@ -40,7 +40,7 @@ export const userFormSchema = z.object({
   role: z.number().optional(),
   customer_type: userCustomerTypeSchema,
   settlement_mode: z.enum(['prepaid', 'postpaid']),
-  sales_user_id: z.number().int().min(0).optional(),
+  sales_user_ids: z.array(z.number().int().positive()).optional(),
   overview_dept_ids: z.array(z.string()).optional(),
   cost_center: z
     .object({
@@ -179,7 +179,8 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
       user.settlement_mode === USER_SETTLEMENT_MODE.POSTPAID
         ? USER_SETTLEMENT_MODE.POSTPAID
         : USER_SETTLEMENT_MODE.PREPAID,
-    sales_user_id: user.sales_user_id ?? 0,
+    sales_user_ids:
+      user.sales_user_ids ?? (user.sales_user_id ? [user.sales_user_id] : []),
     overview_dept_ids: user.overview_dept_ids ?? [],
     cost_center: parseStoredCostCenter(user.cost_center),
     quota_dollars: quotaUnitsToDollars(user.quota),
