@@ -380,7 +380,7 @@ export function UserAuthForm({
     }
     if (activeView !== 'password' && passwordLoginEnabled) {
       links.push({
-        label: t('Username and password sign in'),
+        label: t('Sign in with other methods'),
         view: 'password',
         icon: <UserRound className='h-4 w-4' />,
       })
