@@ -156,8 +156,6 @@ export type AuthSettings = {
   'oidc.authorization_endpoint': string
   'oidc.token_endpoint': string
   'oidc.user_info_endpoint': string
-  'oidc.allowed_usernames'?: string
-  'oidc.username_filter_enabled'?: boolean
   'ldap.enabled': boolean
   'ldap.server_url': string
   'ldap.bind_dn': string

@@ -324,9 +324,6 @@ func handleOAuthLogin(c *gin.Context, provider oauth.Provider, oauthUser *oauth.
 
 	// 9. Setup login; carry verified OIDC identity through the shared MFA policy.
 	c.Set("oidc_session_binding", oauthUser.OIDC)
-	if loginMethodFromContext(c) == "oauth:oidc" {
-		c.Set("oidc_username", oauthUser.Username)
-	}
 	setupLogin(user, c)
 }
 

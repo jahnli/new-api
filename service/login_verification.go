@@ -5,7 +5,6 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/setting/system_setting"
 )
 
 const LoginVerificationTTL = 5 * time.Minute
@@ -18,10 +17,9 @@ type LoginChallenge struct {
 }
 
 type loginFlowPayload struct {
-	OIDC         model.OIDCSessionBinding `json:"oidc"`
-	AuthVersion  int64                    `json:"auth_version"`
-	LoginMethod  string                   `json:"login_method"`
-	OIDCUsername string                   `json:"oidc_username,omitempty"`
+	OIDC        model.OIDCSessionBinding `json:"oidc"`
+	AuthVersion int64                    `json:"auth_version"`
+	LoginMethod string                   `json:"login_method"`
 }
 
 // LoginVerification is server-owned state read from a primary-authenticated flow.
@@ -33,19 +31,6 @@ type LoginVerification struct {
 }
 
 func StartLoginVerification(user *model.User, loginMethod string, oidc ...model.OIDCSessionBinding) (*LoginChallenge, error) {
-	return startLoginVerification(user, loginMethod, "", oidc...)
-}
-
-// StartOIDCLoginVerification carries the provider username through MFA without
-// relying on the local username, which may differ for linked accounts.
-func StartOIDCLoginVerification(user *model.User, username string, binding model.OIDCSessionBinding) (*LoginChallenge, error) {
-	if !system_setting.IsOIDCUsernameAllowed(username) {
-		return nil, ErrLoginSessionInvalid
-	}
-	return startLoginVerification(user, "oauth:oidc", username, binding)
-}
-
-func startLoginVerification(user *model.User, loginMethod, oidcUsername string, oidc ...model.OIDCSessionBinding) (*LoginChallenge, error) {
 	if user == nil || user.Id <= 0 || user.AuthVersion <= 0 || loginMethod == "" {
 		return nil, model.ErrAuthFlowInvalid
 	}
@@ -67,7 +52,7 @@ func startLoginVerification(user *model.User, loginMethod, oidcUsername string, 
 	if !available {
 		return nil, ErrVerificationUnavailable
 	}
-	flowPayload := loginFlowPayload{AuthVersion: state.AuthVersion, LoginMethod: loginMethod, OIDCUsername: oidcUsername}
+	flowPayload := loginFlowPayload{AuthVersion: state.AuthVersion, LoginMethod: loginMethod}
 	if len(oidc) > 0 {
 		flowPayload.OIDC = oidc[0]
 	}
@@ -149,10 +134,6 @@ func VerifyLoginCode(token, code, ip, userAgent string) (*AuthBundle, error) {
 func CompleteLoginVerification(token string, verification *LoginVerification, method, ip, userAgent string) (*AuthBundle, error) {
 	if verification == nil || verification.Flow == nil || verification.State == nil {
 		return nil, model.ErrAuthFlowInvalid
-	}
-	// Apply the current allowlist after any second factor, including Passkeys.
-	if verification.payload.LoginMethod == "oauth:oidc" && !system_setting.IsOIDCUsernameAllowed(verification.payload.OIDCUsername) {
-		return nil, ErrLoginSessionInvalid
 	}
 	session, refreshSecret, err := newLoginSession(verification.State.UserID, verification.payload.AuthVersion, verification.payload.LoginMethod, ip, userAgent, verification.payload.OIDC)
 	if err != nil {
