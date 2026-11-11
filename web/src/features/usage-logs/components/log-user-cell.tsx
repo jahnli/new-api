@@ -24,6 +24,12 @@ interface LogUserCellProps {
 }
 
 export function LogUserCell(props: LogUserCellProps) {
+  // Searches and pagination reuse table rows. Keep loaded profiles scoped to
+  // their user so a previous row's identity cannot replace the current one.
+  return <LogUserProfileCell key={props.userId} {...props} />
+}
+
+function LogUserProfileCell(props: LogUserCellProps) {
   const demoMode = useDemoMode()
   const [userData, setUserData] = useState<UserColumnRow | null>(null)
   const fetchedRef = useRef(false)
