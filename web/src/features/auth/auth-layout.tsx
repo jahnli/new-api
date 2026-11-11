@@ -7,6 +7,7 @@ import { useSystemConfig } from '@/hooks/use-system-config'
 import { cn } from '@/lib/utils'
 
 import { LoginAurora } from './components/login-aurora'
+import { LoginWorkspaceAccent } from './components/login-workspace-accent'
 
 import './components/login-aurora.css'
 import '@/styles/login-brand-background.css'
@@ -123,6 +124,7 @@ export function AuthLayout({
             'login-workspace-main py-12 sm:py-16 lg:px-10 lg:py-20 xl:px-16'
         )}
       >
+        {animatedBackground && <LoginWorkspaceAccent />}
         <div
           className={cn(
             'mx-auto flex w-full max-w-[380px] flex-col justify-center space-y-2',

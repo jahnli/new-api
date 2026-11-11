@@ -21,6 +21,11 @@
   min-width: 0;
 }
 
+.login-workspace-accent {
+  display: none;
+  pointer-events: none;
+}
+
 .login-workspace-art {
   display: none;
   pointer-events: none;
@@ -35,6 +40,47 @@
   .login-workspace-brand {
     min-height: 690px;
     border-radius: 23px;
+  }
+
+  .login-workspace-main {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .login-workspace-accent {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    display: block;
+    overflow: hidden;
+  }
+
+  .login-accent-arc {
+    position: absolute;
+    aspect-ratio: 1;
+    border: 1px solid #b6d0fa66;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      #dbeaff2b,
+      #eef5ff1a 55%,
+      transparent 72%
+    );
+    animation: login-accent-breathe 9s ease-in-out infinite alternate;
+  }
+
+  .login-accent-arc::after {
+    content: '';
+    position: absolute;
+    inset: 32px;
+    border: 1px solid #c6dafa40;
+    border-radius: inherit;
+  }
+
+  .login-accent-arc-top {
+    top: -145px;
+    right: -130px;
+    width: 360px;
   }
 
   .login-workspace-logo {
@@ -210,7 +256,22 @@
   }
 }
 
+@keyframes login-accent-breathe {
+  from {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0.9;
+    transform: translateY(-10px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .login-accent-arc {
+    animation: none;
+  }
+
   .login-workspace-orb,
   .login-workspace-orb-shadow {
     transform: none;
