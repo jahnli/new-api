@@ -57,7 +57,7 @@ export function OAuthProviders({
   if (status?.oidc_enabled) {
     providerButtons.push({
       key: 'oidc',
-      label: t('Enterprise unified login'),
+      label: t('Group account sign in'),
       onClick: handleOIDCLogin,
       icon: <Building2 className='h-4 w-4' aria-hidden='true' />,
     })
@@ -105,7 +105,8 @@ export function OAuthProviders({
               onClick={onClick}
               className={cn(
                 'h-auto min-h-11 w-full justify-center gap-2 rounded-lg whitespace-normal',
-                enterprisePrimary && 'min-h-13 rounded-xl text-[15px] font-medium',
+                enterprisePrimary &&
+                  'min-h-13 rounded-xl text-[15px] font-medium',
                 enterprisePrimary &&
                   key === 'oidc' &&
                   'shadow-md shadow-primary/15'

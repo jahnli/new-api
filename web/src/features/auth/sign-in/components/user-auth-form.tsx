@@ -1,7 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from '@tanstack/react-router'
 import axios from 'axios'
-import { Building2, KeyRound, Loader2, LogIn, UserRound } from 'lucide-react'
+import {
+  Building2,
+  KeyRound,
+  Loader2,
+  LogIn,
+  MoreHorizontal,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -119,10 +125,10 @@ export function UserAuthForm({
 
   useEffect(() => {
     if (status && activeView === null) {
-      if (hasEnterpriseLogin) {
-        setActiveView('oauth')
-      } else if (externalModeEnabled && passwordLoginEnabled) {
+      if (externalModeEnabled && passwordLoginEnabled) {
         setActiveView('password')
+      } else if (hasEnterpriseLogin) {
+        setActiveView('oauth')
       } else if (hasLDAPLogin) {
         setActiveView('ldap')
       } else if (hasAlternativeLogin && !passwordLoginEnabled) {
@@ -145,7 +151,7 @@ export function UserAuthForm({
     if (activeView !== null) {
       let titleKey: string = getLoginViewTitleKey(activeView)
       if (hasEnterpriseLogin && activeView === 'oauth') {
-        titleKey = 'Enterprise unified login'
+        titleKey = 'Group account sign in'
       } else if (activeView === 'password') {
         titleKey = 'Username and password sign in'
       }
@@ -382,23 +388,29 @@ export function UserAuthForm({
       links.push({
         label: t('Sign in with other methods'),
         view: 'password',
-        icon: <UserRound className='h-4 w-4' />,
+        icon: <MoreHorizontal className='h-4 w-4' aria-hidden='true' />,
       })
     }
     if (activeView !== 'oauth' && hasAlternativeLogin) {
+      let label = t('Other sign in options')
+      let icon: React.ReactNode
+      if (externalModeEnabled) {
+        label = t('Sign in with other methods')
+        icon = <MoreHorizontal className='h-4 w-4' aria-hidden='true' />
+      } else if (hasEnterpriseLogin) {
+        label = t('Group account sign in')
+        icon = <Building2 className='h-4 w-4' />
+      }
       links.push({
-        label: hasEnterpriseLogin
-          ? t('Enterprise unified login')
-          : t('Other sign in options'),
+        label,
         view: 'oauth',
-        icon: hasEnterpriseLogin ? (
-          <Building2 className='h-4 w-4' />
-        ) : undefined,
+        icon,
       })
     }
     return links
   }, [
     activeView,
+    externalModeEnabled,
     hasLDAPLogin,
     hasEnterpriseLogin,
     passwordLoginEnabled,

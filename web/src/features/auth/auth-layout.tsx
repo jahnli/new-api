@@ -35,14 +35,14 @@ export function AuthLayout({
     const drift = () => {
       clearTimeout(timer)
       if (media.matches || document.hidden) return
-      const x = Math.random() * 40 - 20
-      const y = Math.random() * 36 - 24
-      const duration = 2000 + Math.random() * 2000
+      const x = Math.random() * 80 - 40
+      const y = Math.random() * 72 - 48
+      const duration = 1400 + Math.random() * 1000
       artwork.style.setProperty('--orb-x', `${x}px`)
       artwork.style.setProperty('--orb-y', `${y}px`)
       artwork.style.setProperty('--orb-duration', `${duration}ms`)
-      artwork.style.setProperty('--orb-shadow-scale', `${0.85 + y / 120}`)
-      artwork.style.setProperty('--orb-shadow-opacity', `${0.7 + y / 120}`)
+      artwork.style.setProperty('--orb-shadow-scale', `${0.85 + y / 240}`)
+      artwork.style.setProperty('--orb-shadow-opacity', `${0.7 + y / 240}`)
       timer = setTimeout(drift, duration)
     }
 
