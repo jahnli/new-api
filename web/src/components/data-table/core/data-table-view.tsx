@@ -155,7 +155,7 @@ function SplitHeaderTableView<TData>({
           <DataTableHeader
             table={props.table}
             applyHeaderSize={!props.fitContainer && props.applyHeaderSize}
-            className={cn('sticky top-0 z-10', props.tableHeaderClassName)}
+            className={cn('sticky top-0 z-20', props.tableHeaderClassName)}
             rowClassName={props.tableHeaderRowClassName}
             getColumnClassName={getColumnClassName}
           />
