@@ -1,8 +1,8 @@
-# OAuth 登录调整与 OIDC 静默登录、双向退出联动、用户名过滤及注册资料同步
+# OAuth 登录调整与 OIDC 静默登录、双向退出联动及注册资料同步
 
 **日期**: 2026-11-09
 
-当前 OIDC 行为以末尾「2026-11-09：首次注册同步 Casdoor 员工资料并分配公司订阅」、「2026-11-09：用户名过滤」及「2026-11-06：可选静默登录与回调加载优化」、此前双向退出联动说明为准。前面的实现和回退说明保留为历史记录；当前保留手动登录，支持默认关闭的静默登录与用户名过滤，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
+当前 OIDC 行为以末尾「2026-11-09：首次注册同步 Casdoor 员工资料并分配公司订阅」及「2026-11-06：可选静默登录与回调加载优化」、此前双向退出联动说明为准。前面的实现和回退说明保留为历史记录；当前保留手动登录，支持默认关闭的静默登录，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
 
 ## 涉及文件
 
@@ -282,30 +282,6 @@ Casdoor 向 `/api/oauth/oidc/backchannel-logout` 发送签名退出通知后，�
 网关站点地址应与浏览器实际访问入口一致，并在身份提供方登记该地址下的 `/oauth/oidc` 回调。需要身份提供方支持静默授权及浏览器允许相应 Cookie 与嵌入页面；线上建议使用同一主域名下的 HTTPS 地址。
 
 本轮实现此前通过根目录 `go build ./...`；回调加载优化后，在 `web/` 执行 `bunx --no-install tsgo -b`、`bunx --no-install oxlint -c .oxlintrc.json src/main.tsx src/bootstrap.tsx src/features/auth/lib/oidc-silent-transport.ts src/features/auth/components/oidc-silent-callback.tsx`、对这四个文件执行 `bunx --no-install oxfmt -c .oxfmtrc.json --check`，以及 `bun run build`，均通过，`git diff --check` 通过。未新增、修改或运行测试；生产产物确认隐藏回调仅加载约 38 KB 的入口脚本，尚未进行优化后的浏览器端耗时实测。
-
-## 2026-11-09：用户名过滤
-
-OIDC 设置新增默认关闭的用户名过滤开关与白名单。开启后，以身份提供方返回的 `preferred_username` 精确匹配，忽略大小写及首尾空白；空名单或缺少用户名均拒绝访问，不使用本地用户名、邮箱或显示名称替代。普通登录、静默登录、首次注册与账户绑定共用服务端过滤；首次注册仍受全局注册开关限制。拒绝时返回通用认证失败消息，不暴露名单内容。
-
-提供方用户名保存在服务端待验证流程中，MFA 完成时按当前名单重新校验，覆盖二次验证期间移出名单或启用过滤的情况。已有本地会话不因修改名单自动注销。
-
-名单复用共享多选组件与设置分组，支持回车添加、逗号或换行批量粘贴、小写归一化、去重及逐项删除，超过八项折叠；关闭过滤时仍可预先编辑名单。保存时先写名单、再启用过滤，并补齐七种语言的配置说明与失败提示。
-
-### 涉及文件
-
-- `setting/system_setting/oidc.go` — 新增过滤开关、换行分隔的白名单与服务端用户名匹配逻辑，默认关闭。
-- `oauth/oidc.go` — 在身份令牌与用户信息校验后执行用户名过滤，记录拒绝原因并返回通用认证失败消息。
-- `controller/oauth.go` — 将提供方用户名传入共用登录流程，兼容普通与静默登录。
-- `controller/user.go` — OIDC 登录接入携带提供方用户名的二次验证入口，其他登录方式保留原有调用。
-- `service/login_verification.go` — 在服务端待验证流程中保存提供方用户名，开始和完成 OIDC 二次验证时校验名单，避免本地用户名差异与待验证期间的配置变化绕过过滤。
-- `web/src/features/system-settings/auth/oauth-section.tsx` — 新增过滤开关、白名单与匹配说明；复用共享多选组件和设置分组，OIDC 与 LDAP 共用名单归一化逻辑，并保证名单先于过滤开关启用保存。
-- `web/src/features/system-settings/auth/index.tsx`、`web/src/features/system-settings/auth/section-registry.tsx`、`web/src/features/system-settings/types.ts` — 补齐配置默认值、回显传递与类型。
-- `web/src/i18n/static-keys.ts` — 登记服务端 OIDC 认证失败消息的静态翻译键。
-- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐用户名白名单、开关说明、匹配规则与认证失败提示。
-
-### 验证记录
-
-本轮功能实现已通过根目录 `go build ./...`、`git diff --check`，以及 `web/` 下的 `bunx --no-install tsgo -b`、`bun run build`、`bun run i18n:sync`；七种语言缺失键均为零。对本轮修改的五个 TypeScript/TSX 文件执行 `bunx oxlint -c .oxlintrc.json`，对这些文件及七个语言文件执行 `bunx oxfmt --check`，均通过。本机 Bun 1.3.14 不支持项目的 `bun check -b`，因此使用已安装的类型检查器。未新增、修改或运行测试；本次日志更新仅检查文档差异与空白格式。
 
 ## 2026-11-09：首次注册同步 Casdoor 员工资料并分配公司订阅
 

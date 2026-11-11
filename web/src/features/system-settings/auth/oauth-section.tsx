@@ -71,8 +71,6 @@ const oauthSchema = z.object({
     authorization_endpoint: z.string(),
     token_endpoint: z.string(),
     user_info_endpoint: z.string(),
-    allowed_usernames: z.array(z.string()),
-    username_filter_enabled: z.boolean(),
   }),
   ldap: z.object({
     enabled: z.boolean(),
@@ -124,8 +122,6 @@ type FlatOAuthDefaults = {
   'oidc.authorization_endpoint': string
   'oidc.token_endpoint': string
   'oidc.user_info_endpoint': string
-  'oidc.allowed_usernames'?: string
-  'oidc.username_filter_enabled'?: boolean
   'ldap.enabled': boolean
   'ldap.server_url': string
   'ldap.bind_dn': string
@@ -248,7 +244,7 @@ function OAuthSetupGuide(props: OAuthSetupGuideProps) {
   )
 }
 
-const normalizeAllowedUsernames = (usernames: string[]): string[] => [
+const normalizeLDAPAllowedUsernames = (usernames: string[]): string[] => [
   ...new Set(
     usernames.map((username) => username.trim().toLowerCase()).filter(Boolean)
   ),
@@ -265,10 +261,6 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     authorization_endpoint: defaults['oidc.authorization_endpoint'] ?? '',
     token_endpoint: defaults['oidc.token_endpoint'] ?? '',
     user_info_endpoint: defaults['oidc.user_info_endpoint'] ?? '',
-    allowed_usernames: normalizeAllowedUsernames(
-      (defaults['oidc.allowed_usernames'] ?? '').split('\n')
-    ),
-    username_filter_enabled: defaults['oidc.username_filter_enabled'] ?? false,
   },
   ldap: {
     enabled: defaults['ldap.enabled'],
@@ -283,7 +275,7 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     start_tls: defaults['ldap.start_tls'],
     skip_tls_verify: defaults['ldap.skip_tls_verify'],
     login_label: defaults['ldap.login_label'] ?? '',
-    allowed_usernames: normalizeAllowedUsernames(
+    allowed_usernames: normalizeLDAPAllowedUsernames(
       (defaults['ldap.allowed_usernames'] ?? '').split('\n')
     ),
     username_filter_enabled: defaults['ldap.username_filter_enabled'] ?? false,
@@ -309,8 +301,6 @@ const normalizeFormValues = (
   'oidc.authorization_endpoint': values.oidc.authorization_endpoint,
   'oidc.token_endpoint': values.oidc.token_endpoint,
   'oidc.user_info_endpoint': values.oidc.user_info_endpoint,
-  'oidc.allowed_usernames': values.oidc.allowed_usernames.join('\n'),
-  'oidc.username_filter_enabled': values.oidc.username_filter_enabled,
   'ldap.enabled': values.ldap.enabled,
   'ldap.server_url': values.ldap.server_url,
   'ldap.bind_dn': values.ldap.bind_dn,
@@ -484,11 +474,10 @@ export function OAuthSection(props: OAuthSectionProps) {
 
     // The server validates persisted prerequisites when enabling a provider.
     // Disable first, save its configuration, then enable only after all writes
-    // succeed. Apply the same ordering to username filtering.
+    // succeed. Apply the same ordering to LDAP username filtering.
     const activationKeys = new Set<keyof FlatOAuthDefaults>([
       'oidc.enabled',
       'oidc.silent_login',
-      'oidc.username_filter_enabled',
       'ldap.enabled',
       'ldap.username_filter_enabled',
       'WeChatAuthEnabled',
@@ -656,64 +645,6 @@ export function OAuthSection(props: OAuthSectionProps) {
                     </SettingsSwitchItem>
                   )}
                 />
-
-                <SettingsControlGroup className='lg:col-span-2'>
-                  <FormField
-                    control={form.control}
-                    name='oidc.username_filter_enabled'
-                    render={({ field }) => (
-                      <SettingsSwitchItem>
-                        <SettingsSwitchContent>
-                          <FormLabel>
-                            {t('Enable Username Filtering')}
-                          </FormLabel>
-                          <FormDescription>
-                            {t(
-                              'When disabled, all users who pass OIDC authentication can sign in. New accounts still require registration to be enabled.'
-                            )}
-                          </FormDescription>
-                        </SettingsSwitchContent>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </SettingsSwitchItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='oidc.allowed_usernames'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('OIDC Username Allowlist')}</FormLabel>
-                        <FormControl>
-                          <MultiSelect
-                            options={[]}
-                            selected={field.value}
-                            onChange={(usernames) =>
-                              field.onChange(
-                                normalizeAllowedUsernames(usernames)
-                              )
-                            }
-                            allowCreate
-                            maxVisibleChips={8}
-                            placeholder={t('Type a username and press Enter')}
-                            inputAriaLabel={t('OIDC Username Allowlist')}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t(
-                            'Matches preferred_username from the OIDC provider, ignoring case and surrounding whitespace. When enabled, an empty allowlist or missing username denies access.'
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </SettingsControlGroup>
 
                 <FormField
                   control={form.control}
@@ -1340,7 +1271,7 @@ export function OAuthSection(props: OAuthSectionProps) {
                             selected={field.value}
                             onChange={(usernames) =>
                               field.onChange(
-                                normalizeAllowedUsernames(usernames)
+                                normalizeLDAPAllowedUsernames(usernames)
                               )
                             }
                             allowCreate

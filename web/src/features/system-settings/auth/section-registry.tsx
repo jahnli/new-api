@@ -41,9 +41,6 @@ const AUTH_SECTIONS = [
             settings['oidc.authorization_endpoint'],
           'oidc.token_endpoint': settings['oidc.token_endpoint'],
           'oidc.user_info_endpoint': settings['oidc.user_info_endpoint'],
-          'oidc.allowed_usernames': settings['oidc.allowed_usernames'] ?? '',
-          'oidc.username_filter_enabled':
-            settings['oidc.username_filter_enabled'] ?? false,
           'ldap.enabled': settings['ldap.enabled'],
           'ldap.server_url': settings['ldap.server_url'],
           'ldap.bind_dn': settings['ldap.bind_dn'],

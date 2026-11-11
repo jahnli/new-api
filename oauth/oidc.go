@@ -211,11 +211,6 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 		return nil, NewOAuthError(common.NewMessage(msgGetUserFailed))
 	}
 
-	if !system_setting.IsOIDCUsernameAllowed(oidcUser.PreferredUsername) {
-		logger.LogWarn(ctx, common.LogText("[OAuth-OIDC] Sign-in denied by username filter"))
-		return nil, NewOAuthError(common.NewMessage("OIDC authentication failed"))
-	}
-
 	logger.LogDebug(ctx, "[OAuth-OIDC] GetUserInfo success: sub=%s, username=%s, name=%s, email=%s", oidcUser.OpenID, oidcUser.PreferredUsername, oidcUser.Name, oidcUser.Email)
 
 	return &OAuthUser{
