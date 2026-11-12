@@ -1,7 +1,7 @@
 ---
 name: git-commit-push
 description: >-
-  按约定式提交规范提交并推送单个或多个 Git 仓库的改动，并处理 GitLab
+  使用英文约定式提交信息提交并推送单个或多个 Git 仓库的改动，并处理 GitLab
   提交信息校验失败。本项目默认一次提交后同步推送 GitHub 与 GitLab，不负责自动改写历史。
 ---
 
@@ -16,12 +16,18 @@ description: >-
 
 常用 `type` 包括 `feat`、`fix`、`refactor`、`perf`、`docs`、`test`、`build`、`ci`、`chore` 和 `revert`。标题使用祈使语气、首字母小写、不以句号结尾；破坏性变更在类型后加 `!`，并在正文或页脚写明 `BREAKING CHANGE:`。
 
+提交信息必须使用英文，包括标题描述、正文和页脚说明；用户用中文提出需求时，也必须将改动概括为英文。例如：
+
+```text
+feat(dashboard): add frequently used models to overview
+```
+
 ## 提交前
 
 1. 确认当前仓库根目录，并检查所有相关仓库的 `git status`、未暂存差异和已暂存差异。
 2. 识别本次任务涉及的仓库。单个仓库只创建一个提交；配置了多个仓库时，每个有本次改动的仓库分别创建一个提交，不能把多个仓库的改动合并成一个提交。
 3. 只暂存本次任务产生的文件。保留用户已有的无关改动，不使用 `git add -A` 覆盖式暂存，除非已确认工作区全部改动都属于本次任务。
-4. 根据实际改动选择最具体的 `type` 和可选 `scope`，检查提交标题是否符合 Conventional Commits。
+4. 根据实际改动选择最具体的 `type` 和可选 `scope`，检查提交标题是否符合 Conventional Commits，并确认标题、正文和页脚说明均为英文。
 
 ## 推送目标
 
