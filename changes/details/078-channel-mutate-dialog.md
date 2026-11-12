@@ -1,10 +1,14 @@
 # 渠道创建与编辑改为居中弹框
 
-**日期**: 2026-09-19
+**日期**: 2026-11-13
 
 ## 涉及文件
 
 - `web/src/features/channels/components/drawers/channel-mutate-drawer.tsx` — 调整弹框头部的响应式网格与操作项布局
+- `web/src/assets/brand-icons/advanced-custom.svg` — 新增高级自定义渠道的蓝青紫渐变连接图标
+- `web/src/lib/lobe-icon.tsx` — 将高级自定义图标接入共享图标加载器，沿用现有图片渲染与尺寸控制
+- `web/src/features/channels/lib/channel-utils.ts` — 高级自定义渠道图标映射改为独立标识，统一供应商选择与渠道列表展示
+- `web/src/features/channels/lib/channel-type-config.ts` — 同步高级自定义渠道配置中的图标标识
 
 ## 自 CHANGELOG 说明列迁入
 
@@ -15,3 +19,4 @@
 - 头部改为响应式网格，标题、供应商按钮、粘贴连接信息与敏感配置操作在桌面端分栏对齐，小屏按可用空间换行
 - 状态徽章移至描述行并保持固定宽度，供应商描述过长时截断，避免挤压右侧操作
 - 新建、编辑及供应商选择阶段使用不同网格行定位，保持操作顺序和键盘焦点顺序一致
+- 高级自定义渠道替换为蓝青紫渐变连接图标，在供应商选择、渠道列表及浅色和深色界面中保持一致造型
