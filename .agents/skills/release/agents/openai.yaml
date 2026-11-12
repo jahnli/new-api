@@ -1,0 +1,3 @@
+interface:
+  display_name: "AI Gateway 全自动发布"
+  short_description: "串联 AI Gateway Docker 镜像发布、对内/对外 1Panel 更新和健康核验"

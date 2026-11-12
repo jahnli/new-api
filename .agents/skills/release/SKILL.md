@@ -3,7 +3,7 @@ name: release
 description: 串联 Docker 镜像发布和 1Panel 部署，镜像发布成功后自动更新服务并核验，最终返回发布结果、镜像版本、工作流链接、部署任务和访问地址。用于 /release 或明确要求全自动发布、发布 Docker 后更新 1Panel。
 ---
 
-# 全自动发布
+# AI Gateway 全自动发布
 
 ## 执行约定
 

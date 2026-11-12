@@ -316,6 +316,9 @@ func validateOptionValue(key string, value string) error {
 	if err := operation_setting.ValidateQuotaOption(key, value); err != nil {
 		return err
 	}
+	if err := operation_setting.ValidateEpaySignOption(key, value); err != nil {
+		return err
+	}
 	if key == setting.SubscriptionPremiumPolicyKey {
 		return fmt.Errorf("use the subscription premium policy endpoint")
 	}
