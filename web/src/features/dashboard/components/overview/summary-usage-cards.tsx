@@ -32,6 +32,7 @@ import { calculateUnitPricePer100MTokens } from '@/lib/unit-price'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { StatCard } from '../ui/stat-card'
+import { TopModelsSummary } from './top-models-summary'
 
 function buildSummarySparklines(
   data: QuotaDataItem[],
@@ -254,6 +255,12 @@ export function SummaryUsageCards() {
           )
         })}
       </StaggerContainer>
+      {!usageQuery.isError && (
+        <TopModelsSummary
+          data={usageQuery.data?.data}
+          loading={usageQuery.isPending}
+        />
+      )}
       {usageQuery.isError && (
         <ErrorState
           className='min-h-0 p-3'

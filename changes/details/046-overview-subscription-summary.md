@@ -2,6 +2,12 @@
 
 **日期**: 2026-11-12
 
+## 2026-11-12：新增常用模型
+
+- `web/src/features/dashboard/components/overview/summary-usage-cards.tsx` — 在用量指标下方接入「常用模型」，复用当前用户所选时间范围的用量查询结果，随时间筛选更新；查询失败时沿用已有错误提示。
+- `web/src/features/dashboard/components/overview/top-models-summary.tsx` — 按模型汇总请求次数并降序展示前三项，使用浅色圆角条目展示品牌图标、模型名称与调用次数；品牌图标为 18px，标题、模型名与次数字号为 13px。品牌识别复用现有规则与图标加载器，品牌名称复用统一悬停提示；长模型名复用截断文本组件，保留移动端查看完整名称及加载、空状态展示。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐「常用模型」、所选时间范围内按请求次数排序的说明及调用次数文案，数字沿用界面语言对应的格式化能力。
+
 ## 2026-11-12：按时间预设展示用量并精简标题说明
 
 - `web/src/features/dashboard/components/overview/summary-usage-cards.tsx` — 独立用量汇总组件，默认当天，支持 13 种时间预设；按所选范围展示总 Token、费用、每亿 Token 单价、请求数及趋势，Token 数值旁复用明细提示。时间范围与预设选择器并排靠右，标题后的问号悬停展示小时汇总与数据延迟说明。
