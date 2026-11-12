@@ -1,7 +1,7 @@
 interface:
   display_name: "Git 提交"
-  short_description: "按约定式规范提交并推送一个或多个仓库并处理 GitLab 校验"
-  default_prompt: "使用 $git-commit-push 按约定式提交规范提交并推送当前改动；按配置的仓库数量分别处理，并在 GitLab 提交信息校验失败时按规则重试推送。"
+  short_description: "按约定式规范提交，本项目同步推送 GitHub 与 GitLab 并核验结果"
+  default_prompt: "使用 $git-commit-push 提交当前改动；本项目默认将同一提交推送到 github 和 gitlab 的目标分支，排除 upstream，分别核验远端结果，并按规则处理 GitLab 提交信息校验失败。"
 
 policy:
   allow_implicit_invocation: true

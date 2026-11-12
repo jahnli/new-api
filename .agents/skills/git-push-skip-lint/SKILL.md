@@ -2,7 +2,7 @@
 name: git-push-skip-lint
 description: >-
   当执行 git push 到 GitLab 因提交信息不规范、commit message lint、commitlint、push rule、server-side hook
-  等提交信息校验失败时使用。只有 GitLab 远端会执行该校验；先正常推送；仅在失败原因明确是提交信息/lint 校验时，自动使用 `git push origin 当前分支名 -o skip-lint` 重试。
+  等提交信息校验失败时使用。先正常推送；仅在明确属于提交信息校验失败时，保持同一 remote 和 refspec 添加 `-o skip-lint` 重试。
 ---
 
 # Git Push Skip Lint Fallback
@@ -11,13 +11,13 @@ description: >-
 
 ## 适用场景
 
-当用户要求推送分支，或普通推送命令失败，并且错误输出明确包含以下含义之一时使用：
+已获推送授权、普通推送失败，且实际目标是 GitLab、错误明确说明提交信息格式或 commitlint 校验失败时使用，例如：
 
 - `commit message`、`commit-msg`、`commitlint`
 - `message does not follow`、`invalid commit message`
-- `push rule`、`pre-receive hook declined`
-- `lint`、`lint failed`、`skip-lint`
-- GitLab/GitHub 远端 hook 因提交信息格式拒绝推送
+- `body-max-line-length` 等提交信息规则失败
+
+只有 `push rule`、`pre-receive hook declined` 或一般 `lint failed` 字样不足以触发重试，必须结合完整输出确认属于提交信息校验。
 
 ## 不适用场景
 
@@ -32,10 +32,12 @@ description: >-
 
 ## GitLab lint 远端
 
-只有 GitLab 远端会执行提交信息/lint 校验。遇到该校验失败时，重试命令应使用 `origin` remote，把 `当前分支名` 替换为实际分支名，并附加 `-o skip-lint`：
+重试必须使用失败命令的实际 remote、分支和 refspec，不能根据 tracking ref 名称猜测 remote。本项目 GitLab remote 名为 `gitlab`，不是 `origin`；`refs/remotes/origin/*` 只是共享的本地 tracking 命名空间。
+
+例如普通命令为 `git push gitlab v1:refs/heads/v1`，重试为：
 
 ```bash
-git push origin 当前分支名 -o skip-lint
+git push -o skip-lint gitlab v1:refs/heads/v1
 ```
 
 对应 GitLab 地址：
@@ -53,28 +55,29 @@ git push origin 当前分支名 -o skip-lint
    示例：
 
    ```bash
-   git push origin dev2
+   git push gitlab dev2:refs/heads/dev2
    ```
 
-2. 如果普通推送成功，直接结束。
+2. 如果普通推送成功，返回调用流程，继续核验该远端并完成其余已选远端的推送。
 
 3. 如果普通推送失败，读取完整错误输出，判断是否明确是提交信息不规范或 lint/push rule 拒绝。
 
-4. 只有在确认是提交信息/lint 校验失败时，使用 `origin` remote、同一 branch/refspec，并加上 `-o skip-lint` 重试。
+4. 只有在确认是提交信息校验失败时，保持同一 remote、branch/refspec，并加上 `-o skip-lint` 重试一次。
 
    示例：
 
    ```bash
-   git push origin dev2 -o skip-lint
+   git push gitlab dev2:refs/heads/dev2 -o skip-lint
    ```
 
    或等价写法：
 
    ```bash
-   git push -o skip-lint origin dev2
+   git push -o skip-lint gitlab dev2:refs/heads/dev2
    ```
 
 5. 如果 `-o skip-lint` 仍失败，停止并把错误原因告知用户，不要继续尝试 force push 或修改 Git 配置。
+6. 重试成功后返回调用流程，继续核验该远端并完成其余已选远端的推送；本技能不能将推送范围缩减为一个远端。
 
 ## 安全规则
 

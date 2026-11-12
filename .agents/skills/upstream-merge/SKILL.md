@@ -198,19 +198,24 @@ git diff <upstream-tip> -- <file-path>
 
 ### 第 10 步：分支及合并记录清理（不可跳过）
 
-`v1` 成功推送到 `origin/v1` 后才可删除本次合并分支，删除前四项须同时成立：`v1` 与 `origin/v1` 为同一提交；本地合并分支 tip 已包含在 `v1`；同名远端分支 tip 已包含在 `origin/v1`；当前不在待删分支上。
+已获提交/推送授权时，按 `../git-commit-push/SKILL.md` 完成推送；本项目默认将同一个 `v1` 提交同步到 `github` 与 `gitlab`，排除只用于拉取更新的 `upstream`。用户明确限定远端时遵循其范围。
+
+所有选定远端的 `v1` 均核验成功后才可删除本次合并分支。删除前须同时满足：每个实际远端的 `refs/heads/v1` 与本地 `v1` 为同一提交；本地合并分支 tip 已包含在 `v1`；每个选定远端上存在的同名合并分支 tip 已包含在该远端 `v1`；当前不在待删分支上。
+
+本项目两个 remote 共用 `refs/remotes/origin/*`，不能只用 `origin/v1` 判断同步。分别查询实际远端：
 
 ```bash
-git rev-parse v1 && git rev-parse origin/v1
+git rev-parse v1
+git ls-remote --heads github refs/heads/v1 refs/heads/merge/upstream-YYYY-MM-DD
+git ls-remote --heads gitlab refs/heads/v1 refs/heads/merge/upstream-YYYY-MM-DD
 git merge-base --is-ancestor merge/upstream-YYYY-MM-DD v1
-git merge-base --is-ancestor origin/merge/upstream-YYYY-MM-DD origin/v1
-git push origin --delete merge/upstream-YYYY-MM-DD   # 远端不存在则跳过
-git branch -d merge/upstream-YYYY-MM-DD
 ```
 
-只能用 `git branch -d`；Git 判断未合并时禁止改用 `-D`，先查明遗漏提交。删除后用 `git branch --list` 和 `git branch -r --list` 确认引用消失，并在交付中记录清理结果。
+远端同名分支存在时，取得其对象并按查询得到的 tip 验证祖先关系；仅在已有远端删除授权且检查通过时，使用实际 remote 执行 `git push <remote> --delete merge/upstream-YYYY-MM-DD`。不存在则跳过，不向 `upstream` 发出删除请求。
 
-分支清理完成后，核对本次合并创建的进度、冲突决策等临时 Markdown 记录，并清理属于本次合并的记录；记录混有其他任务内容时，只删除本次合并部分，保留其他内容。不得删除业务文档、二开 CHANGELOG 或其他任务的记录。清理前确认复盘和交付所需信息已保存；在交付中说明已清理或保留的记录及原因。`v1` 尚未成功推送或分支清理条件未满足时，保留这些记录供续接。
+本地只能用 `git branch -d merge/upstream-YYYY-MM-DD`；Git 判断未合并时禁止改用 `-D`，先查明遗漏提交。删除后用 `git branch --list` 确认本地引用消失；执行了远端删除时再向对应 remote 查询确认，并在交付中记录清理结果。
+
+分支清理完成后，核对本次合并创建的进度、冲突决策等临时 Markdown 记录，并清理属于本次合并的记录；记录混有其他任务内容时，只删除本次合并部分，保留其他内容。不得删除业务文档、二开 CHANGELOG 或其他任务的记录。清理前确认复盘和交付所需信息已保存；在交付中说明已清理或保留的记录及原因。任一选定远端的 `v1` 尚未成功推送并核验，或分支清理条件未满足时，保留这些记录供续接。
 
 ## 交付格式
 
