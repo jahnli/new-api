@@ -9,13 +9,31 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  DATE_TIME_PRESETS,
+  getDateTimePresetRange,
+  type DateTimePresetKind,
+} from '@/lib/date-time-presets'
 import dayjs from '@/lib/dayjs'
 import { cn } from '@/lib/utils'
 
 interface CompactDateTimeRangePickerProps {
   start?: Date
   end?: Date
-  onChange: (range: { start?: Date; end?: Date }) => void
+  onChange: (
+    range: { start?: Date; end?: Date },
+    preset?: DateTimePresetKind
+  ) => void
+  presetDisplay?: 'buttons' | 'select'
+  preset?: DateTimePresetKind
   className?: string
 }
 
@@ -29,16 +47,13 @@ function fromInputValue(value: string): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-function getMondayWeekStart(date: dayjs.Dayjs): dayjs.Dayjs {
-  const weekday = date.day() === 0 ? 7 : date.day()
-  return date.subtract(weekday - 1, 'day').startOf('day')
-}
-
 export function CompactDateTimeRangePicker({
   start,
   end,
   onChange,
   className,
+  presetDisplay,
+  preset,
 }: CompactDateTimeRangePickerProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -76,120 +91,96 @@ export function CompactDateTimeRangePicker({
     setOpen(false)
   }
 
-  type PresetKind =
-    | 'lastHour'
-    | 'today'
-    | 'yesterday'
-    | 'thisWeek'
-    | 'lastWeek'
-    | 'thisMonth'
-    | 'lastMonth'
-    | 'thisQuarter'
-    | 'lastQuarter'
-    | 'thisHalfYear'
-    | 'lastHalfYear'
-    | 'thisYear'
-    | 'lastYear'
-
-  const buildPresetMap = (
-    now: dayjs.Dayjs
-  ): Record<PresetKind, { start: Date; end: Date }> => {
-    const thisWeekStart = getMondayWeekStart(now)
-    const lastWeekStart = thisWeekStart.subtract(1, 'week')
-
-    return {
-      lastHour: {
-        start: now.subtract(1, 'hour').toDate(),
-        end: now.toDate(),
-      },
-      today: {
-        start: now.startOf('day').toDate(),
-        end: now.endOf('day').toDate(),
-      },
-      yesterday: {
-        start: now.subtract(1, 'day').startOf('day').toDate(),
-        end: now.subtract(1, 'day').endOf('day').toDate(),
-      },
-      thisWeek: {
-        start: thisWeekStart.toDate(),
-        end: thisWeekStart.add(6, 'day').endOf('day').toDate(),
-      },
-      lastWeek: {
-        start: lastWeekStart.toDate(),
-        end: lastWeekStart.add(6, 'day').endOf('day').toDate(),
-      },
-      thisMonth: {
-        start: now.startOf('month').toDate(),
-        end: now.endOf('month').toDate(),
-      },
-      lastMonth: {
-        start: now.subtract(1, 'month').startOf('month').toDate(),
-        end: now.subtract(1, 'month').endOf('month').toDate(),
-      },
-      thisQuarter: {
-        start: now.startOf('quarter').toDate(),
-        end: now.endOf('quarter').toDate(),
-      },
-      lastQuarter: {
-        start: now.subtract(1, 'quarter').startOf('quarter').toDate(),
-        end: now.subtract(1, 'quarter').endOf('quarter').toDate(),
-      },
-      thisHalfYear: {
-        start: (now.month() < 6
-          ? now.startOf('year')
-          : now.startOf('year').add(6, 'month')
-        ).toDate(),
-        end: (now.month() < 6
-          ? now.startOf('year').add(5, 'month').endOf('month')
-          : now.endOf('year')
-        ).toDate(),
-      },
-      lastHalfYear: {
-        start: (now.month() < 6
-          ? now.subtract(1, 'year').startOf('year').add(6, 'month')
-          : now.startOf('year')
-        ).toDate(),
-        end: (now.month() < 6
-          ? now.subtract(1, 'year').endOf('year')
-          : now.startOf('year').add(5, 'month').endOf('month')
-        ).toDate(),
-      },
-      thisYear: {
-        start: now.startOf('year').toDate(),
-        end: now.endOf('year').toDate(),
-      },
-      lastYear: {
-        start: now.subtract(1, 'year').startOf('year').toDate(),
-        end: now.subtract(1, 'year').endOf('year').toDate(),
-      },
-    }
-  }
-
-  const applyPreset = (kind: PresetKind) => {
-    const range = buildPresetMap(dayjs())[kind]
+  const applyPreset = (kind: DateTimePresetKind) => {
+    const range = getDateTimePresetRange(kind)
     setDraftStart(toInputValue(range.start))
     setDraftEnd(toInputValue(range.end))
-    onChange(range)
+    onChange(range, kind)
     setOpen(false)
   }
 
-  const activePreset = useMemo((): PresetKind | null => {
+  const activePreset = useMemo((): DateTimePresetKind | null => {
+    if (preset) return preset
     if (!start) return null
     const sMin = dayjs(start).startOf('second').valueOf()
     const eMin = end ? dayjs(end).startOf('second').valueOf() : 0
-    const presets = buildPresetMap(dayjs())
-    const skipRelative = new Set<PresetKind>(['lastHour'])
-    for (const [kind, range] of Object.entries(presets) as [
-      PresetKind,
-      { start: Date; end: Date },
-    ][]) {
-      if (skipRelative.has(kind)) continue
+    const now = dayjs()
+    for (const [kind] of DATE_TIME_PRESETS) {
+      if (kind === 'lastHour') continue
+      const range = getDateTimePresetRange(kind, now)
       const ps = dayjs(range.start).startOf('second').valueOf()
       const pe = dayjs(range.end).startOf('second').valueOf()
       if (sMin === ps && eMin === pe) return kind
     }
     return null
-  }, [start, end])
+  }, [start, end, preset])
+
+  const presetButtons = (
+    <div
+      role='group'
+      aria-label={t('Date Range')}
+      className={cn(
+        'flex flex-wrap gap-1.5',
+        presetDisplay === 'buttons' && className
+      )}
+    >
+      {DATE_TIME_PRESETS.map(([kind, label]) => (
+        <Button
+          key={kind}
+          type='button'
+          variant={activePreset === kind ? 'default' : 'secondary'}
+          size='sm'
+          aria-pressed={activePreset === kind}
+          className='h-7 flex-1 px-2 text-xs'
+          onClick={() => applyPreset(kind)}
+        >
+          {t(label)}
+        </Button>
+      ))}
+    </div>
+  )
+
+  if (presetDisplay === 'buttons') return presetButtons
+
+  if (presetDisplay === 'select') {
+    return (
+      <Select
+        items={DATE_TIME_PRESETS.map(([value, label]) => ({
+          value,
+          label: t(label),
+        }))}
+        value={activePreset}
+        onValueChange={(value) => {
+          if (value) applyPreset(value)
+        }}
+      >
+        <SelectTrigger
+          size='sm'
+          aria-label={t('Date Range')}
+          className={cn('min-w-24 data-[size=sm]:rounded-lg', className)}
+        >
+          <SelectValue placeholder={t('Date Range')} />
+        </SelectTrigger>
+        <SelectContent
+          align='end'
+          alignItemWithTrigger={false}
+          className='rounded-xl'
+        >
+          <SelectGroup>
+            {DATE_TIME_PRESETS.map(([kind, label]) => (
+              <SelectItem
+                key={kind}
+                value={kind}
+                className='data-selected:bg-accent data-selected:text-accent-foreground rounded-lg'
+              >
+                {t(label)}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    )
+  }
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -250,36 +241,7 @@ export function CompactDateTimeRangePicker({
             </div>
           </div>
 
-          <div className='flex flex-wrap gap-1.5'>
-            {(
-              [
-                ['lastHour', 'Last Hour'],
-                ['today', 'Today'],
-                ['yesterday', 'Yesterday'],
-                ['thisWeek', 'This Week'],
-                ['lastWeek', 'Last Week'],
-                ['thisMonth', 'This Month'],
-                ['lastMonth', 'Last Month'],
-                ['thisQuarter', 'This Quarter'],
-                ['lastQuarter', 'Last Quarter'],
-                ['thisHalfYear', 'This Half Year'],
-                ['lastHalfYear', 'Last Half Year'],
-                ['thisYear', 'This Year'],
-                ['lastYear', 'Last Year'],
-              ] as const
-            ).map(([kind, label]) => (
-              <Button
-                key={kind}
-                type='button'
-                variant={activePreset === kind ? 'default' : 'secondary'}
-                size='sm'
-                className='h-7 flex-1 px-2 text-xs'
-                onClick={() => applyPreset(kind)}
-              >
-                {t(label)}
-              </Button>
-            ))}
-          </div>
+          {presetButtons}
 
           <div className='flex justify-end'>
             <Button size='sm' className='h-8' onClick={applyDraft}>

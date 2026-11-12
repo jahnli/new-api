@@ -1,4 +1,4 @@
-import { Info } from 'lucide-react'
+import { Info, type LucideIcon } from 'lucide-react'
 
 import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
@@ -7,7 +7,10 @@ import { cn } from '@/lib/utils'
 export function DescriptionTooltip(props: {
   description: string
   className?: string
+  icon?: LucideIcon
 }) {
+  const Icon = props.icon ?? Info
+
   return (
     <TextTooltip
       content={props.description}
@@ -24,7 +27,7 @@ export function DescriptionTooltip(props: {
         )}
         aria-label={props.description}
       >
-        <Info className='size-3.5' aria-hidden='true' />
+        <Icon className='size-3.5' aria-hidden='true' />
       </Button>
     </TextTooltip>
   )

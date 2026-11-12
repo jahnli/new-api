@@ -1,6 +1,17 @@
-# 概览页订阅额度面板优化
+# 概览页用量与订阅额度面板优化
 
-**日期**: 2026-11-09
+**日期**: 2026-11-12
+
+## 2026-11-12：按时间预设展示用量并精简标题说明
+
+- `web/src/features/dashboard/components/overview/summary-usage-cards.tsx` — 独立用量汇总组件，默认当天，支持 13 种时间预设；按所选范围展示总 Token、费用、每亿 Token 单价、请求数及趋势，Token 数值旁复用明细提示。时间范围与预设选择器并排靠右，标题后的问号悬停展示小时汇总与数据延迟说明。
+- `web/src/features/dashboard/components/overview/summary-cards.tsx` — 接入独立用量组件，继续保留右侧订阅或钱包面板及其查询。
+- `web/src/features/dashboard/hooks/use-dashboard-config.tsx` — 汇总指标调整为 Token、费用、单价和请求数，并统一图标配色。
+- `web/src/features/dashboard/components/ui/stat-card.tsx` — 指标值支持 React 节点，以组合 Token 明细入口。
+- `web/src/features/dashboard/api.ts` — 用量查询支持取消信号，切换时间范围时可取消旧请求。
+- `web/src/lib/date-time-presets.ts`、`web/src/features/usage-logs/components/compact-date-time-range-picker.tsx` — 复用共享时间预设计算，现有选择器兼容扩展按钮和下拉展示，并支持显式预设状态。
+- `web/src/components/description-tooltip.tsx` — 兼容扩展可选图标，概览标题使用问号；沿用共享悬停、键盘焦点与无障碍提示行为。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充用量说明与时间段指标文案的七语言翻译。
 
 ## 2026-11-09：总额度与高级模型额度分区展示
 

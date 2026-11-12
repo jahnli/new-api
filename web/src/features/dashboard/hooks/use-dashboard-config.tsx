@@ -7,9 +7,6 @@ import {
   Upload,
   Gauge,
   Zap,
-  Flame,
-  TrendingUp,
-  Activity,
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -102,39 +99,45 @@ export function useModelStatCardsConfig(): StatCardConfig[] {
 }
 
 export function useSummaryCardsConfig(totals: {
-  todayUsageDisplay: string
-  usedDisplay: string
+  tokenCountDisplay: string
+  costDisplay: string
+  unitPriceDisplay: string
   requestCountDisplay: string
-  currencyLabel: string
-  currencyEnabled: boolean
 }) {
   const { t } = useTranslation()
 
   return [
     {
-      key: 'todayUsage',
-      title: t('Last 24h usage'),
-      value: totals.todayUsageDisplay,
-      description: totals.currencyEnabled
-        ? `${t('Consumed in the last 24 hours')} (${totals.currencyLabel})`
-        : t('Consumed in the last 24 hours'),
-      icon: Flame,
+      key: 'tokens',
+      title: t('Total Tokens'),
+      value: totals.tokenCountDisplay,
+      description: t('Statistical tokens'),
+      icon: Layers,
+      iconTone: 'chart-4',
     },
     {
-      key: 'usage',
-      title: t('Historical Usage'),
-      value: totals.usedDisplay,
-      description: totals.currencyEnabled
-        ? `${t('Total consumed')} (${totals.currencyLabel})`
-        : t('Total consumed quota'),
-      icon: TrendingUp,
+      key: 'quota',
+      title: t('Cost'),
+      value: totals.costDisplay,
+      description: t('Statistical quota'),
+      icon: Coins,
+      iconTone: 'success',
     },
     {
-      key: 'requests',
-      title: t('Request Count'),
+      key: 'avgPrice',
+      title: t('Unit Price'),
+      value: totals.unitPriceDisplay,
+      description: t('Unit price per 100M tokens'),
+      icon: DollarSign,
+      iconTone: 'warning',
+    },
+    {
+      key: 'count',
+      title: t('Total Requests'),
       value: totals.requestCountDisplay,
-      description: t('Total requests made'),
-      icon: Activity,
+      description: t('Statistical count'),
+      icon: Hash,
+      iconTone: 'info',
     },
-  ]
+  ] as const
 }
