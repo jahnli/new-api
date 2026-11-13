@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/tooltip'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 import {
+  formatTierLabel,
   normalizeTierLabel,
   parseTaskTiersFromExpr,
 } from '@/features/pricing/lib/billing-expr'
@@ -259,11 +260,11 @@ function buildTypeDetailSegments(
         )
       }
       segments.push({
-        text: `${tier.label || t('Default')} · ${prices.join(' · ')}`,
+        text: `${formatTierLabel(tier.label, t) || t('Default')} · ${prices.join(' · ')}`,
       })
     } else {
       segments.push({
-        text: `${t('Dynamic Pricing')} · ${other.matched_tier || t('Special billing expression')}`,
+        text: `${t('Dynamic Pricing')} · ${formatTierLabel(other.matched_tier, t) || t('Special billing expression')}`,
         muted: true,
       })
     }
@@ -273,7 +274,8 @@ function buildTypeDetailSegments(
         .filter((entry) => ['inputPrice', 'outputPrice'].includes(entry.field))
         .map((entry) => formatPriceCompact(entry.price * groupPriceRatio))
       if (baseEntries.length > 0) {
-        const tierLabel = tieredSummary.tier.label || t('Default')
+        const tierLabel =
+          formatTierLabel(tieredSummary.tier.label, t) || t('Default')
         segments.push({
           text: `${tierLabel} · ${formatPriceList(baseEntries, true)}`,
         })
@@ -312,7 +314,7 @@ function buildTypeDetailSegments(
         )
         .map((entry) =>
           entry.unit
-            ? `${tieredSummary.tier.label || t('Default')} · ${t(entry.shortLabel)} ${formatPriceCompact(entry.price * groupPriceRatio)}/${t(entry.unit)}`
+            ? `${formatTierLabel(tieredSummary.tier.label, t) || t('Default')} · ${t(entry.shortLabel)} ${formatPriceCompact(entry.price * groupPriceRatio)}/${t(entry.unit)}`
             : `${t(entry.shortLabel)} ${formatPrice(entry.price * groupPriceRatio)}`
         )
       if (otherEntries.length > 0) {
@@ -323,7 +325,7 @@ function buildTypeDetailSegments(
       }
     } else {
       segments.push({
-        text: `${t('Dynamic Pricing')} · ${other.matched_tier || t('Special billing expression')}`,
+        text: `${t('Dynamic Pricing')} · ${formatTierLabel(other.matched_tier, t) || t('Special billing expression')}`,
         muted: true,
       })
     }

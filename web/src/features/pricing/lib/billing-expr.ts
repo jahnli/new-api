@@ -21,6 +21,7 @@ import {
   splitExpressionAtTopLevel,
   unwrapExpressionParens,
 } from './billing-expression/structure'
+import { visitExpression } from './billing-expression/types'
 
 // ---------------------------------------------------------------------------
 // Variable registry
@@ -337,6 +338,51 @@ export function normalizeTierLabel(label: string | undefined): string {
     .replaceAll(/>[=＝]?|≥|＞[=＝]?/g, '>')
     .replaceAll(/\s+/g, '')
     .toLowerCase()
+}
+
+export function formatTierLabel(
+  label: string | undefined,
+  t: (key: string) => string
+): string {
+  switch (label?.trim().toLowerCase()) {
+    case 'base':
+    case 'standard':
+    case '标准':
+      return t('Standard')
+    default:
+      return label || ''
+  }
+}
+
+export function formatBillingExprTierLabels(
+  expression: string,
+  t: (key: string) => string
+): string {
+  const compiled = compileBillingExpression(expression)
+  if (compiled.status !== 'ready') return expression
+
+  const replacements: { start: number; end: number; value: string }[] = []
+  visitExpression(compiled.ast, (node) => {
+    if (node.kind !== 'call' || node.name !== 'tier') return
+    const label = node.args[0]
+    if (label?.kind !== 'literal' || typeof label.value !== 'string') return
+    const formatted = formatTierLabel(label.value, t)
+    if (formatted === label.value) return
+    replacements.push({
+      start: label.start,
+      end: label.end,
+      value: JSON.stringify(formatted),
+    })
+  })
+
+  let formatted = expression
+  for (const replacement of replacements.sort((a, b) => b.start - a.start)) {
+    formatted =
+      formatted.slice(0, replacement.start) +
+      replacement.value +
+      formatted.slice(replacement.end)
+  }
+  return formatted
 }
 
 // ---------------------------------------------------------------------------

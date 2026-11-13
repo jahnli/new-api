@@ -35,6 +35,7 @@ import {
   MATCH_LT,
   MATCH_RANGE,
   SOURCE_TIME,
+  formatTierLabel,
   parseTiersFromExpr,
   requestRuleGroupsFromTrace,
   splitBillingExprAndRequestRules,
@@ -531,7 +532,7 @@ export function DynamicPricingBreakdown({
                         variant='secondary'
                         className='bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
                       >
-                        {tier.label || t('Default')}
+                        {formatTierLabel(tier.label, t) || t('Default')}
                       </Badge>
                     )}
                     {isMatched && (
@@ -655,7 +656,7 @@ export function DynamicPricingBreakdown({
                             variant='secondary'
                             className='bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
                           >
-                            {tier.label || t('Default')}
+                            {formatTierLabel(tier.label, t) || t('Default')}
                           </Badge>
                         )}
                         {isMatched && (

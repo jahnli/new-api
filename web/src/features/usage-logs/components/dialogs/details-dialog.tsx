@@ -39,7 +39,10 @@ import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
 import { Label } from '@/components/ui/label'
 import { DynamicPricingBreakdown } from '@/features/pricing/components/dynamic-pricing-breakdown'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
-import { BILLING_PRICING_VARS } from '@/features/pricing/lib/billing-expr'
+import {
+  BILLING_PRICING_VARS,
+  formatTierLabel,
+} from '@/features/pricing/lib/billing-expr'
 import { pluginUsageSchema } from '@/features/pricing/lib/plugin-pricing'
 import { PolicyDecisionRecord } from '@/features/system-settings/request-policies/decision-record'
 import { useDemoMode } from '@/hooks/use-demo-mode'
@@ -208,7 +211,7 @@ export function BillingBreakdown(props: {
       if (tieredSummary.tier.label) {
         rows.push({
           label: t('Matched Tier'),
-          value: tieredSummary.tier.label,
+          value: formatTierLabel(tieredSummary.tier.label, t),
         })
       }
       for (const entry of tieredSummary.priceEntries) {
@@ -220,7 +223,8 @@ export function BillingBreakdown(props: {
     } else {
       rows.push({
         label: t('Matched Tier'),
-        value: other.matched_tier || t('No matching results'),
+        value:
+          formatTierLabel(other.matched_tier, t) || t('No matching results'),
       })
     }
   } else if (isPerCall) {

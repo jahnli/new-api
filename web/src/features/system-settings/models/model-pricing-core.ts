@@ -32,6 +32,7 @@ import {
   CLAUDE_CACHE_CREATION_1H_MULTIPLIER,
   OPENAI_CACHE_CREATION_12H_MULTIPLIER,
   combineBillingExpr,
+  formatBillingExprTierLabels,
 } from '@/features/pricing/lib/billing-expr'
 import { formatBillingCondition } from '@/features/pricing/lib/billing-expression/condition-display'
 import { compileBillingExpression } from '@/features/pricing/lib/billing-expression/parser'
@@ -272,7 +273,10 @@ export function buildPreviewRows(
   billingDetails?: LegacyBillingDetails
 ): PreviewRow[] {
   if (mode === 'tiered_expr') {
-    const effectiveExpr = combineBillingExpr(billingExpr, requestRuleExpr)
+    const effectiveExpr = formatBillingExprTierLabels(
+      combineBillingExpr(billingExpr, requestRuleExpr),
+      t
+    )
     return [
       { key: 'mode', label: t('Pricing'), value: t('Expression') },
       {

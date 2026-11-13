@@ -685,7 +685,7 @@ const TaskUsagePricingEditorImpl = memo(function TaskUsagePricingEditor(
               aria-label={t('Billing expression')}
               value={rawExpr}
               onChange={(event) => handleRawChange(event.target.value)}
-              placeholder='tier("base", u("seconds") * 0.4)'
+              placeholder='tier("标准", u("seconds") * 0.4)'
               rows={7}
               className='font-mono text-xs'
               spellCheck={false}
