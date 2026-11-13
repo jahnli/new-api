@@ -100,20 +100,6 @@ Utilisez-la pour partager des accès autorisés au sein d'une équipe, changer d
 
 ---
 
-## 🙏 Remerciements spéciaux
-
-<p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
-  </a>
-</p>
-
-<p align="center">
-  <strong>Merci à <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> pour avoir fourni une licence de développement open-source gratuite pour ce projet</strong>
-</p>
-
----
-
 <a id="capabilities"></a>
 
 ## Fonctionnalités

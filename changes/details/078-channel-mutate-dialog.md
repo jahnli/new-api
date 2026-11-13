@@ -2,6 +2,12 @@
 
 **日期**: 2026-11-13
 
+## 2026-11-13 移除供应商推荐注册链接
+
+- `web/src/features/channels/components/drawers/channel-mutate-drawer.tsx` — 移除 SiliconFlow 类型渠道在创建、编辑弹框中显示的推荐注册链接提示，渠道连接与凭据配置逻辑保持不变。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 删除推荐链接标签及固定邀请地址的七语言键值，通过临时脚本写入并完成国际化同步。
+- 验证：在 `web/` 执行 `bunx --no-install tsgo -b`、`bunx --no-install oxlint -c .oxlintrc.json src/features/channels/components/drawers/channel-mutate-drawer.tsx`，并对修改的组件与七个语言文件执行 `oxfmt --check`，均通过；`bun run i18n:sync` 完成，各语言缺失键与多余键均为零。`git diff --check` 通过，前端源码检索未发现该邀请地址或推荐链接标签残留。
+
 ## 涉及文件
 
 - `web/src/features/channels/components/drawers/channel-mutate-drawer.tsx` — 调整弹框头部的响应式网格与操作项布局

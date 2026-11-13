@@ -116,20 +116,6 @@ AI Gateway 是面向应用、Agent 和团队的自托管 AI 网关。将不同�
 
 ---
 
-## 🙏 特别鸣谢
-
-<p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
-  </a>
-</p>
-
-<p align="center">
-  <strong>感谢 <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> 为本项目提供免费的开源开发许可证</strong>
-</p>
-
----
-
 <a id="capabilities"></a>
 
 ## 核心能力

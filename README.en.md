@@ -119,20 +119,6 @@ Accounts, channels, plugin installation states, usage, prices, and costs shown b
 
 ---
 
-## 🙏 Special Thanks
-
-<p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
-  </a>
-</p>
-
-<p align="center">
-  <strong>Thanks to <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> for providing free open-source development license for this project</strong>
-</p>
-
----
-
 <a id="capabilities"></a>
 
 ## Capabilities

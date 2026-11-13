@@ -100,20 +100,6 @@ AI Gateway 是面向應用程式、Agent 和團隊的自託管 AI 閘道。將�
 
 ---
 
-## 🙏 特別鳴謝
-
-<p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
-  </a>
-</p>
-
-<p align="center">
-  <strong>感謝 <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> 為本項目提供免費的開源開發許可證</strong>
-</p>
-
----
-
 <a id="capabilities"></a>
 
 ## 核心能力

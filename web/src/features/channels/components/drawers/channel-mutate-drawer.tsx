@@ -4086,23 +4086,6 @@ export function ChannelMutateDrawer({
               />
             )}
 
-            {/* SiliconFlow (type 40) */}
-            {currentType === 40 && (
-              <Alert>
-                <AlertDescription>
-                  {t('Referral link:')}{' '}
-                  <a
-                    href='https://cloud.siliconflow.cn/i/hij0YNTZ'
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-primary underline'
-                  >
-                    {t('https://cloud.siliconflow.cn/i/hij0YNTZ')}
-                  </a>
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* Vertex AI (type 41) */}
             {currentType === 41 && (
               <>

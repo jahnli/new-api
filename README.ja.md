@@ -100,20 +100,6 @@ AI Gateway は、アプリケーション、Agent、チーム向けのセルフ�
 
 ---
 
-## 🙏 特別な感謝
-
-<p align="center">
-  <a href="https://www.jetbrains.com/?from=new-api" target="_blank">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo" width="120" />
-  </a>
-</p>
-
-<p align="center">
-  <strong>感謝 <a href="https://www.jetbrains.com/?from=new-api">JetBrains</a> が本プロジェクトに無料のオープンソース開発ライセンスを提供してくれたことに感謝します</strong>
-</p>
-
----
-
 <a id="capabilities"></a>
 
 ## 主な機能
