@@ -3,7 +3,6 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DescriptionTooltip } from '@/components/description-tooltip'
-import { EmptyState } from '@/components/empty-state'
 import { LoadingState } from '@/components/loading-state'
 import { LongText } from '@/components/long-text'
 import { TextTooltip } from '@/components/text-tooltip'
@@ -34,6 +33,8 @@ export function TopModelsSummary(props: {
       .slice(0, 3)
   }, [props.data])
 
+  if (!props.loading && topModels.length === 0) return null
+
   return (
     <section
       className='flex min-w-0 flex-col gap-2 border-t pt-3 2xl:flex-row 2xl:items-center 2xl:gap-4'
@@ -50,9 +51,6 @@ export function TopModelsSummary(props: {
       </div>
       {props.loading && (
         <LoadingState inline size='sm' message={t('Loading...')} />
-      )}
-      {!props.loading && topModels.length === 0 && (
-        <EmptyState className='min-h-0 p-2' />
       )}
       {!props.loading && topModels.length > 0 && (
         <ol className='grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-3'>
