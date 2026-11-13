@@ -9,7 +9,7 @@ request_notice.non_work_content: "APIリクエストに業務外の内容が含�
 request_notice.non_work_subtitle: "安全性とコンプライアンスを確保するため、グループの利用規定に従ってください。"
 request_notice.security_title: "セキュリティリスクのお知らせ"
 request_notice.model_switch_title: "モデル切り替えのお知らせ"
-request_notice.model_switch_content: "現在のモデル [{{.Model}}] は不安定な可能性があります。[{{.Vendor}}] のモデルに切り替えてください"
+request_notice.model_switch_content: "現在ご利用中のモデル [{{.Model}}] に不安定な動作が検出されており、可用性を保証できません。できるだけ早く [{{.Vendor}}] シリーズのモデルに切り替えてください。"
 request_notice.model_switch_advice: "システム通知を確認し、指示に従って推奨モデルに切り替えてください"
 request_notice.security_content: "APIリクエストにセキュリティリスクがある可能性があります。"
 request_notice.security_check: "機密データ、認証情報、その他の危険な内容がないか確認してください"

@@ -128,7 +128,7 @@ request_notice.non_work_content: "Your API request may contain non-work content.
 request_notice.non_work_subtitle: "To ensure security and compliance, please make sure your requests follow the group's usage policies."
 request_notice.security_title: "Security risk notification"
 request_notice.model_switch_title: "Model switch notification"
-request_notice.model_switch_content: "The current model [{{.Model}}] appears unstable; please switch to a model from [{{.Vendor}}]"
+request_notice.model_switch_content: "The model you are currently using [{{.Model}}] appears unstable, and its availability cannot be guaranteed. Please switch to a model in the [{{.Vendor}}] series as soon as possible."
 request_notice.model_switch_advice: "Watch for system notifications and switch to the recommended model as instructed"
 request_notice.security_content: "Your API request may pose a security risk."
 request_notice.security_check: "Check for sensitive data, credentials, or other unsafe content"

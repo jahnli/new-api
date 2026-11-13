@@ -129,7 +129,7 @@ request_notice.non_work_content: "你的 API 請求疑似包含非工作內容�
 request_notice.non_work_subtitle: "為了保障安全與合規，請確保你的請求內容符合集團使用規範。"
 request_notice.security_title: "安全風險通知"
 request_notice.model_switch_title: "模型切換通知"
-request_notice.model_switch_content: "偵測到目前使用的【{{.Model}}】模型不穩定，請更換至【{{.Vendor}}】系列模型"
+request_notice.model_switch_content: "偵測到目前使用的【{{.Model}}】模型不穩定，無法保證可用性，請盡快更換至【{{.Vendor}}】系列模型。"
 request_notice.model_switch_advice: "後續請留意系統通知，並依通知切換至推薦的模型"
 request_notice.security_content: "你的 API 請求疑似存在安全風險。"
 request_notice.security_check: "請檢查內容是否包含敏感資料、憑證或其他不安全內容"

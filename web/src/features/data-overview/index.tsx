@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
-import dayjs from '@/lib/dayjs'
+import { getDateTimePresetRange } from '@/lib/date-time-presets'
 
 import {
   getDepartmentTree,
@@ -59,11 +59,8 @@ const EMPTY_DEPARTMENT_TREE: DeptTreeNode[] = []
 export function DataOverview() {
   const { t } = useTranslation()
   const [selectedNode, setSelectedNode] = useState<DeptTreeNode | null>(null)
-  const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>(
-    () => ({
-      start: dayjs().startOf('month').toDate(),
-      end: dayjs().endOf('month').toDate(),
-    })
+  const [dateRange, setDateRange] = useState<{ start?: Date; end?: Date }>(() =>
+    getDateTimePresetRange('thisWeek')
   )
   const [queryParams, setQueryParams] = useState<DepartmentQueryParams | null>(
     null

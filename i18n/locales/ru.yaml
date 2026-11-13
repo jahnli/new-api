@@ -9,7 +9,7 @@ request_notice.non_work_content: "Ваш запрос API может содер�
 request_notice.non_work_subtitle: "Для обеспечения безопасности и соблюдения требований следуйте правилам использования группы."
 request_notice.security_title: "Уведомление о риске безопасности"
 request_notice.model_switch_title: "Уведомление о смене модели"
-request_notice.model_switch_content: "Текущая модель [{{.Model}}] может работать нестабильно; переключитесь на модель из [{{.Vendor}}]"
+request_notice.model_switch_content: "Используемая модель [{{.Model}}] работает нестабильно, её доступность не гарантируется. Как можно скорее переключитесь на модель серии [{{.Vendor}}]."
 request_notice.model_switch_advice: "Следите за системными уведомлениями и переключитесь на рекомендованную модель согласно инструкциям"
 request_notice.security_content: "Ваш запрос API может представлять угрозу безопасности."
 request_notice.security_check: "Проверьте запрос на наличие конфиденциальных данных, учётных данных и другого небезопасного содержимого"

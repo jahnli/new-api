@@ -9,7 +9,7 @@ request_notice.non_work_content: "Yêu cầu API của bạn có thể chứa n�
 request_notice.non_work_subtitle: "Để đảm bảo bảo mật và tuân thủ, vui lòng thực hiện các yêu cầu theo quy định sử dụng của nhóm."
 request_notice.security_title: "Thông báo rủi ro bảo mật"
 request_notice.model_switch_title: "Thông báo chuyển mô hình"
-request_notice.model_switch_content: "Mô hình hiện tại [{{.Model}}] có vẻ không ổn định; vui lòng chuyển sang mô hình thuộc [{{.Vendor}}]"
+request_notice.model_switch_content: "Mô hình bạn đang sử dụng [{{.Model}}] có dấu hiệu không ổn định và không thể đảm bảo tính khả dụng. Vui lòng chuyển sang mô hình thuộc dòng [{{.Vendor}}] sớm nhất có thể."
 request_notice.model_switch_advice: "Theo dõi thông báo hệ thống và chuyển sang mô hình được đề xuất theo hướng dẫn"
 request_notice.security_content: "Yêu cầu API của bạn có thể gây ra rủi ro bảo mật."
 request_notice.security_check: "Kiểm tra dữ liệu nhạy cảm, thông tin xác thực hoặc nội dung không an toàn khác"
