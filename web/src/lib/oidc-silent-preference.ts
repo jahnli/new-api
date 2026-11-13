@@ -1,5 +1,8 @@
-const STORAGE_KEY = 'new-api:oidc-silent-suppressed'
-const LOGOUT_RETURN_KEY = 'new-api:oidc-logout-return'
+const STORAGE_KEY = 'semi:oidc-silent-suppressed'
+const LOGOUT_RETURN_KEY = 'semi:oidc-logout-return'
+// Honour preferences saved before the namespace change until sign-in or logout.
+const LEGACY_STORAGE_KEY = 'new-api:oidc-silent-suppressed'
+const LEGACY_LOGOUT_RETURN_KEY = 'new-api:oidc-logout-return'
 let suppressed = false
 let initialized = false
 
@@ -10,6 +13,7 @@ export function suppressSilentOIDCLogin(): void {
   suppressed = true
   try {
     window.localStorage.setItem(STORAGE_KEY, 'local')
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     // Keep the in-memory preference when browser storage is unavailable.
   }
@@ -20,7 +24,9 @@ export function suppressSilentOIDCLogin(): void {
 export function prepareSilentOIDCLogoutReturn(): void {
   try {
     window.sessionStorage.setItem(LOGOUT_RETURN_KEY, '1')
+    window.sessionStorage.removeItem(LEGACY_LOGOUT_RETURN_KEY)
     window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     // If storage is unavailable, retain the safer local-logout suppression.
   }
@@ -30,7 +36,9 @@ export function resumeSilentOIDCLogin(): void {
   suppressed = false
   try {
     window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY)
     window.sessionStorage.removeItem(LOGOUT_RETURN_KEY)
+    window.sessionStorage.removeItem(LEGACY_LOGOUT_RETURN_KEY)
   } catch {
     // The authenticated session still works without persistent storage.
   }
@@ -40,9 +48,13 @@ export function isSilentOIDCLoginSuppressed(): boolean {
   try {
     if (!initialized && window.parent === window) {
       initialized = true
-      if (window.sessionStorage.getItem(LOGOUT_RETURN_KEY) === '1') {
+      if (
+        window.sessionStorage.getItem(LOGOUT_RETURN_KEY) === '1' ||
+        window.sessionStorage.getItem(LEGACY_LOGOUT_RETURN_KEY) === '1'
+      ) {
         suppressed = true
         window.sessionStorage.removeItem(LOGOUT_RETURN_KEY)
+        window.sessionStorage.removeItem(LEGACY_LOGOUT_RETURN_KEY)
       }
       // Older versions stored an indefinite flag even after successful single
       // sign-out. It contains no logout kind or expiry and must not block SSO
@@ -50,8 +62,15 @@ export function isSilentOIDCLoginSuppressed(): boolean {
       if (window.localStorage.getItem(STORAGE_KEY) === '1') {
         window.localStorage.removeItem(STORAGE_KEY)
       }
+      if (window.localStorage.getItem(LEGACY_STORAGE_KEY) === '1') {
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+      }
     }
-    return suppressed || window.localStorage.getItem(STORAGE_KEY) === 'local'
+    return (
+      suppressed ||
+      window.localStorage.getItem(STORAGE_KEY) === 'local' ||
+      window.localStorage.getItem(LEGACY_STORAGE_KEY) === 'local'
+    )
   } catch {
     return suppressed
   }
