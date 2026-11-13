@@ -66,6 +66,33 @@ type BatchTaskResult struct {
 // 打破 service -> relay -> relay/channel -> service 的循环依赖。
 var GetTaskAdaptorFunc func(platform constant.TaskPlatform) TaskPollingAdaptor
 
+// ReportTaskFunc is injected by main: it hands a task that reached its final
+// state to the request plugins' report hooks (requestplugin.ReportTask).
+var ReportTaskFunc func(task *model.Task)
+
+// reportFinalTask reports a task once, after its final state is stored and
+// settled. A task no instance may report costs nothing.
+func reportFinalTask(task *model.Task) {
+	if ReportTaskFunc != nil && task.PrivateData.RequestPlugins != nil {
+		ReportTaskFunc(task)
+	}
+}
+
+// reportFailedTasks reports tasks failed in one bulk update with reason.
+func reportFailedTasks(tasks []*model.Task, reason string) {
+	now := time.Now().Unix()
+	for _, task := range tasks {
+		if task == nil || task.PrivateData.RequestPlugins == nil {
+			continue
+		}
+		task.Status, task.Progress, task.FailReason = model.TaskStatusFailure, "100%", reason
+		if task.FinishTime == 0 {
+			task.FinishTime = now
+		}
+		reportFinalTask(task)
+	}
+}
+
 // sweepTimedOutTasks 在主轮询之前独立清理超时任务。
 // 每次最多处理 100 条，剩余的下个周期继续处理。
 // 使用 per-task CAS (UpdateWithStatus) 防止覆盖被正常轮询已推进的任务。
@@ -113,6 +140,7 @@ func sweepTimedOutTasks(ctx context.Context) {
 		if !isLegacy && task.Quota != 0 {
 			RefundTaskQuota(ctx, task, reason)
 		}
+		reportFinalTask(task)
 	}
 
 	if timedOutCount > 0 {
@@ -130,15 +158,25 @@ type TaskPollSummary struct {
 
 func markTasksFailedUsingCAS(tasks []*model.Task, failReason string) (int64, error) {
 	taskIDsByStatus := make(map[model.TaskStatus][]int64)
+	var transitionedCount int64
+	var transitionErrors []error
 	for _, task := range tasks {
 		if task == nil || task.Status == model.TaskStatusFailure || task.Status == model.TaskStatusSuccess {
+			continue
+		}
+		if task.PrivateData.RequestPlugins != nil {
+			rowsAffected, err := model.MarkTasksFailedWithStatus([]int64{task.ID}, task.Status, failReason)
+			transitionedCount += rowsAffected
+			if err != nil {
+				transitionErrors = append(transitionErrors, fmt.Errorf("mark task %s failed: %w", task.TaskID, err))
+			} else if rowsAffected > 0 {
+				reportFailedTasks([]*model.Task{task}, failReason)
+			}
 			continue
 		}
 		taskIDsByStatus[task.Status] = append(taskIDsByStatus[task.Status], task.ID)
 	}
 
-	var transitionedCount int64
-	var transitionErrors []error
 	for status, taskIDs := range taskIDsByStatus {
 		rowsAffected, err := model.MarkTasksFailedWithStatus(taskIDs, status, failReason)
 		transitionedCount += rowsAffected
@@ -301,7 +339,34 @@ func updateBatchTasks(ctx context.Context, adaptor BatchTaskPollingAdaptor, chan
 	}
 	info.ApiKey = ch.Key
 	adaptor.Init(info)
-	resp, err := adaptor.FetchBatchTasks(baseURL, ch.Key, tasks, proxy)
+	// A batch query carries one credential, so it holds only the tasks one
+	// credential account submitted: another account's answer could report a
+	// finished task missing and refund it.
+	var accounts []string
+	batches := make(map[string][]*model.Task)
+	for _, task := range tasks {
+		account := task.PrivateData.CredentialAccount
+		if _, ok := batches[account]; !ok {
+			accounts = append(accounts, account)
+		}
+		batches[account] = append(batches[account], task)
+	}
+	var errs []error
+	for _, account := range accounts {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if err := pollTaskBatch(ctx, adaptor, channelId, baseURL, ch.Key, proxy, batches[account]); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// pollTaskBatch sends one batch query for tasks and applies the results it
+// returns for them.
+func pollTaskBatch(ctx context.Context, adaptor BatchTaskPollingAdaptor, channelId int, baseURL, key, proxy string, tasks []*model.Task) error {
+	resp, err := adaptor.FetchBatchTasks(baseURL, key, tasks, proxy)
 	if err != nil {
 		common.SysLog(common.LogText("Get Task Do req error: %v", err))
 		return recordPollFailureForTasks(ctx, adaptor, tasks, pollClassTransport, 0, err.Error())
@@ -330,11 +395,15 @@ func updateBatchTasks(ctx context.Context, adaptor BatchTaskPollingAdaptor, chan
 	if err != nil {
 		return recordPollFailureForTasks(ctx, adaptor, tasks, pollClassHookError, resp.StatusCode, err.Error())
 	}
+	batch := make(map[string]*model.Task, len(tasks))
+	for _, task := range tasks {
+		batch[task.GetUpstreamTaskID()] = task
+	}
 	for upstreamID, responseItem := range responseItems {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		task := taskM[upstreamID]
+		task := batch[upstreamID]
 		if task == nil {
 			logger.LogWarn(ctx, common.LogText("Batch task response ignored: unknown task_id=%s", upstreamID))
 			continue
@@ -654,6 +723,7 @@ func finalizeTerminalTask(ctx context.Context, adaptor TaskPollingAdaptor, task 
 	if task.Status == model.TaskStatusFailure && !billingSettled && task.Quota != 0 {
 		RefundTaskQuota(ctx, task, task.FailReason)
 	}
+	reportFinalTask(task)
 }
 
 func redactVideoResponseBody(body []byte) []byte {

@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/relay/requestplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
@@ -50,11 +51,17 @@ func EmbeddingHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayErro
 		return types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 	}
 
+	if jsonData, AIGatewayError = requestplugin.Outbound(c, info, jsonData); AIGatewayError != nil {
+		return AIGatewayError
+	}
 	if len(info.ParamOverride) > 0 {
 		jsonData, err = relaycommon.ApplyParamOverrideWithRelayInfo(jsonData, info)
 		if err != nil {
 			return AIGatewayErrorFromParamOverride(err)
 		}
+	}
+	if AIGatewayError = requestplugin.Egress(c, info, jsonData); AIGatewayError != nil {
+		return AIGatewayError
 	}
 
 	logger.LogDebug(c, "converted embedding request body: %s", jsonData)

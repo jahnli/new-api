@@ -88,6 +88,8 @@ const OPERATIONS_SECTIONS = [
           LogConsumeEnabled: Boolean(settings.LogConsumeEnabled),
           'log_setting.max_range_days':
             settings['log_setting.max_range_days'] ?? 365,
+          'system_task_setting.retention_days':
+            settings['system_task_setting.retention_days'] ?? 30,
         }}
       />
     ),

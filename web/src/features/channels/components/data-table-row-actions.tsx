@@ -41,7 +41,10 @@ import {
 } from '@/lib/admin-permissions'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { MODEL_FETCHABLE_TYPES } from '../constants'
+import {
+  useChannelBalanceQueryable,
+  useChannelModelFetchable,
+} from '../hooks/use-task-plugin-option'
 import {
   channelsQueryKeys,
   handleDeleteChannel,
@@ -62,6 +65,8 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { t } = useTranslation()
   const layout = useContext(ChannelRowActionsLayoutContext)
   const channel = row.original
+  const modelFetchable = useChannelModelFetchable(channel)
+  const balanceQueryable = useChannelBalanceQueryable(channel)
   const { setOpen, setCurrentRow, upstream } = useChannels()
   const queryClient = useQueryClient()
   const currentUser = useAuthStore((s) => s.auth.user)
@@ -263,12 +268,14 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
 
           {/* Query Balance */}
-          <DropdownMenuItem onClick={handleQueryBalance}>
-            {t('Query Balance')}
-            <DropdownMenuShortcut>
-              <DollarSign size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
+          {balanceQueryable && (
+            <DropdownMenuItem onClick={handleQueryBalance}>
+              {t('Query Balance')}
+              <DropdownMenuShortcut>
+                <DollarSign size={16} />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          )}
 
           {/* Fetch Models */}
           <DropdownMenuItem onClick={handleFetchModels}>
@@ -279,7 +286,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
 
           {/* Detect Upstream Updates (only for fetchable channel types) */}
-          {MODEL_FETCHABLE_TYPES.has(channel.type) && (
+          {modelFetchable && (
             <DropdownMenuItem
               onClick={() => upstream.detectChannelUpdates(channel)}
             >

@@ -11,6 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/relay/requestplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
@@ -91,6 +92,9 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
+		if AIGatewayError = requestplugin.PassThrough(c, info, storage); AIGatewayError != nil {
+			return AIGatewayError
+		}
 		requestBody = common.NewReplayableBodyReader(storage)
 	} else {
 		convertedRequest, err := adaptor.ConvertClaudeRequest(c, info, request)
@@ -109,12 +113,18 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *
 			return types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 		}
 
+		if jsonData, AIGatewayError = requestplugin.Outbound(c, info, jsonData); AIGatewayError != nil {
+			return AIGatewayError
+		}
 		// apply param override
 		if len(info.ParamOverride) > 0 {
 			jsonData, err = relaycommon.ApplyParamOverrideWithRelayInfo(jsonData, info)
 			if err != nil {
 				return AIGatewayErrorFromParamOverride(err)
 			}
+		}
+		if AIGatewayError = requestplugin.Egress(c, info, jsonData); AIGatewayError != nil {
+			return AIGatewayError
 		}
 
 		logger.LogDebug(c, "requestBody: %s", jsonData)

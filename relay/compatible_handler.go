@@ -12,6 +12,7 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/relay/requestplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
@@ -102,6 +103,9 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *ty
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
+		if AIGatewayError = requestplugin.PassThrough(c, info, storage); AIGatewayError != nil {
+			return AIGatewayError
+		}
 		if common.DebugEnabled {
 			if debugBytes, bErr := storage.Bytes(); bErr == nil {
 				logger.LogDebug(c, "requestBody: %s", debugBytes)
@@ -130,12 +134,18 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *ty
 			return types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 		}
 
+		if jsonData, AIGatewayError = requestplugin.Outbound(c, info, jsonData); AIGatewayError != nil {
+			return AIGatewayError
+		}
 		// apply param override
 		if len(info.ParamOverride) > 0 {
 			jsonData, err = relaycommon.ApplyParamOverrideWithRelayInfo(jsonData, info)
 			if err != nil {
 				return AIGatewayErrorFromParamOverride(err)
 			}
+		}
+		if AIGatewayError = requestplugin.Egress(c, info, jsonData); AIGatewayError != nil {
+			return AIGatewayError
 		}
 
 		logger.LogDebug(c, "text request body: %s", jsonData)

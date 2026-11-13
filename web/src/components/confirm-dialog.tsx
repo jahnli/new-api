@@ -45,6 +45,7 @@ type ConfirmDialogProps = {
   closeOnOutsideClick?: boolean
   className?: string
   children?: React.ReactNode
+  finalFocus?: React.ComponentProps<typeof AlertDialogContent>['finalFocus']
 }
 
 export function ConfirmDialog(props: ConfirmDialogProps) {
@@ -61,12 +62,14 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     closeOnOutsideClick = false,
     disabled = false,
     handleConfirm,
+    finalFocus,
     ...actions
   } = props
   return (
     <AlertDialog {...actions}>
       <AlertDialogContent
         className={cn(className)}
+        finalFocus={finalFocus}
         onBackdropClick={
           closeOnOutsideClick && !isLoading
             ? () => props.onOpenChange(false)

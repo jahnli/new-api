@@ -10,6 +10,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/relay/requestplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
@@ -27,11 +28,14 @@ func AlphaSearchHelper(c *gin.Context, info *relaycommon.RelayInfo) (gatewayErro
 		constant.ChannelTypeCodex,
 		constant.ChannelTypeAdvancedCustom:
 	default:
-		// Allow retry onto another channel that may support this endpoint.
-		return types.NewError(
-			errors.New("channel does not support /v1/alpha/search"),
-			types.ErrorCodeInvalidRequest,
-		)
+		// Provider plugin channels serve the paths of their relay routes.
+		if info.ApiType != constant.APITypeProviderPlugin {
+			// Allow retry onto another channel that may support this endpoint.
+			return types.NewError(
+				errors.New("channel does not support /v1/alpha/search"),
+				types.ErrorCodeInvalidRequest,
+			)
+		}
 	}
 
 	request, ok := info.Request.(*dto.AlphaSearchRequest)
@@ -54,11 +58,17 @@ func AlphaSearchHelper(c *gin.Context, info *relaycommon.RelayInfo) (gatewayErro
 		return types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 	}
 
+	if jsonData, gatewayError = requestplugin.Outbound(c, info, jsonData); gatewayError != nil {
+		return gatewayError
+	}
 	if len(info.ParamOverride) > 0 {
 		jsonData, err = relaycommon.ApplyParamOverrideWithRelayInfo(jsonData, info)
 		if err != nil {
 			return AIGatewayErrorFromParamOverride(err)
 		}
+	}
+	if gatewayError = requestplugin.Egress(c, info, jsonData); gatewayError != nil {
+		return gatewayError
 	}
 
 	logger.LogDebug(c, "requestBody: %s", jsonData)

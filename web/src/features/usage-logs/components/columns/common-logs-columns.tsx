@@ -95,6 +95,7 @@ import {
   parseUserMessages,
   useRequestMessage,
 } from '../request-messages-provider'
+import { RequestPluginLogMarker } from '../request-plugin-record'
 import { useUsageLogsContext } from '../usage-logs-provider'
 
 interface DetailSegment {
@@ -506,6 +507,7 @@ export function useCommonLogsColumns(
           if (!isDisplayableLogType(log.type)) return null
 
           const modelInfo = formatModelName(log)
+          const requestPlugins = parseLogOther(log.other)?.request_plugins
 
           return (
             <div className='flex min-w-0 flex-col items-start gap-0.5'>
@@ -515,6 +517,9 @@ export function useCommonLogsColumns(
                 responseModel={modelInfo.responseModel}
                 truncateText
               />
+              {requestPlugins?.length ? (
+                <RequestPluginLogMarker items={requestPlugins} />
+              ) : null}
             </div>
           )
         },

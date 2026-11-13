@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/relay/requestplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
@@ -70,6 +71,13 @@ func buildImageGenerationDetails(request *dto.ImageRequest, imageCount int, qual
 	return details
 }
 
+// outboundImageCounter is an image adaptor whose upstream body carries the
+// image count in a member other than n. OutboundImageCount reads the count
+// from that body, nil when the member is absent.
+type outboundImageCounter interface {
+	OutboundImageCount(body []byte) (*uint, error)
+}
+
 func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *types.AIGatewayError) {
 	info.InitChannelMeta(c)
 	info.BillingImageCount = nil
@@ -102,20 +110,58 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *t
 
 	var requestBody io.Reader
 	var jsonData []byte
+	var outbound struct {
+		N *uint `json:"n"`
+	}
+	validateQuantity := false
 
 	if model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled {
 		storage, err := common.GetBodyStorage(c)
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
-		if strings.Contains(c.Request.Header.Get("Content-Type"), "multipart/form-data") {
-			requestBody = common.NewReplayableBodyReader(storage)
-		} else {
-			jsonData, err = storage.Bytes()
+		if AIGatewayError = requestplugin.PassThrough(c, info, storage); AIGatewayError != nil {
+			return AIGatewayError
+		}
+		if !strings.Contains(c.Request.Header.Get("Content-Type"), "multipart/form-data") {
+			counter, countsOwnMember := adaptor.(outboundImageCounter)
+			switch {
+			case countsOwnMember:
+				// The adaptor sends the count in its own member, which only
+				// it can read, so it reads the whole body.
+				var raw []byte
+				raw, err = storage.Bytes()
+				if err == nil {
+					err = common.Unmarshal(raw, &outbound)
+				}
+				if err == nil {
+					outbound.N, err = counter.OutboundImageCount(raw)
+				}
+			case storage.IsDisk():
+				reader, readErr := storage.NewReader()
+				if readErr != nil {
+					return types.NewErrorWithStatusCode(readErr, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+				}
+				err = common.DecodeJsonBody(reader, &outbound)
+				_ = reader.Close()
+			default:
+				var raw []byte
+				raw, err = storage.Bytes()
+				if err == nil {
+					err = common.Unmarshal(raw, &outbound)
+				}
+			}
 			if err != nil {
-				return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+				return types.NewErrorWithStatusCode(fmt.Errorf("invalid image billing parameters: %w", err), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+			}
+			validateQuantity = true
+			if common.DebugEnabled {
+				if raw, readErr := storage.Bytes(); readErr == nil {
+					logger.LogDebug(c, "image request body: %s", raw)
+				}
 			}
 		}
+		requestBody = common.NewReplayableBodyReader(storage)
 	} else {
 		convertedRequest, err := adaptor.ConvertImageRequest(c, info, *request)
 		if err != nil {
@@ -132,6 +178,9 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *t
 
 		switch convertedRequest.(type) {
 		case *bytes.Buffer:
+			if AIGatewayError = requestplugin.PassThrough(c, info, nil); AIGatewayError != nil {
+				return AIGatewayError
+			}
 			requestBody = convertedRequest.(io.Reader)
 		default:
 			jsonData, err = common.Marshal(convertedRequest)
@@ -139,6 +188,9 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *t
 				return types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
 			}
 
+			if jsonData, AIGatewayError = requestplugin.Outbound(c, info, jsonData); AIGatewayError != nil {
+				return AIGatewayError
+			}
 			// apply param override
 			if len(info.ParamOverride) > 0 {
 				jsonData, err = relaycommon.ApplyParamOverrideWithRelayInfo(jsonData, info)
@@ -146,50 +198,28 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *t
 					return AIGatewayErrorFromParamOverride(err)
 				}
 
-				var overriddenQuantity struct {
-					N *uint `json:"n"`
-				}
-				if err = common.Unmarshal(jsonData, &overriddenQuantity); err != nil {
-					return types.NewErrorWithStatusCode(
-						fmt.Errorf("invalid image count after parameter override: %w", err),
-						types.ErrorCodeConvertRequestFailed,
-						http.StatusBadRequest,
-						types.ErrOptionWithSkipRetry(),
-					)
-				}
-				requestedQuantity := uint(1)
-				if request.N != nil && *request.N > 0 {
-					requestedQuantity = *request.N
-				}
-				if overriddenQuantity.N != nil && (*overriddenQuantity.N == 0 || *overriddenQuantity.N > dto.MaxImageN) {
-					return types.NewErrorWithStatusCode(
-						fmt.Errorf("image count after parameter override must be between 1 and %d", dto.MaxImageN),
-						types.ErrorCodeConvertRequestFailed,
-						http.StatusBadRequest,
-						types.ErrOptionWithSkipRetry(),
-					)
-				}
-				if overriddenQuantity.N != nil && *overriddenQuantity.N != requestedQuantity {
-					return types.NewErrorWithStatusCode(
-						fmt.Errorf("parameter override cannot change image count from %d to %d", requestedQuantity, *overriddenQuantity.N),
-						types.ErrorCodeConvertRequestFailed,
-						http.StatusBadRequest,
-						types.ErrOptionWithSkipRetry(),
-					)
-				}
+			}
+			if AIGatewayError = requestplugin.Egress(c, info, jsonData); AIGatewayError != nil {
+				return AIGatewayError
 			}
 
 		}
 	}
 	if jsonData != nil {
 		// This is a different trust boundary from ingress: channel overrides
-		// and pass-through bodies can change the quantity actually submitted.
-		var outbound struct {
-			N *uint `json:"n"`
+		// and request plugins can change the quantity actually submitted, in
+		// n or in the member the adaptor sends it in.
+		err := common.Unmarshal(jsonData, &outbound)
+		if counter, ok := adaptor.(outboundImageCounter); ok && err == nil {
+			outbound.N, err = counter.OutboundImageCount(jsonData)
 		}
-		if err := common.Unmarshal(jsonData, &outbound); err != nil {
+		if err != nil {
 			return types.NewErrorWithStatusCode(fmt.Errorf("invalid image billing parameters: %w", err), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
+		validateQuantity = true
+	}
+	if validateQuantity {
+		// Validate the count in the body sent upstream, including channel overrides.
 		quantityRequest := dto.ImageRequest{N: outbound.N}
 		if quantityRequest.N == nil {
 			quantityRequest.N = common.GetPointer(uint(imageCount))
@@ -198,6 +228,8 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *t
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
+	}
+	if jsonData != nil {
 		logger.LogDebug(c, "image request body: %s", jsonData)
 		body, closer, err := relaycommon.NewOutboundJSONBody(jsonData)
 		if err != nil {
@@ -206,6 +238,7 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *t
 		defer closer.Close()
 		requestBody = body
 	}
+
 	if billingErr := service.PrepareImageBillingForRequest(c, info, imageCount); billingErr != nil {
 		return billingErr
 	}
