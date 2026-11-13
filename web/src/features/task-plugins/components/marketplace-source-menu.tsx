@@ -20,6 +20,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Globe, Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -49,6 +50,7 @@ type MarketplaceSourceMenuProps = {
 type SourceChoice = {
   value: string
   label: string
+  url: string
   source: MarketplaceSource
   site?: PluginSiteChoice
 }
@@ -68,20 +70,29 @@ export function MarketplaceSourceMenu(props: MarketplaceSourceMenuProps) {
   )
   const choices = props.sources.flatMap((source): SourceChoice[] => {
     if (!followsPluginSite(source.index_url)) {
-      return [{ value: source.index_url, label: t(source.name), source }]
+      return [
+        {
+          value: source.index_url,
+          label: t(source.name),
+          url: source.index_url,
+          source,
+        },
+      ]
     }
     // Two lists on www.newapi.ai would read the same without their names.
     const prefix = siteSources.length > 1 ? `${t(source.name)} · ` : ''
     return [
       {
         value: `${source.index_url}|ai`,
-        label: prefix + t('Main site ({{site}})', { site: 'www.newapi.ai' }),
+        label: prefix + t('Main site'),
+        url: 'https://www.newapi.ai',
         source,
         site: 'ai',
       },
       {
         value: `${source.index_url}|pro`,
-        label: prefix + t('Backup site ({{site}})', { site: 'www.newapi.pro' }),
+        label: prefix + t('Backup site'),
+        url: 'https://www.newapi.pro',
         source,
         site: 'pro',
       },
@@ -90,26 +101,27 @@ export function MarketplaceSourceMenu(props: MarketplaceSourceMenuProps) {
   const current = followsPluginSite(props.selected.index_url)
     ? `${props.selected.index_url}|${site}`
     : props.selected.index_url
-  const currentLabel =
-    choices.find((choice) => choice.value === current)?.label ??
-    t(props.selected.name)
+  const currentChoice = choices.find((choice) => choice.value === current)
+  const currentLabel = currentChoice?.label ?? t(props.selected.name)
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant='outline'
-            size='sm'
-            aria-label={t('Plugin download site')}
-            className='max-w-full'
-          />
-        }
-      >
-        <Globe aria-hidden='true' />
-        <span className='truncate'>{currentLabel}</span>
-        <ChevronDown aria-hidden='true' className='text-muted-foreground' />
-      </DropdownMenuTrigger>
+      <TextTooltip content={currentChoice?.url ?? props.selected.index_url}>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant='outline'
+              size='sm'
+              aria-label={t('Plugin download site')}
+              className='max-w-full'
+            />
+          }
+        >
+          <Globe aria-hidden='true' />
+          <span className='truncate'>{currentLabel}</span>
+          <ChevronDown aria-hidden='true' className='text-muted-foreground' />
+        </DropdownMenuTrigger>
+      </TextTooltip>
       <DropdownMenuContent align='end' className='w-auto min-w-56'>
         <DropdownMenuRadioGroup
           value={current}
@@ -128,13 +140,11 @@ export function MarketplaceSourceMenu(props: MarketplaceSourceMenuProps) {
           }}
         >
           {choices.map((choice) => (
-            <DropdownMenuRadioItem
-              closeOnClick
-              key={choice.value}
-              value={choice.value}
-            >
-              {choice.label}
-            </DropdownMenuRadioItem>
+            <TextTooltip key={choice.value} content={choice.url} side='left'>
+              <DropdownMenuRadioItem closeOnClick value={choice.value}>
+                {choice.label}
+              </DropdownMenuRadioItem>
+            </TextTooltip>
           ))}
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
