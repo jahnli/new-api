@@ -157,7 +157,7 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 		}
 		if properties, ok := claims["properties"].(map[string]any); ok {
 			selected := make(map[string]any)
-			for _, key := range []string{"department", "department_value", "job_number", "job_type", "job_level", "job_date", "open_id", "job_description", "ethnicity"} {
+			for _, key := range []string{"department", "department_value", "job_number", "job_type", "job_level", "job_date", "open_id", "user_id", "job_description", "ethnicity"} {
 				if value, present := properties[key]; present {
 					selected[key] = value
 				}
