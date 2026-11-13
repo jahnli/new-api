@@ -31,6 +31,7 @@ func ApplyOIDCRegistrationProfile(user *model.User, claims map[string]any) (int,
 			JobLevel        string `json:"job_level"`
 			JobDate         string `json:"job_date"`
 			OpenID          string `json:"open_id"`
+			UserID          string `json:"user_id"`
 			JobDescription  string `json:"job_description"`
 			Ethnicity       string `json:"ethnicity"`
 		} `json:"properties"`
@@ -55,6 +56,7 @@ func ApplyOIDCRegistrationProfile(user *model.User, claims map[string]any) (int,
 		{avatar, 512}, {profile.Phone, 32},
 		{profile.Properties.Department, 256}, {profile.Properties.JobNumber, 64},
 		{profile.Properties.JobType, 128}, {profile.Properties.OpenID, 64},
+		{profile.Properties.UserID, 64},
 		{profile.Birthday, 16}, {profile.Properties.JobDate, 16},
 		{profile.Bio, 32768}, {profile.Properties.JobLevel, 32768},
 		{profile.Properties.JobDescription, 32768}, {profile.Properties.Ethnicity, 32768},
@@ -115,13 +117,12 @@ func ApplyOIDCRegistrationProfile(user *model.User, claims map[string]any) (int,
 	if !hasConfig {
 		return 0, nil
 	}
-	// The script stores both platforms' IDs under properties.open_id. Keep
-	// their namespaces separate using the administrator's shared company rule.
+	// Select the platform-specific identifier using the shared company rule.
 	switch config.SyncPlatform {
 	case system_setting.LDAPSyncPlatformFeishu:
 		user.OpenId = profile.Properties.OpenID
 	case system_setting.LDAPSyncPlatformDingTalk:
-		user.DingdingId = profile.Properties.OpenID
+		user.DingdingId = profile.Properties.UserID
 	}
 	return config.AutoSubscribePlanId, nil
 }

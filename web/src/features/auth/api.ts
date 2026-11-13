@@ -150,9 +150,10 @@ export async function executeLogout<T = unknown>(
 
 // User logout
 export async function logout(
-  options: { singleSignOut?: boolean } = {}
+  options: { singleSignOut?: boolean; intent?: 'sign_out' | 'login' } = {}
 ): Promise<ApiResponse<LogoutResult>> {
-  suppressSilentOIDCLogin()
+  // Resetting a session for a new login must not persist a sign-out preference.
+  if (options.intent !== 'login') suppressSilentOIDCLogin()
   return executeLogout<LogoutResult>({
     getExpectedSID: () => useAuthStore.getState().auth.session?.sid,
     request: async (sid) => {

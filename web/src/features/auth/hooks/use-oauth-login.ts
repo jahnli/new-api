@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { clearAuthentication } from '@/lib/api'
 import { handleServerError } from '@/lib/handle-server-error'
+import { resumeSilentOIDCLogin } from '@/lib/oidc-silent-preference'
 import { AuthOperationError } from '@/lib/secure-verification'
 import { createServerError } from '@/lib/server-error-message'
 
@@ -22,7 +23,7 @@ export function useOAuthLogin(
   const [isLoading, setIsLoading] = useState(false)
 
   const resetSession = async () => {
-    const response = await logout()
+    const response = await logout({ intent: 'login' })
     if (!response.success) {
       throw createServerError(response, t('Failed to sign out session'))
     }
@@ -43,6 +44,9 @@ export function useOAuthLogin(
         status.oidc_client_id,
         state
       )
+      // Resume only after authorization is ready, including when the user later
+      // returns with the browser Back button instead of completing the callback.
+      resumeSilentOIDCLogin()
       window.open(url, '_self')
     } catch (error) {
       handleServerError(
@@ -72,6 +76,7 @@ export function useOAuthLogin(
         url.searchParams.set('scope', provider.scopes)
       }
 
+      resumeSilentOIDCLogin()
       window.open(url.toString(), '_self')
     } catch (error) {
       handleServerError(
