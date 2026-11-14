@@ -1,4 +1,7 @@
 request_notice.non_work_title: "Уведомление о нерабочем содержимом"
+request_notice.frequent_requests_title: "Уведомление о частых запросах"
+request_notice.frequent_requests_content: "Ваши API-запросы поступают слишком часто, что может указывать на аномальное использование. Просим оперативно проверить причину."
+request_notice.frequent_requests_subtitle: "Проверьте автоматические скрипты, параллельные запросы и логику повторных попыток и ограничьте частоту запросов."
 request_notice.client: "Клиент"
 request_notice.request_time: "Время запроса"
 request_notice.model: "Модель"

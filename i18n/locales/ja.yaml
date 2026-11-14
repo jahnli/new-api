@@ -1,4 +1,7 @@
 request_notice.non_work_title: "業務外コンテンツのお知らせ"
+request_notice.frequent_requests_title: "頻繁なリクエストに関するお知らせ"
+request_notice.frequent_requests_content: "API リクエストが頻繁すぎるため、異常な呼び出しの可能性があります。速やかにご確認ください。"
+request_notice.frequent_requests_subtitle: "自動化スクリプト、同時リクエスト、再試行ロジックを確認し、リクエスト頻度を適切に制御してください。"
 request_notice.client: "クライアント"
 request_notice.request_time: "リクエスト日時"
 request_notice.model: "モデル"

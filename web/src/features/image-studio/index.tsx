@@ -22,11 +22,7 @@ import {
   getImageModelRuntimeLimits,
   isCustomSizeValid,
 } from './lib/model-params'
-import {
-  supportsGptImageMarkup,
-  validateGptImageReference,
-} from './lib/model-params/gpt-image/edit-input'
-import { GptImageEditLayer } from './lib/model-params/gpt-image/edit-layer'
+import { validateGptImageReference } from './lib/model-params/gpt-image/edit-input'
 import type {
   GeneratedImage,
   GenerationRecord,
@@ -63,10 +59,12 @@ export function ImageStudio() {
   } = useGenerationHistory()
   const {
     isGenerating,
+    isSaving,
     isBusy,
     isBusyNow,
     pendingImageCount,
-    partialImage,
+    pendingImageIndexes,
+    partialImages,
     imageErrors,
     imageFailures,
     retryingImageErrorIndexes,
@@ -88,11 +86,7 @@ export function ImageStudio() {
   const [mode, setMode] = useState<StudioMode>('generate')
   const [prompt, setPrompt] = useState('')
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([])
-  const [editMask, setEditMask] = useState<ReferenceImage>()
-  const [editMarkup, setEditMarkup] = useState<ReferenceImage>()
   const isGptImage = config.parameters.family === 'gpt-image'
-  const maskSupported = isGptImage && config.parameters.outputFormat !== 'gif'
-  const markupSupported = isGptImage && supportsGptImageMarkup(config.model)
 
   const activeRecord = useMemo(
     () => history.find((record) => record.id === activeRecordId) ?? null,
@@ -144,8 +138,6 @@ export function ImageStudio() {
       prompt: prompt.trim(),
       mode,
       referenceImages,
-      editMask: mode === 'edit' && maskSupported ? editMask : undefined,
-      editMarkup: mode === 'edit' && markupSupported ? editMarkup : undefined,
     }).catch(handleServerError)
   }, [
     canGenerate,
@@ -157,10 +149,6 @@ export function ImageStudio() {
     prompt,
     mode,
     referenceImages,
-    editMask,
-    editMarkup,
-    maskSupported,
-    markupSupported,
   ])
 
   const handleRestore = useCallback(
@@ -171,8 +159,6 @@ export function ImageStudio() {
       setPrompt(record.prompt)
       setMode(record.mode)
       setReferenceImages(record.referenceImages ?? [])
-      setEditMask(record.editMask)
-      setEditMarkup(record.editMarkup)
       updateModel(record.model)
       if (record.parameterSnapshot) {
         updateParameters(record.parameterSnapshot)
@@ -193,8 +179,6 @@ export function ImageStudio() {
         const dataUrl = await imageSrcToDataUrl(image.src)
         if (isGptImage) validateGptImageReference({ id: '', name: '', dataUrl })
         setMode('edit')
-        setEditMask(undefined)
-        setEditMarkup(undefined)
         setReferenceImages([
           {
             id: `${Date.now()}-edit`,
@@ -242,8 +226,6 @@ export function ImageStudio() {
     setGenerationError(null)
     setPrompt('')
     setReferenceImages([])
-    setEditMask(undefined)
-    setEditMarkup(undefined)
   }, [isBusyNow, setActiveRecordId, setGenerationError])
 
   const handleClear = useCallback(() => {
@@ -292,14 +274,13 @@ export function ImageStudio() {
           prompt={prompt}
           onPromptChange={setPrompt}
           referenceImages={referenceImages}
-          onReferenceImagesChange={(images) => {
-            if (images[0]?.id !== referenceImages[0]?.id) {
-              setEditMask(undefined)
-              setEditMarkup(undefined)
-            }
-            setReferenceImages(images)
-          }}
-          isGenerating={isBusy}
+          onReferenceImagesChange={setReferenceImages}
+          isBusy={isBusy}
+          isGenerating={
+            (isGenerating && pendingImageCount > 0) ||
+            retryingImageErrorIndexes.length > 0
+          }
+          isSaving={isSaving}
           estimateMs={estimateDurationMs(config.model)}
           onGenerate={handleGenerate}
           onStop={stopGeneration}
@@ -307,31 +288,10 @@ export function ImageStudio() {
           canGenerate={canGenerate}
           canReset={canReset && !isBusy}
         />
-        {mode === 'edit' && isGptImage && (
-          <div className='grid gap-3 sm:grid-cols-2'>
-            {maskSupported && (
-              <GptImageEditLayer
-                kind='mask'
-                image={editMask}
-                reference={referenceImages[0]}
-                disabled={isBusy || Boolean(editMarkup && markupSupported)}
-                onChange={setEditMask}
-              />
-            )}
-            {markupSupported && (
-              <GptImageEditLayer
-                kind='markup'
-                image={editMarkup}
-                reference={referenceImages[0]}
-                disabled={isBusy || Boolean(editMask && maskSupported)}
-                onChange={setEditMarkup}
-              />
-            )}
-          </div>
-        )}
         <ScrollArea className='min-h-0 flex-1'>
           <ResultGrid
-            partialImage={partialImage}
+            partialImages={partialImages}
+            pendingImageIndexes={pendingImageIndexes}
             record={activeRecord}
             error={generationError}
             onRetry={handleGenerate}
@@ -342,9 +302,10 @@ export function ImageStudio() {
             retryingImageErrorIndexes={retryingImageErrorIndexes}
             onEditImage={handleEditImage}
             isGenerating={isGenerating}
+            isSaving={isSaving}
             pendingImageCount={pendingImageCount}
-            imageErrors={isGenerating ? imageErrors : []}
-            imageFailures={isGenerating ? imageFailures : []}
+            imageErrors={isGenerating || isSaving ? imageErrors : []}
+            imageFailures={isGenerating || isSaving ? imageFailures : []}
           />
         </ScrollArea>
       </div>

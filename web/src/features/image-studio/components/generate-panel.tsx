@@ -35,7 +35,9 @@ type GeneratePanelProps = {
   onPromptChange: (prompt: string) => void
   referenceImages: ReferenceImage[]
   onReferenceImagesChange: (images: ReferenceImage[]) => void
+  isBusy: boolean
   isGenerating: boolean
+  isSaving: boolean
   estimateMs: number
   onGenerate: () => void
   onStop: () => void
@@ -68,7 +70,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
 
   const addFiles = useCallback(
     async (files: File[]) => {
-      if (props.isGenerating) return
+      if (props.isBusy) return
       const imageFiles = files.filter((file) => file.type.startsWith('image/'))
       if (imageFiles.length === 0) return
       if (
@@ -146,17 +148,17 @@ export function GeneratePanel(props: GeneratePanelProps) {
           onValueChange={(value) => props.onModeChange(value as StudioMode)}
         >
           <TabsList>
-            <TabsTrigger value='generate' disabled={props.isGenerating}>
+            <TabsTrigger value='generate' disabled={props.isBusy}>
               {t('Text to image')}
             </TabsTrigger>
-            <TabsTrigger value='edit' disabled={props.isGenerating}>
+            <TabsTrigger value='edit' disabled={props.isBusy}>
               {t('Image to image')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
         <PromptPresets
           onSelect={props.onPromptChange}
-          disabled={props.isGenerating}
+          disabled={props.isBusy}
         />
       </div>
 
@@ -178,7 +180,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
                 type='button'
                 variant='outline'
                 size='icon'
-                disabled={props.isGenerating}
+                disabled={props.isBusy}
                 onClick={() =>
                   props.onReferenceImagesChange(
                     props.referenceImages.filter((item) => item.id !== image.id)
@@ -196,7 +198,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
               type='button'
               variant='outline'
               onClick={() => fileInputRef.current?.click()}
-              disabled={props.isGenerating}
+              disabled={props.isBusy}
               className='text-muted-foreground hover:border-primary hover:text-primary flex size-16 flex-col items-center justify-center gap-1 rounded-md border border-dashed text-[10px] transition-colors'
             >
               <ImagePlus className='size-4' />
@@ -248,7 +250,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
           }}
           placeholder={t('Describe the image you want to generate...')}
           className='min-h-28 resize-y pr-14'
-          disabled={props.isGenerating}
+          disabled={props.isBusy}
         />
         <span className='text-muted-foreground absolute right-2 bottom-2 text-[10px] tabular-nums'>
           {props.prompt.length}
@@ -267,7 +269,13 @@ export function GeneratePanel(props: GeneratePanelProps) {
       )}
 
       <div className='flex items-center justify-end gap-2'>
-        {props.isGenerating ? (
+        {props.isBusy && !props.isGenerating && (
+          <Button type='button' className='gap-1.5' disabled>
+            <Loader2 className='size-3.5 animate-spin' />
+            {props.isSaving ? t('Saving...') : t('Processing...')}
+          </Button>
+        )}
+        {props.isGenerating && (
           <Button
             type='button'
             variant='outline'
@@ -277,7 +285,8 @@ export function GeneratePanel(props: GeneratePanelProps) {
             <Loader2 className='size-3.5 animate-spin' />
             {t('Stop')}
           </Button>
-        ) : (
+        )}
+        {!props.isBusy && (
           <Button
             type='button'
             className='gap-1.5'
@@ -288,7 +297,7 @@ export function GeneratePanel(props: GeneratePanelProps) {
             {t('Generate')}
           </Button>
         )}
-        {props.canReset && !props.isGenerating && (
+        {props.canReset && !props.isBusy && (
           <Button
             type='button'
             variant='ghost'

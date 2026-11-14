@@ -182,6 +182,7 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
                 items={[
                   { value: 'non_work_content', label: t('Non-work content') },
                   { value: 'security_risk', label: t('Security risk') },
+                  { value: 'frequent_requests', label: t('Frequent requests') },
                   { value: 'model_switch', label: t('Switch model') },
                 ]}
                 value={notificationType}
@@ -190,6 +191,7 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
                   if (
                     value === 'non_work_content' ||
                     value === 'security_risk' ||
+                    value === 'frequent_requests' ||
                     value === 'model_switch'
                   ) {
                     setNotificationType(value)
@@ -206,6 +208,9 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
                     </SelectItem>
                     <SelectItem value='security_risk'>
                       {t('Security risk')}
+                    </SelectItem>
+                    <SelectItem value='frequent_requests'>
+                      {t('Frequent requests')}
                     </SelectItem>
                     <SelectItem value='model_switch'>
                       {t('Switch model')}

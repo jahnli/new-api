@@ -5,11 +5,7 @@ import { createServerError } from '@/lib/server-error-message'
 
 import { API_ENDPOINTS, DEFAULT_HISTORY_DISPLAY_LIMIT } from './constants'
 import { isGptImageModel } from './lib/model-params/gpt-image/config'
-import {
-  supportsGptImageMarkup,
-  validateGptImageEditLayer,
-  validateGptImageReference,
-} from './lib/model-params/gpt-image/edit-input'
+import { validateGptImageReference } from './lib/model-params/gpt-image/edit-input'
 import type {
   GroupOption,
   ImageApiResponse,
@@ -57,32 +53,9 @@ async function postImageRequest(
       )
     }
     for (const image of references) validateGptImageReference(image)
-    if (payload.mask && payload.markup) {
-      throw new Error(t('Mask and markup cannot be combined'))
-    }
-    if (payload.mask && payload.output_format === 'gif') {
-      throw new Error(t('GIF output does not support masks'))
-    }
-    if (payload.markup && !supportsGptImageMarkup(payload.model)) {
-      throw new Error(t('This image model does not support markup'))
-    }
-    for (const key of ['mask', 'markup'] as const) {
-      if (payload[key]) {
-        await validateGptImageEditLayer(
-          { id: '', name: '', dataUrl: payload[key] },
-          references[0],
-          key
-        )
-      }
-    }
     const form = new FormData()
     for (const [key, value] of Object.entries(payload)) {
-      if (
-        value === undefined ||
-        key === 'image' ||
-        key === 'mask' ||
-        key === 'markup'
-      ) {
+      if (value === undefined || key === 'image') {
         continue
       }
       form.append(key, String(value))
@@ -90,11 +63,6 @@ async function postImageRequest(
     for (const [index, src] of (payload.image ?? []).entries()) {
       const blob = await (await fetch(src, { signal })).blob()
       form.append('image[]', blob, `image-${index}.${blob.type.split('/')[1]}`)
-    }
-    for (const key of ['mask', 'markup'] as const) {
-      if (!payload[key]) continue
-      const blob = await (await fetch(payload[key], { signal })).blob()
-      form.append(key, blob, `${key}.png`)
     }
     body = form
   }

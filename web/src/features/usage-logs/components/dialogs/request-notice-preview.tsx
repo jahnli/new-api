@@ -16,12 +16,16 @@ export function RequestNoticePreviewCard(props: {
   if (
     props.preview.image_url?.startsWith('/notice/non-work/') ||
     props.preview.image_url?.startsWith('/notice/security-alert/') ||
-    props.preview.image_url?.startsWith('/notice/model-switch/')
+    props.preview.image_url?.startsWith('/notice/model-switch/') ||
+    props.preview.image_url?.startsWith('/notice/frequent-request/')
   ) {
     const icons = ['time.png', 'model.png', 'id.png', 'client.png']
     let iconDir = 'non-work'
     if (props.preview.template === 'red') iconDir = 'security-alert'
     if (props.preview.template === 'blue') iconDir = 'model-switch'
+    if (props.preview.image_url?.startsWith('/notice/frequent-request/')) {
+      iconDir = 'frequent-request'
+    }
     return (
       <section aria-label={t('Preview')}>
         <Card

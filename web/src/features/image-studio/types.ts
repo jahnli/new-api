@@ -31,6 +31,10 @@ export interface ReferenceImage {
 
 export interface GeneratedImage {
   id: string
+  /** Original request slot for this page session. */
+  requestIndex?: number
+  /** Request start to completed image, excluding history persistence. */
+  durationMs?: number
   /** Stored image URL or a temporary source returned by the provider. */
   src: string
   storageId?: string
@@ -51,6 +55,8 @@ export interface GenerationUsage {
 
 export interface ImageGenerationError {
   id: string
+  /** Original request slot for this page session. */
+  requestIndex?: number
   message: string
   /** Assigned once per record, never renumbered when another retry succeeds. */
   retryIndex: number
@@ -82,8 +88,6 @@ export interface GenerationRecord {
   channelId?: number
   favorite?: boolean
   referenceImages?: ReferenceImage[]
-  editMask?: ReferenceImage
-  editMarkup?: ReferenceImage
   imageUsage?: ImageApiUsage
   background?: string
   svgUsage?: ImageSvgUsage
@@ -105,8 +109,6 @@ export interface ImageGenerationPayload {
   sequential_image_generation_options?: { max_images: number }
   optimize_prompt_options?: { mode: 'standard' | 'fast' }
   image?: string[]
-  mask?: string
-  markup?: string
   n?: number
   stream?: boolean
   partial_images?: number

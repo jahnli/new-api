@@ -133,9 +133,7 @@ export function buildImageGenerationPayload(
   config: ImageStudioConfig,
   prompt: string,
   mode: StudioMode,
-  referenceImages: ReferenceImage[],
-  editMask?: ReferenceImage,
-  editMarkup?: ReferenceImage
+  referenceImages: ReferenceImage[]
 ): ImageGenerationPayload {
   const adapter = resolveImageModelAdapter(config.model)
   if (!adapter || adapter.family !== config.parameters.family) {
@@ -163,10 +161,6 @@ export function buildImageGenerationPayload(
   }
   if (mode === 'edit') {
     payload.image = referenceImages.map((image) => image.dataUrl)
-    if (config.parameters.family === 'gpt-image') {
-      payload.mask = editMask?.dataUrl
-      payload.markup = editMarkup?.dataUrl
-    }
   }
   return payload
 }

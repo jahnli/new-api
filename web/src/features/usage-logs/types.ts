@@ -652,6 +652,7 @@ export interface RequestMessage {
 export type RequestNotificationType =
   | 'non_work_content'
   | 'security_risk'
+  | 'frequent_requests'
   | 'model_switch'
 
 export interface RequestNoticePreview {

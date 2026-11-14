@@ -111,7 +111,6 @@
   "This will permanently delete generation history and stored image files.": "This will permanently delete generation history and stored image files.",
   "Timing / First Token": "Timing / First Token",
   "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.": "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.",
-  "Took {{seconds}}s": "Took {{seconds}}s",
   "Unknown vendor": "Unknown vendor",
   "Unknown vendor (#{{id}})": "Unknown vendor (#{{id}})",
   "Unregistered Count": "Unregistered Count",

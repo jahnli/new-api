@@ -1,4 +1,7 @@
 request_notice.non_work_title: "Thông báo nội dung ngoài công việc"
+request_notice.frequent_requests_title: "Thông báo yêu cầu quá thường xuyên"
+request_notice.frequent_requests_content: "Các yêu cầu API của bạn quá thường xuyên, có thể là dấu hiệu sử dụng bất thường. Vui lòng kiểm tra sớm."
+request_notice.frequent_requests_subtitle: "Kiểm tra tập lệnh tự động, các yêu cầu đồng thời và cơ chế thử lại, đồng thời kiểm soát tần suất yêu cầu hợp lý."
 request_notice.client: "Ứng dụng khách"
 request_notice.request_time: "Thời gian yêu cầu"
 request_notice.model: "Mô hình"

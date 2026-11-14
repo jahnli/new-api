@@ -306,9 +306,10 @@ func BuildViolationNoticeCard(requestTime string, requestID string, modelName st
 }
 
 const (
-	RequestNoticeNonWorkContent = "non_work_content"
-	RequestNoticeSecurityRisk   = "security_risk"
-	RequestNoticeModelSwitch    = "model_switch"
+	RequestNoticeNonWorkContent   = "non_work_content"
+	RequestNoticeSecurityRisk     = "security_risk"
+	RequestNoticeFrequentRequests = "frequent_requests"
+	RequestNoticeModelSwitch      = "model_switch"
 )
 
 type RequestNoticeField struct {
@@ -345,6 +346,12 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 		template = "orange"
 		imageURL = "/notice/non-work/logo.png"
 		subtitle = i18n.TranslateRequestNotice(lang, "request_notice.non_work_subtitle")
+	case RequestNoticeFrequentRequests:
+		title = i18n.TranslateRequestNotice(lang, "request_notice.frequent_requests_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.frequent_requests_content")
+		template = "orange"
+		imageURL = "/notice/frequent-request/logo.png"
+		subtitle = i18n.TranslateRequestNotice(lang, "request_notice.frequent_requests_subtitle")
 	case RequestNoticeSecurityRisk:
 		title = i18n.TranslateRequestNotice(lang, "request_notice.security_title")
 		content = i18n.TranslateRequestNotice(lang, "request_notice.security_content")
@@ -416,12 +423,14 @@ func SendRequestNotice(ctx context.Context, message NotificationMessage, request
 		}
 	}
 	var iconKeys []string
-	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch {
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeFrequentRequests {
 		iconDir := "non-work"
 		if notificationType == RequestNoticeSecurityRisk {
 			iconDir = "security-alert"
 		} else if notificationType == RequestNoticeModelSwitch {
 			iconDir = "model-switch"
+		} else if notificationType == RequestNoticeFrequentRequests {
+			iconDir = "frequent-request"
 		}
 		filenames := []string{"time.png", "model.png", "id.png", "client.png"}
 		if notificationType == RequestNoticeModelSwitch {
@@ -485,7 +494,7 @@ func buildRequestNoticeCard(requestTime string, requestID string, modelName stri
 		return "", err
 	}
 
-	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch {
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeFrequentRequests {
 		textColumn := map[string]any{
 			"tag": "column", "width": "weighted", "weight": 3, "vertical_align": "center",
 			"elements": []map[string]any{
