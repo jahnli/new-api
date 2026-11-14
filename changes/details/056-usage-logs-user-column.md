@@ -1,6 +1,17 @@
 # 使用日志增强：用户信息、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-11-13（最后更新 2026-11-13）
+**日期**: 2026-09-09 ~ 2026-11-15（最后更新 2026-11-15）
+
+## 2026-11-15 频繁请求通知与标准档位展示
+
+- `controller/request_message.go` — 请求通知预览与发送接受“频繁请求”分类。
+- `service/feishu_department.go` — 新增频繁请求通知，使用橙色卡头、独立主图与字段图标，提示排查自动化脚本、并发和重试逻辑；预览及飞书发送共用标题、正文与提醒。
+- `web/notice_assets.go` — 将频繁请求图片嵌入后端，供飞书卡片上传使用。
+- `web/public/notice/frequent-request/client.png`、`web/public/notice/frequent-request/id.png`、`web/public/notice/frequent-request/logo.png`、`web/public/notice/frequent-request/model.png`、`web/public/notice/frequent-request/time.png` — 新增该分类主图及客户端、请求编号、模型和时间图标。
+- `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx`、`web/src/features/usage-logs/types.ts` — 通知类型选择器和请求类型增加“频繁请求”，沿用现有手动预览与发送流程。
+- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 频繁请求预览使用对应主图和字段图标。
+- `i18n/locales/{en,zh-CN,zh-TW,fr,ja,ru,vi}.yaml`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充通知标题、正文、排查建议及分类名称的七语言文案。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 计费摘要与命中档位将 `base`、`standard` 和“标准”按界面语言统一展示，自定义名称保留原文；共用规则与定价预览见 [标准档位说明](049-model-pricing-local-currency.md)。
 
 ## 2026-11-13 模型切换通知强化可用性提醒
 

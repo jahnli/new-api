@@ -1,6 +1,21 @@
 # 在线生图与图片审计管理
 
-**日期**: 2026-11-09
+**日期**: 2026-11-15
+
+## 2026-11-15：并发单图生成、即时展示与编辑入口精简
+
+本节更新此前 GPT Image 使用单次多图请求及蒙版、标注编辑的记录。
+
+- `web/src/features/image-studio/hooks/use-image-studio.ts` — 按所选数量并发发送单图请求，每个请求基于 `n: 1` 构造；每张图片独立更新流式预览、成功结果和失败状态，成功后立即展示，历史保存串行排队，避免保存阻塞其他请求的完成回调。保存异常保留已显示结果并提示错误；生成结束后继续等待保存队列完成，期间保持忙碌状态。
+- `web/src/features/image-studio/hooks/use-image-studio.ts` — 当前会话保留每个请求的原始序号和耗时，失败重试成功后沿用原位置；批次耗时使用最长请求耗时，单图耗时排除历史保存时间。
+- `web/src/features/image-studio/components/result-grid.tsx` — 图片、失败与加载占位按原始请求序号排列，显示序号徽标；多图分别展示耗时，单图在摘要中展示耗时，复用语言相关数字格式化；尚未保存的图片显示保存状态。
+- `web/src/features/image-studio/components/generate-panel.tsx`、`web/src/features/image-studio/index.tsx` — 区分生成、保存与忙碌状态，生成期间提供停止操作，保存期间显示禁用的保存按钮，忙碌期间禁用模型、提示词、参考图及重置操作。
+- `web/src/features/image-studio/api.ts`、`web/src/features/image-studio/lib/model-params/index.ts` — 移除蒙版和标注载荷构建、上传及组合校验，参考图编辑仍使用原有图片请求流程。
+- `web/src/features/image-studio/lib/model-params/gpt-image/edit-input.ts` — 保留参考图格式及大小校验，移除编辑图层校验与标注模型判断。
+- `web/src/features/image-studio/lib/model-params/gpt-image/edit-layer.tsx` — 删除蒙版与标注图层上传组件；页面移除对应入口、状态与历史恢复逻辑。
+- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx` — GIF 提示改为不支持流式输出与压缩，移除蒙版相关说明。
+- `web/src/features/image-studio/types.ts` — 图片及失败项补充当前会话请求序号，图片补充请求耗时；删除页面记录及请求中的蒙版、标注字段。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json`、`web/src/i18n/locales/_reports/{ja,ru}.untranslated.json` — 删除已移除的蒙版与标注文案，更新 GIF 提示、耗时翻译及相应报告。
 
 ## 2026-11-09：GIF 提示文案补充记录
 

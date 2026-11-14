@@ -1,6 +1,17 @@
-# 模型定价编辑器支持本地货币输入、档位名称原样回显与规则默认展开
+# 模型定价编辑器支持本地货币输入、自定义档位名称原样回显与规则默认展开
 
-**日期**: 2026-11-09
+**日期**: 2026-11-15
+
+## 2026-11-15：标准档位名称统一
+
+- `web/src/features/pricing/lib/billing-expr.ts` — 将 `base`、`standard` 与“标准”统一按界面语言显示为标准档位；表达式展示只替换可解析的 `tier` 名称字面量，自定义名称和无法解析的表达式保留原文。
+- `web/src/features/pricing/components/dynamic-pricing-breakdown.tsx` — 普通与任务表达式的价格拆解复用标准档位名称展示。
+- `web/src/features/pricing/lib/task-expr.ts` — 新建配置、无枚举规格行、统一价格矩阵及首档空名称兜底改用“标准”，保留已有非空名称。
+- `web/src/features/system-settings/models/model-pricing-core.ts` — 定价预览中的表达式按当前语言展示标准档位名称。
+- `web/src/features/system-settings/models/task-usage-pricing-editor.tsx` — 原始表达式输入框示例采用“标准”档位。
+- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志摘要、命中档位和计费详情使用相同名称规则。
+
+本节更新此前默认生成 `standard` 及所有名称原样展示的记录；自定义档位名称、价格、条件与计费计算保持原有语义，不批量改写已保存表达式或历史日志。
 
 ## 涉及文件
 
