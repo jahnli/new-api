@@ -515,20 +515,22 @@ export function RequestPluginLogMarker(props: {
       )
   )
   if (names.size === 0) return null
+  const processingNames = [...names].join(', ')
   return (
     <TextTooltip
       delay={300}
       side='top'
       contentClassName='max-w-xs'
       content={t('Request processing: {{names}}', {
-        names: [...names].join(', '),
+        names: processingNames,
       })}
     >
-      <span className='w-fit'>
+      <span className='w-fit max-w-full' data-table-text='secondary'>
         <StatusBadge
-          label={t('Processed')}
+          label={`${t('Processed')} · ${processingNames}`}
           variant='info'
           size='sm'
+          className='text-[12px]'
           copyable={false}
         />
       </span>
