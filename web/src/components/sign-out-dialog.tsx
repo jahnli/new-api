@@ -102,15 +102,9 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
       open={open}
       onOpenChange={onOpenChange}
       title={t('Sign out')}
-      desc={
-        isOIDCSession
-          ? t(
-              'Signing out will also request sign-out from your identity provider and may sign you out of other connected applications.'
-            )
-          : t(
-              'Are you sure you want to sign out? You will need to sign in again to access your account.'
-            )
-      }
+      desc={t(
+        'Are you sure you want to sign out? You will need to sign in again to access your account.'
+      )}
       confirmText={t('Sign out')}
       handleConfirm={handleSignOut}
       isLoading={isSigningOut}

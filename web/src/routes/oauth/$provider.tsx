@@ -215,6 +215,9 @@ function OAuthCallback() {
     search.redirect,
   ])
 
+  // Complete OIDC login without rendering an intermediate sign-in screen.
+  if (provider === 'oidc' && mode === 'login') return null
+
   return <OAuthCallbackScreen provider={provider} mode={mode} />
 }
 

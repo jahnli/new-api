@@ -812,7 +812,7 @@
     "Are you sure you want to enable all keys?": "您确定要启用所有密钥吗？",
     "Are you sure you want to enable plugin {{name}} ({{key}})?": "确定要启用插件 {{name}}（{{key}}）吗？",
     "Are you sure you want to manually complete this order? The user will be credited with the corresponding quota.": "您确定要手动完成此订单吗？用户将获得相应的配额。",
-    "Are you sure you want to sign out? You will need to sign in again to access your account.": "您确定要退出登录吗？您需要再次登录才能访问您的账户。",
+    "Are you sure you want to sign out? You will need to sign in again to access your account.": "确定要退出登录吗？需要再次登录才能访问您的账户。",
     "Are you sure you want to unbind {{provider}} for this user? The user will no longer be able to log in via this method.": "确定要解绑该用户的 {{provider}} 绑定吗？解绑后该用户将无法通过此方式登录。",
     "Are you sure you want to unbind {{provider}}? You will no longer be able to log in via this method.": "确定要解绑 {{provider}} 吗？解绑后将无法通过此方式登录。",
     "Are you sure?": "您确定吗？",
