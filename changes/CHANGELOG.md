@@ -55,7 +55,7 @@
 | 048 | 2026-08-17 | 数据总览导出功能增强：支持导出当前部门统计数据与图表为 Excel，涵盖子部门详情与用户列表；补充飞书未注册员工姓名、人民币汇率换算及模型系列图表 | [详情](details/048-data-overview-export.md) |
 | 049 | 2026-11-15 | 模型定价编辑器支持本地货币输入及超级管理员跨设备同步货币偏好，保留价格精度与自定义档位名称；所有定价规则卡片默认展开，保留手动折叠；价格变更摘要与对比详情按站点货币展示，配置无效时回退美元；任务插件默认、统一价格及首档空名称改用“标准”，base、standard 与“标准”在定价预览、价格拆解及使用日志中按界面语言统一展示，不批量改写已有表达式或改变计费金额 | [详情](details/049-model-pricing-local-currency.md) |
 | 050 | 2026-07-01 | 渠道表格移除「已使用 / 剩余」列及卡片视图中的余额展示，清理相关翻译 | [详情](details/050-remove-channel-balance-column.md) |
-| 051 | 2026-11-03 | 个人资料页优化：左侧使用可拖动、点击翻转的双面照片挂绳头像，右侧整合身份信息与账户统计，移除重复头像并将用户编号简化为 #ID；适配移动端、暗色主题与静态降级，照片和首帧就绪后展示且加载区域保持透明；保留邮箱旁不显示分组、API 请求数万前加空格，以及仅超级管理员可切换且默认开启的日志 IP 记录设置 | [详情](details/051-profile-settings.md) |
+| 051 | 2026-11-15 | 个人资料页优化：左侧使用可拖动、点击翻转的双面照片挂绳头像，右侧整合身份信息与账户统计，移除重复头像并将用户编号简化为 #ID；适配移动端、暗色主题与静态降级，照片和首帧就绪后展示且加载区域保持透明；备用卡面提高纹理分辨率与文字清晰度，移除顶部品牌文字，缩小占位头像并调整用户编号字号；保留邮箱旁不显示分组、API 请求数万前加空格，以及仅超级管理员可切换且默认开启的日志 IP 记录设置 | [详情](details/051-profile-settings.md) |
 | 052 | 2026-07-01 | 全站进度条分阶段变色统一：阈值统一为 50%/80%（绿→橙→红），涉及概览订阅、用户表格、数据总览；修复子部门统计 formatCNY 传入 undefined 导致崩溃 | [详情](details/052-progress-bar-color-unify.md) |
 | 053 | 2026-10-15 | 新增或编辑未设置定价的模型时，补全价格和缓存读取价格默认开启；表达式定价草稿默认包含零值缓存读取价格，已有表达式保持原配置，并补充定价通道初始化测试 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/__tests__/pricing-initialization.test.ts`、`web/src/features/system-settings/models/model-pricing-sheet.tsx` |
 | 054 | 2026-07-01 | 模型广场与模型定价编辑器默认分页大小从 20 改为 100 | `web/default/src/features/pricing/constants.ts`、`web/default/src/features/system-settings/models/model-ratio-visual-editor.tsx` |

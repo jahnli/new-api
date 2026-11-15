@@ -11,10 +11,13 @@ export function createProfileCardTexture(
   details: ProfileCardDetails
 ): string | undefined {
   const canvas = document.createElement('canvas')
-  canvas.width = 640
-  canvas.height = 900
+  canvas.width = 1024
+  canvas.height = 1440
   const context = canvas.getContext('2d')
   if (!context) return undefined
+  // Match the 3D face texture resolution while keeping logical card coordinates.
+  context.scale(canvas.width / 640, canvas.height / 900)
+  const fontFamily = 'system-ui, -apple-system, "Segoe UI", sans-serif'
 
   context.fillStyle = '#f8fafc'
   context.fillRect(0, 0, 640, 900)
@@ -22,7 +25,7 @@ export function createProfileCardTexture(
   gradient.addColorStop(0, '#071548')
   gradient.addColorStop(1, '#325cba')
   context.fillStyle = gradient
-  context.fillRect(0, 0, 640, 540)
+  context.fillRect(0, 0, 640, 560)
 
   context.strokeStyle = '#ffffff18'
   context.lineWidth = 2
@@ -32,34 +35,31 @@ export function createProfileCardTexture(
     context.stroke()
   }
 
-  context.fillStyle = '#dbeafe'
-  context.font = '600 24px sans-serif'
-  context.fillText('AI GATEWAY', 52, 138)
   context.fillStyle = '#ffffff'
   context.beginPath()
-  context.roundRect(52, 168, 220, 220, 36)
+  context.roundRect(52, 164, 208, 208, 32)
   context.fill()
   context.fillStyle = '#173269'
-  context.font = '600 76px sans-serif'
+  context.font = `700 96px ${fontFamily}`
   context.textAlign = 'center'
-  context.fillText(details.initials, 162, 305, 184)
+  context.fillText(details.initials, 156, 304, 172)
   context.textAlign = 'left'
 
   // Fit multilingual names without stretching or leaking past the card edge.
   const lines = [
-    { text: details.name, y: 426, size: 42, color: '#ffffff', weight: 600 },
+    { text: details.name, y: 470, size: 64, color: '#ffffff', weight: 700 },
     {
       text: `@${details.username}`,
-      y: 476,
-      size: 26,
+      y: 528,
+      size: 46,
       color: '#dbeafe',
-      weight: 400,
+      weight: 600,
     },
-    { text: details.role, y: 628, size: 32, color: '#071548', weight: 600 },
-    { text: details.userId, y: 684, size: 25, color: '#475569', weight: 400 },
+    { text: details.role, y: 648, size: 52, color: '#071548', weight: 700 },
+    { text: details.userId, y: 718, size: 38, color: '#334155', weight: 600 },
   ]
   for (const line of lines) {
-    context.font = `${line.weight} ${line.size}px sans-serif`
+    context.font = `${line.weight} ${line.size}px ${fontFamily}`
     context.fillStyle = line.color
     const characters = [...line.text]
     let text = line.text
@@ -71,13 +71,13 @@ export function createProfileCardTexture(
   }
 
   context.fillStyle = '#cbd5e1'
-  context.fillRect(52, 746, 536, 1)
+  context.fillRect(52, 762, 536, 1)
   context.fillStyle = '#325cba'
   context.beginPath()
-  context.roundRect(52, 798, 62, 8, 4)
+  context.roundRect(52, 814, 62, 8, 4)
   context.fill()
   context.fillStyle = '#64748b'
-  context.font = '500 20px sans-serif'
-  context.fillText('AI GATEWAY', 398, 810)
+  context.font = `600 28px ${fontFamily}`
+  context.fillText('AI GATEWAY', 380, 830)
   return canvas.toDataURL('image/png')
 }

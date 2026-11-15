@@ -1,6 +1,11 @@
 # 个人资料页与日志 IP 记录设置调整
 
-**日期**: 2026-11-03
+**日期**: 2026-11-15
+
+## 2026-11-15 备用卡面清晰度与布局优化
+
+- `web/src/features/profile/lib/lanyard-texture.ts` — 备用卡面纹理从 640×900 提升至 1024×1440，匹配三维卡面分辨率；放大并加粗姓名、用户名和角色，用户编号采用较小字号及更深文字色；移除顶部品牌文字，将占位头像缩小至 208×208，调整字母尺寸、文字位置及底部留白。
+- 验证：在 `web/` 执行 `bunx --no-install tsgo -b`、`bunx --no-install oxlint -c .oxlintrc.json src/features/profile/lib/lanyard-texture.ts`、`bunx --no-install oxfmt --check src/features/profile/lib/lanyard-texture.ts` 均通过，`git diff --check` 通过。
 
 ## 涉及文件
 
