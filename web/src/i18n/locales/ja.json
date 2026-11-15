@@ -1489,6 +1489,7 @@
     "Click to visit FAQ": "よくある質問を見る",
     "Click, drag or paste images here": "Click, drag or paste images here",
     "Client": "クライアント",
+    "Client and model matching": "クライアントとモデルの組み合わせ",
     "Client header value": "クライアントヘッダー値",
     "Client headers override the gateway defaults and may cause upstream errors": "クライアントのヘッダーがゲートウェイの既定ヘッダーを上書きし、上流でエラーになる可能性があります",
     "Client ID": "クライアントID",

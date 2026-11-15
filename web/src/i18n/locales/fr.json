@@ -1489,6 +1489,7 @@
     "Click to visit FAQ": "Cliquer pour accéder à la FAQ",
     "Click, drag or paste images here": "Click, drag or paste images here",
     "Client": "Client",
+    "Client and model matching": "Compatibilité du client et du modèle",
     "Client header value": "Valeur d'en-tête client",
     "Client headers override the gateway defaults and may cause upstream errors": "Les en-têtes du client remplacent ceux de la passerelle et peuvent provoquer des erreurs en amont",
     "Client ID": "ID client",

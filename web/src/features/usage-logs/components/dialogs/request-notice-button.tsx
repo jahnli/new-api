@@ -1,5 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Bell } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  Bell,
+  Gauge,
+  MessageSquareWarning,
+  MonitorCheck,
+  ShieldAlert,
+} from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -10,15 +17,9 @@ import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
+import { Field, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { getVendors } from '@/features/models/api'
 import type { Vendor } from '@/features/models/types'
 import type { UserColumnRow } from '@/features/users/types'
@@ -147,7 +148,7 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
         onOpenChange={setConfirmOpen}
         title={t('Confirm Notification')}
         confirmText={t('Send')}
-        className='h-[75dvh] max-h-[90dvh] w-[calc(100vw-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] data-[size=default]:max-w-5xl data-[size=default]:sm:max-w-5xl'
+        className='h-[90dvh] max-h-[90dvh] w-[calc(100vw-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] data-[size=default]:max-w-6xl data-[size=default]:sm:max-w-6xl'
         closeOnOutsideClick
         isLoading={notifyMutation.isPending}
         disabled={
@@ -174,17 +175,13 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
                 avatarUrl={props.user.avatar_url}
               />
             </div>
-            <div className='space-y-2'>
-              <Label htmlFor={notificationTypeId}>
+            <FieldSet>
+              <FieldLegend id={notificationTypeId} variant='label'>
                 {t('Notification type')}
-              </Label>
-              <Select
-                items={[
-                  { value: 'non_work_content', label: t('Non-work content') },
-                  { value: 'security_risk', label: t('Security risk') },
-                  { value: 'frequent_requests', label: t('Frequent requests') },
-                  { value: 'model_switch', label: t('Switch model') },
-                ]}
+              </FieldLegend>
+              <RadioGroup
+                aria-labelledby={notificationTypeId}
+                className='gap-2.5'
                 value={notificationType}
                 disabled={notifyMutation.isPending}
                 onValueChange={(value) => {
@@ -192,68 +189,109 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
                     value === 'non_work_content' ||
                     value === 'security_risk' ||
                     value === 'frequent_requests' ||
-                    value === 'model_switch'
+                    value === 'model_switch' ||
+                    value === 'client_model_mismatch'
                   ) {
                     setNotificationType(value)
                   }
                 }}
               >
-                <SelectTrigger id={notificationTypeId} className='w-full'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align='start' alignItemWithTrigger={false}>
-                  <SelectGroup>
-                    <SelectItem value='non_work_content'>
-                      {t('Non-work content')}
-                    </SelectItem>
-                    <SelectItem value='security_risk'>
-                      {t('Security risk')}
-                    </SelectItem>
-                    <SelectItem value='frequent_requests'>
-                      {t('Frequent requests')}
-                    </SelectItem>
-                    <SelectItem value='model_switch'>
-                      {t('Switch model')}
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            {isModelSwitch && (
-              <div className='space-y-2'>
-                <Label htmlFor={targetVendorInputId} required>
-                  {t('Target model series')}
-                </Label>
-                <Combobox
-                  id={targetVendorInputId}
-                  value={targetVendorId}
-                  options={vendorOptions}
-                  onValueChange={(value) => setTargetVendorId(value ?? '')}
-                  placeholder={t('Select a target model series')}
-                  searchPlaceholder={t('Search vendors')}
-                  emptyText={t('No vendors found')}
-                  disabled={notifyMutation.isPending || !vendorsQuery.isSuccess}
-                />
-                {vendorsQuery.isPending && (
-                  <LoadingState inline size='sm' message={t('Loading...')} />
-                )}
-                {vendorsQuery.isError && (
-                  <ErrorState
-                    className='min-h-32'
-                    description={vendorsQuery.error.message}
-                    onRetry={() => void vendorsQuery.refetch()}
-                  />
-                )}
-                {vendorsQuery.isSuccess && vendorOptions.length === 0 && (
-                  <p className='text-muted-foreground text-sm'>
-                    {t('No vendors with linked models')}
-                  </p>
-                )}
-              </div>
-            )}
+                {[
+                  {
+                    value: 'non_work_content',
+                    label: t('Non-work content'),
+                    icon: MessageSquareWarning,
+                  },
+                  {
+                    value: 'security_risk',
+                    label: t('Security risk'),
+                    icon: ShieldAlert,
+                  },
+                  {
+                    value: 'frequent_requests',
+                    label: t('Frequent requests'),
+                    icon: Gauge,
+                  },
+                  {
+                    value: 'model_switch',
+                    label: t('Switch model'),
+                    icon: ArrowLeftRight,
+                  },
+                  {
+                    value: 'client_model_mismatch',
+                    label: t('Client and model matching'),
+                    icon: MonitorCheck,
+                  },
+                ].map((option) => (
+                  <div key={option.value} className='space-y-2'>
+                    <FieldLabel
+                      htmlFor={`${notificationTypeId}-${option.value}`}
+                      className='group/notice bg-background hover:border-primary/30 hover:bg-muted/40 has-data-checked:border-primary/50 has-data-checked:bg-primary/5 has-data-checked:text-primary focus-within:ring-primary/20 cursor-pointer transition-colors focus-within:ring-2 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-[>[data-slot=field]]:rounded-xl *:data-[slot=field]:p-3'
+                    >
+                      <Field orientation='horizontal' className='gap-3'>
+                        <span className='bg-muted text-muted-foreground group-has-data-checked/notice:bg-primary group-has-data-checked/notice:text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-md transition-colors'>
+                          <option.icon
+                            className='size-3.5'
+                            aria-hidden='true'
+                          />
+                        </span>
+                        <span className='min-w-0 flex-1 leading-snug'>
+                          {option.label}
+                        </span>
+                        <RadioGroupItem
+                          id={`${notificationTypeId}-${option.value}`}
+                          value={option.value}
+                        />
+                      </Field>
+                    </FieldLabel>
+                    {option.value === 'model_switch' && isModelSwitch && (
+                      <div className='space-y-2 px-3 pb-2'>
+                        <Label htmlFor={targetVendorInputId} required>
+                          {t('Target model series')}
+                        </Label>
+                        <Combobox
+                          id={targetVendorInputId}
+                          value={targetVendorId}
+                          options={vendorOptions}
+                          onValueChange={(value) =>
+                            setTargetVendorId(value ?? '')
+                          }
+                          placeholder={t('Select a target model series')}
+                          searchPlaceholder={t('Search vendors')}
+                          emptyText={t('No vendors found')}
+                          disabled={
+                            notifyMutation.isPending || !vendorsQuery.isSuccess
+                          }
+                        />
+                        {vendorsQuery.isPending && (
+                          <LoadingState
+                            inline
+                            size='sm'
+                            message={t('Loading...')}
+                          />
+                        )}
+                        {vendorsQuery.isError && (
+                          <ErrorState
+                            className='min-h-32'
+                            description={vendorsQuery.error.message}
+                            onRetry={() => void vendorsQuery.refetch()}
+                          />
+                        )}
+                        {vendorsQuery.isSuccess &&
+                          vendorOptions.length === 0 && (
+                            <p className='text-muted-foreground text-sm'>
+                              {t('No vendors with linked models')}
+                            </p>
+                          )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </RadioGroup>
+            </FieldSet>
           </div>
           <div
-            className='min-w-0'
+            className='flex min-w-0 flex-col'
             aria-live='polite'
             aria-busy={previewQuery.isFetching}
           >
@@ -264,7 +302,7 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
               />
             )}
             {canPreview && previewQuery.isPending && (
-              <LoadingState className='min-h-48' />
+              <LoadingState className='min-h-48 flex-1' />
             )}
             {canPreview && previewQuery.isError && (
               <ErrorState

@@ -11,21 +11,20 @@ export function RequestNoticePreviewCard(props: {
   preview: RequestNoticePreview
 }) {
   const { t } = useTranslation()
-  const NoticeIcon = props.preview.template === 'blue' ? RefreshCw : ShieldAlert
+  const isClientModelMatch =
+    props.preview.image_url === '/notice/client-model-match.png'
+  const isModelSwitch = props.preview.image_url === '/notice/model-switch.png'
+  const isModelGuidance = isClientModelMatch || isModelSwitch
+  const NoticeIcon = isModelGuidance ? RefreshCw : ShieldAlert
 
   if (
-    props.preview.image_url?.startsWith('/notice/non-work/') ||
-    props.preview.image_url?.startsWith('/notice/security-alert/') ||
-    props.preview.image_url?.startsWith('/notice/model-switch/') ||
-    props.preview.image_url?.startsWith('/notice/frequent-request/')
+    props.preview.image_url === '/notice/non-work.png' ||
+    props.preview.image_url === '/notice/security-alert/logo.png' ||
+    isModelGuidance ||
+    props.preview.image_url === '/notice/frequent-request.png'
   ) {
     const icons = ['time.png', 'model.png', 'id.png', 'client.png']
-    let iconDir = 'non-work'
-    if (props.preview.template === 'red') iconDir = 'security-alert'
-    if (props.preview.template === 'blue') iconDir = 'model-switch'
-    if (props.preview.image_url?.startsWith('/notice/frequent-request/')) {
-      iconDir = 'frequent-request'
-    }
+    const iconDir = props.preview.template === 'red' ? 'critical' : 'warn'
     return (
       <section aria-label={t('Preview')}>
         <Card
@@ -67,16 +66,14 @@ export function RequestNoticePreviewCard(props: {
                       >
                         <img
                           src={
-                            props.preview.template === 'blue'
-                              ? '/notice/model-switch/alarm.png'
+                            isModelGuidance
+                              ? '/notice/warn/alarm.png'
                               : `/notice/security-alert/${['key.png', 'prohibition.png', 'security.png'][index]}`
                           }
                           alt=''
                           className={cn(
                             'shrink-0',
-                            props.preview.template === 'blue'
-                              ? 'size-5'
-                              : 'size-6'
+                            isModelGuidance ? 'size-5' : 'size-6'
                           )}
                         />
                         <span>{text}</span>
@@ -88,7 +85,7 @@ export function RequestNoticePreviewCard(props: {
             </div>
             <dl className='grid grid-cols-2 gap-x-4 gap-y-4'>
               {props.preview.fields.map((field, index) => {
-                if (props.preview.template === 'blue' && index === 1) {
+                if (isModelSwitch && index === 1) {
                   return null
                 }
                 return (
@@ -96,8 +93,7 @@ export function RequestNoticePreviewCard(props: {
                     key={field.label}
                     className={cn(
                       'flex min-w-0 items-start gap-2',
-                      (index >= 2 || props.preview.template === 'blue') &&
-                        'col-span-2'
+                      (index >= 2 || isModelSwitch) && 'col-span-2'
                     )}
                   >
                     {icons[index] && (

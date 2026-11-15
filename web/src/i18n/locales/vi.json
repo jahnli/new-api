@@ -1489,6 +1489,7 @@
     "Click to visit FAQ": "Nhấp để xem câu hỏi thường gặp",
     "Click, drag or paste images here": "Click, drag or paste images here",
     "Client": "Máy khách",
+    "Client and model matching": "Ghép ứng dụng khách và mô hình",
     "Client header value": "Giá trị header client",
     "Client headers override the gateway defaults and may cause upstream errors": "Header của client sẽ ghi đè header mặc định của gateway và có thể gây lỗi ở upstream",
     "Client ID": "Mã khách hàng",

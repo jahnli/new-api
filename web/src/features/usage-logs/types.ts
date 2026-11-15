@@ -654,6 +654,7 @@ export type RequestNotificationType =
   | 'security_risk'
   | 'frequent_requests'
   | 'model_switch'
+  | 'client_model_mismatch'
 
 export interface RequestNoticePreview {
   title: string

@@ -131,7 +131,7 @@ func requestMessageNotice(c *gin.Context, previewOnly bool) {
 		return
 	}
 	switch request.NotificationType {
-	case "", service.RequestNoticeNonWorkContent, service.RequestNoticeSecurityRisk, service.RequestNoticeFrequentRequests:
+	case "", service.RequestNoticeNonWorkContent, service.RequestNoticeSecurityRisk, service.RequestNoticeFrequentRequests, service.RequestNoticeClientModelMismatch:
 	case service.RequestNoticeModelSwitch:
 		if request.TargetVendorId <= 0 {
 			common.ApiErrorT(c, "Select a target model series")

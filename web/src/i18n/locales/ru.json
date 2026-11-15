@@ -1489,6 +1489,7 @@
     "Click to visit FAQ": "Нажмите, чтобы перейти к FAQ",
     "Click, drag or paste images here": "Click, drag or paste images here",
     "Client": "Клиент",
+    "Client and model matching": "Соответствие клиента и модели",
     "Client header value": "Значение заголовка клиента",
     "Client headers override the gateway defaults and may cause upstream errors": "Заголовки клиента заменяют заголовки шлюза по умолчанию и могут вызвать ошибки вышестоящего сервиса",
     "Client ID": "ID клиента",

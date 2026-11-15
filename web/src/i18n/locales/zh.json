@@ -1489,6 +1489,7 @@
     "Click to visit FAQ": "点击访问常见问答",
     "Click, drag or paste images here": "点击、拖拽或粘贴图片到此处",
     "Client": "客户端",
+    "Client and model matching": "客户端与模型匹配",
     "Client header value": "客户端请求头值",
     "Client headers override the gateway defaults and may cause upstream errors": "客户端请求头会覆盖网关默认请求头，可能导致上游报错",
     "Client ID": "Client ID",

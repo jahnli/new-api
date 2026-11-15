@@ -306,10 +306,11 @@ func BuildViolationNoticeCard(requestTime string, requestID string, modelName st
 }
 
 const (
-	RequestNoticeNonWorkContent   = "non_work_content"
-	RequestNoticeSecurityRisk     = "security_risk"
-	RequestNoticeFrequentRequests = "frequent_requests"
-	RequestNoticeModelSwitch      = "model_switch"
+	RequestNoticeNonWorkContent      = "non_work_content"
+	RequestNoticeSecurityRisk        = "security_risk"
+	RequestNoticeFrequentRequests    = "frequent_requests"
+	RequestNoticeModelSwitch         = "model_switch"
+	RequestNoticeClientModelMismatch = "client_model_mismatch"
 )
 
 type RequestNoticeField struct {
@@ -344,13 +345,13 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 		title = i18n.TranslateRequestNotice(lang, "request_notice.non_work_title")
 		content = i18n.TranslateRequestNotice(lang, "request_notice.non_work_content")
 		template = "orange"
-		imageURL = "/notice/non-work/logo.png"
+		imageURL = "/notice/non-work.png"
 		subtitle = i18n.TranslateRequestNotice(lang, "request_notice.non_work_subtitle")
 	case RequestNoticeFrequentRequests:
 		title = i18n.TranslateRequestNotice(lang, "request_notice.frequent_requests_title")
 		content = i18n.TranslateRequestNotice(lang, "request_notice.frequent_requests_content")
-		template = "orange"
-		imageURL = "/notice/frequent-request/logo.png"
+		template = "red"
+		imageURL = "/notice/frequent-request.png"
 		subtitle = i18n.TranslateRequestNotice(lang, "request_notice.frequent_requests_subtitle")
 	case RequestNoticeSecurityRisk:
 		title = i18n.TranslateRequestNotice(lang, "request_notice.security_title")
@@ -367,8 +368,14 @@ func BuildRequestNoticePreview(requestTime string, requestID string, modelName s
 		title = i18n.TranslateRequestNotice(lang, "request_notice.model_switch_title")
 		content = i18n.TranslateRequestNotice(lang, "request_notice.model_switch_content", map[string]any{"Model": modelName, "Vendor": targetVendorName})
 		advice = append(advice, i18n.TranslateRequestNotice(lang, "request_notice.model_switch_advice"))
-		template = "blue"
-		imageURL = "/notice/model-switch/logo.png"
+		template = "orange"
+		imageURL = "/notice/model-switch.png"
+	case RequestNoticeClientModelMismatch:
+		title = i18n.TranslateRequestNotice(lang, "request_notice.client_model_mismatch_title")
+		content = i18n.TranslateRequestNotice(lang, "request_notice.client_model_mismatch_content")
+		advice = append(advice, i18n.TranslateRequestNotice(lang, "request_notice.client_model_mismatch_advice"))
+		template = "orange"
+		imageURL = "/notice/client-model-match.png"
 	default:
 		return nil, fmt.Errorf("invalid notification type")
 	}
@@ -423,43 +430,31 @@ func SendRequestNotice(ctx context.Context, message NotificationMessage, request
 		}
 	}
 	var iconKeys []string
-	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeFrequentRequests {
-		iconDir := "non-work"
-		if notificationType == RequestNoticeSecurityRisk {
-			iconDir = "security-alert"
-		} else if notificationType == RequestNoticeModelSwitch {
-			iconDir = "model-switch"
-		} else if notificationType == RequestNoticeFrequentRequests {
-			iconDir = "frequent-request"
+	isModelGuidance := notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeClientModelMismatch
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || isModelGuidance || notificationType == RequestNoticeFrequentRequests {
+		iconDir := "warn"
+		if preview.Template == "red" {
+			iconDir = "critical"
 		}
-		filenames := []string{"time.png", "model.png", "id.png", "client.png"}
+		filenames := []string{iconDir + "/time.png", iconDir + "/model.png", iconDir + "/id.png", iconDir + "/client.png"}
 		if notificationType == RequestNoticeModelSwitch {
 			filenames[1] = ""
 		}
 		if notificationType == RequestNoticeSecurityRisk {
-			filenames = append(filenames, "key.png", "prohibition.png", "security.png")
+			filenames = append(filenames, "security-alert/key.png", "security-alert/prohibition.png", "security-alert/security.png")
+		} else if isModelGuidance {
+			filenames = append(filenames, "warn/alarm.png")
 		}
 		for _, filename := range filenames {
 			if filename == "" {
 				iconKeys = append(iconKeys, "")
 				continue
 			}
-			data, err := web.NoticeImages.ReadFile("public/notice/" + iconDir + "/" + filename)
+			data, err := web.NoticeImages.ReadFile("public/notice/" + filename)
 			if err != nil {
 				return fmt.Errorf("read notice icon: %w", err)
 			}
-			key, err := uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: filename, Data: data})
-			if err != nil {
-				return fmt.Errorf("upload notice icon: %w", err)
-			}
-			iconKeys = append(iconKeys, key)
-		}
-		if notificationType == RequestNoticeModelSwitch {
-			data, err := web.NoticeImages.ReadFile("public/notice/model-switch/alarm.png")
-			if err != nil {
-				return fmt.Errorf("read notice icon: %w", err)
-			}
-			key, err := uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: "alarm.png", Data: data})
+			key, err := uploadFeishuNotificationImage(ctx, token, notificationImageUpload{Filename: path.Base(filename), Data: data})
 			if err != nil {
 				return fmt.Errorf("upload notice icon: %w", err)
 			}
@@ -494,14 +489,15 @@ func buildRequestNoticeCard(requestTime string, requestID string, modelName stri
 		return "", err
 	}
 
-	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeFrequentRequests {
+	isModelGuidance := notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeClientModelMismatch
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || isModelGuidance || notificationType == RequestNoticeFrequentRequests {
 		textColumn := map[string]any{
 			"tag": "column", "width": "weighted", "weight": 3, "vertical_align": "center",
 			"elements": []map[string]any{
 				{"tag": "markdown", "content": "**" + preview.Content + "**", "text_size": "heading"},
 			},
 		}
-		if notificationType == RequestNoticeModelSwitch {
+		if isModelGuidance {
 			textColumn["elements"] = []map[string]any{{"tag": "div", "text": map[string]string{"tag": "plain_text", "content": preview.Content, "text_size": "heading"}}}
 		}
 		if preview.Subtitle != "" {
@@ -511,7 +507,7 @@ func buildRequestNoticeCard(requestTime string, requestID string, modelName stri
 			adviceColumns := []map[string]any{}
 			if i+4 < len(iconKeys) {
 				iconSize := "24px 24px"
-				if notificationType == RequestNoticeModelSwitch {
+				if isModelGuidance {
 					iconSize = "20px 20px"
 				}
 				adviceColumns = append(adviceColumns, map[string]any{"tag": "column", "width": "auto", "elements": []map[string]any{{"tag": "img", "img_key": iconKeys[i+4], "alt": map[string]string{"tag": "plain_text", "content": text}, "transparent": true, "preview": false, "scale_type": "crop_center", "size": iconSize}}})
