@@ -471,7 +471,7 @@ export function useCommonLogsColumns(
           return value.includes(String(row.original.type))
         },
         enableHiding: false,
-        size: 171,
+        size: 145,
       },
     ]
 
