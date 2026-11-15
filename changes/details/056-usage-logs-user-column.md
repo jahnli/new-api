@@ -2,6 +2,11 @@
 
 **日期**: 2026-09-09 ~ 2026-11-15（最后更新 2026-11-15）
 
+## 2026-11-15 筛选位置与默认收起状态
+
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 互换渠道与请求 ID 筛选位置：渠道移至首行，请求 ID 移入高级筛选；使用日志高级筛选默认收起，移动端同步调整筛选顺序，并按实际字段位置更新高级筛选激活状态与移动端筛选数量。
+- `web/src/features/usage-logs/components/logs-filter-toolbar.tsx` — 新增默认展开状态配置，供使用日志默认收起高级筛选；其他复用页面沿用原有默认展开状态，保留手动展开与收起操作。
+
 ## 2026-11-15 请求处理标记展示名称与可见范围
 
 - `web/src/features/usage-logs/components/request-plugin-record.tsx` — 模型下方的请求处理标记改为“已处理 · 处理名称”，按当前界面语言展示并去重合并多个名称；复用表格次级文本样式，将标记及其内部文字设为 12px，避免被单元格统一的 13px 样式覆盖；限制内容最大宽度，长名称截断并保留完整悬浮提示。

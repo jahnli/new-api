@@ -427,22 +427,22 @@ export function CommonLogsFilterBar<TData>(
   )
 
   const hasExpandedFilters =
-    !!filters.username ||
     !!filters.group ||
     (isSuperAdmin && !!filters.userCategory) ||
-    !!filters.channel ||
     !!filters.requestId ||
     !!filters.upstreamRequestId
 
   const hasTypeFilter = logType !== LOG_TYPE_ALL_VALUE
   const hasAdditionalFilters =
-    !!filters.model || !!filters.group || hasTypeFilter || hasExpandedFilters
+    !!filters.model ||
+    !!filters.username ||
+    !!filters.channel ||
+    hasTypeFilter ||
+    hasExpandedFilters
 
   const expandedFilterCount = [
-    isAdmin ? filters.username : undefined,
     filters.group,
     isSuperAdmin ? filters.userCategory : undefined,
-    isAdmin ? filters.channel : undefined,
     filters.requestId,
     filters.upstreamRequestId,
   ].filter(Boolean).length
@@ -649,6 +649,21 @@ export function CommonLogsFilterBar<TData>(
       />
     </LogsFilterField>
   )
+  const channelFilter = isAdmin ? (
+    <LogsFilterField>
+      <Combobox
+        options={channelOptions}
+        value={filters.channel || ''}
+        onValueChange={(value) => handleChange('channel', value || undefined)}
+        placeholder={channelsLoading ? t('Loading...') : t('Channel')}
+        searchPlaceholder={channelsLoading ? t('Loading...') : t('Channel')}
+        emptyText='No data'
+        showCustomValueHint={false}
+        showSelectedOptionContent
+        openOnFocus
+      />
+    </LogsFilterField>
+  ) : null
   const advancedFilters = (
     <>
       {groupFilter}
@@ -661,23 +676,7 @@ export function CommonLogsFilterBar<TData>(
         />
       </LogsFilterField>
       {roleFilter}
-      {isAdmin && (
-        <LogsFilterField>
-          <Combobox
-            options={channelOptions}
-            value={filters.channel || ''}
-            onValueChange={(value) =>
-              handleChange('channel', value || undefined)
-            }
-            placeholder={channelsLoading ? t('Loading...') : t('Channel')}
-            searchPlaceholder={channelsLoading ? t('Loading...') : t('Channel')}
-            emptyText='No data'
-            showCustomValueHint={false}
-            showSelectedOptionContent
-            openOnFocus
-          />
-        </LogsFilterField>
-      )}
+      {requestIdFilter}
       {canManageScope && (
         <Tabs value={viewScope} onValueChange={handleViewScopeChange}>
           <TabsList>
@@ -709,23 +708,28 @@ export function CommonLogsFilterBar<TData>(
           {modelFilter}
           {typeFilter}
           {usernameFilter}
-          {requestIdFilter}
+          {channelFilter}
         </>
       }
       advancedFilters={advancedFilters}
+      defaultAdvancedOpen={false}
       mobilePinnedFilters={dateRangeFilter}
       mobileFilters={
         <>
           {modelFilter}
           {typeFilter}
           {usernameFilter}
-          {requestIdFilter}
+          {channelFilter}
           {advancedFilters}
         </>
       }
       mobileFilterCount={
-        [filters.model, filters.group, hasTypeFilter].filter(Boolean).length +
-        expandedFilterCount
+        [
+          filters.model,
+          isAdmin ? filters.username : undefined,
+          isAdmin ? filters.channel : undefined,
+          hasTypeFilter,
+        ].filter(Boolean).length + expandedFilterCount
       }
       hasAdvancedActiveFilters={hasExpandedFilters}
       advancedFilterCount={expandedFilterCount}
