@@ -519,7 +519,7 @@ export function useCommonLogsColumns(
                 responseModel={modelInfo.responseModel}
                 truncateText
               />
-              {requestPlugins?.length ? (
+              {isSuperAdmin && requestPlugins?.length ? (
                 <RequestPluginLogMarker items={requestPlugins} />
               ) : null}
             </div>
