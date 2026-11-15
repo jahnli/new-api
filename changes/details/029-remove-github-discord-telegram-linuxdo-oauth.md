@@ -331,16 +331,19 @@ OIDC 与 LDAP 设置页复用原公司配置表单，提取为共享组件 `Comp
 
 ## 2026-11-15：登录回调与退出确认展示优化
 
-普通 OIDC 登录回调不再渲染品牌、登录文案和加载动画，继续执行现有授权响应处理；成功后进入目标页面，需要二次验证时进入验证页，失败时提示错误并返回登录页。账号绑定和身份验证弹窗仍保留等待提示，其他提供商的回调展示不变。本次未增加超时或重试，回调请求等待期间可能暂时空白。
+删除共用的 OAuth 回调提示组件，各提供商的登录、账号绑定和身份验证回调均不再渲染品牌、等待文案和加载动画，继续执行现有授权响应处理。登录成功后进入目标页面，需要二次验证时进入验证页，失败时提示错误并返回登录页；绑定和身份验证保留窗口通信、结果提示、超时处理及关闭弹窗逻辑。本次未增加超时或重试，回调请求等待期间页面或弹窗可能暂时空白。
 
 退出确认统一使用通用确认文案，不再按 OIDC 会话显示跨系统退出说明，并精简简体中文提示；实际退出与登录中心联动逻辑不变。
 
 ### 涉及文件
 
-- `web/src/routes/oauth/$provider.tsx` — 普通 OIDC 登录模式返回空内容，保留回调处理和其他模式的提示组件。
+- `web/src/routes/oauth/$provider.tsx` — 移除提示组件引用，所有回调模式统一返回空内容，保留回调处理、结果提示、跳转和窗口通信。
+- `web/src/features/auth/components/oauth-callback-screen.tsx` — 删除共用的登录、绑定与身份验证等待提示组件。
 - `web/src/components/sign-out-dialog.tsx` — 退出确认描述统一复用通用文案。
 - `web/src/i18n/locales/zh.json` — 精简通用退出确认的简体中文翻译。
 
 ### 验证范围
 
 登录回调改动后，在 `web/` 执行 `bunx --package typescript tsc -b`、`bunx --no-install oxlint -c .oxlintrc.json 'src/routes/oauth/$provider.tsx'`、`bunx --no-install oxfmt --check 'src/routes/oauth/$provider.tsx'` 和 `bun run build`，均以退出码 0 完成；`bun run typecheck` 因当前环境缺少 `bun check` 命令失败，已用上述 TypeScript 编译器完成类型检查。未新增、修改或运行测试，未进行真实 OIDC 登录联调。本次日志整理同时记录工作区已有的退出确认文案调整，未再次修改业务代码。
+
+完整删除提示组件后，再次执行 `bunx --package typescript tsc -b`、上述回调路由的 Lint 与格式检查，以及 `git diff --check`，均通过；检索 `web/src` 确认没有组件名称或导入路径残留。本轮未重新执行生产构建，未新增、修改或运行测试，尚未联调实际登录、绑定与身份验证流程。

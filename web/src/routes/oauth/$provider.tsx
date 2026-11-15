@@ -9,7 +9,6 @@ import i18next from 'i18next'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 
-import { OAuthCallbackScreen } from '@/features/auth/components/oauth-callback-screen'
 import { OIDCSilentCallback } from '@/features/auth/components/oidc-silent-callback'
 import {
   OAUTH_POPUP_CALLBACK_MESSAGE,
@@ -215,10 +214,7 @@ function OAuthCallback() {
     search.redirect,
   ])
 
-  // Complete OIDC login without rendering an intermediate sign-in screen.
-  if (provider === 'oidc' && mode === 'login') return null
-
-  return <OAuthCallbackScreen provider={provider} mode={mode} />
+  return null
 }
 
 export const Route = createFileRoute('/oauth/$provider')({
