@@ -53,16 +53,16 @@ export function WalletSummary(props: WalletSummaryProps) {
   return (
     <div className='flex flex-col gap-2 sm:gap-3'>
       <div className='flex flex-wrap items-center justify-between gap-2'>
-        <span className='text-muted-foreground text-xs font-medium'>
+        <span className='text-muted-foreground text-sm font-medium'>
           {t('Credit remaining')}
         </span>
         {(usageReady || props.remainQuota <= 0) && (
           <span className='flex items-center gap-1.5'>
             <span
-              className={cn('size-1.5 rounded-full', dotClass)}
+              className={cn('size-2 rounded-full', dotClass)}
               aria-hidden='true'
             />
-            <span className='text-muted-foreground text-[11px] font-medium'>
+            <span className='text-muted-foreground text-xs font-medium'>
               {healthLabel}
             </span>
           </span>
@@ -78,28 +78,31 @@ export function WalletSummary(props: WalletSummaryProps) {
         <ErrorState className='min-h-0 p-0' onRetry={props.onRetry} />
       )}
       {usageReady && (
-        <div className='grid grid-cols-2 gap-2'>
-          <div className='bg-background/60 rounded-lg px-2.5 py-2'>
-            <div className='text-muted-foreground flex items-center gap-1 text-[11px] leading-none font-medium'>
-              <Flame className='size-3 shrink-0' aria-hidden='true' />
+        <div className='-mx-3 grid grid-cols-2 gap-2'>
+          <div className='bg-background/60 rounded-lg px-3 py-2.5'>
+            <div className='text-muted-foreground flex items-center gap-1.5 text-[13px] leading-snug font-medium'>
+              <Flame className='size-3.5 shrink-0' aria-hidden='true' />
               <span>{t('Last 24h usage')}</span>
             </div>
-            <div className='text-foreground mt-1.5 text-xs font-semibold break-words tabular-nums'>
+            <div className='text-foreground mt-2 text-base font-semibold break-words tabular-nums'>
               {formatQuota(props.recentUsage)}
             </div>
           </div>
-          <div className='bg-background/60 rounded-lg px-2.5 py-2'>
-            <div className='text-muted-foreground flex items-center gap-1 text-[11px] leading-none font-medium'>
+          <div className='bg-background/60 rounded-lg px-3 py-2.5'>
+            <div className='text-muted-foreground flex items-center gap-1.5 text-[13px] leading-snug font-medium'>
               {runwayDays !== null && runwayDays < 3 ? (
-                <TrendingDown className='size-3 shrink-0' aria-hidden='true' />
+                <TrendingDown
+                  className='size-3.5 shrink-0'
+                  aria-hidden='true'
+                />
               ) : (
-                <ShieldCheck className='size-3 shrink-0' aria-hidden='true' />
+                <ShieldCheck className='size-3.5 shrink-0' aria-hidden='true' />
               )}
               <span>{t('Runway')}</span>
             </div>
             <div
               className={cn(
-                'mt-1.5 text-xs font-semibold tabular-nums',
+                'mt-2 text-base font-semibold break-words tabular-nums',
                 healthClass
               )}
             >

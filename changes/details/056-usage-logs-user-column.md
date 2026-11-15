@@ -2,6 +2,21 @@
 
 **日期**: 2026-09-09 ~ 2026-11-15（最后更新 2026-11-15）
 
+## 2026-11-15 通知卡片列表、客户端匹配提醒与主题统一
+
+通知弹框与图片主题以本节为准，下方较早记录中的下拉选择、弹框尺寸、橙色频繁请求主题及分类素材目录保留为历史说明。
+
+- `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx` — 通知类型改为直接展示的五项单选卡片列表，复用现有单选组与字段组件，支持整行选择及选中高亮；图标缩至 14px、底座缩至 24px，目标模型系列仅在选中“模型切换”时紧随该项展开；弹框高度增至视口的 90%，最大宽度增至 1152px，保持左右预览布局与小屏滚动。
+- `controller/request_message.go`、`web/src/features/usage-logs/types.ts` — 请求通知校验与前端类型增加“客户端与模型匹配”分类，沿用手动预览和发送流程。
+- `service/feishu_department.go` — 新增客户端与模型匹配提醒，建议在 Claude Code 中使用 Claude 系列、在 Codex 中使用 GPT 系列，或切换到当前模型对应的客户端；模型切换与匹配提醒统一使用橙色主题，频繁请求改为红色主题；飞书发送按主题复用字段图标，并为模型指导类通知共用提醒图标。
+- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 预览按通知类型识别主图与模型指导内容，按红色或橙色主题选择共享字段图标；模型切换继续隐藏独立模型字段，客户端匹配提醒保留该字段。
+- `web/notice_assets.go` — 更新嵌入资源范围，包含根目录主图、共享警告图标、共享严重风险图标及安全风险专用插图。
+- `web/public/notice/client-model-match.png`、`web/public/notice/model-switch.png`、`web/public/notice/non-work.png` — 新增客户端匹配主图、更新模型切换主图，并将非工作内容主图移至统一目录。
+- `web/public/notice/frequent-request.png` — 频繁请求主图统一为珊瑚红，保留立体明暗效果、原始尺寸与透明背景。
+- `web/public/notice/warn/{alarm,client,id,model,time}.png`、`web/public/notice/critical/{client,id,model,time}.png` — 整合橙色警告与红色严重风险图标；安全风险目录继续保留专用主图和分项提示插图。
+- `web/public/notice/frequent-request/`、`web/public/notice/model-switch/`、`web/public/notice/non-work/` — 移除旧分类素材目录中的图片，原字段图标统一改用共享主题资源。
+- `i18n/locales/{en,zh-CN,zh-TW,fr,ja,ru,vi}.yaml`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐客户端与模型匹配通知标题、正文、建议及选择项的七语言文案。
+
 ## 2026-11-15 频繁请求通知与标准档位展示
 
 - `controller/request_message.go` — 请求通知预览与发送接受“频繁请求”分类。
