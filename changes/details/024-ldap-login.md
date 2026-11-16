@@ -1,6 +1,8 @@
-# 新增 LDAP 登录与飞书/钉钉用户同步
+# LDAP 功能移除与公司注册配置迁移
 
-**日期**: 2026-10-29
+**日期**: 2026-11-16
+
+当前行为以末尾「2026-11-16：移除 LDAP 并迁移公司注册规则」为准；此前 LDAP 登录、目录同步、邮箱后缀与名单配置说明保留为历史记录。
 
 ## 涉及文件
 
@@ -82,3 +84,36 @@
 ## 自 CHANGELOG 说明列迁入
 
 新增 LDAP 登录与飞书/钉钉同步：支持认证、绑定/解绑、按公司 OU 选择同步平台、配置凭据/邮箱后缀/自动订阅套餐及 7 语言界面；钉钉从 extensionAttribute12 读取 userid 回填资料与部门层级；公司配置支持显示名称映射，登录/注册/绑定时写入并可按原名或显示名匹配，留空则用 LDAP 公司名；LDAP 建号采用目录标准用户名，修复配置按钮遮挡与多公司套餐误匹配，保存配置时迁移已有用户公司字段
+
+## 2026-11-16：移除 LDAP 并迁移公司注册规则
+
+删除 LDAP 登录、绑定、连接检测、用户名过滤、目录密码重新认证及登录时的飞书/钉钉资料同步。登录页和认证设置不再提供 LDAP 入口，尚未完成的旧 LDAP 登录流程不能再创建会话。用户管理移除按密码是否为空推断的 LDAP/手动注册方式列与筛选，避免将 OIDC 用户误标为 LDAP。
+
+公司注册规则改存 `company_registration.configs`，仅保留公司、显示名称与自动订阅套餐；删除该表单中的同步平台、飞书/钉钉应用 ID、应用 Secret 及飞书邮箱后缀。OIDC 客户端凭据继续用于统一认证；员工资料来自 Casdoor，飞书 `properties.open_id` 与钉钉 `properties.user_id` 分别写入各自身份字段。公司匹配、显示名称变更同步及普通注册、后台创建用户的公司套餐分配继续使用独立规则，OIDC 资料与套餐仍只在首次注册时处理。
+
+启动时在事务内迁移旧 `ldap.company_sync_configs` 的有效注册字段；已有新配置优先保留，随后删除 `ldap.*` 选项，并从公司 `login_methods` 中移除 LDAP，不自动启用其他登录方式。迁移失败回滚并终止启动；后续保存拒绝旧 LDAP 配置键。迁移不删除用户、配额或订阅，也不删除公司独立平台凭据；公司配置的其他字段及大整数原值保留。独立公司平台的部门查询、通知及员工资料展示继续保留。
+
+### 涉及文件
+
+- `controller/ldap.go`、`service/ldap.go`、`setting/system_setting/ldap.go` — 删除目录认证与配置实现。
+- `router/api-router.go`、`middleware/access_token_routes.go`、`controller/misc.go` — 清理 LDAP 路由、令牌路由规则和站点状态字段。
+- `service/auth_session.go`、`service/security_verification.go` — 拒绝旧 LDAP 待完成登录流程，删除目录密码重新认证分支。
+- `setting/system_setting/company_registration.go` — 新增独立规则的加载、名称校验、默认显示名称归一化与公司匹配。
+- `model/company_registration_migration.go`、`main.go`、`model/option.go` — 启动迁移旧配置，保留新规则优先级，拒绝继续写入 LDAP 配置。
+- `controller/option.go`、`controller/user.go`、`service/oidc_profile.go` — 切换公司规则读写、显示名称迁移、建号订阅与 Casdoor 身份映射。
+- `model/company.go`、`web/src/features/companies/lib/company-form.ts`、`web/src/features/companies/types.ts` — 删除公司 LDAP 登录方式选项。
+- `service/feishu_sync.go`、`service/dingtalk_sync.go` — 删除 LDAP 驱动的员工资料同步；公共客户端与部门能力迁入 `service/feishu_client.go`、`service/dingtalk_client.go`、`service/employee_department.go`。
+- `web/src/features/auth/api.ts`、`web/src/features/auth/index.ts`、`web/src/features/auth/types.ts`、`web/src/features/auth/sign-in/components/user-auth-form.tsx`、`web/src/features/auth/sign-in/lib/login-view.ts` — 清理 LDAP 请求、状态和表单，OIDC 可用时优先展示企业登录。
+- `web/src/features/system-settings/auth/oauth-section.tsx`、`web/src/features/system-settings/auth/index.tsx`、`web/src/features/system-settings/auth/section-registry.tsx`、`web/src/features/system-settings/hooks/use-update-option.ts`、`web/src/features/system-settings/types.ts` — 删除 LDAP 分区，精简公司注册表单及配置默认值、回显、保存和类型。
+- `model/user.go`、`controller/user.go`、`web/src/features/users/`、`web/src/routes/_authenticated/users/index.tsx` — 删除 LDAP 专用用户查找与注册方式分类、列、查询参数及筛选状态。
+- `go.mod`、`go.sum` — 移除 LDAP 与对应 ASN.1 依赖；`.env.example` 修正飞书凭据用途注释。
+- `i18n/keys.go`、`i18n/locales/{en,zh-CN,zh-TW}.yaml`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json`、`web/src/i18n/static-keys.ts` 及翻译报告 — 清理废弃文案，补齐七语言公司注册说明。
+- 经用户授权删除 `service/ldap_test.go`、`service/feishu_sync_config_test.go`，清理 `web/src/features/system-settings/auth/__tests__/oauth-settings.test.tsx` 的旧配置及 `web/src/features/auth/sign-in/components/__tests__/view-title.test.ts` 的 LDAP 断言；未运行测试。
+
+### 验证范围
+
+本轮实现已通过根目录 `go build ./...`、修改 Go 文件的 `gofmt`、`git diff --check`，以及 `web/` 下 `bunx --no-install tsgo -b`、`bun run build`、`bun run i18n:sync` 和修改前端文件的 oxlint、oxfmt 检查。`bun run typecheck` 因当前 Bun 不提供脚本中的 `check` 命令失败，本地旧版 TypeScript 也不支持现有配置，改用已安装的 `tsgo` 完成类型检查。
+
+在临时目录使用隔离数据库启动应用（`new-api.exe --port 39041 --log-dir <临时日志目录>`，`SQLITE_PATH` 指向隔离文件），应用 SQLite 版本为 3.50.4（modernc.org/sqlite v1.40.1），辅助 sqlite3 CLI 为 3.50.6。全新数据库启动与重启成功；合成旧配置后连续启动两次，确认注册字段及套餐保留、`ldap.*` 选项清零、公司 LDAP 登录方式移除、独立平台凭据和大整数原值保留，`/api/status` 成功且不再返回 LDAP 标志。
+
+当前环境缺少 MySQL、PostgreSQL 与 Docker，未完成这两种数据库的验证，也未验证由真实最新发布版本数据库升级的路径；上述 SQLite 合成数据验证不能替代完整三库兼容验证。此次日志整理仅复核提交差异并执行文档空白检查，未重新运行构建或测试。

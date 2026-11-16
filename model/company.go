@@ -17,7 +17,6 @@ const (
 	CompanyStatusDisabled = "disabled"
 
 	CompanyLoginMethodPassword = "password"
-	CompanyLoginMethodLDAP     = "ldap"
 	CompanyLoginMethodPlatform = "platform"
 )
 
@@ -125,9 +124,9 @@ func (company *Company) SetConfig(config CompanyConfig) error {
 			continue
 		}
 		switch method {
-		case CompanyLoginMethodPassword, CompanyLoginMethodLDAP, CompanyLoginMethodPlatform:
+		case CompanyLoginMethodPassword, CompanyLoginMethodPlatform:
 		default:
-			return errors.New("company login method must be password, ldap, or platform")
+			return errors.New("company login method must be password or platform")
 		}
 		if _, exists := seenLoginMethods[method]; exists {
 			continue

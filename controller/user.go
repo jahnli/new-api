@@ -111,8 +111,6 @@ func loginMethodFromContext(c *gin.Context) string {
 		return "password"
 	case "/api/user/login/2fa":
 		return "2fa"
-	case "/api/user/login/ldap":
-		return "ldap"
 	case "/api/user/passkey/login/finish":
 		return "passkey"
 	case "/api/oauth/wechat":
@@ -336,7 +334,8 @@ func Register(c *gin.Context) {
 }
 
 func autoSubscribeUserAfterCreate(userId int, company string, source string) {
-	autoSubscribePlanId := system_setting.GetLDAPAutoSubscribePlanId(company)
+	_, config, _ := system_setting.ResolveRegistrationCompany(company)
+	autoSubscribePlanId := config.AutoSubscribePlanId
 	if autoSubscribePlanId <= 0 {
 		return
 	}
@@ -449,9 +448,8 @@ func SearchUsers(c *gin.Context) {
 	}
 	filters := model.UserSearchFilters{
 		Keyword: keyword, Group: group, Company: company, Role: role, Status: status,
-		RegistrationMethod: c.Query("registration_method"),
-		CustomerType:       customerType,
-		SettlementMode:     settlementMode,
+		CustomerType:   customerType,
+		SettlementMode: settlementMode,
 	}
 	pageInfo := common.GetPageQuery(c)
 	if common.IsComputedSortColumn(pageInfo.SortBy) {

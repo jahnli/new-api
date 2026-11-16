@@ -300,7 +300,6 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 
 	// Local dashboard extensions retain their role, department and ownership
 	// checks; token scopes are an additional restriction, never a replacement.
-	"POST /api/user/self/bind/ldap":                                      accessTokenSessionRule,
 	"GET /api/user/companies":                                            accessTokenScopeRule("user:read"),
 	"GET /api/user/sales":                                                accessTokenScopeRule("user:read"),
 	"GET /api/department/tree":                                           accessTokenScopeRule("usage:read"),
@@ -331,7 +330,6 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	"PUT /api/company/:id":                                               accessTokenScopeRule("option:write"),
 	"PATCH /api/company/:id/status":                                      accessTokenScopeRule("option:write"),
 	"POST /api/company/:id/test":                                         accessTokenScopeRule("option:write"),
-	"POST /api/option/ldap/test":                                         accessTokenScopeRule("option:write"),
 	"GET /api/model-square/config":                                       accessTokenScopeRule("option:read"),
 	"PUT /api/model-square/config":                                       accessTokenScopeRule("option:write"),
 	"GET /api/subscription/premium-models":                               accessTokenScopeRule("wallet:read"),

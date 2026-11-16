@@ -225,17 +225,6 @@ func UpdateOption(c *gin.Context) {
 			common.ApiErrorT(c, "Cannot enable {{provider}}. Enter the {{provider}} Client ID and Client Secret first.", map[string]any{"provider": "OIDC"})
 			return
 		}
-	case "ldap.enabled":
-		if option.Value == "true" {
-			ldap := system_setting.GetLDAPSettings()
-			if ldap.ServerURL == "" || ldap.BindDN == "" || ldap.SearchBase == "" {
-				c.JSON(http.StatusOK, gin.H{
-					"success": false,
-					"message": "无法启用 LDAP 登录，请先填入 LDAP Server URL、Bind DN 以及 Search Base！",
-				})
-				return
-			}
-		}
 	case "EmailDomainRestrictionEnabled":
 		if option.Value == "true" && len(common.EmailDomainWhitelist) == 0 {
 			common.ApiErrorT(c, "Cannot enable the email domain restriction. Enter the allowed email domains first.")
@@ -353,13 +342,13 @@ func UpdateOption(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
-	case "ldap.company_sync_configs":
-		normalized, normalizeErr := system_setting.NormalizeLDAPCompanySyncConfigsJSON(option.Value.(string))
+	case system_setting.CompanyRegistrationOptionKey:
+		normalized, normalizeErr := system_setting.NormalizeCompanyRegistrationConfigsJSON(option.Value.(string))
 		if normalizeErr != nil {
 			common.ApiErrorMsg(c, normalizeErr.Error())
 			return
 		}
-		migrateChangedLDAPCompanyDisplayNames(normalized)
+		migrateChangedCompanyDisplayNames(normalized)
 		option.Value = normalized
 	case "billing_setting.billing_expr":
 		expressions := make(map[string]string)
@@ -463,43 +452,43 @@ func UpdateOption(c *gin.Context) {
 	})
 }
 
-// migrateChangedLDAPCompanyDisplayNames compares the incoming company_sync_configs
+// migrateChangedCompanyDisplayNames compares the incoming registration configuration
 // JSON against the currently active configuration. For each entry where the
-// display_name has changed (matched by the immutable LDAP OU company key), it
+// display_name has changed (matched by the immutable Casdoor affiliation), it
 // batch-updates every user whose company field still holds the old display_name.
 //
 // Failures are logged but do not abort the config save so that a rename is
 // never silently blocked by a transient DB error.
-func migrateChangedLDAPCompanyDisplayNames(newConfigsJSON string) {
-	var newConfigs []system_setting.LDAPCompanySyncConfig
+func migrateChangedCompanyDisplayNames(newConfigsJSON string) {
+	var newConfigs []system_setting.CompanyRegistrationConfig
 	if err := common.UnmarshalJsonStr(newConfigsJSON, &newConfigs); err != nil {
-		common.SysError("LDAP company migration: failed to parse new configs: " + err.Error())
+		common.SysError(common.LogText("Company registration migration: failed to parse new configs: %s", err.Error()))
 		return
 	}
 
-	newDisplayNameByOU := make(map[string]string, len(newConfigs))
+	newDisplayNameByCompany := make(map[string]string, len(newConfigs))
 	for _, cfg := range newConfigs {
 		if cfg.Company != "" {
-			newDisplayNameByOU[cfg.Company] = cfg.DisplayName
+			newDisplayNameByCompany[cfg.Company] = cfg.DisplayName
 		}
 	}
 
-	for _, currentCfg := range system_setting.GetLDAPSettings().CompanySyncConfigs {
+	for _, currentCfg := range system_setting.GetCompanyRegistrationSettings().Configs {
 		if currentCfg.Company == "" || currentCfg.DisplayName == "" {
 			continue
 		}
-		newDisplayName, exists := newDisplayNameByOU[currentCfg.Company]
+		newDisplayName, exists := newDisplayNameByCompany[currentCfg.Company]
 		if !exists || newDisplayName == currentCfg.DisplayName {
 			continue
 		}
 		if err := model.RenameUserCompany(currentCfg.DisplayName, newDisplayName); err != nil {
-			common.SysError(fmt.Sprintf(
-				"LDAP company migration: rename %q -> %q failed: %s",
+			common.SysError(common.LogText(
+				"Company registration migration: rename %q -> %q failed: %s",
 				currentCfg.DisplayName, newDisplayName, err.Error(),
 			))
 		} else {
-			common.SysLog(fmt.Sprintf(
-				"LDAP company migration: renamed users company %q -> %q",
+			common.SysLog(common.LogText(
+				"Company registration migration: renamed users company %q -> %q",
 				currentCfg.DisplayName, newDisplayName,
 			))
 		}

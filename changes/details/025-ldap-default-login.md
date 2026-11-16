@@ -1,6 +1,8 @@
 # 登录页企业统一登录优先、账号切换与玻璃光球背景
 
-**日期**: 2026-11-09
+**日期**: 2026-11-16
+
+当前登录入口以末尾 2026-11-16 记录为准，旧 LDAP 视图说明仅保留为历史。
 
 ## 2026-11-09：企业登录入口与登录页视觉调整
 
@@ -24,3 +26,11 @@
 - `web/default/src/features/auth/components/ldap-login-dialog.tsx` — 删除：未被任何组件引用的独立 LDAP 登录弹窗
 - `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 新增企业账号和普通账号登录标题翻译，并将中文切换入口精简为“用户名或邮箱登录”
 - `web/default/src/features/auth/sign-in/index.tsx` — 移除“没有账号？注册”提示及注册链接，并将登录标题简化为左对齐布局
+
+## 2026-11-16：移除 LDAP 视图并优先展示 OIDC
+
+- `web/src/features/auth/sign-in/components/user-auth-form.tsx` — 删除 LDAP 输入框、提交逻辑与切换按钮；OIDC 开启时优先显示企业统一登录，再按其他已启用方式选择视图，保留原有登录页布局与背景。
+- `web/src/features/auth/sign-in/lib/login-view.ts`、`web/src/features/auth/api.ts`、`web/src/features/auth/types.ts`、`web/src/features/auth/index.ts` — 删除 LDAP 视图、请求、状态与导出。
+- `web/src/features/auth/sign-in/components/__tests__/view-title.test.ts` — 经用户授权清理失效 LDAP 断言，未运行测试。
+
+完整移除范围及验证限制见 [LDAP 功能移除与公司注册配置迁移](024-ldap-login.md)。

@@ -19,12 +19,10 @@
   "Search prompt or model": "Search prompt or model",
   "Set the ratio \"{{group}}\" uses for models of a specific vendor.": "Set the ratio \"{{group}}\" uses for models of a specific vendor.",
   "Set the ratio used for models of a specific vendor.": "Set the ratio used for models of a specific vendor.",
-  "Sign in with LDAP": "Sign in with LDAP",
   "Supports one-click configuration and perfectly adapts to AI Gateway multi-protocol configuration.": "Supports one-click configuration and perfectly adapts to AI Gateway multi-protocol configuration.",
   "Text to image": "Text to image",
   "The outer key is the billing group; the inner key is the vendor ID from the model vendor table. Models without a vendor keep the group base ratio.": "The outer key is the billing group; the inner key is the vendor ID from the model vendor table. Models without a vendor keep the group base ratio.",
   "This will permanently delete generation history and stored image files.": "This will permanently delete generation history and stored image files.",
   "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.": "to replace the group base ratio for models of that vendor. Vendor IDs come from the model vendor table.",
-  "Username or password is empty": "Username or password is empty",
   "Vendors come from the model square vendor table": "Vendors come from the model square vendor table"
 }

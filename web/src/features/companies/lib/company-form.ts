@@ -17,7 +17,6 @@ export const COMPANY_PLATFORM_OPTIONS = [
 
 export const COMPANY_LOGIN_METHOD_OPTIONS = [
   { value: 'password', labelKey: 'Password Login' },
-  { value: 'ldap', labelKey: 'LDAP Login' },
   { value: 'platform', labelKey: 'Platform Login' },
 ] as const
 

@@ -1,8 +1,8 @@
 # OAuth 登录调整与 OIDC 静默登录、双向退出联动及注册资料同步
 
-**日期**: 2026-11-15
+**日期**: 2026-11-16
 
-当前 OIDC 行为以末尾「2026-11-15：登录回调与退出确认展示优化」、「2026-11-13：手动授权恢复静默登录资格与存储标记兼容」、「2026-11-09：首次注册同步 Casdoor 员工资料并分配公司订阅」及「2026-11-06：可选静默登录与回调加载优化」、此前双向退出联动说明为准。前面的实现和回退说明保留为历史记录；当前保留手动登录，支持默认关闭的静默登录，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
+公司注册规则以末尾「2026-11-16：独立公司注册规则与平台身份映射」为准。其他 OIDC 行为以「2026-11-15：登录回调与退出确认展示优化」、「2026-11-13：手动授权恢复静默登录资格与存储标记兼容」、「2026-11-09：首次注册同步 Casdoor 员工资料并分配公司订阅」及「2026-11-06：可选静默登录与回调加载优化」、此前双向退出联动说明为准。前面的实现和回退说明保留为历史记录；当前保留手动登录，支持默认关闭的静默登录，主动退出使用 Casdoor 浏览器会话，后端退出通知使用签名验证与会话关联。
 
 ## 涉及文件
 
@@ -347,3 +347,15 @@ OIDC 与 LDAP 设置页复用原公司配置表单，提取为共享组件 `Comp
 登录回调改动后，在 `web/` 执行 `bunx --package typescript tsc -b`、`bunx --no-install oxlint -c .oxlintrc.json 'src/routes/oauth/$provider.tsx'`、`bunx --no-install oxfmt --check 'src/routes/oauth/$provider.tsx'` 和 `bun run build`，均以退出码 0 完成；`bun run typecheck` 因当前环境缺少 `bun check` 命令失败，已用上述 TypeScript 编译器完成类型检查。未新增、修改或运行测试，未进行真实 OIDC 登录联调。本次日志整理同时记录工作区已有的退出确认文案调整，未再次修改业务代码。
 
 完整删除提示组件后，再次执行 `bunx --package typescript tsc -b`、上述回调路由的 Lint 与格式检查，以及 `git diff --check`，均通过；检索 `web/src` 确认没有组件名称或导入路径残留。本轮未重新执行生产构建，未新增、修改或运行测试，尚未联调实际登录、绑定与身份验证流程。
+
+## 2026-11-16：独立公司注册规则与平台身份映射
+
+OIDC 公司注册规则从 `ldap.company_sync_configs` 迁至 `company_registration.configs`，表单仅保留公司、显示名称与自动订阅套餐，移除同步平台、飞书/钉钉应用凭据及飞书邮箱后缀。OIDC 自身的客户端 ID、Secret 和既有登录、退出配置继续保留。
+
+- `setting/system_setting/company_registration.go`、`controller/option.go` — 独立维护公司匹配、规则校验及显示名称变更同步。
+- `service/oidc_profile.go` — 首次注册直接将已验证 Casdoor 属性中的 `open_id` 和 `user_id` 分别保存为飞书、钉钉身份，不再依赖同步平台选择；后续登录继续不更新员工资料或追加套餐。
+- `web/src/features/system-settings/auth/oauth-section.tsx`、`web/src/features/system-settings/auth/index.tsx`、`web/src/features/system-settings/auth/section-registry.tsx`、`web/src/features/system-settings/types.ts` — 精简表单并切换默认值、回显、保存及类型到新配置键。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐独立公司注册规则说明并删除废弃同步配置文案。
+- `web/src/features/system-settings/auth/__tests__/oauth-settings.test.tsx` — 经用户授权清理旧 LDAP 默认值，改用新配置键，未运行测试。
+
+旧配置的事务迁移、保留能力及验证限制见 [LDAP 功能移除与公司注册配置迁移](024-ldap-login.md)。

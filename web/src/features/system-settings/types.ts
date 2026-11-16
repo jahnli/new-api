@@ -155,22 +155,8 @@ export type AuthSettings = {
   'oidc.well_known': string
   'oidc.authorization_endpoint': string
   'oidc.token_endpoint': string
+  'company_registration.configs': string
   'oidc.user_info_endpoint': string
-  'ldap.enabled': boolean
-  'ldap.server_url': string
-  'ldap.bind_dn': string
-  'ldap.bind_password': string
-  'ldap.search_base': string
-  'ldap.search_filter': string
-  'ldap.username_attribute': string
-  'ldap.email_attribute': string
-  'ldap.display_name_attribute': string
-  'ldap.start_tls': boolean
-  'ldap.skip_tls_verify': boolean
-  'ldap.login_label': string
-  'ldap.allowed_usernames'?: string
-  'ldap.username_filter_enabled'?: boolean
-  'ldap.company_sync_configs': string
   WeChatAuthEnabled: boolean
   WeChatServerAddress: string
   WeChatServerToken: string

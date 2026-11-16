@@ -12,7 +12,6 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { CopyButton } from '@/components/copy-button'
-import { MultiSelect } from '@/components/multi-select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,14 +34,12 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getAdminPlans } from '@/features/subscriptions/api'
 import type { PlanRecord } from '@/features/subscriptions/types'
-import { api } from '@/lib/api'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
 import {
   SettingsForm,
-  SettingsControlGroup,
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
@@ -57,7 +54,7 @@ import {
 /**
  * react-hook-form 7 treats dotted `name` strings as nested paths. To keep
  * form state, schema validation, and dirty tracking aligned, the
- * `oidc.*` and `ldap.*` fields are modeled as nested objects here and
+ * `oidc.*` and `company_registration.*` fields are modeled as nested objects here and
  * flattened back to dotted server keys only when persisting.
  */
 const oauthSchema = z.object({
@@ -72,32 +69,12 @@ const oauthSchema = z.object({
     token_endpoint: z.string(),
     user_info_endpoint: z.string(),
   }),
-  ldap: z.object({
-    enabled: z.boolean(),
-    server_url: z.string(),
-    bind_dn: z.string(),
-    bind_password: z.string(),
-    search_base: z.string(),
-    search_filter: z.string(),
-    username_attribute: z.string(),
-    email_attribute: z.string(),
-    display_name_attribute: z.string(),
-    start_tls: z.boolean(),
-    skip_tls_verify: z.boolean(),
-    login_label: z.string(),
-    allowed_usernames: z.array(z.string()),
-    username_filter_enabled: z.boolean(),
-    company_sync_configs: z.array(
+  company_registration: z.object({
+    configs: z.array(
       z.object({
         company: z.string(),
         display_name: z.string(),
-        sync_platform: z.enum(['none', 'feishu', 'dingtalk']),
         auto_subscribe_plan_id: z.number().int().nonnegative(),
-        feishu_app_id: z.string(),
-        feishu_app_secret: z.string(),
-        feishu_email_suffix: z.string(),
-        dingtalk_client_id: z.string(),
-        dingtalk_client_secret: z.string(),
       })
     ),
   }),
@@ -109,8 +86,8 @@ const oauthSchema = z.object({
 
 type OAuthFormValues = z.infer<typeof oauthSchema>
 
-type LDAPCompanySyncConfig =
-  OAuthFormValues['ldap']['company_sync_configs'][number]
+type CompanyRegistrationConfig =
+  OAuthFormValues['company_registration']['configs'][number]
 
 type FlatOAuthDefaults = {
   'oidc.enabled': boolean
@@ -122,21 +99,7 @@ type FlatOAuthDefaults = {
   'oidc.authorization_endpoint': string
   'oidc.token_endpoint': string
   'oidc.user_info_endpoint': string
-  'ldap.enabled': boolean
-  'ldap.server_url': string
-  'ldap.bind_dn': string
-  'ldap.bind_password': string
-  'ldap.search_base': string
-  'ldap.search_filter': string
-  'ldap.username_attribute': string
-  'ldap.email_attribute': string
-  'ldap.display_name_attribute': string
-  'ldap.start_tls': boolean
-  'ldap.skip_tls_verify': boolean
-  'ldap.login_label': string
-  'ldap.allowed_usernames'?: string
-  'ldap.username_filter_enabled'?: boolean
-  'ldap.company_sync_configs': string
+  'company_registration.configs': string
   WeChatAuthEnabled: boolean
   WeChatServerAddress: string
   WeChatServerToken: string
@@ -146,49 +109,37 @@ type FlatOAuthDefaults = {
 const oauthTabContentClassName =
   'grid min-w-0 gap-x-5 gap-y-6 lg:grid-cols-2 [&>[data-slot=form-item]]:min-w-0 lg:[&>[data-slot=form-item]:has([data-slot=switch])]:col-span-2'
 
-const emptyLDAPCompanySyncConfig = (): LDAPCompanySyncConfig => ({
+const emptyCompanyRegistrationConfig = (): CompanyRegistrationConfig => ({
   company: '',
   display_name: '',
-  sync_platform: 'none',
   auto_subscribe_plan_id: 0,
-  feishu_app_id: '',
-  feishu_app_secret: '',
-  feishu_email_suffix: '',
-  dingtalk_client_id: '',
-  dingtalk_client_secret: '',
 })
 
-const normalizeLDAPCompanySyncConfig = (
-  config: Partial<LDAPCompanySyncConfig>
-): LDAPCompanySyncConfig => {
+const normalizeCompanyRegistrationConfig = (
+  config: Partial<CompanyRegistrationConfig>
+): CompanyRegistrationConfig => {
   const company = config.company?.trim() ?? ''
-  const syncPlatform =
-    config.sync_platform === 'feishu' || config.sync_platform === 'dingtalk'
-      ? config.sync_platform
-      : 'none'
-
   return {
-    ...emptyLDAPCompanySyncConfig(),
-    ...config,
     company,
     display_name: config.display_name?.trim() || company,
-    sync_platform: syncPlatform,
     auto_subscribe_plan_id: Number(config.auto_subscribe_plan_id ?? 0),
   }
 }
 
-const parseLDAPCompanySyncConfigs = (
-  value: string | LDAPCompanySyncConfig[]
-): LDAPCompanySyncConfig[] => {
+const parseCompanyRegistrationConfigs = (
+  value: string | CompanyRegistrationConfig[]
+): CompanyRegistrationConfig[] => {
   if (Array.isArray(value)) {
-    return value.map(normalizeLDAPCompanySyncConfig)
+    return value.map(normalizeCompanyRegistrationConfig)
   }
   if (!value) return []
   try {
     const parsed = JSON.parse(value)
     if (!Array.isArray(parsed)) return []
     return parsed.map((item) =>
-      normalizeLDAPCompanySyncConfig(item as Partial<LDAPCompanySyncConfig>)
+      normalizeCompanyRegistrationConfig(
+        item as Partial<CompanyRegistrationConfig>
+      )
     )
   } catch {
     return []
@@ -244,12 +195,6 @@ function OAuthSetupGuide(props: OAuthSetupGuideProps) {
   )
 }
 
-const normalizeLDAPAllowedUsernames = (usernames: string[]): string[] => [
-  ...new Set(
-    usernames.map((username) => username.trim().toLowerCase()).filter(Boolean)
-  ),
-]
-
 const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   oidc: {
     enabled: defaults['oidc.enabled'],
@@ -262,25 +207,9 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     token_endpoint: defaults['oidc.token_endpoint'] ?? '',
     user_info_endpoint: defaults['oidc.user_info_endpoint'] ?? '',
   },
-  ldap: {
-    enabled: defaults['ldap.enabled'],
-    server_url: defaults['ldap.server_url'] ?? '',
-    bind_dn: defaults['ldap.bind_dn'] ?? '',
-    bind_password: defaults['ldap.bind_password'] ?? '',
-    search_base: defaults['ldap.search_base'] ?? '',
-    search_filter: defaults['ldap.search_filter'] ?? '(uid={{username}})',
-    username_attribute: defaults['ldap.username_attribute'] ?? 'uid',
-    email_attribute: defaults['ldap.email_attribute'] ?? 'mail',
-    display_name_attribute: defaults['ldap.display_name_attribute'] ?? 'cn',
-    start_tls: defaults['ldap.start_tls'],
-    skip_tls_verify: defaults['ldap.skip_tls_verify'],
-    login_label: defaults['ldap.login_label'] ?? '',
-    allowed_usernames: normalizeLDAPAllowedUsernames(
-      (defaults['ldap.allowed_usernames'] ?? '').split('\n')
-    ),
-    username_filter_enabled: defaults['ldap.username_filter_enabled'] ?? false,
-    company_sync_configs: parseLDAPCompanySyncConfigs(
-      defaults['ldap.company_sync_configs']
+  company_registration: {
+    configs: parseCompanyRegistrationConfigs(
+      defaults['company_registration.configs']
     ),
   },
   WeChatAuthEnabled: defaults.WeChatAuthEnabled,
@@ -301,22 +230,8 @@ const normalizeFormValues = (
   'oidc.authorization_endpoint': values.oidc.authorization_endpoint,
   'oidc.token_endpoint': values.oidc.token_endpoint,
   'oidc.user_info_endpoint': values.oidc.user_info_endpoint,
-  'ldap.enabled': values.ldap.enabled,
-  'ldap.server_url': values.ldap.server_url,
-  'ldap.bind_dn': values.ldap.bind_dn,
-  'ldap.bind_password': values.ldap.bind_password,
-  'ldap.search_base': values.ldap.search_base,
-  'ldap.search_filter': values.ldap.search_filter,
-  'ldap.username_attribute': values.ldap.username_attribute,
-  'ldap.email_attribute': values.ldap.email_attribute,
-  'ldap.display_name_attribute': values.ldap.display_name_attribute,
-  'ldap.start_tls': values.ldap.start_tls,
-  'ldap.skip_tls_verify': values.ldap.skip_tls_verify,
-  'ldap.login_label': values.ldap.login_label,
-  'ldap.allowed_usernames': values.ldap.allowed_usernames.join('\n'),
-  'ldap.username_filter_enabled': values.ldap.username_filter_enabled,
-  'ldap.company_sync_configs': JSON.stringify(
-    values.ldap.company_sync_configs.map(normalizeLDAPCompanySyncConfig)
+  'company_registration.configs': JSON.stringify(
+    values.company_registration.configs.map(normalizeCompanyRegistrationConfig)
   ),
   WeChatAuthEnabled: values.WeChatAuthEnabled,
   WeChatServerAddress: values.WeChatServerAddress,
@@ -351,9 +266,9 @@ export function OAuthSection(props: OAuthSectionProps) {
     defaultValues: formDefaults,
   })
 
-  const companySyncConfigs = useFieldArray({
+  const companyRegistrationConfigs = useFieldArray({
     control: form.control,
-    name: 'ldap.company_sync_configs',
+    name: 'company_registration.configs',
   })
 
   const planTitleById = useMemo(() => {
@@ -474,12 +389,10 @@ export function OAuthSection(props: OAuthSectionProps) {
 
     // The server validates persisted prerequisites when enabling a provider.
     // Disable first, save its configuration, then enable only after all writes
-    // succeed. Apply the same ordering to LDAP username filtering.
+    // succeed.
     const activationKeys = new Set<keyof FlatOAuthDefaults>([
       'oidc.enabled',
       'oidc.silent_login',
-      'ldap.enabled',
-      'ldap.username_filter_enabled',
       'WeChatAuthEnabled',
     ])
     const orderedKeys = [
@@ -509,23 +422,6 @@ export function OAuthSection(props: OAuthSectionProps) {
     toast.success(t('Form reset to saved values'))
   }
 
-  const [isTestingLDAP, setIsTestingLDAP] = useState(false)
-  const handleTestLDAP = async () => {
-    setIsTestingLDAP(true)
-    try {
-      const res = await api.post('/api/option/ldap/test')
-      if (res.data?.success) {
-        toast.success(t('LDAP connection test succeeded'))
-      } else {
-        toast.error(res.data?.message || t('LDAP connection test failed'))
-      }
-    } catch {
-      toast.error(t('LDAP connection test failed'))
-    } finally {
-      setIsTestingLDAP(false)
-    }
-  }
-
   return (
     <>
       <FormNavigationGuard when={form.formState.isDirty} />
@@ -542,10 +438,9 @@ export function OAuthSection(props: OAuthSectionProps) {
             <FormDirtyIndicator isDirty={form.formState.isDirty} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className='grid w-full grid-cols-3'>
+              <TabsList className='grid w-full grid-cols-2'>
                 <TabsTrigger value='oidc'>{t('OIDC')}</TabsTrigger>
                 <TabsTrigger value='wechat'>{t('WeChat')}</TabsTrigger>
-                <TabsTrigger value='ldap'>{t('LDAP')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value='oidc' className={oauthTabContentClassName}>
@@ -835,7 +730,7 @@ export function OAuthSection(props: OAuthSectionProps) {
                 </Alert>
                 <CompanyRegistrationSettings
                   form={form}
-                  configs={companySyncConfigs}
+                  configs={companyRegistrationConfigs}
                   plans={plans}
                   planTitleById={planTitleById}
                 />
@@ -936,377 +831,6 @@ export function OAuthSection(props: OAuthSectionProps) {
                   )}
                 />
               </TabsContent>
-
-              <TabsContent
-                value='ldap'
-                className={`${oauthTabContentClassName} pb-16`}
-              >
-                <FormField
-                  control={form.control}
-                  name='ldap.enabled'
-                  render={({ field }) => (
-                    <SettingsSwitchItem>
-                      <SettingsSwitchContent>
-                        <FormLabel>{t('Enable LDAP Login')}</FormLabel>
-                        <FormDescription>
-                          {t('Allow users to sign in with LDAP credentials')}
-                        </FormDescription>
-                      </SettingsSwitchContent>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </SettingsSwitchItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.server_url'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Server URL')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={t(
-                            'ldap://host:port or ldaps://host:port'
-                          )}
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.bind_dn'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Bind DN')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={t('Service account DN for searching')}
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.bind_password'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Bind Password')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='password'
-                          placeholder={t('Service account password')}
-                          autoComplete='new-password'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.search_base'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Search Base')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={t('Base DN to search users')}
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.search_filter'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Search Filter')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='(uid={{username}})'
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          'Use {{username}} as the placeholder for the login username'
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.username_attribute'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Username Attribute')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='uid'
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.email_attribute'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Email Attribute')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='mail'
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.display_name_attribute'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Display Name Attribute')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='cn'
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.login_label'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Login Button Label')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={t('Continue with LDAP')}
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t('Custom label for the LDAP login button')}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.start_tls'
-                  render={({ field }) => (
-                    <SettingsSwitchItem>
-                      <SettingsSwitchContent>
-                        <FormLabel>{t('StartTLS')}</FormLabel>
-                        <FormDescription>
-                          {t('Upgrade plain LDAP connection to TLS')}
-                        </FormDescription>
-                      </SettingsSwitchContent>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </SettingsSwitchItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='ldap.skip_tls_verify'
-                  render={({ field }) => (
-                    <SettingsSwitchItem>
-                      <SettingsSwitchContent>
-                        <FormLabel>{t('Skip TLS Verify')}</FormLabel>
-                        <FormDescription>
-                          {t(
-                            'Skip TLS certificate verification (not recommended)'
-                          )}
-                        </FormDescription>
-                      </SettingsSwitchContent>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </SettingsSwitchItem>
-                  )}
-                />
-
-                <SettingsControlGroup className='lg:col-span-2'>
-                  <FormField
-                    control={form.control}
-                    name='ldap.username_filter_enabled'
-                    render={({ field }) => (
-                      <SettingsSwitchItem>
-                        <SettingsSwitchContent>
-                          <FormLabel>
-                            {t('Enable Username Filtering')}
-                          </FormLabel>
-                          <FormDescription>
-                            {t(
-                              'When disabled, all users who pass LDAP authentication can sign in. New accounts still require registration to be enabled.'
-                            )}
-                          </FormDescription>
-                        </SettingsSwitchContent>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </SettingsSwitchItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='ldap.allowed_usernames'
-                    render={({ field }) => (
-                      <FormItem className='lg:col-span-2'>
-                        <FormLabel>{t('LDAP Username Allowlist')}</FormLabel>
-                        <FormControl>
-                          <MultiSelect
-                            options={[]}
-                            selected={field.value}
-                            onChange={(usernames) =>
-                              field.onChange(
-                                normalizeLDAPAllowedUsernames(usernames)
-                              )
-                            }
-                            allowCreate
-                            maxVisibleChips={8}
-                            placeholder={t('Type a username and press Enter')}
-                            inputAriaLabel={t('LDAP Username Allowlist')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </SettingsControlGroup>
-
-                <CompanyRegistrationSettings
-                  form={form}
-                  configs={companySyncConfigs}
-                  plans={plans}
-                  planTitleById={planTitleById}
-                />
-
-                <FormItem className='lg:col-span-2'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={handleTestLDAP}
-                    disabled={isTestingLDAP}
-                  >
-                    {isTestingLDAP ? t('Testing...') : t('Test Connection')}
-                  </Button>
-                  <FormDescription>
-                    {t('Save configuration before testing the LDAP connection')}
-                  </FormDescription>
-                </FormItem>
-              </TabsContent>
             </Tabs>
           </SettingsForm>
         </Form>
@@ -1317,7 +841,7 @@ export function OAuthSection(props: OAuthSectionProps) {
 
 function CompanyRegistrationSettings(props: {
   form: UseFormReturn<OAuthFormValues>
-  configs: UseFieldArrayReturn<OAuthFormValues, 'ldap.company_sync_configs'>
+  configs: UseFieldArrayReturn<OAuthFormValues, 'company_registration.configs'>
   plans: PlanRecord[]
   planTitleById: Map<number, string>
 }) {
@@ -1326,17 +850,17 @@ function CompanyRegistrationSettings(props: {
     <div className='space-y-4 rounded-md border p-4 lg:col-span-2'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <div className='space-y-1'>
-          <FormLabel>{t('Company Sync Configurations')}</FormLabel>
+          <FormLabel>{t('Company Registration Settings')}</FormLabel>
           <FormDescription>
             {t(
-              'LDAP and OIDC share these company names and registration subscription plans. Changes here apply to both. Directory providers are used for LDAP sync and platform ID mapping; OIDC reads employee profiles from Casdoor only.'
+              'Match the company from Casdoor to a display name and a subscription plan for new users.'
             )}
           </FormDescription>
         </div>
         <Button
           type='button'
           variant='outline'
-          onClick={() => props.configs.append(emptyLDAPCompanySyncConfig())}
+          onClick={() => props.configs.append(emptyCompanyRegistrationConfig())}
         >
           {t('Add Configuration')}
         </Button>
@@ -1344,7 +868,7 @@ function CompanyRegistrationSettings(props: {
 
       {props.configs.fields.length === 0 ? (
         <p className='text-muted-foreground text-sm'>
-          {t('No company sync configurations added')}
+          {t('No company registration rules added')}
         </p>
       ) : null}
 
@@ -1356,13 +880,13 @@ function CompanyRegistrationSettings(props: {
           >
             <FormField
               control={props.form.control}
-              name={`ldap.company_sync_configs.${index}.company`}
+              name={`company_registration.configs.${index}.company`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('Company')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder={t('LDAP company OU or Casdoor affiliation')}
+                      placeholder={t('Casdoor affiliation')}
                       autoComplete='off'
                       value={field.value ?? ''}
                       onChange={(event) => field.onChange(event.target.value)}
@@ -1378,7 +902,7 @@ function CompanyRegistrationSettings(props: {
 
             <FormField
               control={props.form.control}
-              name={`ldap.company_sync_configs.${index}.display_name`}
+              name={`company_registration.configs.${index}.display_name`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('Display Name')}</FormLabel>
@@ -1400,170 +924,7 @@ function CompanyRegistrationSettings(props: {
 
             <FormField
               control={props.form.control}
-              name={`ldap.company_sync_configs.${index}.sync_platform`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Sync Platform')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger
-                        className='h-9 w-full'
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      >
-                        <span>
-                          {field.value === 'feishu' ? t('Feishu') : null}
-                          {field.value === 'dingtalk' ? t('DingTalk') : null}
-                          {field.value === 'none' ? t('None') : null}
-                        </span>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value='none'>{t('None')}</SelectItem>
-                      <SelectItem value='feishu'>{t('Feishu')}</SelectItem>
-                      <SelectItem value='dingtalk'>{t('DingTalk')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {props.form.watch(
-              `ldap.company_sync_configs.${index}.sync_platform`
-            ) === 'feishu' ? (
-              <>
-                <FormField
-                  control={props.form.control}
-                  name={`ldap.company_sync_configs.${index}.feishu_app_id`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Application ID')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={props.form.control}
-                  name={`ldap.company_sync_configs.${index}.feishu_app_secret`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Application Secret')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='password'
-                          autoComplete='new-password'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={props.form.control}
-                  name={`ldap.company_sync_configs.${index}.feishu_email_suffix`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Feishu Email Suffix')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='@example.com'
-                          autoComplete='off'
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            ) : null}
-
-            {props.form.watch(
-              `ldap.company_sync_configs.${index}.sync_platform`
-            ) === 'dingtalk' ? (
-              <>
-                <FormField
-                  control={props.form.control}
-                  name={`ldap.company_sync_configs.${index}.dingtalk_client_id`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('DingTalk Client ID')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          autoComplete='off'
-                          placeholder={t('Original AppKey')}
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={props.form.control}
-                  name={`ldap.company_sync_configs.${index}.dingtalk_client_secret`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('DingTalk Client Secret')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type='password'
-                          autoComplete='new-password'
-                          placeholder={t('Original AppSecret')}
-                          value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            ) : null}
-
-            <FormField
-              control={props.form.control}
-              name={`ldap.company_sync_configs.${index}.auto_subscribe_plan_id`}
+              name={`company_registration.configs.${index}.auto_subscribe_plan_id`}
               render={({ field }) => {
                 const selectedPlanLabel = field.value
                   ? props.planTitleById.get(field.value) || t('Loading')

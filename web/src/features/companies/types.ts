@@ -6,7 +6,7 @@ export type CompanyPlatform = z.infer<typeof companyPlatformSchema>
 export const companyStatusSchema = z.enum(['enabled', 'disabled'])
 export type CompanyStatus = z.infer<typeof companyStatusSchema>
 
-export const companyLoginMethodSchema = z.enum(['password', 'ldap', 'platform'])
+export const companyLoginMethodSchema = z.enum(['password', 'platform'])
 export type CompanyLoginMethod = z.infer<typeof companyLoginMethodSchema>
 
 export const companyCredentialsSchema = z.object({

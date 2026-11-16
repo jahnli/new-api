@@ -5,7 +5,6 @@
 export {
   login,
   login2fa,
-  ldapLogin,
   logout,
   register,
   sendPasswordResetEmail,

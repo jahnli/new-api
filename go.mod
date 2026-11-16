@@ -65,7 +65,6 @@ require (
 )
 
 require (
-	github.com/go-ldap/ldap/v3 v3.4.13
 	github.com/waffo-com/waffo-pancake-sdk-go v0.3.1
 	gorm.io/driver/clickhouse v0.6.0
 )
@@ -95,7 +94,6 @@ require (
 )
 
 require (
-	github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect

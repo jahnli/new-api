@@ -136,7 +136,6 @@ type User struct {
 	Username             string                     `json:"username" gorm:"unique;index" validate:"max=20"`
 	Password             string                     `json:"password" gorm:"not null;" validate:"min=8,max=128"`
 	HasPassword          bool                       `json:"-" gorm:"-:all"`
-	RegistrationMethod   string                     `json:"registration_method,omitempty" gorm:"-:all"`
 	OriginalPassword     string                     `json:"original_password" gorm:"-:all"`
 	DisplayName          string                     `json:"display_name" gorm:"index" validate:"max=20"`
 	Role                 int                        `json:"role" gorm:"type:int;default:1"`
@@ -331,7 +330,7 @@ func (user *User) SetAccessToken(token string) {
 }
 
 // RenameUserCompany batch-updates the company field for all users whose
-// current company equals oldCompany. Used when an LDAP company display_name
+// current company equals oldCompany. Used when a company registration display_name
 // is renamed so that existing users are migrated immediately rather than
 // waiting for each user to log in again.
 func RenameUserCompany(oldCompany, newCompany string) error {
@@ -501,13 +500,6 @@ func NormalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
-// GetUnscopedUserByUsernameCaseInsensitive returns a user regardless of username casing or soft-deletion state.
-func GetUnscopedUserByUsernameCaseInsensitive(username string) (*User, error) {
-	user := &User{}
-	err := DB.Unscoped().Where("LOWER(username) = ?", strings.ToLower(strings.TrimSpace(username))).First(user).Error
-	return user, err
-}
-
 func emailQuery(tx *gorm.DB, email string) *gorm.DB {
 	if tx == nil {
 		tx = DB
@@ -628,10 +620,6 @@ func GetAllUsers(pageInfo *common.PageInfo, sortOptions ...UserSortOptions) (use
 		tx.Rollback()
 		return nil, 0, UserStatusCounts{}, err
 	}
-	if err = loadUserRegistrationMethods(tx, users); err != nil {
-		tx.Rollback()
-		return nil, 0, UserStatusCounts{}, err
-	}
 
 	// Commit transaction
 	if err = tx.Commit().Error; err != nil {
@@ -661,14 +649,13 @@ func SearchUsers(keyword string, group string, company string, role *int, status
 }
 
 type UserSearchFilters struct {
-	Keyword            string
-	Group              string
-	Company            string
-	Role               *int
-	Status             *int
-	RegistrationMethod string
-	CustomerType       string
-	SettlementMode     string
+	Keyword        string
+	Group          string
+	Company        string
+	Role           *int
+	Status         *int
+	CustomerType   string
+	SettlementMode string
 }
 
 func SearchUsersWithFilters(filters UserSearchFilters, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, UserStatusCounts, error) {
@@ -710,11 +697,6 @@ func SearchUsersWithFilters(filters UserSearchFilters, startIdx int, num int, so
 		return nil, 0, UserStatusCounts{}, err
 	}
 
-	if err = loadUserRegistrationMethods(tx, users); err != nil {
-		tx.Rollback()
-		return nil, 0, UserStatusCounts{}, err
-	}
-
 	// 提交事务
 	if err = tx.Commit().Error; err != nil {
 		return nil, 0, UserStatusCounts{}, err
@@ -752,12 +734,6 @@ func buildUserSearchQuery(tx *gorm.DB, filters UserSearchFilters) *gorm.DB {
 	if filters.Role != nil {
 		query = query.Where("role = ?", *filters.Role)
 	}
-	switch filters.RegistrationMethod {
-	case "ldap":
-		query = query.Where("password = ? OR password IS NULL", "")
-	case "manual":
-		query = query.Where("password <> ?", "")
-	}
 	if filters.Status != nil {
 		if *filters.Status == -1 {
 			query = query.Where("deleted_at IS NOT NULL")
@@ -766,33 +742,6 @@ func buildUserSearchQuery(tx *gorm.DB, filters UserSearchFilters) *gorm.DB {
 		}
 	}
 	return query
-}
-
-// Classify the page in one query without loading password hashes into memory.
-func loadUserRegistrationMethods(tx *gorm.DB, users []*User) error {
-	if len(users) == 0 {
-		return nil
-	}
-	ids := make([]int, len(users))
-	for i, user := range users {
-		ids[i] = user.Id
-	}
-	var ldapIDs []int
-	if err := tx.Unscoped().Model(&User{}).Where("id IN ?", ids).
-		Where("password = ? OR password IS NULL", "").Pluck("id", &ldapIDs).Error; err != nil {
-		return err
-	}
-	ldapUsers := make(map[int]struct{}, len(ldapIDs))
-	for _, id := range ldapIDs {
-		ldapUsers[id] = struct{}{}
-	}
-	for _, user := range users {
-		user.RegistrationMethod = "manual"
-		if _, ok := ldapUsers[user.Id]; ok {
-			user.RegistrationMethod = "ldap"
-		}
-	}
-	return nil
 }
 
 func countUserStatuses(query *gorm.DB) (UserStatusCounts, error) {

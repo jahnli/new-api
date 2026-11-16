@@ -1,6 +1,6 @@
 # 用户管理与共享悬停交互增强
 
-**日期**: 2026-06-30 ~ 2026-10-27（最后更新 2026-10-27）
+**日期**: 2026-06-30 ~ 2026-11-16（最后更新 2026-11-16）
 
 ## 涉及文件
 
@@ -295,3 +295,14 @@
 - `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐批量操作入口、确认说明、安全验证提示、进度及结果汇总的七语言翻译。
 
 验证：在 `web/` 下执行 `node_modules/.bin/tsgo.exe -b`、`bun run lint`、改动文件的 `bun x oxlint -c .oxlintrc.json` 与 `bun x oxfmt --check`、`bun run build`、`bun run i18n:sync`，均通过；按钮加文字后重新执行类型检查及该组件的 lint、格式检查并通过。`git diff --check` 通过。本机 Bun 不支持项目 `bun run typecheck` 脚本中的 `bun check`，因此使用已安装的 `tsgo` 完成类型检查。按项目要求未新增或运行测试。
+
+## 2026-11-16：移除 LDAP/手动注册方式分类
+
+删除按密码是否为空推断注册方式的列与筛选，避免将没有本地密码的 OIDC 用户误判为 LDAP 用户。
+
+- `model/user.go`、`controller/user.go` — 删除注册方式响应字段、批量分类查询与筛选参数处理。
+- `web/src/features/users/components/users-columns.tsx`、`web/src/features/users/components/users-table.tsx` — 删除注册方式列及其筛选状态和查询缓存参数。
+- `web/src/features/users/api.ts`、`web/src/features/users/types.ts`、`web/src/features/users/constants.ts`、`web/src/routes/_authenticated/users/index.tsx` — 清理接口参数、类型、选项与地址栏校验。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 清理失效注册方式文案。
+
+本轮非测试检查及数据库验证限制见 [LDAP 功能移除与公司注册配置迁移](024-ldap-login.md)。

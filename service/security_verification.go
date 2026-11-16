@@ -306,7 +306,6 @@ type VerificationRequirements struct {
 	Methods                   []VerificationMethodOption  `json:"methods"`
 	OAuthProviders            []VerificationOAuthProvider `json:"oauth_providers"`
 	PasswordEncryptionEnabled bool                        `json:"password_encryption_enabled"`
-	passwordViaLDAP           bool
 }
 
 // securityVerificationPolicy is the only operation-to-method policy. Device
@@ -390,24 +389,8 @@ func GetVerificationRequirements(identity AuthIdentity, scope string) (*Verifica
 		return nil, err
 	}
 	requirements := &VerificationRequirements{Scope: scope, Methods: methods, OAuthProviders: []VerificationOAuthProvider{}, PasswordEncryptionEnabled: common.PasswordLoginEncryptionEnabled}
-	// LDAP login does not store a local password hash. Only a live LDAP login
-	// session may use its directory password when no second factor is enrolled.
-	if !state.HasPassword && len(methods) == 1 && methods[0].Method == VerificationMethodOAuth {
-		ldapSettings := system_setting.GetLDAPSettings()
-		if _, accessToken := model.ParseAccessTokenSessionID(identity.SessionID); !accessToken && ldapSettings.Enabled {
-			session, _, err := ValidateLoginSession(identity)
-			if err != nil {
-				return nil, err
-			}
-			if session.LoginMethod == "ldap" {
-				requirements.passwordViaLDAP = true
-				// Reuse the configured LDAP login transport and authentication flow.
-				methods[0] = VerificationMethodOption{Method: VerificationMethodPassword, Available: true}
-			}
-		}
-	}
 	for i := range methods {
-		if methods[i].Method == VerificationMethodPassword && !requirements.passwordViaLDAP && !common.PasswordLoginEnabled {
+		if methods[i].Method == VerificationMethodPassword && !common.PasswordLoginEnabled {
 			switch scope {
 			case VerificationScopeAccountBind, VerificationScopeAccountUnbind, VerificationScopePasswordSet, VerificationScopePasswordChange, VerificationScopeAccountDelete,
 				VerificationScopeAdminUserCreate, VerificationScopeAdminUserUpdate, VerificationScopeAdminUserDelete,
@@ -579,7 +562,7 @@ func VerifySecurityInput(identity AuthIdentity, input VerificationInput) (*Secur
 	if err != nil {
 		return nil, err
 	}
-	requirements, err := RequireVerificationMethod(identity, input.Scope, input.Method)
+	_, err = RequireVerificationMethod(identity, input.Scope, input.Method)
 	if err != nil {
 		return nil, err
 	}
@@ -600,12 +583,7 @@ func VerifySecurityInput(identity AuthIdentity, input VerificationInput) (*Secur
 		if password == "" {
 			return nil, ErrVerificationFailed
 		}
-		if requirements.passwordViaLDAP {
-			ldapUser, err := AuthenticateLDAP(user.Username, password)
-			if err != nil || ldapUser == nil || !strings.EqualFold(ldapUser.Username, user.Username) {
-				return nil, ErrVerificationFailed
-			}
-		} else if user.Password == "" || !common.ValidatePasswordAndHash(password, user.Password) {
+		if user.Password == "" || !common.ValidatePasswordAndHash(password, user.Password) {
 			return nil, ErrVerificationFailed
 		}
 	case VerificationMethodTwoFA:

@@ -12,7 +12,6 @@ import {
   USER_CUSTOMER_TYPE,
   USER_CUSTOMER_TYPES,
   USER_SETTLEMENT_MODES,
-  getRegistrationMethodOptions,
   getUserCustomerTypeOptions,
   getUserSettlementModeOptions,
 } from '../constants'
@@ -138,30 +137,6 @@ export function useUsersColumns(
         size: 40,
       } satisfies ColumnDef<User>,
       ...sharedColumns,
-      {
-        accessorKey: 'registration_method',
-        header: ({ column }) => (
-          <DataTableColumnHeaderFilter
-            column={column}
-            label={t('Registration Method')}
-            options={getRegistrationMethodOptions(t)}
-          />
-        ),
-        cell: ({ row }) => {
-          const method = getRegistrationMethodOptions(t).find(
-            (option) => option.value === row.original.registration_method
-          )
-          if (!method) return null
-          return (
-            <div className='flex items-center gap-x-2'>
-              <method.icon size={16} className='text-muted-foreground' />
-              <span className='text-sm'>{method.label}</span>
-            </div>
-          )
-        },
-        enableSorting: false,
-        size: 150,
-      } satisfies ColumnDef<User>,
       ...(externalMode
         ? [
             {

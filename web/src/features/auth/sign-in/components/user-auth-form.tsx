@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from '@tanstack/react-router'
-import axios from 'axios'
 import {
   Building2,
   KeyRound,
@@ -28,7 +27,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { login, ldapLogin, wechatLoginByCode } from '@/features/auth/api'
+import { login, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { loginFormSchema } from '@/features/auth/constants'
@@ -75,9 +74,6 @@ export function UserAuthForm({
   useEffect(() => () => passkeyOperation.current?.abort(), [])
   const [isWeChatDialogOpen, setIsWeChatDialogOpen] = useState(false)
   const [isWeChatSubmitting, setIsWeChatSubmitting] = useState(false)
-  const [ldapUsername, setLdapUsername] = useState('')
-  const [ldapPassword, setLdapPassword] = useState('')
-  const [isLdapSubmitting, setIsLdapSubmitting] = useState(false)
   const [activeView, setActiveView] = useState<LoginView | null>(null)
   const [turnstileWidgetKey, setTurnstileWidgetKey] = useState(0)
   const legalConsentErrorMessage = t('Please agree to the legal terms first')
@@ -116,7 +112,6 @@ export function UserAuthForm({
     (requiresLegalConsent && !agreedToLegal)
   const hasWeChatLogin = Boolean(status?.wechat_login)
   const hasEnterpriseLogin = Boolean(status?.oidc_enabled)
-  const hasLDAPLogin = Boolean(status?.ldap_enabled)
   const hasOAuthLogin = Boolean(
     status?.oidc_enabled || (status?.custom_oauth_providers?.length ?? 0) > 0
   )
@@ -125,12 +120,10 @@ export function UserAuthForm({
 
   useEffect(() => {
     if (status && activeView === null) {
-      if (externalModeEnabled && passwordLoginEnabled) {
-        setActiveView('password')
-      } else if (hasEnterpriseLogin) {
+      if (hasEnterpriseLogin) {
         setActiveView('oauth')
-      } else if (hasLDAPLogin) {
-        setActiveView('ldap')
+      } else if (externalModeEnabled && passwordLoginEnabled) {
+        setActiveView('password')
       } else if (hasAlternativeLogin && !passwordLoginEnabled) {
         setActiveView('oauth')
       } else {
@@ -142,7 +135,6 @@ export function UserAuthForm({
     activeView,
     externalModeEnabled,
     hasEnterpriseLogin,
-    hasLDAPLogin,
     hasAlternativeLogin,
     passwordLoginEnabled,
   ])
@@ -230,46 +222,6 @@ export function UserAuthForm({
       handleServerError(AuthOperationError.from(error, loginFailedMessage))
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  async function handleLdapSubmit() {
-    if (requiresLegalConsent && !agreedToLegal) {
-      toast.error(legalConsentErrorMessage)
-      return
-    }
-    if (!ldapUsername.trim() || !ldapPassword) {
-      toast.error(t('Username or password is empty'))
-      return
-    }
-    if (!validateTurnstile()) return
-
-    const submittedTurnstileToken = turnstileToken
-    if (isTurnstileEnabled) {
-      setTurnstileToken('')
-      setTurnstileWidgetKey((current) => current + 1)
-    }
-
-    setIsLdapSubmitting(true)
-    try {
-      const res = await ldapLogin({
-        username: ldapUsername.trim(),
-        password: ldapPassword,
-        turnstile: submittedTurnstileToken,
-      })
-      if (!res.success) {
-        throw new Error(res.message || loginFailedMessage)
-      }
-
-      setLdapPassword('')
-      if (await handleLoginResult(res.data, redirectTo)) {
-        toast.success(t('Welcome back!'))
-      }
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) return
-      toast.error(error instanceof Error ? error.message : loginFailedMessage)
-    } finally {
-      setIsLdapSubmitting(false)
     }
   }
 
@@ -377,13 +329,6 @@ export function UserAuthForm({
   const switchLinks = useMemo(() => {
     const links: { label: string; view: LoginView; icon?: React.ReactNode }[] =
       []
-    if (activeView !== 'ldap' && hasLDAPLogin && !hasEnterpriseLogin) {
-      links.push({
-        label: t('Enterprise account sign in'),
-        view: 'ldap',
-        icon: <Building2 className='h-4 w-4' />,
-      })
-    }
     if (activeView !== 'password' && passwordLoginEnabled) {
       links.push({
         label: t('Sign in with other methods'),
@@ -411,7 +356,6 @@ export function UserAuthForm({
   }, [
     activeView,
     externalModeEnabled,
-    hasLDAPLogin,
     hasEnterpriseLogin,
     passwordLoginEnabled,
     hasAlternativeLogin,
@@ -449,71 +393,6 @@ export function UserAuthForm({
       </div>
     )
   }
-
-  const renderLdapForm = () => (
-    <div className='grid gap-4'>
-      <div className='grid gap-2'>
-        <div className='flex items-baseline gap-2'>
-          <Label htmlFor='ldap-username'>{t('Username')}</Label>
-          {!externalModeEnabled && (
-            <span className='text-muted-foreground text-xs'>
-              {t('Example: {{example}}', { example: 'lijiaheng' })}
-            </span>
-          )}
-        </div>
-        <Input
-          id='ldap-username'
-          placeholder={t('Enter your username')}
-          value={ldapUsername}
-          onChange={(e) => setLdapUsername(e.target.value)}
-          autoComplete='username'
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleLdapSubmit()
-            }
-          }}
-        />
-      </div>
-      <div className='grid gap-2'>
-        <Label htmlFor='ldap-password'>{t('Password')}</Label>
-        <PasswordInput
-          id='ldap-password'
-          placeholder={t('Enter password')}
-          value={ldapPassword}
-          onChange={(e) => setLdapPassword(e.target.value)}
-          autoComplete='current-password'
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleLdapSubmit()
-            }
-          }}
-        />
-      </div>
-
-      <Button
-        type='button'
-        className='mt-2 w-full justify-center gap-2'
-        disabled={isLdapSubmitting || (requiresLegalConsent && !agreedToLegal)}
-        onClick={handleLdapSubmit}
-      >
-        {isLdapSubmitting ? <Loader2 className='animate-spin' /> : <LogIn />}
-        {t('Sign in')}
-      </Button>
-
-      {isTurnstileEnabled && (
-        <div className='mt-2'>
-          <Turnstile
-            key={turnstileWidgetKey}
-            siteKey={turnstileSiteKey}
-            onVerify={setTurnstileToken}
-            onExpire={() => setTurnstileToken('')}
-          />
-        </div>
-      )}
-    </div>
-  )
 
   const renderPasswordForm = () => (
     <>
@@ -631,7 +510,6 @@ export function UserAuthForm({
         className={cn('grid gap-4', className)}
         {...props}
       >
-        {activeView === 'ldap' && renderLdapForm()}
         {activeView === 'password' && renderPasswordForm()}
         {activeView === 'oauth' && renderOAuthView()}
 
@@ -651,7 +529,7 @@ export function UserAuthForm({
           onOpenChange={handleWeChatDialogChange}
           title={t('WeChat sign in')}
           description={t(
-            'Scan the QR code to follow the official account and reply with "验证码" to receive your verification code.'
+            'Scan the QR code to follow the official account and reply with “验证码” to receive your verification code.'
           )}
           contentClassName='max-w-sm'
           headerClassName='text-left'

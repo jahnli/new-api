@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -375,6 +376,9 @@ func InitResources() error {
 			common.SysError(common.LogText("failed to migrate sensitive words: %s", err.Error()))
 			return err
 		}
+	}
+	if err := model.MigrateLegacyLDAPSettings(); err != nil {
+		return fmt.Errorf("migrate company registration settings: %w", err)
 	}
 	model.InitOptionMap()
 

@@ -41,7 +41,7 @@ func ApplyOIDCRegistrationProfile(user *model.User, claims map[string]any) (int,
 		return 0, errors.New("invalid OIDC employee profile")
 	}
 
-	company, config, hasConfig := system_setting.ResolveLDAPCompany(profile.Affiliation)
+	company, config, hasConfig := system_setting.ResolveRegistrationCompany(profile.Affiliation)
 	avatar := strings.TrimSpace(user.AvatarUrl)
 	if avatar == "" {
 		avatar = strings.TrimSpace(profile.Avatar)
@@ -114,15 +114,10 @@ func ApplyOIDCRegistrationProfile(user *model.User, claims map[string]any) (int,
 	user.JoinDate = profile.Properties.JobDate
 	user.JobDescription = profile.Properties.JobDescription
 	user.Ethnicity = profile.Properties.Ethnicity
+	user.OpenId = profile.Properties.OpenID
+	user.DingdingId = profile.Properties.UserID
 	if !hasConfig {
 		return 0, nil
-	}
-	// Select the platform-specific identifier using the shared company rule.
-	switch config.SyncPlatform {
-	case system_setting.LDAPSyncPlatformFeishu:
-		user.OpenId = profile.Properties.OpenID
-	case system_setting.LDAPSyncPlatformDingTalk:
-		user.DingdingId = profile.Properties.UserID
 	}
 	return config.AutoSubscribePlanId, nil
 }

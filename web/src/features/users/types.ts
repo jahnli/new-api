@@ -65,7 +65,6 @@ export const userSchema = z.object({
   role: userRoleSchema,
   customer_type: userCustomerTypeSchema.optional(),
   settlement_mode: userSettlementModeSchema.optional(),
-  registration_method: z.enum(['ldap', 'manual']).optional(),
   sales_user_id: z.number().optional(),
   sales_user: salesUserSchema.optional(),
   sales_user_ids: z.array(z.number()).nullable().optional(),
@@ -158,7 +157,6 @@ export interface SearchUsersParams {
   role?: string
   customer_type?: UserCustomerType
   settlement_mode?: UserSettlementMode
-  registration_method?: string
   status?: string
   p?: number
   page_size?: number

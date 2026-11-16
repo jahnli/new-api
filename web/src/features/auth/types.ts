@@ -80,8 +80,6 @@ export interface SystemStatus {
     oidc_authorization_endpoint?: string
     oidc_client_id?: string
     oidc_display_name?: string
-    ldap_enabled?: boolean
-    ldap_login_label?: string
     passkey_login?: boolean
     wechat_login?: boolean
     wechat_qrcode?: string
@@ -122,8 +120,6 @@ export interface SystemStatus {
   oidc_authorization_endpoint?: string
   oidc_client_id?: string
   oidc_display_name?: string
-  ldap_enabled?: boolean
-  ldap_login_label?: string
   passkey_login?: boolean
   wechat_login?: boolean
   wechat_qrcode?: string
