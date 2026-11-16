@@ -123,18 +123,25 @@ export function TaskDetailsDialog(props: TaskDetailsDialogProps) {
       description={t('View the complete details for this task')}
       contentClassName='min-w-0 overflow-hidden sm:max-w-2xl'
       headerClassName='flex-row flex-wrap items-center gap-x-3 gap-y-1 max-sm:gap-x-2'
-      headerLeading={
+      headerTrailing={
         showUserIdentity ? (
           <LogUserIdentity
+            size='sm'
             className='flex-none'
             userId={props.log.user_id}
             username={demoMode ? '' : props.log.username}
-            displayName={demoMode ? DEMO_MODE_USERNAME_MASK : undefined}
+            displayName={
+              demoMode ? DEMO_MODE_USERNAME_MASK : props.log.display_name
+            }
+            avatarUrl={demoMode ? undefined : props.log.avatar_url || undefined}
             openId={demoMode ? undefined : props.log.open_id || undefined}
+            gender={props.log.gender}
             canFetchDetails={!demoMode}
           />
         ) : undefined
       }
+      titleClassName='flex items-center gap-2 text-base'
+      descriptionClassName='sr-only'
       contentHeight='min(72dvh, 720px)'
       bodyClassName='pr-2 sm:pr-4'
     >

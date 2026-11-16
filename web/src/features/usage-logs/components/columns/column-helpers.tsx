@@ -18,8 +18,10 @@ import { formatTimestampToDate, formatTokens } from '@/lib/format'
 import { translateServerText } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
+import { getUsageLogChannelDisplay } from '../../lib/channel-visibility'
 import { formatDuration } from '../../lib/format'
 import { FailReasonDialog } from '../dialogs/fail-reason-dialog'
+import { useUsageLogsContext } from '../usage-logs-provider'
 
 /**
  * Cache tooltip component for token display
@@ -151,6 +153,7 @@ export function createDurationColumn<T>(config: {
 export function createChannelColumn<T>(config: {
   accessorKey?: string
   headerLabel: string
+  channelNameKey?: keyof T
 }): ColumnDef<T> {
   const { accessorKey = 'channel_id', headerLabel } = config
 
@@ -161,9 +164,38 @@ export function createChannelColumn<T>(config: {
     ),
     cell: function ChannelCell({ row }) {
       const demoMode = useDemoMode()
+      const { sensitiveVisible } = useUsageLogsContext()
       const channelId = row.getValue(accessorKey) as number
       if (!channelId) {
         return <span className='text-muted-foreground/60 text-xs'>-</span>
+      }
+      if (config.channelNameKey) {
+        const channelDisplay = getUsageLogChannelDisplay(
+          row.original[config.channelNameKey] as string | undefined,
+          channelId,
+          sensitiveVisible,
+          demoMode
+        )
+        return (
+          <TextTooltip content={channelDisplay.tooltip}>
+            <div className='flex max-w-[120px] flex-col gap-0.5'>
+              <StatusBadge
+                label={channelDisplay.id}
+                copyable={!demoMode}
+                copyText={String(channelId)}
+                size='sm'
+                showDot={false}
+                showTooltip={false}
+                className='text-muted-foreground/70 w-fit font-mono'
+              />
+              {channelDisplay.name && (
+                <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
+                  {channelDisplay.name}
+                </span>
+              )}
+            </div>
+          </TextTooltip>
+        )
       }
       const channelIdDisplay = demoMode ? DEMO_MODE_MASK : `#${channelId}`
       return (
@@ -178,6 +210,7 @@ export function createChannelColumn<T>(config: {
         />
       )
     },
+    ...(config.channelNameKey ? { size: 110, maxSize: 110 } : {}),
     meta: { label: headerLabel },
   }
 }

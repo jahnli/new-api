@@ -24,18 +24,15 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { useDemoMode } from '@/hooks/use-demo-mode'
-import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
-import { getDemoModeUsername } from '@/lib/demo-mode'
+import { TextTooltip } from '@/components/text-tooltip'
 import { formatTimestampToDate } from '@/lib/format'
 import { translateServerText } from '@/lib/server-error-message'
-import { buildFeishuUserChatUrl, cn } from '@/lib/utils'
 
 import { taskActionMapper, taskStatusMapper } from '../../lib/mappers'
+import { getSafePluginAuthorUrl } from '../../lib/task-artifacts'
 import type { TaskLog } from '../../types'
 import { TaskDetailsDialog } from '../dialogs/task-details-dialog'
-import { PluginAuthorLink } from '../plugin-author-link'
+import { LogUserCell } from '../log-user-cell'
 import { TaskArtifactsCell } from '../task-artifacts'
 import { useUsageLogsContext } from '../usage-logs-provider'
 import {
@@ -91,7 +88,6 @@ export function useTaskLogsColumns(
   isRoot = false
 ): ColumnDef<TaskLog>[] {
   const { t } = useTranslation()
-  const demoMode = useDemoMode()
   return useMemo(() => {
     const columns: ColumnDef<TaskLog>[] = [
       {
@@ -116,146 +112,99 @@ export function useTaskLogsColumns(
             </div>
           )
         },
-        size: 180,
+        size: 110,
+        maxSize: 110,
       },
     ]
-
-    if (showChannelColumn) {
-      columns.push(createChannelColumn<TaskLog>({ headerLabel: t('Channel') }))
-    }
 
     if (isAdmin) {
       columns.push(
         {
           id: 'user',
           header: t('User'),
+          size: 120,
+          maxSize: 120,
           accessorFn: (row) => row.username || row.user_id,
           cell: function UserCell({ row }) {
             const { sensitiveVisible } = useUsageLogsContext()
             const log = row.original
-            const displayName = getDemoModeUsername(
-              log.username || String(log.user_id || '?'),
-              demoMode
-            )
-
-            if (demoMode) {
-              return (
-                <span className='text-muted-foreground/70 truncate text-sm'>
-                  {displayName}
-                </span>
-              )
-            }
-
-            const feishuChatUrl = buildFeishuUserChatUrl(log.open_id)
-            const avatarElement = (
-              <Avatar className='ring-border/60 size-6 ring-1 max-sm:hidden'>
-                <AvatarFallback
-                  className={cn(
-                    'text-[11px] font-semibold',
-                    !sensitiveVisible && 'bg-muted text-muted-foreground'
-                  )}
-                  style={
-                    sensitiveVisible
-                      ? getUserAvatarStyle(displayName)
-                      : undefined
-                  }
-                >
-                  {sensitiveVisible ? getUserAvatarFallback(displayName) : '•'}
-                </AvatarFallback>
-              </Avatar>
-            )
-
             return (
-              <div className='flex items-center gap-1.5 text-left'>
-                {feishuChatUrl && sensitiveVisible ? (
-                  <a
-                    href={feishuChatUrl}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='focus-visible:ring-ring rounded-full focus-visible:ring-2 focus-visible:outline-none'
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {avatarElement}
-                  </a>
-                ) : (
-                  avatarElement
-                )}
-                <span className='text-muted-foreground/70 truncate text-sm'>
-                  {sensitiveVisible ? displayName : '••••'}
-                </span>
-              </div>
+              <LogUserCell
+                userId={log.user_id}
+                username={log.username || String(log.user_id || '?')}
+                displayName={log.display_name}
+                avatarUrl={log.avatar_url || undefined}
+                openId={log.open_id || undefined}
+                gender={log.gender}
+                canFetchUserDetails={isAdmin}
+                sensitiveVisible={sensitiveVisible}
+              />
             )
           },
         },
         {
           id: 'plugin',
           header: t('Plugin'),
+          size: 180,
+          maxSize: 220,
           accessorFn: (row) => row.admin_info?.task_plugin?.key ?? '',
           cell: ({ row }) => {
             const plugin = row.original.admin_info?.task_plugin
             if (!plugin) {
               return <span className='text-muted-foreground/60 text-xs'>-</span>
             }
+            const authorTooltip = [
+              plugin.author?.name.trim(),
+              getSafePluginAuthorUrl(plugin.author),
+            ]
+              .filter(Boolean)
+              .join('\n')
             return (
-              <div className='flex max-w-[170px] flex-col gap-0.5'>
-                <span className='truncate text-xs font-medium'>
-                  {plugin.name || plugin.key}
-                </span>
-                <span className='text-muted-foreground truncate font-mono text-[11px]'>
-                  {plugin.key}
-                  {plugin.version ? ` @ ${plugin.version}` : ''}
-                </span>
-                {plugin.author ? (
-                  <PluginAuthorLink
-                    author={plugin.author}
-                    showUrl
-                    className='text-muted-foreground text-[11px]'
-                  />
-                ) : null}
-              </div>
+              <TextTooltip content={authorTooltip}>
+                <div className='flex max-w-full min-w-0 flex-col gap-0.5'>
+                  <span className='truncate text-xs font-medium'>
+                    {plugin.name || plugin.key}
+                  </span>
+                  <span className='text-muted-foreground truncate font-mono text-[11px]'>
+                    {plugin.key}
+                    {plugin.version ? ` @ ${plugin.version}` : ''}
+                  </span>
+                </div>
+              </TextTooltip>
             )
           },
         }
       )
     }
 
+    if (showChannelColumn) {
+      columns.push({
+        ...createChannelColumn<TaskLog>({
+          headerLabel: t('Channel'),
+          channelNameKey: 'channel_name',
+        }),
+        size: 80,
+        maxSize: 80,
+      })
+    }
+
     columns.push(
       {
-        accessorKey: 'task_id',
-        header: t('Task ID'),
-        cell: ({ row }) => {
-          const log = row.original
-          const taskId = row.getValue('task_id') as string
-          if (!taskId) {
-            return <span className='text-muted-foreground/60 text-xs'>-</span>
-          }
-          return (
-            <div className='flex max-w-[170px] flex-col gap-0.5'>
-              <StatusBadge
-                label={taskId}
-                copyText={taskId}
-                variant='neutral'
-                size='sm'
-                className='border-border/60 bg-muted/30 !text-foreground max-w-full truncate rounded-md border px-1.5 py-0.5 font-mono'
-              />
-              <span className='text-muted-foreground/60 truncate text-[11px]'>
-                {t(log.platform)} · {t(taskActionMapper.getLabel(log.action))}
-              </span>
-            </div>
-          )
-        },
-        meta: { mobileTitle: true },
+        ...createDurationColumn<TaskLog>({
+          submitTimeKey: 'submit_time',
+          finishTimeKey: 'finish_time',
+          unit: 'seconds',
+          headerLabel: t('Duration'),
+          warningThresholdSec: 300,
+        }),
+        size: 80,
+        maxSize: 80,
       },
-      createDurationColumn<TaskLog>({
-        submitTimeKey: 'submit_time',
-        finishTimeKey: 'finish_time',
-        unit: 'seconds',
-        headerLabel: t('Duration'),
-        warningThresholdSec: 300,
-      }),
       {
         accessorKey: 'status',
         header: t('Status'),
+        size: 70,
+        maxSize: 70,
         cell: ({ row }) => {
           const status = row.getValue('status') as string
           return (
@@ -271,7 +220,39 @@ export function useTaskLogsColumns(
           )
         },
       },
-      createProgressColumn<TaskLog>({ headerLabel: t('Progress') }),
+      {
+        ...createProgressColumn<TaskLog>({ headerLabel: t('Progress') }),
+        size: 70,
+        maxSize: 70,
+      },
+      {
+        accessorKey: 'task_id',
+        header: t('Task ID'),
+        size: 220,
+        maxSize: 260,
+        cell: ({ row }) => {
+          const log = row.original
+          const taskId = row.getValue('task_id') as string
+          if (!taskId) {
+            return <span className='text-muted-foreground/60 text-xs'>-</span>
+          }
+          return (
+            <div className='flex max-w-full min-w-0 flex-col gap-0.5'>
+              <StatusBadge
+                label={taskId}
+                copyText={taskId}
+                variant='neutral'
+                size='sm'
+                className='border-border/60 bg-muted/30 !text-foreground max-w-full truncate rounded-md border px-1.5 py-0.5 font-mono'
+              />
+              <span className='text-muted-foreground/60 truncate text-[11px]'>
+                {t(log.platform)} · {t(taskActionMapper.getLabel(log.action))}
+              </span>
+            </div>
+          )
+        },
+        meta: { mobileTitle: true },
+      },
       {
         id: 'artifacts',
         header: t('Artifacts'),
@@ -292,12 +273,12 @@ export function useTaskLogsColumns(
             isRoot={isRoot}
           />
         ),
-        size: 220,
-        maxSize: 240,
+        size: 80,
+        maxSize: 80,
         meta: { pinned: 'right' as const },
       }
     )
 
     return columns
-  }, [t, isAdmin, showChannelColumn, isRoot, demoMode])
+  }, [t, isAdmin, showChannelColumn, isRoot])
 }

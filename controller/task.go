@@ -438,16 +438,23 @@ func GetUserTask(c *gin.Context) {
 }
 
 func tasksToDto(tasks []*model.Task, fillUser bool, viewerRole int) []*dto.TaskDto {
-	var userIDMap map[int]*model.UserBase
+	var userIDMap map[int]*model.User
+	channelNames := make(map[int]string)
 	if fillUser {
-		userIDMap = make(map[int]*model.UserBase)
+		userIDMap = make(map[int]*model.User)
 		userIDs := types.NewSet[int]()
 		for _, task := range tasks {
 			userIDs.Add(task.UserId)
+			if _, loaded := channelNames[task.ChannelId]; !loaded {
+				channelNames[task.ChannelId] = ""
+				if channel, err := model.CacheGetChannel(task.ChannelId); err == nil {
+					channelNames[task.ChannelId] = channel.Name
+				}
+			}
 		}
 		for _, userID := range userIDs.Items() {
-			if cacheUser, err := model.GetUserCache(userID); err == nil {
-				userIDMap[userID] = cacheUser
+			if user, err := model.GetUserById(userID, false); err == nil {
+				userIDMap[userID] = user
 			}
 		}
 	}
@@ -460,6 +467,14 @@ func tasksToDto(tasks []*model.Task, fillUser bool, viewerRole int) []*dto.TaskD
 			}
 		}
 		item := relay.TaskModel2Dto(task)
+		if fillUser {
+			if user, ok := userIDMap[task.UserId]; ok {
+				item.DisplayName = user.DisplayName
+				item.AvatarUrl = user.AvatarUrl
+				item.Gender = user.Gender
+			}
+			item.ChannelName = channelNames[task.ChannelId]
+		}
 		item.LegacyVideoAvailable = legacyVideoAvailable(task)
 		item.ResultDiscarded = task.PrivateData.ResultDiscarded
 		if task.Status == model.TaskStatusSuccess {

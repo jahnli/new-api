@@ -55,6 +55,10 @@ type TaskDto struct {
 	Progress        string          `json:"progress"`
 	Properties      any             `json:"properties"`
 	Username        string          `json:"username,omitempty"`
+	DisplayName     string          `json:"display_name,omitempty"`
+	AvatarUrl       string          `json:"avatar_url,omitempty"`
+	Gender          int             `json:"gender,omitempty"`
+	ChannelName     string          `json:"channel_name,omitempty"`
 	OpenId          string          `json:"open_id,omitempty"`
 	Data            json.RawMessage `json:"data"`
 	AdminInfo       *TaskAdminInfo  `json:"admin_info,omitempty"`
