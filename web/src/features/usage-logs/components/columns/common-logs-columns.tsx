@@ -526,7 +526,7 @@ export function useCommonLogsColumns(
           )
         },
         meta: { mobileTitle: true },
-        size: 202,
+        size: 218,
       },
       {
         accessorKey: 'use_time',
