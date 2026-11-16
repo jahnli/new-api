@@ -1,6 +1,17 @@
 # 飞书凭据惰性读取，并移除全局 FEISHU_EMAIL_SUFFIX 兜底
 
-**日期**: 2026-08-12
+**日期**: 2026-11-16
+
+## 2026-11-16 移除全局飞书应用凭据
+
+非工作时间通知改用收件人所属公司的飞书应用配置，移除最后一处全局应用凭据读取及单租户令牌缓存。下方 LDAP 同步内容保留为历史记录，当前凭据来源以独立公司配置为准。
+
+- `setting/system_setting/feishu.go` — 删除 `FeishuAppID`、`FeishuAppSecret` 及对应环境变量读取，仅保留支持联系人 `FEISHU_SUPPORT_OPEN_ID` 的惰性读取。
+- `service/feishu_department.go` — 删除全局应用令牌缓存与旧卡片发送入口；非工作时间通知按用户公司获取应用配置，校验公司启用状态、飞书平台、应用凭据与接收人平台身份后发送。
+- `.env.example` — 移除 `FEISHU_APP_ID`、`FEISHU_APP_SECRET` 示例，注明应用凭据在公司配置中设置。
+- `docker-compose.yml` — 移除上述两个全局应用凭据环境变量的透传。
+
+通知预览、卡片及界面变更见 [#056](056-usage-logs-user-column.md)。
 
 ## 背景
 

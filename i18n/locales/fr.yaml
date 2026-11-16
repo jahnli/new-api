@@ -21,3 +21,6 @@ request_notice.security_content: "Votre requête API peut présenter un risque d
 request_notice.security_check: "Vérifiez la présence de données sensibles, d'identifiants ou d'autres contenus dangereux"
 request_notice.security_prohibition: "La rétro-ingénierie, les modèles REA et les activités de piratage sont interdits"
 request_notice.security_stop: "Arrêtez immédiatement et prenez en charge les risques associés."
+request_notice.off_hours_content: "Une utilisation fréquente de la passerelle a été détectée en dehors des heures de travail. Vérifiez ces requêtes et adaptez vos horaires d’utilisation."
+request_notice.off_hours_subtitle: "Si ces requêtes correspondent à une activité professionnelle normale, ignorez cet avis. Sinon, vérifiez rapidement votre compte, vos clés API et la configuration de votre client."
+request_notice.request_count: "Nombre de requêtes"

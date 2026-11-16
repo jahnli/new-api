@@ -134,3 +134,6 @@ request_notice.security_prohibition: "禁止進行逆向分析、REA 模型或�
 request_notice.security_stop: "立即停止運行並處理相關風險。"
 
 channel.notify_scheduled_subject: "渠道「{{.Name}}」(#{{.Id}}) 外掛通知"
+request_notice.off_hours_content: "系統偵測到您在非工作時間內較頻繁地使用了閘道服務，請確認相關請求，並合理調整使用時間"
+request_notice.off_hours_subtitle: "如上述請求屬於正常業務使用，可忽略此通知；如非本人或非預期操作，請及時檢查相關帳號、金鑰及呼叫設定"
+request_notice.request_count: "請求次數"

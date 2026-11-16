@@ -133,3 +133,6 @@ request_notice.security_prohibition: "Reverse analysis, REA models, and cracking
 request_notice.security_stop: "Stop immediately and address the related risks."
 
 channel.notify_scheduled_subject: "Channel \"{{.Name}}\" (#{{.Id}}) plugin notification"
+request_notice.off_hours_content: "Frequent gateway usage was detected outside working hours. Please review these requests and adjust your usage schedule."
+request_notice.off_hours_subtitle: "If these requests are expected business activity, you can ignore this notice. Otherwise, check your account, API keys, and client configuration promptly."
+request_notice.request_count: "Request count"

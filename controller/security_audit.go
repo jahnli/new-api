@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/system_setting"
@@ -15,10 +17,11 @@ import (
 )
 
 type notifyOffHoursViolationRequest struct {
-	UserId       int   `json:"user_id"`
-	StartTime    int64 `json:"start_time"`
-	EndTime      int64 `json:"end_time"`
-	RequestCount int64 `json:"request_count"`
+	UserId       int    `json:"user_id"`
+	StartTime    int64  `json:"start_time"`
+	EndTime      int64  `json:"end_time"`
+	RequestCount int64  `json:"request_count"`
+	Language     string `json:"language"`
 }
 
 // GetSecurityAuditSetting 供管理员(role >= admin)读取审计配置。
@@ -57,6 +60,14 @@ func GetOffHoursUsage(c *gin.Context) {
 }
 
 func NotifyOffHoursViolation(c *gin.Context) {
+	offHoursViolationNotice(c, false)
+}
+
+func PreviewOffHoursViolationNotice(c *gin.Context) {
+	offHoursViolationNotice(c, true)
+}
+
+func offHoursViolationNotice(c *gin.Context, previewOnly bool) {
 	var request notifyOffHoursViolationRequest
 	if err := common.DecodeJson(c.Request.Body, &request); err != nil {
 		common.ApiError(c, err)
@@ -67,13 +78,9 @@ func NotifyOffHoursViolation(c *gin.Context) {
 		return
 	}
 
-	var user model.User
-	if err := model.DB.Select("id, open_id").Where("id = ?", request.UserId).First(&user).Error; err != nil {
+	user, err := model.GetUserById(request.UserId, false)
+	if err != nil {
 		common.ApiError(c, err)
-		return
-	}
-	if strings.TrimSpace(user.OpenId) == "" {
-		common.ApiErrorMsg(c, "The user has not bound a Feishu account")
 		return
 	}
 
@@ -82,12 +89,18 @@ func NotifyOffHoursViolation(c *gin.Context) {
 		time.Unix(request.StartTime, 0).Local().Format("2006-01-02 15:04:05"),
 		time.Unix(request.EndTime, 0).Local().Format("2006-01-02 15:04:05"),
 	)
-	cardJSON, err := service.BuildOffHoursViolationNoticeCard(requestTime, request.RequestCount)
-	if err != nil {
-		common.ApiError(c, err)
+	lang := strings.TrimSpace(request.Language)
+	if lang == "" {
+		lang = i18n.StatedLang(c)
+	}
+	preview := service.BuildOffHoursViolationNoticePreview(requestTime, request.RequestCount, lang)
+	if previewOnly {
+		common.ApiSuccess(c, preview)
 		return
 	}
-	if err := service.SendFeishuCardMessage(user.OpenId, cardJSON); err != nil {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 90*time.Second)
+	defer cancel()
+	if err := service.SendOffHoursViolationNotice(ctx, user, preview); err != nil {
 		common.ApiError(c, fmt.Errorf("send off-hours violation notice: %w", err))
 		return
 	}

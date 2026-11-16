@@ -23,7 +23,12 @@ export function RequestNoticePreviewCard(props: {
     isModelGuidance ||
     props.preview.image_url === '/notice/frequent-request.png'
   ) {
-    const icons = ['time.png', 'model.png', 'id.png', 'client.png']
+    const icons = props.preview.field_icons ?? [
+      'time.png',
+      'model.png',
+      'id.png',
+      'client.png',
+    ]
     const iconDir = props.preview.template === 'red' ? 'critical' : 'warn'
     return (
       <section aria-label={t('Preview')}>

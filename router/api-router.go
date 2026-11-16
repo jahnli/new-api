@@ -463,6 +463,7 @@ func SetApiRouter(router *gin.Engine) {
 			securityAuditRoute.GET("/setting", controller.GetSecurityAuditSetting)
 			securityAuditRoute.GET("/off_hours", controller.GetOffHoursUsage)
 			securityAuditRoute.POST("/off_hours/notify-violation", controller.NotifyOffHoursViolation)
+			securityAuditRoute.POST("/off_hours/notice-preview", controller.PreviewOffHoursViolationNotice)
 			securityAuditRoute.GET("/image_studio", controller.GetImageStudioAudit)
 			securityAuditRoute.DELETE("/image_studio/:id", controller.DeleteImageStudioAudit)
 		}

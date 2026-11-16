@@ -16,67 +16,10 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/QuantumNous/new-api/web"
 
 	"golang.org/x/sync/singleflight"
 )
-
-// ── Feishu tenant_access_token cache ──────────────────────────────
-
-var (
-	tokenMu     sync.RWMutex
-	cachedToken string
-	tokenExpiry time.Time
-)
-
-// feishuGetCachedTenantAccessToken returns a cached token or refreshes it.
-// The token is considered expired 60 seconds before the Feishu-reported expiry.
-func feishuGetCachedTenantAccessToken() (string, error) {
-	tokenMu.RLock()
-	if cachedToken != "" && time.Now().Before(tokenExpiry) {
-		t := cachedToken
-		tokenMu.RUnlock()
-		return t, nil
-	}
-	tokenMu.RUnlock()
-
-	tokenMu.Lock()
-	defer tokenMu.Unlock()
-
-	// double-check after acquiring write lock
-	if cachedToken != "" && time.Now().Before(tokenExpiry) {
-		return cachedToken, nil
-	}
-
-	body := map[string]string{
-		"app_id":     system_setting.FeishuAppID(),
-		"app_secret": system_setting.FeishuAppSecret(),
-	}
-	respBody, _, err := feishuDoRequest(http.MethodPost, feishuBaseURL+"/auth/v3/tenant_access_token/internal", body, "")
-	if err != nil {
-		return "", fmt.Errorf("request tenant_access_token: %w", err)
-	}
-	var resp struct {
-		Code              int    `json:"code"`
-		Msg               string `json:"msg"`
-		TenantAccessToken string `json:"tenant_access_token"`
-		Expire            int    `json:"expire"` // seconds
-	}
-	if err := common.Unmarshal(respBody, &resp); err != nil {
-		return "", fmt.Errorf("decode token response: %w", err)
-	}
-	if resp.Code != 0 {
-		return "", fmt.Errorf("feishu code=%d msg=%s", resp.Code, resp.Msg)
-	}
-	if resp.TenantAccessToken == "" {
-		return "", fmt.Errorf("empty tenant_access_token")
-	}
-
-	cachedToken = resp.TenantAccessToken
-	tokenExpiry = time.Now().Add(time.Duration(resp.Expire)*time.Second - 60*time.Second)
-	return cachedToken, nil
-}
 
 // ── Feishu department list cache ──────────────────────────────────
 
@@ -275,30 +218,33 @@ func feishuRequestWithRetry(method, url string, body any, token string) ([]byte,
 	return nil, fmt.Errorf("max retries exceeded: %w", lastErr)
 }
 
-func SendFeishuCardMessage(openID string, cardJSON string) error {
-	token, err := feishuGetCachedTenantAccessToken()
+// SendOffHoursViolationNotice uses the recipient's company application credentials.
+func SendOffHoursViolationNotice(ctx context.Context, user *model.User, preview *RequestNoticePreview) error {
+	companyName := model.NormalizeCompany(user.Company)
+	if companyName == "" {
+		return common.NewMessage("The company notification platform is not configured correctly")
+	}
+	company, err := model.GetCompanyByName(companyName)
 	if err != nil {
 		return err
 	}
-
-	body := map[string]string{
-		"receive_id": openID,
-		"msg_type":   "interactive",
-		"content":    cardJSON,
+	if company.Status != model.CompanyStatusEnabled {
+		return common.NewMessage("The user's company is disabled")
 	}
-	respBody, err := feishuRequestWithRetry(http.MethodPost, feishuBaseURL+"/im/v1/messages?receive_id_type=open_id", body, token)
-	if err != nil {
-		return err
+	if company.Platform != model.CompanyPlatformFeishu {
+		return common.NewMessage("The company notification platform is not configured correctly")
 	}
-
-	var result feishuAPIResult
-	if err := common.Unmarshal(respBody, &result); err != nil {
-		return fmt.Errorf("decode message response: %w", err)
+	config, err := company.GetConfig()
+	if err != nil || strings.TrimSpace(config.Feishu.AppID) == "" || strings.TrimSpace(config.Feishu.AppSecret) == "" {
+		return common.NewMessage("The company notification platform is not configured correctly")
 	}
-	if result.Code != 0 {
-		return fmt.Errorf("feishu code=%d msg=%s", result.Code, result.Msg)
+	openID := strings.TrimSpace(user.PlatformID(model.CompanyPlatformFeishu))
+	if !notificationPlatformIDPattern.MatchString(openID) || strings.EqualFold(strings.TrimPrefix(openID, "@"), "all") || openID == "0" {
+		return common.NewMessage("The user has no valid identity for the company platform")
 	}
-	return nil
+	return sendNoticePreview(ctx, NotificationMessage{
+		Channel: model.CompanyPlatformFeishu, CompanyID: company.Id, Recipients: []string{openID},
+	}, preview, RequestNoticeOffHours)
 }
 
 func BuildViolationNoticeCard(requestTime string, requestID string, modelName string) (string, error) {
@@ -311,6 +257,7 @@ const (
 	RequestNoticeFrequentRequests    = "frequent_requests"
 	RequestNoticeModelSwitch         = "model_switch"
 	RequestNoticeClientModelMismatch = "client_model_mismatch"
+	RequestNoticeOffHours            = "off_hours"
 )
 
 type RequestNoticeField struct {
@@ -319,13 +266,14 @@ type RequestNoticeField struct {
 }
 
 type RequestNoticePreview struct {
-	Title    string               `json:"title"`
-	Content  string               `json:"content"`
-	Subtitle string               `json:"subtitle,omitempty"`
-	Template string               `json:"template"`
-	ImageURL string               `json:"image_url,omitempty"`
-	Advice   []string             `json:"advice,omitempty"`
-	Fields   []RequestNoticeField `json:"fields"`
+	Title      string               `json:"title"`
+	Content    string               `json:"content"`
+	Subtitle   string               `json:"subtitle,omitempty"`
+	Template   string               `json:"template"`
+	ImageURL   string               `json:"image_url,omitempty"`
+	Advice     []string             `json:"advice,omitempty"`
+	Fields     []RequestNoticeField `json:"fields"`
+	FieldIcons []string             `json:"field_icons,omitempty"`
 }
 
 func BuildRequestNoticePreview(requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) (*RequestNoticePreview, error) {
@@ -398,6 +346,14 @@ func BuildRequestNoticeCard(requestTime string, requestID string, modelName stri
 }
 
 func SendRequestNotice(ctx context.Context, message NotificationMessage, requestTime string, requestID string, modelName string, notificationType string, client string, lang string, targetVendorName string) error {
+	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName)
+	if err != nil {
+		return err
+	}
+	return sendNoticePreview(ctx, message, preview, notificationType)
+}
+
+func sendNoticePreview(ctx context.Context, message NotificationMessage, preview *RequestNoticePreview, notificationType string) error {
 	if message.Channel != model.CompanyPlatformFeishu {
 		_, err := SendNotificationMessage(ctx, message, message.Recipients[0])
 		return err
@@ -414,10 +370,6 @@ func SendRequestNotice(ctx context.Context, message NotificationMessage, request
 	if err != nil {
 		return fmt.Errorf("获取飞书应用授权失败，请检查公司应用配置")
 	}
-	preview, err := BuildRequestNoticePreview(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName)
-	if err != nil {
-		return err
-	}
 	imageKey := ""
 	if preview.ImageURL != "" {
 		data, err := web.NoticeImages.ReadFile("public" + preview.ImageURL)
@@ -431,12 +383,18 @@ func SendRequestNotice(ctx context.Context, message NotificationMessage, request
 	}
 	var iconKeys []string
 	isModelGuidance := notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeClientModelMismatch
-	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || isModelGuidance || notificationType == RequestNoticeFrequentRequests {
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || isModelGuidance || notificationType == RequestNoticeFrequentRequests || notificationType == RequestNoticeOffHours {
 		iconDir := "warn"
 		if preview.Template == "red" {
 			iconDir = "critical"
 		}
 		filenames := []string{iconDir + "/time.png", iconDir + "/model.png", iconDir + "/id.png", iconDir + "/client.png"}
+		if len(preview.FieldIcons) > 0 {
+			filenames = make([]string, len(preview.FieldIcons))
+			for i, filename := range preview.FieldIcons {
+				filenames[i] = iconDir + "/" + filename
+			}
+		}
 		if notificationType == RequestNoticeModelSwitch {
 			filenames[1] = ""
 		}
@@ -461,7 +419,7 @@ func SendRequestNotice(ctx context.Context, message NotificationMessage, request
 			iconKeys = append(iconKeys, key)
 		}
 	}
-	card, err := buildRequestNoticeCard(requestTime, requestID, modelName, notificationType, client, lang, targetVendorName, imageKey, iconKeys)
+	card, err := buildNoticePreviewCard(preview, notificationType, imageKey, iconKeys)
 	if err != nil {
 		return err
 	}
@@ -488,9 +446,12 @@ func buildRequestNoticeCard(requestTime string, requestID string, modelName stri
 	if err != nil {
 		return "", err
 	}
+	return buildNoticePreviewCard(preview, notificationType, imageKey, iconKeys)
+}
 
+func buildNoticePreviewCard(preview *RequestNoticePreview, notificationType string, imageKey string, iconKeys []string) (string, error) {
 	isModelGuidance := notificationType == RequestNoticeModelSwitch || notificationType == RequestNoticeClientModelMismatch
-	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || isModelGuidance || notificationType == RequestNoticeFrequentRequests {
+	if notificationType == RequestNoticeNonWorkContent || notificationType == RequestNoticeSecurityRisk || isModelGuidance || notificationType == RequestNoticeFrequentRequests || notificationType == RequestNoticeOffHours {
 		textColumn := map[string]any{
 			"tag": "column", "width": "weighted", "weight": 3, "vertical_align": "center",
 			"elements": []map[string]any{
@@ -536,19 +497,21 @@ func buildRequestNoticeCard(requestTime string, requestID string, modelName stri
 			}
 			fields = append(fields, content)
 		}
+		elements := []map[string]any{
+			{"tag": "column_set", "flex_mode": "none", "columns": columns},
+			{"tag": "column_set", "flex_mode": "bisect", "columns": []map[string]any{
+				{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[0]},
+				{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[1]},
+			}},
+		}
+		for _, field := range fields[2:] {
+			elements = append(elements, map[string]any{"tag": "column_set", "columns": []map[string]any{{"tag": "column", "width": "weighted", "weight": 1, "elements": field}}})
+		}
 		card := map[string]any{
 			"schema": "2.0",
 			"config": map[string]any{"wide_screen_mode": true},
 			"header": map[string]any{"template": preview.Template, "title": map[string]string{"tag": "plain_text", "content": preview.Title}},
-			"body": map[string]any{"elements": []map[string]any{
-				{"tag": "column_set", "flex_mode": "none", "columns": columns},
-				{"tag": "column_set", "flex_mode": "bisect", "columns": []map[string]any{
-					{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[0]},
-					{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[1]},
-				}},
-				{"tag": "column_set", "columns": []map[string]any{{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[2]}}},
-				{"tag": "column_set", "columns": []map[string]any{{"tag": "column", "width": "weighted", "weight": 1, "elements": fields[3]}}},
-			}},
+			"body":   map[string]any{"elements": elements},
 		}
 		if notificationType == RequestNoticeModelSwitch {
 			body := card["body"].(map[string]any)
@@ -647,53 +610,22 @@ func buildRequestNoticeCard(requestTime string, requestID string, modelName stri
 }
 
 func BuildOffHoursViolationNoticeCard(requestTime string, requestCount int64) (string, error) {
-	card := map[string]any{
-		"config": map[string]any{
-			"wide_screen_mode": true,
-		},
-		"header": map[string]any{
-			"template": "red",
-			"title": map[string]string{
-				"tag":     "plain_text",
-				"content": "安全审计提醒",
-			},
-		},
-		"elements": []map[string]any{
-			{
-				"tag":     "markdown",
-				"content": "系统监测到您在非工作时间内较频繁地使用了中转站服务，请确认相关请求，并合理调整使用时间",
-			},
-			{
-				"tag": "div",
-				"fields": []map[string]any{
-					{
-						"is_short": true,
-						"text": map[string]string{
-							"tag":     "lark_md",
-							"content": "**请求时间**\n" + requestTime,
-						},
-					},
-					{
-						"is_short": true,
-						"text": map[string]string{
-							"tag":     "lark_md",
-							"content": "**请求次数**\n" + strconv.FormatInt(requestCount, 10),
-						},
-					},
-				},
-			},
-			{
-				"tag":     "markdown",
-				"content": "如上述请求属于正常业务使用，忽略即可；如非本人或非预期操作，请及时检查相关账号、密钥及调用配置",
-			},
-		},
-	}
+	return buildNoticePreviewCard(BuildOffHoursViolationNoticePreview(requestTime, requestCount, "zh-CN"), RequestNoticeOffHours, "", nil)
+}
 
-	data, err := common.Marshal(card)
-	if err != nil {
-		return "", err
+func BuildOffHoursViolationNoticePreview(requestTime string, requestCount int64, lang string) *RequestNoticePreview {
+	return &RequestNoticePreview{
+		Title:      i18n.TranslateRequestNotice(lang, "request_notice.legacy_title"),
+		Content:    i18n.TranslateRequestNotice(lang, "request_notice.off_hours_content"),
+		Subtitle:   i18n.TranslateRequestNotice(lang, "request_notice.off_hours_subtitle"),
+		Template:   "red",
+		ImageURL:   "/notice/frequent-request.png",
+		FieldIcons: []string{"time.png", "id.png"},
+		Fields: []RequestNoticeField{
+			{Label: i18n.TranslateRequestNotice(lang, "request_notice.request_time"), Value: requestTime},
+			{Label: i18n.TranslateRequestNotice(lang, "request_notice.request_count"), Value: strconv.FormatInt(requestCount, 10)},
+		},
 	}
-	return string(data), nil
 }
 
 // ── Tree building ─────────────────────────────────────────────────

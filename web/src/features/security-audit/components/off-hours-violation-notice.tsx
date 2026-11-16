@@ -1,70 +1,98 @@
-import { useMutation } from '@tanstack/react-query'
-import { ShieldAlert } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Bell } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
+import { RequestNoticeDialog } from '@/features/usage-logs/components/dialogs/request-notice-dialog'
+import { LogUserIdentity } from '@/features/usage-logs/components/log-user-identity'
+import { useDemoMode } from '@/hooks/use-demo-mode'
+import { getDemoModeUsername } from '@/lib/demo-mode'
+import { handleServerError } from '@/lib/handle-server-error'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
-import { notifyOffHoursViolation } from '../api'
-import type { OffHoursDetailTarget } from '../types'
+import { notifyOffHoursViolation, previewOffHoursViolationNotice } from '../api'
+import type {
+  NotifyOffHoursViolationRequest,
+  OffHoursDetailTarget,
+} from '../types'
 
 export function OffHoursViolationNoticeButton(props: {
   target: OffHoursDetailTarget
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const demoMode = useDemoMode()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const canNotify = props.target.userId > 0
+  const notificationPayload: NotifyOffHoursViolationRequest = {
+    user_id: props.target.userId,
+    start_time: props.target.requestStart,
+    end_time: props.target.requestEnd,
+    request_count: props.target.requestCount,
+    language: i18n.resolvedLanguage || i18n.language,
+  }
+  const previewQuery = useQuery({
+    queryKey: ['off-hours-notice-preview', notificationPayload],
+    queryFn: ({ signal }) =>
+      previewOffHoursViolationNotice(notificationPayload, signal),
+    enabled: confirmOpen && canNotify,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    meta: { errorToast: false },
+  })
   const notifyViolationMutation = useMutation({
-    mutationFn: async () => {
-      const response = await notifyOffHoursViolation({
-        user_id: props.target.userId,
-        start_time: props.target.requestStart,
-        end_time: props.target.requestEnd,
-        request_count: props.target.requestCount,
-      })
-      if (!response.success) {
-        throw new Error(
-          response.message || t('Failed to send violation notice')
-        )
-      }
-      return response
-    },
+    mutationFn: async (payload: NotifyOffHoursViolationRequest) =>
+      requireServerSuccess(await notifyOffHoursViolation(payload)),
     onSuccess: () => {
-      toast.success(t('Violation notice sent'))
+      toast.success(t('Notification sent'))
       setConfirmOpen(false)
     },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t('Failed to send violation notice')
-      )
-    },
+    onError: (error) =>
+      handleServerError(error, t('Failed to send notification')),
   })
+
+  if (!canNotify) return null
 
   return (
     <>
       <Button
         variant='destructive'
         size='sm'
-        className='h-7 gap-1.5 px-2 text-xs'
+        className='h-8 shrink-0 gap-1.5'
         onClick={() => setConfirmOpen(true)}
         disabled={notifyViolationMutation.isPending}
       >
-        <ShieldAlert className='size-3.5' />
-        {t('Violation Notice')}
+        <Bell className='size-3.5' />
+        {t('Notification')}
       </Button>
-      <ConfirmDialog
+      <RequestNoticeDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title={t('Confirm Violation Notice')}
-        desc={t('Send a violation notice to this user via Feishu?')}
-        confirmText={t('Send')}
-        destructive
-        isLoading={notifyViolationMutation.isPending}
-        handleConfirm={() => notifyViolationMutation.mutate()}
-      />
+        isSending={notifyViolationMutation.isPending}
+        canPreview={canNotify}
+        previewQuery={previewQuery}
+        onConfirm={() => notifyViolationMutation.mutate(notificationPayload)}
+        recipient={
+          <LogUserIdentity
+            userId={props.target.userId}
+            username={demoMode ? '' : props.target.username}
+            displayName={getDemoModeUsername(
+              props.target.displayName,
+              demoMode
+            )}
+            avatarUrl={demoMode ? undefined : props.target.avatarUrl}
+            canFetchDetails={!demoMode}
+          />
+        }
+      >
+        <div className='space-y-2'>
+          <p className='text-muted-foreground text-xs'>
+            {t('Notification type')}
+          </p>
+          <p className='text-sm font-medium'>{t('Off-hours audit')}</p>
+        </div>
+      </RequestNoticeDialog>
     </>
   )
 }

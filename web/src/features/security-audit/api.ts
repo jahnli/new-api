@@ -1,5 +1,9 @@
+import type { RequestNoticePreview } from '@/features/usage-logs/types'
 import { api } from '@/lib/api'
-import { requireServerSuccess } from '@/lib/server-error-message'
+import {
+  createServerError,
+  requireServerSuccess,
+} from '@/lib/server-error-message'
 
 import type {
   GetImageAuditParams,
@@ -37,6 +41,20 @@ export async function notifyOffHoursViolation(
     payload
   )
   return res.data
+}
+
+export async function previewOffHoursViolationNotice(
+  payload: NotifyOffHoursViolationRequest,
+  signal?: AbortSignal
+): Promise<RequestNoticePreview> {
+  const res = await api.post<{
+    success: boolean
+    message?: string
+    data?: RequestNoticePreview
+  }>('/api/security_audit/off_hours/notice-preview', payload, { signal })
+  const response = requireServerSuccess(res.data)
+  if (!response.data) throw createServerError(response)
+  return response.data
 }
 
 export async function getImageAudit(

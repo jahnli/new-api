@@ -667,6 +667,7 @@ export interface RequestNoticePreview {
   template: 'orange' | 'red' | 'blue'
   image_url?: string
   advice?: string[]
+  field_icons?: string[]
   fields: { label: string; value: string }[]
 }
 

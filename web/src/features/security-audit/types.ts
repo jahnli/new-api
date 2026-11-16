@@ -51,6 +51,7 @@ export interface NotifyOffHoursViolationRequest {
   start_time: number
   end_time: number
   request_count: number
+  language?: string
 }
 
 export interface NotifyOffHoursViolationResponse {

@@ -2,6 +2,18 @@
 
 **日期**: 2026-09-09 ~ 2026-11-16（最后更新 2026-11-16）
 
+## 2026-11-16 非工作时间通知预览与共享弹框
+
+- `controller/security_audit.go` — 非工作时间通知新增只预览入口，预览与发送共用参数处理并接收界面语言；发送按收件人公司配置执行，并设置 90 秒超时。
+- `router/api-router.go` — 在安全审计路由组注册 `/off_hours/notice-preview` 接口。
+- `service/feishu_department.go` — 非工作时间通知改用共享预览数据、图片上传及飞书卡片构建流程，使用红色主题、频繁请求主图及时间和请求次数字段；支持自定义字段图标与可变字段数量，预览和发送共用七语言文案。公司凭据及旧全局配置清理见 [#026](026-feishu-credentials.md)。
+- `i18n/locales/{en,zh-CN,zh-TW,fr,ja,ru,vi}.yaml` — 补充非工作时间通知正文、提醒和请求次数标签的七语言翻译。
+- `web/src/features/security-audit/api.ts`、`web/src/features/security-audit/types.ts` — 增加可取消的通知预览请求与可选语言参数，沿用统一服务端错误处理。
+- `web/src/features/security-audit/components/off-hours-violation-notice.tsx` — 通知入口改用铃铛图标及通用通知文案，打开弹框后加载预览，展示收件人和通知类型，保留演示模式身份遮蔽。
+- `web/src/features/usage-logs/components/dialogs/request-notice-dialog.tsx` — 基于现有 `ConfirmDialog` 抽出共享通知弹框，统一收件人、内容配置、预览加载与错误重试；仅在预览成功且不在刷新时允许发送，发送期间阻止重复提交。
+- `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx` — 请求通知复用共享弹框，保留通知类型选择和目标模型系列配置。
+- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx`、`web/src/features/usage-logs/types.ts` — 预览支持服务端指定的可选字段图标列表，未指定时沿用原有图标。
+
 ## 2026-11-16 使用日志模型列宽调整
 
 - `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 模型列宽度由 202px 增至 218px，为模型名称提供更多展示空间。

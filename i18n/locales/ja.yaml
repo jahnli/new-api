@@ -21,3 +21,6 @@ request_notice.security_content: "APIリクエストにセキュリティリス�
 request_notice.security_check: "機密データ、認証情報、その他の危険な内容がないか確認してください"
 request_notice.security_prohibition: "リバース解析、REAモデル、クラッキング行為は禁止されています"
 request_notice.security_stop: "直ちに中止し、関連するリスクに対処してください。"
+request_notice.off_hours_content: "業務時間外にゲートウェイが頻繁に利用されています。該当するリクエストを確認し、利用時間を適切に調整してください。"
+request_notice.off_hours_subtitle: "通常の業務利用であれば、この通知への対応は不要です。身に覚えのない操作や想定外の利用の場合は、アカウント、APIキー、クライアント設定を速やかに確認してください。"
+request_notice.request_count: "リクエスト数"

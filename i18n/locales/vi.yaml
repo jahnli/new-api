@@ -21,3 +21,6 @@ request_notice.security_content: "Yêu cầu API của bạn có thể gây ra r
 request_notice.security_check: "Kiểm tra dữ liệu nhạy cảm, thông tin xác thực hoặc nội dung không an toàn khác"
 request_notice.security_prohibition: "Nghiêm cấm phân tích ngược, mô hình REA và các hoạt động bẻ khóa"
 request_notice.security_stop: "Dừng ngay lập tức và xử lý các rủi ro liên quan."
+request_notice.off_hours_content: "Hệ thống phát hiện cổng API được sử dụng thường xuyên ngoài giờ làm việc. Vui lòng kiểm tra các yêu cầu này và điều chỉnh thời gian sử dụng hợp lý."
+request_notice.off_hours_subtitle: "Nếu các yêu cầu này phục vụ công việc bình thường, bạn có thể bỏ qua thông báo. Nếu không phải do bạn thực hiện hoặc nằm ngoài dự kiến, hãy kiểm tra tài khoản, khóa API và cấu hình ứng dụng ngay."
+request_notice.request_count: "Số yêu cầu"
