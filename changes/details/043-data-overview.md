@@ -1,354 +1,38 @@
-# 数据总览页增强与公司配置管理
+# 多公司数据总览
 
-**日期**: 2026-06-25 ~ 2026-11-13（最后更新 2026-11-13）
+**日期**: 2026-11-13
 
-### 2026-11-13 默认查询本周数据
+## 公司与访问范围
 
-- `web/src/features/data-overview/index.tsx` — 默认时间范围由本月改为本周，复用现有日期预设，按周一 00:00:00 至周日 23:59:59 初始化选择器及首次统计查询。
-- 验证：在 `web/` 执行 `bunx --no-install tsgo -b`，以及该文件的 `oxlint`、`oxfmt --check` 均通过；`bun run typecheck` 因当前环境缺少 `bun check` 命令失败，已改用上述本地类型检查命令。`git diff --check` 通过。
+- 超级管理员维护飞书、钉钉或无平台公司，支持排序、启停、连接检测和凭据配置；公司名称与用户 `company` 精确关联。Secret 仅返回已配置状态，编辑留空保留原值；公司改名不自动迁移用户，不提供物理删除入口。
+- 组织目录、平台令牌及成员缓存按公司隔离。飞书目录使用配置的公司名，不依赖租户查询；令牌按真实有效期提前刷新，平台鉴权失效后重取并重试一次。钉钉目录请求按应用及接口限速并有限退避重试。
+- 所有部门统计、人员、排行、日志和导出请求在服务端重新校验公司及部门范围；管理员单用户统计允许省略公司，其他角色必须校验目标用户归属。BP 显式部门授权及负责人规则见 [#045](045-data-overview-access.md)、[#069](069-bp-level-overview.md)。
+- 仅超级管理员可选择跨公司“总览”，汇总启用公司、按用户 ID 去重注册用户并逐公司统计未注册人数，支持公司钻取和导出。其他角色不因此扩大范围。
+- 部门选择器支持公司懒加载、搜索和键盘导航；禁用祖先可展开到获授权子节点，加载子树不重置导航位置。
 
-### 2026-10-06 日期范围完整显示
+## 人员归属与统计口径
 
-- `web/src/features/data-overview/index.tsx` — 移除日期范围选择器的 302px 最大宽度限制，桌面端按完整起止日期与时间（含秒）撑开，标题栏空间不足时沿用换行布局，避免结束时间被省略号截断。
+- 平台成员按公司、对应平台身份及 `departments` 首个部门匹配；成本中心优先决定消费归属，原部门仍展示人员，但排除其金额、Token、请求、额度、排行及日志等统计，避免重复计算。
+- 平台目录已无记录的禁用用户按本地主部门回补并标为离职。用户创建晚于筛选结束时间时，在该区间视为未注册；未注册用户不开放个人统计。姓名详情按当前页或导出需要加载。
+- 默认查询本周，按周一至周日初始化；各板块并行、独立加载。用量主要从主库 `quota_data` 聚合，日志明细独立查询；聚合接口可共享人员范围与用户统计，减少重复读取。
+- 总 Token 为非缓存输入、非缓存输出、缓存读取、缓存写入之和；缓存命中率为缓存读取 ÷ 全部输入，缓存写入计入分母，趋势按累计数量计算而非平均每日百分比，缺失数据保留未知状态。
+- 费用按系统汇率换算人民币；展示总费用、请求数、均价、注册及活跃人数、人均 Token、费用分桶与消费超过 10 元的人数/占比。平均响应时间、错误率及对应日志聚合不在当前统计和导出中。
+- 活跃阈值由 `DATA_OVERVIEW_ACTIVE_USER_THRESHOLD_FORMULA` 的三个正有限数配置，缺失或无效使用 `[10,1000000,0.85]`：请求阈值与 Token 阈值分别乘区间天数的配置指数次幂后向上取整，达到任一阈值即活跃。
+- 有效订阅人员使用订阅自身已用/总额；无有效订阅时使用筛选区间消耗及钱包余额回退，查询失败不视为无订阅。
 
-### 2026-09-29 移除平均响应时间与错误率统计
+## 分析与明细
 
-- `model/log.go` — 删除部门统计中的错误日志数、总耗时聚合及平均响应时间、错误率计算，响应不再返回 `total_errors`、`total_use_time`、`avg_use_time`、`error_rate`；统计不再为这两个指标查询 `logs`，原统计接口与日志明细接口保留。
-- `web/src/features/data-overview/components/department-stats-cards.tsx` — 移除平均响应时间和错误率展示，保留缓存命中率；桌面端沿用原两行五列布局，平均响应时间原位置留空，其他指标位置不变。
-- `web/src/features/data-overview/lib/export-excel.ts` — Excel 统计表同步移除平均响应时间和错误率。
-- `web/src/features/data-overview/types.ts` — 将四个旧统计字段标记为可选、已弃用，兼容旧数据类型；页面不再读取这些字段。
+- 提供部门/用户消耗排行、模型与模型系列调用分布及费用排行、费用分布人数、用量与请求趋势。模型别名通过 `DATA_OVERVIEW_MODEL_MAPPING` 合并后排名；系列统计不受普通模型 Top N 截断限制。
+- 趋势支持独立日/周/月粒度，前端聚合已有每日数据；模型系列单价按人民币费用和 Token 计算，无用量日期保留断点。图表悬浮统一补充费用、Token、均价、请求数及缓存命中率，按图表保留占比、常用模型和人数单位。
+- 部门人员支持服务端排序、注册/离职状态和角色筛选，复用身份、任职、时间及额度列；消费数据与当前选定区间一致。对内显示成本中心，对外子部门显示代表用户的分组倍率和销售资料，规则见 [#075](075-external-mode.md)。
+- 部门日志沿用页面区间，个人统计可独立筛选时间；个人日志按不可变 `user_id` 精确查询。渠道、重试链及分组倍率仅超级管理员可见；BP/负责人不调用无权访问的管理员资料接口，请求内容沿用日志权限。
+- Excel 范围与图表同步，见 [#048](048-data-overview-export.md)；报表通知见 [#047](047-notify-settings.md)。
 
-验证：`go build ./...`、前端 `bun run typecheck`、`bun run build`、`bun run i18n:sync` 成功；涉及前端文件的 `oxlint`、`oxfmt --check` 通过。恢复原布局后再次执行类型、lint 和格式检查通过。按项目规范未新增、修改或运行测试；未实测查询耗时。
+## 主要入口
 
-### 2026-09-29 成本中心归属与部门人员列表
+- `model/company.go`、`controller/company.go`：公司配置和管理接口。
+- `service/data_overview_provider.go`、`service/feishu_client.go`、`service/dingtalk_client.go`：公司平台目录、成员与令牌。
+- `service/data_overview_company.go`、`service/feishu_department.go`、`controller/department.go`：授权范围、聚合、人员与日志。
+- `model/log.go`、`model/usedata.go`：用量聚合；`web/src/features/data-overview/`、`web/src/features/companies/`：页面、图表、公司管理及导出。
 
-- `service/data_overview_company.go`、`service/feishu_department.go` — 部门人员列表保留原部门中的成本中心人员信息，但将其排除在原部门金额、Token、请求数、额度、常用模型、排行榜、日志和使用分析统计之外；成本中心部门继续按人员归属统计，并通过响应标记隐藏原部门统计操作。
-- `web/src/features/data-overview/components/department-users-table.tsx`、`web/src/features/data-overview/types.ts` — 对外模式关闭时在分组列右侧新增成本中心列；原部门被排除统计的人员显示为空消费数据并隐藏统计入口，新增成本中心和统计排除字段类型。
-
-### 2026-09-29 超级管理员跨公司总览
-
-- `service/data_overview_company.go`、`service/feishu_department.go` — 在公司树上新增仅超级管理员可见的虚拟总览节点；按启用公司汇总统计、使用分析、日志、人员与排行，注册用户按 ID 去重，未注册人数按公司汇总；公司统计逐公司有限并发加载并携带公司 ID，支持钻取和导出。
-- `controller/department.go` — 总览范围在接口层校验超级管理员角色，其余公司、BP 和部门领导权限逻辑保持不变。
-- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/lib/department-selection.ts`、`web/src/features/data-overview/components/department-tree-select.tsx`、`web/src/features/data-overview/types.ts` — 支持选择总览、递归合并懒加载公司树和按公司导航。
-- `web/src/features/data-overview/components/sub-department-stats.tsx`、`web/src/features/data-overview/components/sub-department-stats-dialog.tsx`、`web/src/features/data-overview/components/export-dialog.tsx`、`web/src/features/data-overview/lib/export-excel.ts` — 总览下将子部门统计标题及导出表头改为公司统计，详情与导出使用对应公司范围。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐总览与公司统计的七语言文案。
-
-### 2026-09-29 子部门统计列按对外模式拆分
-
-- `web/src/features/data-overview/components/shared-sub-department-columns.tsx` — 抽取子部门统计列的共享单元格、格式化和排序交互，集中维护统计与日志操作。
-- `web/src/features/data-overview/hooks/use-internal-sub-department-columns.ts`、`web/src/features/data-overview/hooks/use-external-sub-department-columns.tsx` — 分别提供关闭和开启对外模式时的列组合 hooks；对外模式额外展示带倍率的用户分组列和销售列。
-- `web/src/features/data-overview/components/sub-department-stats.tsx` — 根据对外模式状态选择对应列 hooks，保留原有数据排序、固定操作列和弹窗行为。
-- `service/data_overview_company.go`、`service/feishu_department.go`、`web/src/features/data-overview/types.ts` — 子部门统计按部门任意一个已注册员工补充分组、分组倍率和销售联系人信息，后端批量加载销售联系人并同步扩展响应类型。
-
-本次验证：根目录执行 `gofmt`、`go build ./...`，前端执行相关文件 `oxlint`、`oxfmt --check` 和 `bun run build` 均通过；`bun run typecheck` 仍受 `web/src/features/users/components/users-columns.tsx` 中既有的 `getUser` 类型错误阻塞。按项目约定未新增、修改或运行测试。
-
-### 2026-09-28 使用分析独立加载与图表悬浮信息完善
-
-- `model/log.go` — 用户汇总与每日统计补充未缓存输入、缓存读取和缓存写入 Token 聚合字段，为部门、用户及趋势图提供缓存命中率数据。
-- `service/data_overview_company.go` — 使用分析独立查询费用分布人数，与模型趋势并行获取；和统计卡片复用同一套人员范围、时间筛选、人民币换算及分桶逻辑。部门与用户排行补充请求数、缓存 Token 和常用模型；常用模型按当前时间范围内消耗最高的模型确定，并以模型名称处理并列情况。
-- `service/feishu_department.go`、`web/src/features/data-overview/types.ts` — 使用分析响应新增 `cost_buckets`，同步补充部门、用户排行及每日统计的前后端字段。
-- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/components/sub-department-stats-dialog.tsx` — 使用分析直接消费自身接口返回的费用分布数据，主页面移除对 `/stats` 首次加载的等待，子部门弹窗同步解除数据依赖。
-- `web/src/features/data-overview/lib/consumption-tooltip.ts` — 复用图表现有悬浮配置，统一展示 Token、费用、每亿 Token 单价、请求数和缓存命中率，并按需展示常用模型；缓存命中率按缓存读取 Token 除以全部输入 Token 计算，缓存写入计入分母，缺失缓存字段时显示占位符。
-- `web/src/features/data-overview/components/sub-department-stats.tsx`、`web/src/features/data-overview/components/user-consumption-charts.tsx` — 各部门 Token 用量、部门消耗占比、用户消耗排行及用户消耗占比四图统一展示六项悬浮指标，占比图保留百分比。
-- `web/src/features/data-overview/components/usage-analysis.tsx` — 额度消耗趋势和 Token 用量趋势在数据点及整列悬浮时展示五项指标；费用分布人数图的纵轴、柱顶与两种悬浮提示补充“人”单位；模型系列调用分布与模型调用分布在悬浮提示末行展示请求数占比，标签和悬浮百分比均保留一位小数。
-- `web/src/features/data-overview/lib/usage-analysis-granularity.ts` — 日、周、月趋势按输入及缓存 Token 总量计算命中率，避免平均每日百分比；分组内存在缺失数据时保留未知状态。
-- `web/src/features/data-overview/lib/chart-to-image.ts`、`web/src/features/data-overview/lib/export-excel.ts` — 导出的费用分布图同步补充人数单位，并改用使用分析响应中的费用分布数据。
-- `web/src/i18n/locales/{zh-TW,fr,ja,ru,vi}.json` — 复核七种语言的图表标题、悬浮指标及人数单位，补齐五种语言中仍为英文的部门、用户排行与趋势图标题，并修正常用模型、请求数和 Token 文案；英文与简体中文复用现有完整翻译。
-
-本次验证：根目录执行 `go build ./...`，前端执行 `bun run typecheck`、`bun run build` 均成功；相关文件的 lint 无错误，格式检查与 `git diff --check` 通过。按项目约定未新增、修改或运行测试；因缺少数据库运行环境，SQLite、MySQL、PostgreSQL 三库兼容验证尚未完成，未实测加载耗时。
-
-### 2026-09-24 模型系列单价趋势
-
-- `model/log.go` — 模型每日统计同步聚合配额消耗，为按时间计算实际单价提供费用数据。
-- `service/feishu_department.go` — 使用分析响应新增模型系列每日统计；按模型系列关键字归类全部匹配模型，不受普通模型 Top 10 限制，并分别合并每日 Token 与配额消耗。
-- `web/src/features/data-overview/types.ts`、`web/src/features/data-overview/lib/usage-analysis-granularity.ts` — 补充模型系列每日统计与配额字段，并在日/周/月粒度聚合时同步累加配额。
-- `web/src/features/data-overview/components/usage-analysis.tsx` — 新增模型系列单价趋势折线图，按人民币费用和 Token 用量计算每亿 Token 单价；无用量日期保留断点而不按零价展示，支持日/周/月切换、固定人民币格式、空状态及语言切换后的本地化格式刷新；模型 Token 趋势复用同一图表组件。
-- `web/src/features/data-overview/index.tsx` — 首次加载使用分析时等待费用分桶统计返回，避免费用分布图插入首格导致已显示图表发生布局跳动。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐“模型系列单价趋势”七语言文案。
-
-### 2026-09-18 模型与模型系列图表悬浮提示新增缓存命中率
-
-- `model/log.go` — 模型统计响应补充非缓存输入、缓存读取、缓存写入 Token；按原有用户和时间范围从 `quota_data` 聚合既有字段，不涉及表结构迁移。
-- `service/feishu_department.go` — 模型别名合并与模型系列归类时同步累加三类输入 Token，确保命中率按汇总用量计算。
-- `web/src/features/data-overview/types.ts` — 模型统计类型补充三个可选缓存统计字段，兼容旧接口响应。
-- `web/src/features/data-overview/components/usage-analysis.tsx` — 复用现有调用分布与消耗排行图表组件，为模型系列调用分布、模型系列消耗排行、模型调用分布、模型消耗排行四张图增加“缓存命中率”悬浮指标；柱状图图元与维度悬浮提示保持一致。按缓存读取 Token ÷（非缓存输入 + 缓存读取 + 缓存写入 Token）计算，保留一位小数，无输入时显示 0.0%。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐“Cache Hit Rate”七语言文案。
-
-验证：根目录 `go build ./...`、前端 `bun run typecheck` 与 `bun run build` 通过；涉及文件的格式检查通过，lint 无错误，仅保留既有 `any` 警告。按项目规范未新增、修改或运行测试。当前环境缺少可用的 SQLite、MySQL、PostgreSQL 三库验证环境，数据库兼容验证仍有阻塞，未完成实库验证。
-
-### 2026-09-16 错误率 / 缓存命中率卡片图标改为中性色
-
-- `web/src/features/data-overview/components/department-stats-cards.tsx` — 「错误率 / 缓存命中率」卡片图标由 `AlertTriangle` 改为 `Gauge`，色调由 `destructive` 改为 `chart-1`：该卡片只展示两个比率，警告图标配恒定红底容易被误读为告警状态；红/绿语义仍由值本身承担（错误率 `text-destructive`、命中率 `text-success`），中性图表色也与相邻卡片的 `chart-2`、`chart-3`、`chart-4` 一致
-
-### 2026-09-15 部门人员列表角色筛选
-
-- `web/src/features/data-overview/components/department-users-table.tsx` — 注册状态列头改用共享列头筛选器 `DataTableColumnHeaderFilter`（选项图标沿用 `CheckCircle2`、`UserRoundX`），删除自绘下拉与本地筛选状态，筛选取自表格 `columnFilters`（新增 `getSingleColumnFilter` 读取单值筛选，选 `All` 时请求不带该参数，翻页重置由表格筛选变更回调负责）；新增角色列筛选，因该表走服务端筛选与分页，角色条件经请求参数下发并计入查询键。
-- `web/src/features/data-overview/lib/department-users-query.ts` — 用户列表查询状态新增 `role`，初始查询判定加入 `role` 为空，避免带角色筛选时被误判为初始状态。
-- `web/src/features/data-overview/api.ts` — 部门用户列表请求新增 `role` 参数。
-- `service/feishu_department.go` — 部门用户列表请求 `DepartmentUsersRequest` 新增 `Role` 字段。
-- `service/data_overview_company.go` — `DepartmentOverviewRequest` 新增 `Role` 并在 `GetDepartmentOverview` 透传；`buildCompanyDepartmentUsers` 在受众物化后按角色过滤（两个分支构建候选集的方式不同，故统一在合并后过滤），未注册成员角色为 0，任何具体角色筛选都不会包含它们。
-- `web/src/components/data-table/core/column-filter-header.tsx`、`web/src/components/data-table/index.ts` — 本次新增的共享列头筛选器及其导出，详见 039 条目。
-
-### 2026-09-14 部门统计卡片新增缓存命中率
-
-- `web/src/features/data-overview/components/department-stats-cards.tsx` — 原“错误率”卡片改为“错误率 / 缓存命中率”合并卡片，两个数值各保留一位小数，卡片总数维持 10 个；命中率按 `cache_read / (uncached_input + cache_read + cache_write)` 计算，缓存写入属未命中同样计入分母（与周报脚本口径一致），无输入时显示 0.0%；数值沿用“未注册 / 已注册”卡片的分色写法：错误率 `text-destructive`、命中率 `text-success`、斜杠分隔符 `text-muted-foreground`
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json` — 补齐“Error Rate / Cache Hit Rate”与“Request error rate and cache hit rate”七语言文案
-
-### 2026-09-10 部门人员列表展示统一
-
-- `web/src/features/data-overview/components/department-users-table.tsx` — 部门人员列表用共享用户列“任职概况”“时间”合并模式：两行摘要含部门、岗位职级、入职日期、最后登录与创建时间，注册状态列紧随时间列；用户 ID 用与使用日志一致的弱化色；标题与日志弹窗名统一为“部门人员列表”。
-- `web/src/features/users/components/shared-user-columns.tsx` — 共享用户名列可按场景传入用户 ID 样式，数据总览可单独调整，不影响用户管理等其他页面。
-- `web/src/features/data-overview/components/department-overview-skeleton.tsx`、`web/src/features/data-overview/lib/export-excel.ts` — 加载骨架、Excel 表名与导出标题同步使用“部门人员列表”。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐“部门人员列表”七语言文案。
-- `web/src/features/data-overview/components/__tests__/department-users-columns.test.tsx` — 覆盖合并表头替代五个独立表头，两个合并单元格含完整信息。
-
-### 2026-09-10 部门树选择器导航与可访问性修复
-
-- `web/src/features/data-overview/components/department-tree-select.tsx` — 禁用的公司或部门祖先节点仍可展开其下已授权部门，点击/右方向键进入下级；弹层打开时用组件焦点 API 聚焦搜索框，补展开状态、键盘焦点与 Enter/空格操作；仅在打开弹层时初始化路径，避免懒加载树更新重置导航状态
-
-### 2026-09-07 用户统计弹窗头像+名称展示
-
-- `web/src/features/data-overview/components/user-stats-dialog.tsx` — 用户统计弹窗仿请求内容弹窗新增头像+名称：标题栏下以 `UserProfileHoverCard` 包 `Avatar`（size-9），右侧显示 `displayName` 与 `username`，悬停弹资料卡片；`DepartmentUser` 映射为 `UserColumnRow` 供其使用；`DialogTitle` 移除名称后缀
-
-### 2026-09-02 Token 用量悬浮显示格式统一
-
-- `web/src/features/data-overview/components/department-stats-cards.tsx` — 部门统计卡片 Token 详情与人均 Token Tooltip 统一为 xx.xx 亿，移除原始数字
-- `web/src/features/data-overview/components/sub-department-stats.tsx` — 各部门 Token 用量柱状图 mark 与 dimension 悬浮提示统一：键名 "Tokens" 改字面量 "Token"（不走 i18n），值由原始数字改 xx.xx 亿
-- `web/src/features/data-overview/components/user-consumption-charts.tsx` — 用户消耗排行与占比图悬浮提示：Token 键名改字面量 "Token"、值统一 xx.xx 亿，排行柱状图 mark 与 dimension 一致
-- `web/src/features/data-overview/components/usage-analysis.tsx` — 使用分析各图（Token 用量趋势、模型调用分布、模型消耗排行、费用趋势）Token 悬浮显示统一为 xx.xx 亿
-
-### 2026-08-27 使用分析趋势图时间粒度
-
-- `web/src/features/data-overview/components/usage-analysis.tsx` — 额度消耗、请求次数、Token 用量、模型使用四张趋势图各加日/周/月粒度选择器；切换复用后端每日数据前端聚合，不触发额外请求，同步更新横轴、Tooltip、缩放范围与图表刷新键
-- `web/src/features/data-overview/lib/usage-analysis-granularity.ts` — 新增每日统计与模型每日统计的通用粒度聚合；周粒度以周一为起点，月粒度按自然月汇总，用 UTC 日期运算避免本地时区偏移
-- `web/src/features/data-overview/components/__tests__/usage-analysis.test.tsx` — 覆盖四张趋势图独立选择器的默认日粒度与可访问名称，及切换请求趋势为周粒度时仅聚合当前图
-- `web/src/features/data-overview/lib/__tests__/usage-analysis-granularity.test.ts` — 覆盖日/周/月聚合、跨年边界、模型独立汇总、标签格式与空数据行为
-
-### 2026-08-25 费用文案间距统一
-
-- `web/src/i18n/locales/zh.json` — 费用阈值标题统一为“费用 > 10 人数/占比”，说明改“消费超过 10 元的人数及占比”，并为费用分布中的数值与“元”“人”等中文单位补空格
-- `web/src/features/data-overview/components/__tests__/stats-card-tooltip.test.tsx` — 新增中文费用阈值与费用分布文案间距测试
-
-### 2026-08-17 费用分布人数柱状图
-
-- `web/src/features/data-overview/lib/usage-analysis-chart-data.ts` — 新增费用分桶到柱状图数据的转换：按区间生成人数序列并汇总，全员零消耗返回空以隐藏图表；区间标签格式化抽为可注入的翻译回调，上界 0 为开区间最高档、上下界均为 0 为零消耗档
-- `web/src/features/data-overview/components/usage-analysis.tsx` — 新增费用分布人数柱状图，置于使用分析区域首位；柱顶标注人数（万级折算为“万”），Y 轴同口径格式化，悬停提示只显示纯数值不带单位；新增可选 `costBuckets` 入参，仅有费用分桶数据时也渲染区块
-- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/components/sub-department-stats-dialog.tsx` — 使用分析区块从部门统计接口透传费用分桶数据，单用户统计弹窗不传（对单人无意义）
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐费用分布人数统计标题与用户数标签的七语言文案
-
-### 2026-08-07 模型系列统计与模型图表置顶
-
-- `.env.example` — 新增 `DATA_OVERVIEW_MODEL_SERIES_KEYWORDS` 配置示例，以“系列展示名 → 关键字数组”维护模型系列归类规则
-- `docker-compose.yml` — 模型系列关键字配置注入后端服务环境变量
-- `service/feishu_department.go` — 使用分析响应新增 `model_series_stats`；对全量原始模型统计做不区分大小写的关键字包含匹配，重叠时最长关键字优先、同长度按系列名稳定归类，未命中模型不计入；按系列合并 Token、额度、请求次数，Top 10 截断前聚合
-- `web/src/features/data-overview/types.ts` — 使用分析类型补充可选的模型系列统计字段，兼容旧接口响应
-- `web/src/features/data-overview/lib/usage-analysis-chart-data.ts` — 抽取模型调用分布与消耗排行的数据转换、费用换算、排序与可选截断逻辑，供普通模型与模型系列图表复用
-- `web/src/features/data-overview/components/usage-analysis.tsx` — 新增模型系列调用分布饼图与模型系列消耗排行柱状图；模型系列调用分布/消耗排行、模型调用分布/消耗排行四图移至使用分析区域顶部，并为图表标题补语义化标题元素
-- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/components/sub-department-stats-dialog.tsx` — 使用分析加载骨架数量由 6 调整为 8，覆盖新增的两张模型系列图表
-- `web/src/features/data-overview/__tests__/usage-analysis-chart-data.test.ts` — 覆盖请求分布过滤汇总、消耗排序、人民币费用单次换算，及系列图表不受普通模型图表数量限制
-- `web/src/features/data-overview/components/__tests__/usage-analysis.test.tsx` — 覆盖四张模型分布/排行图位于趋势图之前的排列顺序
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐模型系列调用分布与模型系列消耗排行的七语言文案
-
-### 2026-08-05 部门切换后的未搜索提示
-
-- `web/src/features/data-overview/index.tsx` — 选择新部门并清空查询参数后展示引导空状态，避免点击“搜索”前统计区域空白
-- `web/src/features/data-overview/components/department-search-prompt.tsx` — 新增带搜索图标与状态语义的空状态提示，分两行引导点击“搜索”查看所选部门统计
-- `web/src/features/data-overview/components/__tests__/search-prompt.test.tsx` — 覆盖未搜索提示的图标、可访问状态语义与两行文案
-- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐未搜索提示的七语言翻译
-
-### 2026-08-05 无订阅人员额度展示
-
-- `service/data_overview_company.go` — 部门用户有有效订阅时沿用订阅已用/总额；无有效订阅时以筛选区间总消耗为已用额度、加钱包剩余额度为总额；订阅查询失败不误判为无订阅
-- `service/feishu_department.go` — 部门用户响应显式下发有效订阅状态
-- `service/data_overview_company_test.go` — 覆盖有订阅人员沿用订阅额度、无订阅人员按区间消耗加钱包余额算总额，及区间边界与区间外消耗排除
-- `web/src/features/data-overview/types.ts` — 部门用户类型补充有效订阅状态，供共享额度列正确展示无订阅人员的零值
-
-### 2026-07-30 离职人员部门统计修复
-
-- `service/data_overview_company.go` — 平台通讯录不再返回的禁用账号，按本地 `users.departments` 首个 `department_id` 回补到对应部门受众，继续参与人数、用量、排行与日志统计
-- `service/feishu_department.go` — 部门用户注册状态新增 `departed`，禁用账号显示为离职并保留已注册账号的统计能力；注册状态筛选同步支持离职
-- `service/data_overview_company_test.go` — 覆盖禁用账号不在平台成员列表中但本地部门匹配时仍纳入统计的路径
-- `web/src/features/data-overview/` — 部门用户列表与 Excel 导出展示离职状态，筛选器新增离职选项，并补状态兼容逻辑与前端测试
-- `web/src/i18n/` — 新增 Departed 的 7 语言翻译及静态翻译键
-
-### 2026-07-30 公司平台 Token 自动刷新修复
-
-- `service/data_overview_provider.go` — 飞书公司 Token 缓存遵循平台返回的真实有效期，提前 60 秒失效；钉钉移除数据总览额外的一小时 Token 缓存，复用原有 `expires_in` 缓存；飞书遇 99991663 等无效 Token、钉钉遇 40014 无效 Token 时清除缓存、重取 Token，并对部门目录、成员列表、成员详情请求重试一次
-- `service/feishu_sync.go` — 飞书 Tenant Access Token 获取结果补充返回 `expire` 有效期，供公司数据总览按真实生命周期缓存
-- `service/dingtalk_sync.go` — 新增按 Client ID 清除钉钉 Access Token 缓存的能力，供鉴权失败后的自动刷新流程使用
-
-### 2026-07-29 飞书公司目录跳过租户查询
-
-- `service/data_overview_provider.go` — `fetchFeishuCompanyDirectory` 不再调用 `feishuFetchTenantInfo`（`/tenant/v2/tenant/query`）；组织名取 `company.Name`，仅依赖通讯录部门列表构建目录，避免租户接口 99991663 等失败导致部门树节点「公司数据不可用」；公司连接测试仍单独校验租户信息
-
-## 涉及文件
-
-- `controller/department.go` — 部门树、部门统计、子部门统计、用户排行接口控制器；新增 GetUserUsageAnalysis 单用户使用分析、GetDepartmentLogs 部门使用日志、GetDepartmentUserLogs 用户统计弹窗精确日志（含 user_id 校验）三个接口
-- `service/feishu_department.go` — 飞书部门树拉取/缓存/权限裁剪，部门统计聚合；新增 GetSubDepartmentStats 按直接子部门并发拉成员、批量聚合用量，含 getDirectChildren 辅助；部门与子部门统计新增按系统汇率换算的人民币费用，均价改换算后计算；子部门统计新增每百万 Token 均价并随接口返回；UsageAnalysisResponse 新增 ModelDailyStats、QuotaToCNY，并发查模型每日统计、下发配额-人民币换算率；新增 GetDepartmentUserRankings 返回部门内用户消耗 Top 10；部门用户列表可按数据库字段与计算用量列排序，并补每百万 Token 均价字段；新增 GetUserUsageAnalysis 单用户使用分析（并发查模型/每日/模型每日统计）；新增 GetDepartmentLogs 按部门成员 user_id 拉使用日志；新增 GetDepartmentUserLogs 按单一 user_id、时间范围与分页精确拉取；registration_status 参数按注册状态过滤（registered/unregistered），DepartmentUserItem 新增 IsRegistered；未注册用户显示名默认"-"；默认排序改降序
-- `model/log.go` — 部门统计聚合查询改用主库 quota_data 表，按 token_used、quota、count 聚合 Token/费用/请求数，移除模型层按固定 quota 比例算部门均价的逻辑；新增 GetUserStatsBatch 按 user_id 分组批量聚合 Token/费用/请求数；新增 ModelDailyStatRow 与 GetModelDailyStats 按模型按天聚合 Token（支持 MySQL/SQLite/PostgreSQL）；新增 GetLogsByUserIds 复用使用日志查询并支持部门成员过滤
-- `model/user.go` — 新增 GetUserIDAndNamesByOpenIDs 按 open_id 批量查询用户 ID 和姓名
-- `router/api-router.go` — 新增 `/api/department/tree`、`/stats`、`/sub-stats`、`/logs`、`/user-logs`、`/user-rankings`、`/user-usage-analysis` 路由
-- `web/default/src/features/data-overview/api.ts` — 部门树、统计、子部门统计、用户排行 API 封装；部门用户列表 API 透传排序字段与方向、registration_status 参数；新增 getUserUsageAnalysis 单用户使用分析、getDepartmentLogs 部门使用日志、getDepartmentUserLogs 用户统计弹窗精确日志 API
-- `web/default/src/features/data-overview/types.ts` — 部门树/统计类型；新增 SubDepartmentStat、ModelDailyStat、UserRankingItem 接口；子部门统计新增 total_amount_cny 与 avg_price_per_mt，使用分析响应新增 quota_to_cny；DepartmentUser 新增 is_registered 与 open_id 可选字段，复用共享用户列的头像飞书跳转
-- `web/default/src/features/data-overview/index.tsx` — 数据总览页面：查询后展示统计卡片与子部门板块，各板块带骨架屏；Token 格式化为中文单位（亿/万）；统计卡片由 Card 网格改为分割式紧凑布局（参照数据看板 LogStatCards：单行 border 容器、divide-x 分隔、图标+大写标签+等宽数字+描述行），移除外层 Card 包裹；费用展示改用后端按汇率换算的人民币金额；骨架屏 key 提取为静态数组避免重复渲染；queryFn 增加参数非空断言；UsageAnalysisSection 移除时间参数；部门选择器提取为变量简化 JSX
-- `web/default/src/features/data-overview/components/department-tree-select.tsx` — 级联展开/搜索部门树选择器
-- `web/default/src/features/data-overview/components/department-users-table.tsx` — 部门用户表格，内嵌用户消耗排行图；手动服务端排序，变更时回第一页；总费用右侧加每百万 Token 均价列，映射后端均价排序字段；「已用额度/总额度」列头加说明图标：额度固定当前自然月、不受筛选时间影响；新增「统计」按钮列打开用户统计弹窗；标题右侧加「日志」按钮，打开本部门全员选中时间内的使用日志；注册状态列（下拉筛选：全部/已注册/未注册）由服务端按 registration_status 过滤；未注册用户禁用统计按钮
-- `web/default/src/features/data-overview/components/user-consumption-charts.tsx` — 用户消耗排行 Top 10（水平柱状图）和用户消耗占比 Top 10（环形饼图），并排展示
-- `web/default/src/features/data-overview/components/sub-department-stats.tsx` — 子部门统计组件：柱状图改纵向、坐标轴格式化大数值；表头「用户数」改「已注册/总人数」并居中；费用列、排序、图表改用后端返回的人民币金额；总费用右侧新增均价列展示每百万 Token 均价，列头带贴近列名的说明图标，悬停可查看均价说明；表格新增「统计」「日志」按钮列（pinned right），分别打开子部门统计弹窗与子部门员工使用日志弹窗
-- `web/default/src/features/data-overview/components/sub-department-stats-dialog.tsx` — 新增子部门统计弹窗：展示指定子部门的统计卡片（DepartmentStatsCards）与使用分析（UsageAnalysisSection），独立查询 stats 和 usage-analysis 接口；弹框高度统一为视口 85%
-- `web/default/src/features/data-overview/components/department-stats-cards.tsx` — 从 index.tsx 提取为独立组件，展示部门统计指标卡片（Token/费用/均价/请求数/注册数/未注册数/响应时间/错误率），支持 Tooltip 展示 Token 详情
-- `web/default/src/features/data-overview/components/usage-analysis.tsx` — 使用分析组件：模型排行/费用占比（tab 切换条形图/饼图）改纵向柱状图；新增模型使用趋势折线图（ModelUsageTrend，按 Top N 模型展示每日 Token 量）；每日用量趋势新增「费用」指标切换；新增均价趋势折线图（AvgPriceTrendChart，算每日平均单价并补全无数据日期）；费用与均价计算改用后端 quota_to_cny 换算率；请求趋势图高度调整；重构为纯展示组件（移除 startTimestamp/endTimestamp 参数），移除均价趋势与 Token 分布图表，模型调用排行改饼图分布，费用排行标题改「模型消耗排行」，费用趋势标题改「额度消耗趋势」
-- `web/default/src/features/data-overview/components/user-stats-dialog.tsx` — 新增用户统计弹窗：展示单用户独立时间筛选、使用分析图表与近期调用日志；日志查询传递不可变 user_id；弹窗宽度 1360px、高度统一为视口 85%，保留视口宽度自适应；顶部时间筛选器移出滚动容器并固定，仅日志与使用分析区域随内容滚动
-- `web/default/src/features/data-overview/components/user-logs-section.tsx` — 新增用户日志列表组件，复用 usage-logs 公共列定义；抽取通用 LogsSection 并新增 DepartmentLogsSection 复用同一日志表格；用户日志改调独立接口并按 user_id 精确查询，避免用户名包含匹配串入他人日志；补充 RequestMessagesProvider 加载并显示近期调用日志的请求内容；请求内容加载遵循超级管理员可见性限制；数据总览日志表格按超级管理员权限决定是否拉取管理员用户详情，避免 AI BP/中心 BP hover 头像时触发管理员接口导致无权限提示；部门日志表格自动撑满弹框剩余区域，中间列表滚动并固定底部分页
-- `web/default/src/features/usage-logs/components/columns/common-logs-columns.tsx` — useCommonLogsColumns 增加 canFetchUserDetails 选项，拆分“显示用户列”与“拉取管理员用户详情”能力；默认保持管理员日志页原行为，数据总览可禁用详情拉取并仅展示日志自带的基础用户信息
-- `web/default/src/features/data-overview/components/department-logs-dialog.tsx` — 新增部门使用日志弹窗，复用 DepartmentLogsSection 展示当前部门或子部门员工在数据总览选中时间内的使用日志，不额外提供时间选择器；弹框高度统一为视口 85%
-- `web/default/src/hooks/use-sidebar-config.ts` — 侧边栏配置新增 data_overview 模块及 URL 映射
-- `web/default/src/hooks/use-sidebar-data.ts` — 「数据总览」菜单从管理员分区移至控制台分区，添加 requiredRole ADMIN
-- `web/default/src/features/data-overview/components/department-users-table.tsx` — 请求次数格式化统一
-- `web/default/src/features/data-overview/components/sub-department-stats.tsx` — 请求次数格式化统一
-- `web/default/src/features/data-overview/components/user-consumption-charts.tsx` — Token 详情支持 tooltip 展示
-- `web/default/src/features/data-overview/lib/export-excel.ts` — 注册状态判断改用 is_registered 字段，状态文本国际化；getWorksheet 非空断言提取为 getRequiredWorksheet 辅助函数
-- `web/default/src/i18n/static-keys.ts` — 新增 Registration Status、Registered、Unregistered 静态键
-- `web/default/src/i18n/locales/*.json` — 新增 Model Usage Trend、Avg Price Trend、Registered/Total、Total Requests、User Consumption Ranking Top 10、User Consumption Share Top 10、额度统计周期说明、User Statistics、Recent Usage Logs、No Logs Found、Statistics、Usage Logs、Department User List、Model Call Distribution、Model Consumption Ranking、Quota Consumption Trend、Registration Status、Registered、Unregistered 等翻译（6 语言）；补齐每百万 Token 均价相关翻译
-- `service/feishu_department.go` — 新增 departmentMemberCacheTTL（30 分钟），部门成员列表与详情缓存 TTL 独立于部门树（5 分钟）；GetDepartmentUsers/GetDepartmentUserRankings 统一走 getAllMemberDetailsUnderDepts 单次查询，移除冗余的 getAllMembersUnderDepts 调用；DepartmentUsersResponse 新增 total_users、registered_users、unregistered_users，接口返回部门总人数与已注册/未注册人数
-- `web/default/src/features/data-overview/components/department-users-table.tsx` — 操作列 pinned right；默认按 quota 降序排序；额度列头 headerDescription 改 undefined（tooltip 逻辑移至通用 column-header）；标题右侧新增总人数、已注册、未注册彩色统计标签
-- `web/default/src/features/data-overview/types.ts` — DepartmentUsersResponse 类型补充 total_users、registered_users、unregistered_users 字段
-- `web/default/src/components/data-table/core/column-header.tsx` — DataTableColumnHeader 新增 DescriptionTooltip，通过 column.columnDef.meta.description 渲染列头说明图标
-- `web/default/src/features/users/components/shared-user-columns.tsx` — userQuotaColumn 与共享均价列改为贴近列名的内联说明图标，悬停表头可查看当前自然月额度统计说明和每百万 Token 均价说明；共享列新增均价列，显示 `/MT` 单位并保留排序入口
-- `.env.example` — 新增 `DATA_OVERVIEW_ACTIVE_USER_THRESHOLD_FORMULA`，支持用 `days` 按统计区间天数配置活跃用户请求阈值公式，并保留旧固定阈值配置作为兼容兜底
-- `model/log.go` — 部门统计新增使用人数、使用占比、人均 Token 和阈值字段；按筛选时间内用户请求次数严格大于动态阈值聚合使用人数
-- `service/feishu_department.go` — 解析和校验活跃用户阈值公式，按统计区间天数算阈值；公式缺失或无效时回退固定阈值，并向部门与子部门统计结果下发阈值和公式说明
-- `service/feishu_department_stats_test.go` — 覆盖动态公式阈值边界、固定阈值兜底、时间与用户范围过滤，以及空部门统计行为
-- `web/default/src/features/data-overview/components/activity-formula-tooltip.tsx` — 新增活跃用户公式说明 Tooltip，展示实际生效的动态阈值计算方式
-- `web/default/src/features/data-overview/components/department-stats-cards.tsx` — 统计卡片新增使用人数/占比与人均 Token，并展示活跃用户公式说明
-- `web/default/src/features/data-overview/components/sub-department-stats.tsx` — 子部门表格新增使用人数/占比与人均 Token 列，支持按使用人数排序并展示活跃用户公式说明
-- `web/default/src/features/data-overview/index.tsx` — 数据总览主统计区域补充使用人数指标卡片及对应骨架布局
-- `web/default/src/features/data-overview/types.ts` — 部门与子部门统计类型补充使用人数、占比、人均 Token 和阈值字段
-- `web/default/src/i18n/locales/*.json` — 补齐使用人数、使用占比、人均 Token、请求阈值说明等各语言文案
-- `model/log_user_filter_test.go` — 覆盖按 user_id 精确过滤、排除相似用户名用户及起止时间边界包含行为
-- `.env.example` — 新增 `DATA_OVERVIEW_MODEL_MAPPING` 数组映射格式说明，以展示模型名关联多个原始模型别名
-- `docker-compose.yml` — 将 `DATA_OVERVIEW_MODEL_MAPPING` 注入服务环境变量
-- `model/log.go` — 模型统计支持获取完整聚合结果，并按合并后的 Top N 模型集合查询每日趋势数据
-- `service/feishu_department.go` — 解析“展示模型名 → 原始模型名数组”映射，统一合并模型 Token、额度、调用次数和每日趋势，并在合并后执行 Top 10 排名
-- `service/feishu_department.go` — 注册人数、注册状态、部门/子部门统计、使用分析及部门日志统一按筛选结束时间判断；`users.created_at` 晚于筛选结束时间的员工在该时间范围内视为未注册
-
-### 2026-07-22 公司配置与多公司数据总览
-
-- `model/company.go` — 新增唯一的 `companies` 表模型，以公司名称精确关联 `users.company`，JSON 配置登录方式与飞书/钉钉凭据；支持排序、启停、平台与配置校验，不改动现有用户表结构
-- `model/main.go` — `Company` 加入普通迁移与快速迁移，仅创建公司表
-- `controller/company.go` — 新增公司列表、详情、创建、更新、启停、连接测试接口；Secret 只返回配置状态，更新时空 Secret 保留原值，改名不迁移现有用户
-- `service/company.go` — 新增无平台、飞书、钉钉公司连接测试，并校验平台根组织名称与公司名称完全一致
-- `router/api-router.go` — 注册仅 Root 可访问的公司管理接口，保留数据总览部门接口的既有权限入口
-- `service/data_overview_provider.go` — 抽象飞书/钉钉统一组织目录与成员 Provider，按公司隔离 Token、目录与成员缓存并用 singleflight 合并并发请求；飞书 `open_id` 与钉钉 `userid` 统一映射到本地 `users.open_id`；钉钉 `department.listsub` 部门树遍历接入按应用和接口隔离的 30 QPS 限速与 90018 有限退避重试，避免大型组织首次加载触发流控；飞书统计成员读取改用轻量 open_id 列表，成员详情独立缓存并仅供未注册用户姓名按需补全；飞书公司目录构建跳过 `/tenant/v2/tenant/query`，组织名用公司配置名称，避免租户接口失败阻断部门树
-- `service/data_overview_company.go` — 新增多公司部门树、公司别名显示、根组织精确匹配、无平台公司聚合及按公司/部门裁剪权限；平台用户同时按成员 ID 与 `users.company` 精确匹配，公司表为空时沿用旧全局飞书模式；公司目录按固定并发上限并行加载并保持原顺序；company audience 加 30 秒缓存并用 singleflight 合并并发解析，子部门统计按主归属部门复用父级成员分桶，用户列表仅为当前分页拉取未注册成员姓名，overview 内子部门统计、用户列表与排行共享一次用户聚合查询，减少平台接口与数据库重复请求
-- `service/feishu_department.go` — 部门树和各统计、排行、日志、导出服务接入公司模式 audience；请求携带公司 ID 与当前用户身份，并在服务端重新校验公司和部门访问范围
-- `controller/department.go` — 数据总览统计接口校验 `company_id`，注入请求用户 ID 和角色，公司或部门越权统一返回 403
-- `service/dingtalk_sync.go` — 钉钉 `department.listsub` 与 `user.list` 按 Client ID 和 API 路径分别平滑限制为单进程 30 QPS；识别 `errcode=88/subcode=90018` 后按 1 秒、2 秒有限退避重试，重试耗尽及底层请求错误不再泄露凭据 URL
-- `web/src/features/companies/api.ts` — 新增公司分页读取、创建、更新、启停和连接测试 API，前端只接收 Secret 的 configured 标记
-- `web/src/features/companies/types.ts` — 新增公司、平台、状态、登录方式和连接测试类型
-- `web/src/features/companies/lib/company-form.ts` — 新增公司表单 Zod 校验、平台与登录方式选项、凭据字段选择、Secret 掩码和无删除操作的行操作规则
-- `web/src/features/companies/components/company-credentials-fields.tsx` — 按平台显示飞书或钉钉凭据输入，已配置 Secret 使用掩码占位且不回显明文
-- `web/src/features/companies/components/company-login-methods-field.tsx` — 新增公司登录方式元数据选择；不改变现有 LDAP、密码或平台登录流程
-- `web/src/features/companies/components/companies-table.tsx` — 新增公司表格、搜索、平台与状态标签、连接测试、编辑和启停操作，不提供物理删除
-- `web/src/features/companies/components/company-mutate-sheet.tsx` — 新增公司创建/编辑表单并改用居中 Dialog 展示；保留固定操作区和滚动内容区，删除冗余的“编辑时留空保留 Secret”提示
-- `web/src/features/companies/index.tsx` — 新增公司管理页面，整合查询、创建、编辑、连接测试和启停确认，并在变更后刷新公司及部门树缓存
-- `web/src/routes/_authenticated/companies/index.tsx` — 新增公司管理路由并在前端限制为超级管理员访问
-- `web/src/routeTree.gen.ts` — 注册生成的公司管理路由
-- `web/src/features/system-settings/maintenance/config.ts` — 在系统设置维护模块中登记公司管理模块
-- `web/src/features/system-settings/maintenance/sidebar-modules-section.tsx` — 支持在侧边栏模块配置中管理公司入口
-- `web/src/hooks/use-sidebar-config.ts` — 增加公司管理模块与 URL 映射
-- `web/src/hooks/use-sidebar-data.ts` — 向系统管理分区添加仅超级管理员可见的公司管理菜单
-- `web/src/features/data-overview/types.ts` — 部门节点和查询参数补充公司、平台、节点类型、禁用状态及错误信息
-- `web/src/features/data-overview/api.ts` — 统计、子部门、使用分析、排行、日志和用户列表请求统一透传 `company_id`
-- `web/src/features/data-overview/lib/department-selection.ts` — 集中处理公司感知的节点选择、请求参数构造、禁用状态和组织加载错误文案
-- `web/src/features/data-overview/index.tsx` — 数据总览根据所选公司节点生成查询参数，支持无平台公司一级节点，并隔离不同公司的 Query 缓存
-- `web/src/features/data-overview/components/department-tree-select.tsx` — 部门选择器支持公司一级节点、平台信息、禁用公司及组织名称不匹配错误提示
-- `web/src/features/data-overview/components/department-users-table.tsx` — 部门用户、排行和日志查询携带当前公司 ID
-- `web/src/features/data-overview/components/sub-department-stats.tsx` — 子部门统计与弹窗操作携带公司 ID
-- `web/src/features/data-overview/components/sub-department-stats-dialog.tsx` — 子部门统计弹窗按公司隔离统计和使用分析查询
-- `web/src/features/data-overview/components/department-logs-dialog.tsx` — 部门日志弹窗透传公司 ID
-- `web/src/features/data-overview/components/user-stats-dialog.tsx` — 用户统计弹窗透传公司 ID 并按公司校验目标用户
-- `web/src/features/data-overview/components/user-logs-section.tsx` — 用户与部门日志请求携带公司 ID
-- `web/src/features/data-overview/components/export-dialog.tsx` — 数据总览导出按公司范围加载统计与用户数据
-- `web/src/components/data-table/hooks/use-data-table.ts` — 为未显式传入的列筛选和全局筛选初始化受控状态，修复公司管理表格工具栏读取 `columnFilters.length` 时崩溃
-- `web/src/components/data-table/hooks/__tests__/state.test.tsx` — 覆盖仅启用全局搜索时列筛选状态仍初始化为空数组
-- `web/src/features/companies/__tests__/company-behavior.test.ts` — 覆盖平台凭据字段、Secret 掩码、配置状态和无删除操作等公司管理契约
-- `web/src/features/companies/__tests__/editor-dialog.test.tsx` — 覆盖公司创建和编辑均使用 Dialog，且不显示已删除的冗余 Secret 提示
-- `web/src/features/data-overview/__tests__/company-selection.test.ts` — 覆盖公司参数透传、旧模式兼容、无平台公司选择和错误公司跳过逻辑
-- `web/src/i18n/static-keys.ts` — 登记公司管理、平台、登录方式和组织错误提示等静态翻译键
-- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐公司管理和多公司数据总览七语言文案，并移除废弃的 Secret 留空提示键
-
-### 2026-07-24 部门树选择器懒加载
-
-- `service/feishu_department.go` — `DeptTreeNode` 新增 `Loading bool` 字段（`omitempty`），标记子部门尚未拉取
-- `service/data_overview_company.go` — `getCompanyDepartmentTree` 改为仅预加载第一个公司的部门树，其余公司节点置 `Loading=true`；新增 `GetCompanySubtreeNode` 与 `CompanySubtreeResponse`，按需拉取单个公司的完整子树（含访问校验和权限裁剪）
-- `controller/department.go` — 新增 `GetCompanyDepartmentSubtree`，读取 `company_id` 查询参数并调用 `GetCompanySubtreeNode`
-- `router/api-router.go` — 注册 `GET /api/department/company-subtree` 路由
-- `web/src/features/data-overview/types.ts` — `DeptTreeNode` 新增 `loading?: boolean`；新增 `CompanySubtreeResponse` 接口
-- `web/src/features/data-overview/api.ts` — 新增 `getCompanySubtree(companyId)` API 封装
-- `web/src/features/data-overview/components/department-tree-select.tsx` — 新增 `onLoadNodeChildren` 和 `loadingNodeValues` props；悬停 `loading` 公司节点时触发懒加载；列计算改为从最新 `treeData` 按值查找节点，加载中显示独立 `LoadingColumn` 列与行内旋转图标
-- `web/src/features/data-overview/index.tsx` — 新增 `lazyCompanySubtrees` 和 `loadingCompanyValues` 状态；`handleLoadCompanyChildren` 防重复拉取，成功后子树合并进 `displayTreeData`（`useMemo` 按 node value 替换）
-
-### 2026-07-24 首屏性能优化：移除旧模式 + 后端聚合 + 前端并行渐进加载
-
-- `service/feishu_department.go` — 彻底移除旧飞书单租户模式：`GetDepartmentTree`、`GetDepartmentStats`、`GetSubDepartmentStats`、`GetUsageAnalysis`、`GetDepartmentUsers`、`GetDepartmentUserRankings`、`GetDepartmentLogs` 中的 `if companyMode` 分支全部移除，直接调用公司模式实现；删除旧飞书路径下的 `getAllMembersUnderDepts`、`findRegisteredUserIdsByOpenIDs`、`collectOpenDeptIDsUnder` 等辅助函数（共减少约 736 行）
-- `model/company.go` — 删除 `CountCompanies()` 函数（已无调用方）
-- `service/data_overview_company.go` — 删除 `CompanyDataOverviewEnabled()` 及其内部 `CountCompanies()` 调用，`resolveCompanyOverviewAudience` 改为直接以 `companyID <= 0` 快速拒绝；新增 `DepartmentOverviewRequest`、`DepartmentOverviewResponse` 类型；新增 `GetDepartmentOverview`：一次调用 `resolveCompanyOverviewAudience` 解析 audience 后，通过 `errgroup` 并行执行 `buildCompanyDepartmentStats`、`buildCompanySubDepartmentStats`、`buildCompanyUsageAnalysis`、`buildCompanyDepartmentUsers`、`buildCompanyDepartmentUserRankings` 五个计算，聚合为单一响应返回；`getCompanyDepartmentTree` 新增空公司列表快速返回路径；`createDepartmentQueryParams` 改为对缺失 `company_id` 抛出明确错误
-- `controller/department.go` — 新增 `GetDepartmentOverview` controller；`validateDepartmentCompanyID` 移除对 `CompanyDataOverviewEnabled()` 的调用，直接以 `companyID <= 0` 拒绝；`validateDepartmentUserCompanyID` 移除 root 用户豁免分支，统一走 `validateDepartmentCompanyID`
-- `router/api-router.go` — 注册 `POST /api/department/overview` 路由
-- `service/data_overview_company_test.go` — 覆盖 `GetDepartmentOverview` 的无公司快速返回、缺失 `company_id` 拒绝和 audience 解析失败行为；补充子部门主归属分桶、audience 缓存复用及未注册用户姓名仅按当前分页加载的测试
-- `web/src/features/data-overview/index.tsx` — 首屏改为并行发起 stats、sub-stats、usage-analysis、users、user-rankings 五个独立请求，各板块就绪后立即渲染；`getOverviewLoadingState` 控制搜索按钮与分板块骨架，避免单接口最慢任务拖慢整页
-- `web/src/features/data-overview/lib/overview-loading.ts` — 新增，根据各查询 fetching/data 状态算搜索中状态与 stats/sub-stats/usage/users/rankings 骨架展示
-- `web/src/features/data-overview/components/department-users-table.tsx` — `initialUsers`/`initialRankings` 改为可选，新增 `initialUsersLoading`/`initialRankingsLoading`，首屏加载中展示表格骨架与排行旋转指示
-- `web/src/features/data-overview/components/sub-department-stats.tsx` — `activityFormula` 改为可选，统计卡片未返回前均价/活跃公式说明可安全降级
-- `web/src/features/data-overview/api.ts` — 前端移除对 `getDepartmentOverview` 的调用（后端 overview 聚合接口仍保留）
-- `web/src/features/data-overview/types.ts` — 移除仅供前端聚合消费的 `DepartmentOverviewResponse` 类型
-- `web/src/features/data-overview/lib/department-users-query.ts` — 集中定义用户列表查询的初始分页大小、排序字段和排序方向常量
-- `web/src/features/data-overview/__tests__/overview-loading.test.ts` — 覆盖分板块骨架与搜索中状态的渐进加载契约
-- `web/src/features/data-overview/__tests__/department-users-query.test.ts` — 覆盖用户列表查询初始常量与参数构造，并改为断言独立 users 结果作为首屏表格数据
-- `web/src/features/data-overview/__tests__/company-selection.test.ts` — 补充缺失 `company_id` 节点的禁用和抛出行为测试
-- `web/src/features/data-overview/lib/department-selection.ts` — `isDepartmentNodeDisabled` 新增对缺失 `company_id` 的节点禁用；`createDepartmentQueryParams` 改为对 `company_id` 缺失抛出异常而非默认 0
-
-### 2026-07-24 overview 共享用户用量统计
-
-- `service/data_overview_company.go` — 新增 `overviewUserStats` 与 `loadOverviewUserStats`，在 `GetDepartmentOverview` 内先并行预加载一次注册用户 `GetUserStatsBatch`；`buildCompanySubDepartmentStats`、`buildCompanyDepartmentUsers`、`buildCompanyDepartmentUserRankings` 改为接收共享统计并复用，独立接口路径仍可传 `nil` 自行加载；消除 overview 聚合内对同一用户集合的重复日志扫表
-- `service/data_overview_company_test.go` — 覆盖共享用户统计只查询一次、子部门/用户列表/排行复用同一批结果，以及独立路径仍可自行加载
-
-### 2026-07-25 四类 Token 统计口径与明细
-
-- `model/log.go` — 用户、模型、每日趋势和部门统计的总 Token 统一改为非缓存输入、非缓存输出、缓存读取与缓存写入四类字段相加；部门统计响应同时下发四类 Token 明细
-- `service/data_overview_company_test.go` — overview 共享统计测试数据补充四类 Token，确保聚合结果不再依赖旧 `token_used` 字段
-- `web/src/features/data-overview/types.ts` — 部门统计类型补充四类 Token 明细字段
-- `web/src/features/data-overview/components/department-stats-cards.tsx` — 总 Token 卡片 Tooltip 展示四类 Token 数值与口径说明
-- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补齐四类 Token 名称与说明文案
-
-### 2026-07-25 人员主归属部门匹配
-
-- `model/user.go` — 新增主归属部门解析，固定读取 `users.departments` JSON 数组中首个对象的 `department_id`
-- `service/data_overview_company.go` — 数据总览的平台成员匹配增加主归属部门校验，仅当 `open_id`、公司及首个 `department_id` 均匹配当前部门或其下级范围时才计入注册用户和部门统计，避免多部门人员重复归属
-- `service/data_overview_company_test.go` — 覆盖只认首个部门 ID、忽略后续部门命中、保留真实未注册成员及按统计结束时间判断注册状态的测试场景
-
-### 2026-07-28 管理员跨公司查看用户统计
-
-- `controller/department.go` — 用户统计相关接口允许管理员在未传 `company_id` 时继续请求；BP、部门负责人及普通用户仍返回公司 ID 必填错误
-- `service/data_overview_company.go` — 单用户统计授权允许管理员省略公司范围并查看全局用户，其他角色继续通过公司组织树校验目标用户可见性
-
-### 2026-08-17 费用分桶统计卡片
-
-- `model/log.go` — `DepartmentStat` 新增 `cost_buckets`、`high_cost_users`、`high_cost_user_rate`、`high_cost_threshold_cny` 字段，并新增 `CostBucket` 结构体（上界为开区间，0 表示无上界）
-- `service/data_overview_company.go` — 新增 `highCostThresholdCNY`（10 元）与 `costBucketUpperBoundsCNY` 分桶边界；`buildCompanyDepartmentStats` 增加可选 `userStats` 参数，overview 聚合路径复用已加载的单用户统计算分桶，独立统计接口仍自行加载
-- `service/report_notify.go` — 报表通知的部门统计构造同步适配新的分桶字段
-- `web/src/features/data-overview/types.ts` — 补充 `CostBucket` 类型与部门统计的费用分桶字段
-- `web/src/features/data-overview/components/department-stats-cards.tsx` — 未注册/已注册两卡合并为单卡；新增「费用 >10 元人数/占比」卡片，Tooltip 悬停展示各费用区间人数分布，占比复用活跃率配色阈值
-- `web/src/features/data-overview/components/__tests__/stats-card-tooltip.test.tsx` — 测试夹具补充费用分桶字段
-- `web/src/i18n/locales/*.json` — 七语言补充费用分桶相关文案（`Cost Distribution`、`Spent ¥0`、`Spent ¥{{min}}~¥{{max}}`、`Spent over ¥{{min}}`、`Users spending more than ¥10` 等）
-
-### 2026-09-07 数据总览日志渠道列权限调整
-
-- `web/src/features/data-overview/components/user-logs-section.tsx` — 数据总览的部门日志和部门用户日志渠道列对超级管理员可见，普通管理员隐藏；日志详情中的渠道、重试链和分组倍率仅向超级管理员开放。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 公共日志列增加渠道详情与分组倍率的独立可见性选项，并将权限传递给详情弹窗和详情摘要。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 详情弹窗按独立权限隐藏渠道、重试链和分组倍率，避免普通管理员在数据总览日志中看到敏感信息。
-
-## 自 CHANGELOG 说明列迁入
-
-数据总览增强：完善部门统计、使用分析、排行、日志、导出与权限裁剪；新增飞书、钉钉、无平台多公司配置与数据隔离；支持 BP 按显式部门配置跨公司查看；部门树按权限加载并允许跨公司节点展开；补齐数据总览七语言文案与用户编辑弹窗布局；日志表格渠道列对超级管理员可见、普通管理员隐藏，详情中的渠道、重试链与分组倍率仅超级管理员可见；统一费用阈值及费用分布中文文案的数字与汉字间距；使用分析四张趋势图支持独立切换日/周/月粒度并在前端聚合；图表 Token 用量悬浮显示统一为 Token 字面量 + xx.xx 亿；用户统计弹窗新增头像+名称展示，仿照请求内容弹窗并支持悬停资料卡片；部门树选择器支持沿禁用祖先节点进入授权部门，保留懒加载导航状态并完善键盘操作与焦点；部门人员列表复用用户管理的「任职概况」「时间」合并列，用户 ID 与日志页统一弱化色，页面、加载态、日志弹窗及 Excel 名称统一为「部门人员列表」并补齐七语言文案
+原记录的三库及独立日志库实库验证未完整完成；本次仅核对代码与历史，不补称运行验证。

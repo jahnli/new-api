@@ -1,18 +1,13 @@
-# 新增「事业部 AI BP」「中心 AI BP」两个用户角色
+# BP 角色
 
-**日期**: 2026-07-08
+**日期**: 2026-08-19
 
-## 涉及文件
+新增 BP（`role=2`），前后端使用相同角色值、标签和图标，用户创建及编辑可选择该角色。数据总览权限按显式可见部门配置判断，不按角色级别推导部门层级。
 
-- `common/constants.go` — 新增 RoleBUBP=2、RoleCenterBP=3 常量，更新 IsValidateRole 校验
-- `model/user.go` — Edit 函数更新字段增加 role，编辑时可修改角色
-- `web/default/src/features/users/constants.ts` — USER_ROLE/USER_ROLES/getUserRoleOptions 新增两个角色及图标，角色文案改为「事业部 AI BP」「中心 AI BP」
-- `web/default/src/features/users/components/users-mutate-drawer.tsx` — 角色选择器创建和编辑模式均展示，含四个可选角色
-- `web/default/src/features/users/lib/user-form.ts` — 编辑用户时向后端发送 role 字段
-- `web/default/src/features/users/types.ts` — 角色注释更新
-- `web/default/src/i18n/locales/en.json` — 英语翻译
-- `web/default/src/i18n/locales/zh.json` — 中文翻译
-- `web/default/src/i18n/locales/fr.json` — 法语翻译
-- `web/default/src/i18n/locales/ja.json` — 日语翻译
-- `web/default/src/i18n/locales/ru.json` — 俄语翻译
-- `web/default/src/i18n/locales/vi.json` — 越南语翻译
+兼容约束：有效角色不包含 `role=3`，当前启动没有将遗留值自动转为 2 的逻辑；旧库升级时须核对角色数据。
+
+## 实现入口
+
+- `common/constants.go`、`model/user.go` — 角色校验及保存。
+- `web/src/lib/roles.ts`、`web/src/features/users/constants.ts` — 角色标签及前端入口。
+- 部门授权规则见 [BP 可见部门配置](069-bp-level-overview.md)。

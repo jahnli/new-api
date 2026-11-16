@@ -1,13 +1,13 @@
-# 用户创建后自动订阅套餐
+# 用户创建后自动订阅
 
-**日期**: 2026-07-06
+**日期**: 2026-11-16
 
-## 涉及文件
+- 普通注册和后台建号按用户公司匹配注册规则，配置套餐 ID 为正时自动绑定；失败记录日志，不阻断用户创建，分别记录 `register_auto`、`admin_create_auto` 来源。
+- OIDC 首次注册使用已验证公司属性匹配的套餐，后续登录及账号绑定不追加订阅，详见 [OIDC 注册](029-remove-github-discord-telegram-linuxdo-oauth.md)。
+- 公司规则及套餐选择保存在 `company_registration.configs`，前端回显套餐名称。
 
-- `setting/system_setting/registration.go` — 新增并持久化 `registration.auto_subscribe_plan_id`
-- `controller/user.go` — 普通注册和后台新增用户后按配置自动绑定套餐，失败不阻断创建
-- `controller/ldap.go` — LDAP 首次登录建号后自动绑定套餐，来源记为 `ldap_register_auto`
-- `model/subscription.go` — 后台绑定订阅支持来源标记，注册自动订阅记为 `register_auto`
-- `web/default/src/features/system-settings/auth/basic-auth-section.tsx` — 基础认证设置新增注册后自动订阅套餐选择，回显套餐名称
-- `web/default/src/features/system-settings/auth/index.tsx`、`web/default/src/features/system-settings/auth/section-registry.tsx`、`web/default/src/features/system-settings/types.ts` — 串接设置默认值和类型
-- `web/default/src/i18n/locales/*.json` — 补充 6 语言翻译
+## 实现入口
+
+- `controller/user.go` — `autoSubscribeUserAfterCreate`。
+- `setting/system_setting/company_registration.go`、`model/subscription.go` — 公司规则与绑定。
+- `web/src/features/system-settings/auth/oauth-section.tsx` — 公司套餐选择。

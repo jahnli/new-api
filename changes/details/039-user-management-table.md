@@ -1,308 +1,37 @@
-# 用户管理与共享悬停交互增强
+# 用户管理与共享表格交互
 
-**日期**: 2026-06-30 ~ 2026-11-16（最后更新 2026-11-16）
+**日期**: 2026-11-16
 
-## 涉及文件
+## 用户统计与表格
 
-- `controller/user.go` — 用户列表与搜索接口返回订阅额度、月度总消耗、Token、请求次数、常用模型统计。
-- `common/page_info.go` — 分页参数新增 sort_by/sort_order 解析与白名单 ORDER BY 生成，支持计算列排序识别，月度每百万 Token 均价列纳入该白名单。
-- `controller/user.go` — 用户列表与搜索接口支持按订阅额度、月度/累计用量、Token、请求次数、每百万 Token 均价等计算列服务端排序。
-- `model/log.go` — 新增按用户与模型从 `logs` 表聚合月度用量的查询，支撑常用模型统计。
-- `model/subscription.go` — 新增按用户批量查询有效订阅额度汇总，供表格展示订阅额度进度。
-- `model/user.go` — 用户查询支持安全排序字段白名单与排序方向参数。
-- `web/default/src/features/users/api.ts` — 用户列表 API 透传排序字段和方向；移除用户删除 API 封装。
-- `web/default/src/features/users/components/users-table.tsx` — 启用手动服务端排序，排序变化时重置到第一页，均价列映射到后端月度均价排序字段。
-- `web/default/src/features/users/types.ts` — 用户列表查询参数补充 sort_by/sort_order。
-- `web/default/src/features/users/components/users-columns.tsx` — 新增月度总消耗、Token、请求次数、常用模型列，请求数提示改用 `logs` 聚合结果。
-- `web/default/src/features/users/components/shared-user-columns.tsx` — 请求次数格式化统一（与数据总览一致）；抽取 `useSharedUserColumns` hook 统一用户管理与数据总览部门用户表格列定义；用户名列头像点击可经 open_id 跳转飞书，悬停仍显示资料卡片；用户显示名与常用模型徽章改为常规字重；调整 ID、用户名、总费用、Token、请求次数、部门、最后登录等列宽；部门列超出省略，悬停显示完整路径；列顺序调整为部门、职级、最后登录、常用模型；总费用右侧新增每百万 Token 均价列，显示 `/MT` 单位并接入排序表头；额度和均价列头新增贴近列名的说明图标，悬停可查看当前自然月额度统计与每百万 Token 均价说明
-- `web/default/src/components/long-text.tsx` — 移动端长文本弹出层以非按钮元素作触发器时显式关闭 nativeButton，消除 Base UI 可访问性警告
-- `web/default/src/features/data-overview/components/department-users-table.tsx` — 改用 `useSharedUserColumns` hook，移除独立列定义
-- `web/default/src/features/users/components/users-table.tsx` — 默认排序由 quota 降序改为 created_at 降序；getRowClassName 改为 early-return 写法
-- `web/default/src/features/users/components/data-table-row-actions.tsx` — 操作列新增「统计」按钮（BarChart3 图标），打开 UserStatsDialog 查看使用分析；移除三点菜单的删除项。
-- `web/default/src/features/users/index.tsx` — 不再挂载用户删除确认弹窗。
-- `web/default/src/features/users/components/users-delete-dialog.tsx` — 删除用户删除确认弹窗组件。
-- `web/default/src/features/users/types.ts` — 用户类型补充订阅额度与月度统计字段；用户弹窗类型与管理动作类型移除 delete。
-- `web/default/src/features/users/lib/user-actions.ts` — 删除用户删除成功提示动作映射。
-- `web/default/src/i18n/locales/en.json` — 补充统计列英文文案。
-- `web/default/src/i18n/locales/fr.json` — 补充统计列法文文案。
-- `web/default/src/i18n/locales/ja.json` — 补充统计列日文文案。
-- `web/default/src/i18n/locales/ru.json` — 补充统计列俄文文案。
-- `web/default/src/i18n/locales/vi.json` — 补充统计列越南文文案。
-- `web/default/src/i18n/locales/zh.json` — 补充统计列中文文案。
-- `web/src/components/group-badge.tsx` — 分组徽章支持按调用场景覆盖倍率标签样式。
-- `web/src/features/users/components/shared-user-columns.tsx` — 用户列表分组列显示基础倍率，并采用紧凑的 `x倍率` 标签。
-- `web/src/features/users/components/users-columns.tsx` — 用户列表列定义接收分组倍率映射。
-- `web/src/features/users/components/users-table.tsx` — 用户列表查询分组基础倍率并传入列定义。
+- 用户列表及搜索返回有效订阅、统计用量、常用模型与启用／禁用人数；人数遵循筛选条件并排除已删除及其他状态。对内统计当前自然月，对外统计全部时间，详见 [对外模式](075-external-mode.md)。
+- 有效订阅使用其已用／总额；无订阅按统计期消耗加钱包余额计算总额。显式订阅状态避免查询失败被误判，无效分母不绘制进度。
+- 共享“使用量”列展示 Token、费用、请求次数和每亿 Token 单价，列头可切换四项服务端排序；默认按创建时间降序，排序或筛选变化重置分页，行 ID 使用用户 ID 保持跨页选择稳定。
+- “任职概况”合并部门、职级和入职日期，时间列按最后登录／创建时间排列；角色、状态使用列头单选筛选，公司选项来自服务端去重列表。分组展示基础倍率，加载失败仅显示名称。
+- 用户管理与部门人员列表共享列、资料卡和分析入口，保留溢出提示、空值及演示脱敏行为。
 
-## 2026-09-26 用户表格跨页选择稳定性
+## 成本中心与分组
 
-- `web/src/features/users/components/users-table.tsx` — 使用用户 ID 作为表格稳定行标识，避免分页、筛选或排序后因默认行索引复用而将选择状态错误关联到其他用户。
+- 可配置一个成本中心，以单元素部门 JSON 数组保存并校验公司 ID、部门 ID 和名称，不允许公司根节点；支持回填和清除，完整路径不含公司名。
+- 仅在原 `department_name` 为空时用成本中心路径补齐。数据总览按成本中心归属统计本地用户，包含无平台身份成员，原部门信息仍可展示但消费不重复计算。
+- 管理员改用户分组时，在同一事务同步全部固定分组 API 密钥并失效缓存；空分组密钥继续继承，`auto` 保留自动路由。
 
-## 2026-09-26 表格说明与全站悬停提示统一
+## 用户操作
 
-沿用本条目已有的表头说明、时间单元格与长文本能力，将普通悬停提示统一为公共 Tooltip。使用日志的异步明细加载与复制交互另见 [#056](056-usage-logs-user-column.md)。
+- 用户删除经确认及绑定目标的 `admin.user.delete` 身份验证后提交，成功刷新列表；超级管理员账户删除入口禁用。
+- 批量启用、禁用、删除和改分组逐用户调用现有接口；敏感操作使用绑定目标及动作的一次性凭证，取消验证即停止后续项。
+- 跳过当前用户、同级／更高权限、已删除或已为目标状态的账号；改分组先读最新详情，保留其他资料。处理期间防重复提交，结束汇总成功、失败、跳过和未处理项，保留失败及未处理勾选。
 
-### 变更说明
+## 共享悬停提示
 
-- 应用入口统一挂载 TooltipProvider，普通提示继承公共组件的 100 毫秒延迟，各页面不再重复创建 Provider；表头说明与时间标签图标使用零延迟，渠道类型移除原有 300 毫秒特例。
-- 新增 TextTooltip 组合现有 Tooltip 原语，通过渲染插槽复用原元素，不增加布局包装；支持指定方向、换行、按需覆盖延迟和仅在内容溢出时提示，空内容直接返回原元素。
-- 表头说明提取为 DescriptionTooltip，触发区域统一为 24 像素，支持键盘聚焦；说明图标与排序按钮分离，避免嵌套按钮。
-- 长文本与截断单元格共用溢出检测，在容器尺寸、文本内容与字体加载变化后重新测量；多个实例共享 ResizeObserver 和字体加载监听，卸载时清理观察。显式传入的额外明细不受仅溢出显示的限制。
-- LongText 桌面端使用 Tooltip，移动端保留点击展开 Popover；徽标列表没有隐藏项时不创建空提示，保留已有可点击展开模式。
-- StatusBadge 的原生标题迁为公共提示，支持复制的徽标补充键盘操作；CopyButton 默认展示复制及成功提示。触发器和弹层内部共享上下文，自动提示遇到已有外层提示时让位，避免完整标签列表被内部复制提示关闭。
-- 普通业务元素移除原生 `title`，已有 Tooltip 的按钮移除重复标题；保留禁用状态说明、拖拽及复制事件、列表键值和脱敏后的展示内容。浮层动画统一为 100 毫秒并尊重减少动态效果偏好。
-- 弹窗、表头与区块的真实标题属性、iframe 无障碍标题以及 SVG、Markdown 作者标题元数据保持原用途；复杂交互浮层继续使用原有 HoverCard 或 Popover。
+- 普通提示共用全局 100ms 延迟，表头说明和时间图标零延迟；键盘聚焦、减少动态效果和脱敏内容保持一致，不回退原生 `title`。
+- `TextTooltip`、`DescriptionTooltip` 复用公共原语，溢出检测共享尺寸与字体监听；长文本桌面悬停、移动端点击展开，额外明细不受仅溢出显示限制。
+- 徽章与复制提示识别外层浮层，避免嵌套冲突；可按场景关闭冗余提示而保留复制和无障碍名称。异步日志详情见 [使用日志](056-usage-logs-user-column.md)。
 
-### 涉及文件：公共能力
+## 实现入口
 
-- `web/src/main.tsx` — 应用入口挂载统一 Provider。
-- `web/src/components/ui/tooltip.tsx` — 统一动画、减少动态效果适配及触发器与弹层的嵌套提示上下文。
-- `web/src/components/text-tooltip.tsx` — 新增普通文字提示封装。
-- `web/src/components/description-tooltip.tsx` — 新增公共帮助图标与说明提示。
-- `web/src/context/tooltip-trigger-context.ts` — 新增外层提示上下文。
-- `web/src/hooks/use-overflow.ts` — 新增共享尺寸观察、文本变化与字体变化检测。
-- `web/src/components/long-text.tsx` — 按实际溢出展示，保留移动端点击展开。
-- `web/src/components/data-table/core/truncated-cell.tsx` — 截断单元格接入动态检测与键盘提示入口。
-- `web/src/components/data-table/core/column-header.tsx` — 复用公共说明组件，保持表头零延迟并分离排序与帮助按钮。
-- `web/src/components/data-table/core/badge-list-cell.tsx` — 移除局部 Provider，无隐藏项时避免创建空提示。
-- `web/src/components/data-table/toolbar/bulk-actions.tsx` — 清除选择按钮去除重复原生标题。
-- `web/src/components/data-table/toolbar/faceted-filter.tsx` — 筛选项完整名称改为仅截断时显示提示。
-- `web/src/components/activity-time-cell.tsx` — 创建与活动时间图标改为零延迟提示，保留辅助文字。
-- `web/src/components/status-badge.tsx` — 统一徽标复制与完整文本提示，防止自动提示嵌套。
-- `web/src/components/copy-button.tsx` — 默认提供复制提示及成功反馈，已有外层提示时复用外层。
-- `web/src/components/multi-select.tsx` — 统一标签复制、拖动、说明和展开收起提示。
-- `web/src/components/auto-group-order-item.tsx` — 统一排序拖动与截断分组名提示。
-- `web/src/components/floating-window.tsx` — 移动与缩放说明改用公共提示，保留指针捕获行为。
-- `web/src/components/layout/components/public-header.tsx` — 站点名和导航名称按截断情况显示提示。
-- `web/src/components/ui/sidebar.tsx` — 侧栏边缘提示接入公共封装及已有翻译，菜单提示沿用折叠条件并继承全局配置。
-- `web/src/components/ai-elements/actions.tsx`、`web/src/components/ai-elements/artifact.tsx`、`web/src/components/ai-elements/web-preview.tsx` — 消息、产物和预览操作提示移除局部 Provider。
-- `web/src/components/ai-elements/prompt-input.tsx` — 隐藏文件输入移除冗余标题，保留无障碍名称。
-
-### 涉及文件：功能页接入
-
-- `web/src/features/users/components/dept-multi-select.tsx`、`web/src/features/users/components/dialogs/user-binding-dialog.tsx` — 部门加载错误和绑定筛选操作提示统一。
-- `web/src/features/channels/components/channel-plugin-extensions.tsx`、`web/src/features/channels/components/channel-type-badge.tsx` — 插件扩展操作与插件渠道类型说明接入公共提示。
-- `web/src/features/channels/components/channels-columns.tsx`、`web/src/features/channels/components/data-table-bulk-actions.tsx` — 渠道额度、备注、透传与参数覆盖说明继承全局配置，批量按钮去除双重提示。
-- `web/src/features/channels/components/numeric-spinner-input.tsx`、`web/src/features/channels/components/upstream-model-selection.tsx` — 数值调节与上游模型选择操作说明统一。
-- `web/src/features/channels/components/drawers/channel-provider-picker.tsx` — 供应商与插件标识的截断提示统一。
-- `web/src/features/channels/components/dialogs/advanced-custom-editor-dialog.tsx` — 高级编辑弹窗移除局部 Provider。
-- `web/src/features/channels/components/dialogs/channel-test-dialog.tsx`、`web/src/features/channels/components/dialogs/configure-models-dialog.tsx` — 模型名称与配置操作提示统一。
-- `web/src/features/channels/components/dialogs/multi-key-manage-dialog.tsx`、`web/src/features/channels/components/dialogs/multi-key-table-row-actions.tsx` — 多密钥管理与行操作说明统一。
-- `web/src/features/models/components/data-table-bulk-actions.tsx`、`web/src/features/models/components/data-table-row-actions.tsx` — 行操作与批量操作去除原生提示，禁用按钮通过可聚焦包装保留原因说明。
-- `web/src/features/models/components/model-square-status.tsx`、`web/src/features/models/components/models-columns.tsx` — 模型广场状态及厂商完整名称提示统一。
-- `web/src/features/models/components/vendor-linked-models.tsx`、`web/src/features/models/components/vendors-table.tsx` — 关联模型与厂商描述提示统一。
-- `web/src/features/pricing/components/model-card.tsx`、`web/src/features/pricing/components/model-details.tsx` — 模型名、厂商、分组、标签、端点与任务插件名称改用公共提示。
-- `web/src/features/pricing/components/model-perf-badge.tsx`、`web/src/features/pricing/components/model-price-cell.tsx`、`web/src/features/pricing/components/pricing-sidebar.tsx` — 成功率口径、性能指标、价格标签和筛选项提示统一。
-- `web/src/features/dashboard/components/flow/flow-charts.tsx`、`web/src/features/dashboard/components/models/log-stat-cards.tsx` — 流向图说明与模型统计完整值提示统一。
-- `web/src/features/dashboard/components/overview/api-info-item.tsx`、`web/src/features/dashboard/components/ui/stat-card.tsx` — 接口测试操作和统计详情接入公共提示，保留测试中禁用状态。
-- `web/src/features/data-overview/index.tsx`、`web/src/features/data-overview/components/department-tree-select.tsx` — 页面移除局部 Provider，部门树操作说明统一。
-- `web/src/features/image-studio/lib/model-params/seedream/params.tsx` — 提示词优化帮助继承全局提示配置。
-- `web/src/features/keys/components/auto-group-order-editor.tsx` — 自动分组排序操作提示统一。
-- `web/src/features/playground/components/message/message-actions.tsx` — 消息操作移除局部 Provider。
-- `web/src/features/security/components/account-bindings.tsx` — 绑定方式名称仅在截断时显示提示。
-- `web/src/features/subscriptions/components/premium-quota-summary.tsx` — 高级模型额度帮助继承全局提示配置。
-- `web/src/features/system-info/components/system-instances-panel.tsx`、`web/src/features/system-info/components/system-tasks-table.tsx` — 实例角色、存储明细、心跳时间、删除操作及任务错误提示统一。
-- `web/src/features/system-settings/models/channel-selector-dialog.tsx`、`web/src/features/system-settings/models/group-ratio-visual-editor.tsx` — 价格来源地址与分组完整名称改用截断提示。
-- `web/src/features/system-settings/models/task-plugin-pricing-editor.tsx`、`web/src/features/system-settings/models/task-pricing-matrix.tsx` — 插件名称提示统一，价格组合说明继承全局配置。
-- `web/src/features/system-settings/models/upstream-price-cells.tsx`、`web/src/features/system-settings/models/upstream-ratio-sync-columns.tsx` — 上游价格项与模型名称提示统一。
-- `web/src/features/task-plugins/components/plugin-card.tsx`、`web/src/features/task-plugins/components/plugins-table.tsx` — 插件模型列表、说明、失效状态与运行错误接入公共提示。
-- `web/src/features/wallet/components/recharge-form-card.tsx` — 支付方式禁用原因改用可聚焦提示触发区域，保留网格布局。
-- 使用日志及图片审计相关文件和特有行为记录在 [#056 的提示统一补充](056-usage-logs-user-column.md#2026-09-26-悬停明细与复制提示统一)。
-
-### 2026-09-26 冗余提示按场景关闭
-
-在统一提示能力上提供按场景关闭的选项，减少已有明确内容或操作入口上的重复气泡；关闭后不回退为原生 `title`，原有显示、点击与复制能力保留。
-
-涉及文件：
-
-- `web/src/components/status-badge.tsx` — 新增默认开启的 `showTooltip`，关闭时同时跳过复制说明和标签溢出提示，保留徽标展示、鼠标复制与键盘操作。
-- `web/src/components/copy-button.tsx` — 新增默认开启的 `showTooltip`，允许调用方关闭普通及成功悬停提示，保留复制处理、状态图标和无障碍名称；未传入的页面维持默认行为。
-- `web/src/features/keys/components/api-key-group-cell.tsx` — 固定分组及继承用户分组改为普通截断容器，并关闭内部 GroupBadge 的自动提示；保留分组名、倍率与继承标记，自动跨组的机制说明继续保留。
-- `web/src/features/channels/components/numeric-spinner-input.tsx` — 移除数值显示按钮的 Tooltip 及仅为提示增加的包装，优先级和权重控件仍支持点击编辑、加减、上下限约束和提交。
-- `web/src/features/models/components/models-columns.tsx` — 移除模型名称的 Tooltip，保留点击名称打开编辑弹框与独立复制按钮；厂商截断名称、复制按钮及其他列提示保持各自用途。
-- 日志和审计中的用户文字、模型名、详情入口及 IP 提示关闭范围见 [#056](056-usage-logs-user-column.md#2026-09-26-日志与审计冗余提示精简)。
-
-## 2026-07-20 公司筛选
-
-- `model/user.go` — 新增 `GetUserCompanies` 查询去重非空的用户公司列表（按公司升序）；`SearchUsers` 新增 `company` 参数，非空时按 `company` 精确过滤。
-- `controller/user.go` — 新增 `GetUserCompanies` 接口；`SearchUsers` 读取 `company` 参数并透传 model 层。
-- `router/api-router.go` — 管理端用户路由新增 `GET /api/user/companies`。
-- `web/default/src/features/users/api.ts` — `searchUsers` 透传 `company` 参数；新增 `getUserCompanies` 获取去重公司列表。
-- `web/default/src/features/users/types.ts` — `SearchUsersParams` 新增 `company` 字段。
-- `web/default/src/routes/_authenticated/users/index.tsx` — URL 搜索 schema 新增 `company` 数组参数。
-- `web/default/src/features/users/components/users-columns.tsx` — 新增 `company` 列（默认隐藏、不可排序），承载「公司」筛选。
-- `web/default/src/features/users/components/users-table.tsx` — 「角色」筛选旁新增「公司」单选筛选（Building2 图标），选项来自 `getUserCompanies`；公司列默认隐藏并参与筛选与搜索请求。
-- `web/default/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补充「Company」（公司）翻译。
-
-## 2026-07-22 额度列展示优化
-
-- `web/src/features/users/components/shared-user-columns.tsx` — 缩短额度数字与进度条区域，已用额度固定两位小数，额度说明图标移至标题外并与均价列一致，修复说明悬停不显示，列名由「已用额度/总额度」精简为「已用/总额」，进一步收窄默认列宽与内容宽度。
-- `web/src/components/data-table/core/column-header.tsx` — 通用列头支持说明图标置于列名后、排序图标前，保留原有默认布局。
-- `web/src/lib/currency.ts` — 货币与额度格式化支持配置最少保留的小数位数。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 同步更新精简后的额度列名翻译。
-
-## 2026-08-05 无订阅用户额度展示
-
-- `controller/user.go` — 用户管理列表显式返回有效订阅状态；有订阅时沿用订阅已用/总额，无订阅时显示当前自然月消耗以及自然月消耗加钱包剩余额度，订阅查询失败时避免误判为无订阅。
-- `controller/user_manage_test.go` — 覆盖有订阅用户沿用订阅额度、无订阅用户按自然月消耗加钱包余额计算总额、排除月外消耗的测试路径。
-- `web/src/features/users/types.ts` — 用户列表响应类型补充有效订阅状态。
-- `web/src/features/users/components/shared-user-columns.tsx` — 共享额度列按显式订阅状态展示无订阅用户的有效 `0 / 0`，避免总额为零时产生无效进度百分比；额度说明沿用原有文案。
-
-## 2026-08-07 用户状态人数统计
-
-- `model/user.go` — 用户列表与搜索查询新增启用、禁用状态汇总；统计遵循当前搜索和筛选条件，排除已删除用户及其他状态。
-- `model/user_pagination_test.go` — 覆盖全量与搜索分页统计，验证已删除用户及其他状态不计入在职或禁用人数。
-- `controller/user.go` — 用户列表和搜索接口在原分页数据中附加 `enabled_count`、`disabled_count` 字段。
-- `web/src/features/users/types.ts` — 用户分页响应类型补充启用、禁用人数。
-- `web/src/features/users/components/users-table.tsx` — 读取接口状态汇总并传入分页区域，搜索或筛选变化时同步刷新。
-- `web/src/features/users/components/user-status-summary.tsx` — 新增用户页专属状态汇总组件，以“在职”和“禁用”展示人数。
-- `web/src/components/data-table/core/pagination.tsx`、`web/src/components/data-table/layout/data-table-page.tsx` — 通用分页支持在总计和页数选择之间插入页面专属汇总内容。
-- `web/src/features/users/components/__tests__/status-summary.test.tsx`、`web/src/components/data-table/core/__tests__/pagination-summary.test.tsx` — 覆盖中文人数展示及汇总内容所在位置。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补充“在职”和“禁用”人数标签翻译。
-
-## 2026-08-20 用户成本中心配置
-
-- `model/user.go` — User 新增 `cost_center` TEXT 字段，默认空数组；管理员编辑用户时经显式更新白名单持久化成本中心。
-- `controller/user.go` — 管理员创建和更新用户时归一化成本中心 JSON，限一个部门并校验 `department_id`、部门名称和 `company_id`，拒绝公司根节点等无效值。
-- `controller/user_manage_test.go` — 覆盖成本中心空值归一化、有效部门规范化、多部门和公司节点拒绝行为。
-- `model/user_update_test.go` — 覆盖用户成本中心写入和清除的数据库持久化行为。
-- `web/src/features/users/components/users-mutate-drawer.tsx` — 用户创建/编辑弹窗新增成本中心单选，复用管理员完整部门树并支持加载、回填和清除；BP 可见部门仍沿用原多选配置。
-- `web/src/features/users/lib/user-form.ts`、`web/src/features/users/lib/index.ts` — 定义成本中心表单值，完成树节点与单元素部门 JSON 数组间的序列化与回填转换。
-- `web/src/features/users/types.ts` — 用户响应、编辑请求和共享用户行类型补充 `cost_center` 字段。
-- `web/src/features/users/lib/__tests__/user-form-bp-level.test.ts` — 覆盖成本中心默认空值、创建/更新提交、清除及服务端值回填。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐成本中心标签、选择提示、说明和清除操作的七语言文案。
-
-### 2026-08-20 成本中心完整路径与 department_name 回填
-
-- `web/src/features/users/lib/user-form.ts` — 新增 `getCostCenterDepartmentPath`，按部门树计算不含公司根节点的完整部门路径（如 `数智产品中心 / AI应用技术部 / AI工程效率科`），作为成本中心 `name` 提交与回填展示。
-- `web/src/features/users/components/users-mutate-drawer.tsx` — 选择成本中心时保存完整部门路径而非末级节点名称。
-- `controller/user.go` — 管理员创建/更新用户时，若 `department_name` 为空则以所选成本中心的完整路径回填，已有值不覆盖；创建白名单补充 `cost_center` 与 `department_name`。
-- `model/user.go` — `EditWithTx` 更新白名单支持 `department_name`，用于回填成本中心路径。
-- `model/user_update_test.go`、`controller/user_manage_test.go`、`web/src/features/users/lib/__tests__/user-form-bp-level.test.ts` — 覆盖部门路径排除公司名、`department_name` 回填与成本中心归一化返回值。
-
-### 2026-08-20 数据总览按成本中心归属
-
-- `model/user.go` — 新增 `GetCostCenter` 解析 `cost_center` 的部门与公司归属。
-- `service/data_overview_company.go` — 新增 `queryCostCenterUsers` 按成本中心归属本地用户（不受公司名与 open_id 限制，内存过滤兼容三种数据库）；`matchOverviewDepartmentMembers` 改用公司对象并接入成本中心归属用户。
-- `service/feishu_department.go`、`service/data_overview_company_test.go` — 部门受众构建与相关测试同步支持成本中心归属。
-
-## 2026-09-09 用户分组倍率展示
-
-- `controller/group.go` — 管理员分组接口支持经可选查询参数返回分组与基础倍率映射，同时保持默认分组名称数组响应兼容。
-- `controller/group_test.go` — 覆盖管理员分组接口按需返回基础倍率的响应契约。
-- `web/src/features/users/api.ts` — 新增获取全部分组及基础倍率的管理员 API 封装。
-- `web/src/features/users/components/users-mutate-drawer.tsx` — 用户编辑弹窗的当前分组和下拉选项显示对应基础倍率。
-- `web/src/features/users/components/__tests__/group-ratio-display.test.tsx` — 覆盖当前分组及其他可选分组倍率的可见性。
-
-## 2026-09-10～09-11 任职概况与时间列
-
-- `web/src/components/activity-time-cell.tsx` — 活动时间单元格支持调用方传入语义图标替代可见文字标签、配置两项时间展示顺序，保留悬停标题与屏幕阅读器文案；未传图标和顺序的调用沿用原文字标签与创建时间优先顺序。
-- `web/src/features/users/components/shared-user-columns.tsx` — 新增“任职概况”共享列，以两行摘要展示部门、岗位职级和入职日期：首行部门、用户显示名及常用模型徽章统一常规字重；次行职级与带日历图标的入职日期改为徽章展示，两者均空时整行隐藏，单项为空时不显示对应徽章，职级保留固定 88px 槽位以对齐各行日期；内容区设明确的固定与最大宽度，部门、职级和日期超出可用空间时显示省略号；时间列用新增用户和登录图标区分创建时间与最后登录，最后登录在上、创建时间在下；状态列移至常用模型之前，其他共享表格原有行为不变。
-- `web/src/features/users/components/users-columns.tsx` — 用户管理表格启用任职概况合并列，替代原部门、岗位职级和入职日期三列。
-- `web/src/features/users/components/__tests__/activity-time-display.test.tsx` — 覆盖用户时间列的语义图标、隐藏辅助文案、最后登录优先的完整时间值，以及时间和状态均位于常用模型前的列顺序；API 密钥时间列仍使用原文字标签与默认顺序。
-- `web/src/features/users/components/__tests__/employment-overview.test.tsx` — 覆盖无图标部门主信息、固定宽度职级、无分隔符日期布局、日期图标、隐藏字段标签和收窄列宽的摘要展示，以及启用合并后独立列被替换的列结构。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补充“任职概况”七语言文案。
-
-## 2026-09-11 单价列单位展示
-
-- `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与部门人员列表的单价列统一按每亿 Token 展示：标题改为“单价 / 亿 Token”，内容改为“金额 / 亿”，并加宽列以容纳完整标题。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐单价列标题和亿级单位的七语言文案。
-
-## 2026-09-12 消耗列合并与排序字段切换
-
-- `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与部门人员列表的共享列把原 Token、费用、请求次数、单价四列合并为“消耗”列：首行显示 Token 消耗量与金额，次行以 `text-muted-foreground/70` 弱化色、13px 字号显示请求次数（复用已有 `times` 文案补「次」量词，避免与 Token 的「亿」混淆）与每亿 Token 单价（复用已有「费用」文案）；四项数据均保留悬停完整明细（含精确 Token 数与请求次数，新增 `formatUserRequestsDetail`）与屏幕阅读器标签，列宽由四列合计 460px 收窄为 200px；移除 `userTokensColumn`、`userCostColumn`、`userAveragePriceColumn`、`userRequestsColumn`，新增 `userConsumptionColumn`。
-- `web/src/components/data-table/core/column-header.tsx` — 共享列头支持列 `meta.sortFields`：下拉菜单新增“排序字段”单选组，升/降序作用于当前选中字段并同步显示其排序方向图标；未声明 `sortFields` 的列行为不变。
-- `web/src/components/data-table/core/data-table-header.tsx` — 把表头上下文中的 table 实例透传给列头，使字符串表头（`header: t('...')`）也能读写排序状态。
-- `web/src/components/data-table/core/types.ts` — 新增 `DataTableSortField` 类型，描述合并列对外暴露的可排序字段。
-- `web/src/tanstack-table.d.ts` — 列 meta 新增 `sortFields` 声明，供合并列声明多个服务端排序字段。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐“消耗”“排序字段”和消耗列说明的七语言文案；说明随合并范围扩为四项指标（Token、费用、请求次数、单价）。
-- `web/src/features/users/components/shared-user-columns.tsx` — 共享「已用/总额」列默认列宽由 150px 加宽到 180px，使已用值与总额值各两位小数（如 `¥1,234.56`）并排时不挤压；额度列内容右侧增加 12px 内边距，避免右对齐的总额值紧贴「消耗」列。
-- `web/src/components/activity-time-cell.tsx`、`web/src/features/users/components/shared-user-columns.tsx` — 时间列（最后登录 / 创建时间）文字由 12px 放大到 14px，与图标尺寸及表格正文一致：`ActivityTimeCell` 新增可选 `textClassName` 覆盖字号，用户管理与部门人员列表传入 `!text-[14px]`；共享表格 CSS 通过后代选择器把 `data-table-text="secondary"` 固定为 `text-xs`，覆盖必须带 `!` 前缀，API 密钥时间列未传该属性、行为不变；同列「新增用户」「登录」图标由 14px 放大到 16px，正好填满原有 16px 标签容器，网格列宽不变。
-- `web/src/features/users/components/shared-user-columns.tsx` — 「任职概况」列部门信息由 12px 放大到 14px（`!text-[14px]`，与空值占位及部门列一致）；「消耗」列默认列宽由 200px 加宽到 220px、`minSize` 由 180px 调整到 200px，给四项指标并排留余量。
-
-## 2026-09-13 使用量列命名与说明提示
-
-- `web/src/features/users/components/shared-user-columns.tsx` — 共享的合并列由「消耗」改名为「使用量」（复用已有 `Usage` 文案）；列说明提示改为两行，首行为 Token 用量与费用，次行为请求次数与每亿 Token 单价。
-- `web/src/components/data-table/core/column-header.tsx` — 通用列说明提示保留译文中的换行，未包含换行的说明显示不变。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 使用量列说明改为两行七语言文案；`Usage` 中文文案由「用量」改为「使用量」；移除不再使用的「消耗」文案。
-
-## 2026-09-13 「使用量」列头下拉菜单报错修复与加宽
-
-- `web/src/components/data-table/core/column-header.tsx` — 修复点击「使用量」列头后整页显示 500：Base UI 的 `Menu.GroupLabel` 必须位于 `Menu.Group` 或 `Menu.RadioGroup` 内，此前「排序字段」标签与排序字段单选组是兄弟节点，菜单一展开即抛出 `MenuGroupContext is missing`，被根路由错误边界（`GeneralError`，标题为超大 `{status ?? 500}`）接管，表现为整页跳 500 而后端无任何 500 响应；现将两者一并包入 `DropdownMenuGroup`，与仓库内其他下拉菜单写法一致，用户管理与数据总览部门人员列表共用该列头，两处同步修复。
-- `web/src/components/data-table/core/column-header.tsx` — 排序字段下拉菜单宽度原跟随触发按钮（`w-(--anchor-width)`），列头较窄时「单价 / 亿 Token」折成两行；现增加 `min-w-60`（240px），按七语言最长译文（英文 `Unit Price / 100M Tokens`、俄语 `Цена / 100 млн токенов`）取值，保证单行显示；未声明 `meta.sortFields` 的列头菜单宽度不变。
-
-## 2026-09-15 状态与角色列头筛选
-
-- `web/src/components/data-table/core/column-filter-header.tsx` — 新增共享列头筛选器 `DataTableColumnHeaderFilter`：列名后内嵌漏斗图标下拉，单选枚举值，`All` 项清除该列筛选；筛选值沿用工具栏 `DataTableFacetedFilter` 的 `string[]` 约定，但形态为紧凑列头版（无加号图标、虚线边框、已选徽章与搜索框），供没有工具栏或需要就近筛选的表格使用。
-- `web/src/components/data-table/index.ts` — 导出 `DataTableColumnHeaderFilter` 及其选项类型 `DataTableColumnHeaderFilterOption`，选项支持传入图标组件或图标节点。
-- `web/src/features/users/components/shared-user-columns.tsx` — 状态列与角色列表头改用共享列头筛选器，选项复用用户常量中的 `getUserStatusOptions` 与 `getUserRoleOptions`（含图标），选中筛选后表头漏斗转为主题色；状态列默认列宽由 92px 加宽到 102px，容纳新增的筛选按钮。
-- `web/src/features/users/components/shared-user-columns.tsx` — 共享列顺序由「时间、状态、常用模型、角色、分组」调整为「时间、常用模型、角色、状态、分组」，取代此前「状态列移至常用模型之前」的排列；部门人员列表自动跟随该顺序，其注册状态列仍在时间列之后。
-
-## 2026-09-15 共享列精简与列宽调整
-
-- `web/src/features/users/components/shared-user-columns.tsx` — 删除已被「任职概况」列取代的独立列工厂 `userDepartmentColumn`、`userJobLevelColumn`、`userJoinDateColumn`，以及只剩合并列一种取值的时间列分支 `userLastLoginColumn`、`userCreatedAtColumn`；两个调用方传入的开关均为固定值，这些分支在运行期不可达。
-- `web/src/features/users/components/shared-user-columns.tsx` — 移除恒为单一取值的共享列选项 `combineEmploymentOverview`、`combineActivityTimes`、`withGroupBadgeCell`、`quotaHeaderDescription`，以及 `userQuotaColumn` 的 `width`、`userModelColumn` 的 `header`/`variant`、`userStatusColumn` 的 `showRequestCount`、`userGroupColumn` 的 `withBadgeCell` 参数；任职概况列与时间列改为无条件挂载（对外模式仍整体排除），常用模型列固定为徽章渲染，状态列固定显示请求次数提示，分组列固定使用 `BadgeCell`。
-- `web/src/features/users/components/shared-user-columns.tsx` — 抽出 `matchesSelectedFilterValues` 统一角色列与状态列此前逐字重复的多选 `filterFn`；`getQuotaProgressColor`、`formatAmountCny`、`formatUserTokens`、`formatUserRequests`、`formatUserRequestsDetail`、`userIdColumn`、`userQuotaColumn`、`userConsumptionColumn`、`userRoleColumn`、`userStatusColumn`、`userGroupColumn` 共 11 个仅文件内使用的符号去掉 `export`，模块对外仅保留 `userNameColumn`、`userModelColumn`、`userEmploymentOverviewColumn`、`userActivityTimeColumn`、`SharedUserColumnsOptions` 与 `useSharedUserColumns`；移除随独立列一同失效的 `formatTimestamp` 导入。
-- `web/src/features/users/components/shared-user-columns.tsx` — 列宽调整：ID 单元格固定宽由 48px 调到 50px，用户名列 140→170，已用/总额列 205→190（同时移除按 `width` 覆盖列宽的入参），常用模型列 130→160，任职概况列 200→220，角色列 120→80；任职概况列单元格由固定 `w-[280px]` 加 `px-2` 改为仅 `max-w-[280px]`，并移除 `minSize: 180` 与镜像单元格内边距的表头 `px-2` 补丁；分组列在统一使用 `BadgeCell` 后固定为 140。
-- `web/src/features/users/components/users-columns.tsx`、`web/src/features/data-overview/components/department-users-table.tsx` — 调用方去掉已移除的 `withGroupBadgeCell`、`combineActivityTimes`、`combineEmploymentOverview`、`quotaHeaderDescription` 入参。
-- `web/src/features/users/components/users-table.tsx`、`web/src/features/data-overview/components/department-users-table.tsx` — 移除服务端排序映射中不存在的 `used_quota` 键（额度列的列名为 `quota`，该键永不匹配）。
-- `web/src/features/users/components/__tests__/activity-time-display.test.tsx`、`web/src/features/users/components/__tests__/employment-overview.test.tsx` — 同步去掉已移除的 `combineActivityTimes`、`combineEmploymentOverview` 与 `userModelColumn` 的 `variant` 入参，断言保持不变。
-
-## 自 CHANGELOG 说明列迁入
-
-用户管理增强：完善用户表格头像、资料、月度统计、服务端排序、公司筛选、状态人数与共享列；用户编辑弹窗新增可选单成本中心配置，复用完整部门树选择，以单元素部门 JSON 数组持久化，支持创建、编辑、回填、清除、后端校验与七语言文案；成本中心名称保存为不含公司名的完整部门路径，用户 department_name 为空时自动回填；数据总览支持按成本中心归属本地用户（含无 open_id 用户），不依赖平台成员匹配；用户编辑弹窗设置分组时显示各分组基础倍率；用户表格将部门、岗位职级、入职日期合并为两行摘要式「任职概况」列，职级与入职日期改用徽章，两者均空时隐藏次行，职级预留固定宽度以对齐日期；单价列统一按每亿 Token 展示，标题改为「单价 / 亿 Token」、内容改为「金额 / 亿」并加宽；Token、费用、请求次数、单价四列合并为「消耗」列，首行显示 Token 消耗量与金额，次行以弱化色 13px 显示请求次数与每亿 Token 单价（费用标签改用「费用」），并通过共享列头新增的排序字段切换保留四种服务端排序；用户显示名、部门路径与常用模型统一常规字重，时间列以图标区分最后登录与创建时间并按该顺序展示，补齐七语言文案；「消耗」列改名「使用量」，列说明提示改为两行展示 Token 用量/费用与请求次数/每亿 Token 单价，`Usage` 中文文案由「用量」改为「使用量」；修复点击「使用量」列头时排序字段下拉菜单因缺少 Base UI 分组上下文而整页跳转 500，并按最长译文加宽该菜单，避免「单价 / 亿 Token」等文案换行
-
-## 2026-09-19 用户分组同步 API 密钥
-
-- `model/user.go` — 管理员修改用户分组时，在同一事务内将该用户所有固定分组 API 密钥同步到新分组并失效对应缓存；空分组密钥继续继承用户分组，`auto` 密钥保留自动路由模式。
-
-## 2026-09-22 用户列表分组倍率展示
-
-- `web/src/components/group-badge.tsx` — `GroupBadge` 新增倍率标签样式覆盖入口，沿用现有倍率徽章组件，不影响其他页面默认样式。
-- `web/src/features/users/components/shared-user-columns.tsx` — 分组列在分组名称后展示基础倍率，格式统一为 `x1`、`x2.5`；分组名与倍率文字固定为 12px，并缩小标签间距和留白。
-- `web/src/features/users/components/users-columns.tsx` — 用户管理列定义接收分组倍率映射并传给共享列。
-- `web/src/features/users/components/users-table.tsx` — 复用用户编辑弹窗已有的分组倍率查询键与五分钟缓存，将接口结果传给表格列定义；倍率加载失败或缺失时仍只显示分组名称。
-
-## 2026-10-13 注册方式列与列头筛选
-
-- `model/user.go` — 用户列表与搜索结果新增不持久化的 `registration_method` 字段：密码为空字符串或空值时归类为 LDAP，非空时归类为手动；批量查询仅提取用户编号，不读取或返回密码哈希。注册方式条件在分页前应用，总数及启用、禁用人数使用相同筛选条件。
-- `controller/user.go` — 搜索接口接收 `registration_method` 参数，普通排序与计算列排序路径均传入该条件。
-- `web/src/features/users/components/users-columns.tsx` — 新增注册方式列，复用角色列的 `DataTableColumnHeaderFilter`，通过标题旁漏斗按钮单选全部、LDAP 或手动；保持自定义表头渲染，避免 `meta.label` 将筛选按钮覆盖为普通标题。
-- `web/src/features/users/components/users-table.tsx` — 注册方式筛选接入地址栏状态、查询缓存及服务端请求，沿用筛选变化时的分页重置；筛选入口仅放在列标题旁。
-- `web/src/features/users/constants.ts` — 定义 LDAP、手动选项及图标。
-- `web/src/features/users/api.ts`、`web/src/features/users/types.ts` — 补充注册方式响应类型及搜索参数透传。
-- `web/src/routes/_authenticated/users/index.tsx` — 校验并恢复地址栏中的注册方式筛选值。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐注册方式和手动两条文案的七语言翻译。
-
-本次已执行 `bun run typecheck`、受影响文件的 `bunx oxlint -c .oxlintrc.json` 与 `bunx oxfmt --check`、`bun run build`、`go build ./...`，均通过；最终表头修正后重新执行类型、lint 和格式检查并通过。按项目要求未运行测试。缺少可用的 MySQL、PostgreSQL 及 Docker 环境，三库兼容性验证仍受阻，尚未完成。
-
-## 2026-10-26 恢复用户删除入口
-
-恢复此前移除的用户删除操作，确认后通过现有身份验证流程获取绑定目标用户的删除凭证，再调用删除接口；成功后关闭弹窗并刷新用户列表。
-
-- `web/src/features/users/api.ts` — 恢复删除用户接口封装，通过 `securityProofConfig` 携带删除凭证。
-- `web/src/features/users/components/data-table-row-actions.tsx` — 三点菜单恢复删除项，超级管理员账户的删除入口禁用。
-- `web/src/features/users/components/users-delete-dialog.tsx` — 恢复删除确认弹窗，复用 `ConfirmDialog`；请求 `admin.user.delete` 身份验证并绑定目标用户编号，验证期间隐藏确认弹窗，处理提交加载状态、成功提示与失败反馈。
-- `web/src/features/users/index.tsx` — 挂载用户删除确认弹窗。
-- `web/src/features/users/types.ts` — 用户弹窗类型恢复 `delete` 状态。
-
-## 2026-10-27 用户多选批量管理
-
-用户多选后可批量启用、禁用、删除或修改分组，操作按钮采用图标加文字并保留悬浮提示。操作前确认处理人数，完成后汇总成功、失败、跳过与未处理数量；成功项取消勾选，失败及未处理项保留勾选。
-
-- `web/src/features/users/components/data-table-bulk-actions.tsx` — 复用批量操作栏、确认弹窗、文字提示和分组选择组件，新增四项批量操作、分组输入及处理进度；跳过当前账户、同级或更高权限账户、已删除账户，以及已处于目标状态的账户。
-- `web/src/features/users/hooks/use-bulk-user-actions.ts` — 逐用户调用现有接口，启用、禁用和删除分别获取绑定目标用户及操作的一次性安全凭证；取消验证后停止后续操作。修改分组前读取最新用户详情，保留姓名、备注、可见部门和成本中心字段；处理重复提交、部分失败和页面卸载，完成后刷新列表并汇总结果。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补齐批量操作入口、确认说明、安全验证提示、进度及结果汇总的七语言翻译。
-
-验证：在 `web/` 下执行 `node_modules/.bin/tsgo.exe -b`、`bun run lint`、改动文件的 `bun x oxlint -c .oxlintrc.json` 与 `bun x oxfmt --check`、`bun run build`、`bun run i18n:sync`，均通过；按钮加文字后重新执行类型检查及该组件的 lint、格式检查并通过。`git diff --check` 通过。本机 Bun 不支持项目 `bun run typecheck` 脚本中的 `bun check`，因此使用已安装的 `tsgo` 完成类型检查。按项目要求未新增或运行测试。
-
-## 2026-11-16：移除 LDAP/手动注册方式分类
-
-删除按密码是否为空推断注册方式的列与筛选，避免将没有本地密码的 OIDC 用户误判为 LDAP 用户。
-
-- `model/user.go`、`controller/user.go` — 删除注册方式响应字段、批量分类查询与筛选参数处理。
-- `web/src/features/users/components/users-columns.tsx`、`web/src/features/users/components/users-table.tsx` — 删除注册方式列及其筛选状态和查询缓存参数。
-- `web/src/features/users/api.ts`、`web/src/features/users/types.ts`、`web/src/features/users/constants.ts`、`web/src/routes/_authenticated/users/index.tsx` — 清理接口参数、类型、选项与地址栏校验。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 清理失效注册方式文案。
-
-本轮非测试检查及数据库验证限制见 [LDAP 功能移除与公司注册配置迁移](024-ldap-login.md)。
+- `controller/user.go`、`model/user.go`、`model/log.go`、`common/page_info.go` — 统计、筛选、排序、成本中心与分组事务。
+- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`、`web/src/features/users/components/users-mutate-drawer.tsx` — 共享列、选择与编辑。
+- `web/src/features/users/hooks/use-bulk-user-actions.ts`、`web/src/features/users/components/users-delete-dialog.tsx` — 批量与删除。
+- `web/src/components/text-tooltip.tsx`、`web/src/components/description-tooltip.tsx`、`web/src/hooks/use-overflow.ts` — 提示及共享溢出观察。
+- `web/src/components/data-table/core/column-header.tsx`、`web/src/components/data-table/core/column-filter-header.tsx` — 多排序字段与列头筛选。

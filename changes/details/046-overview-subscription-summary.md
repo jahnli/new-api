@@ -1,48 +1,15 @@
-# 概览页用量与订阅额度面板优化
+# 概览页用量、订阅与钱包面板
 
 **日期**: 2026-11-15
 
-## 2026-11-15：钱包面板字号、图标与留白优化
+- 用量默认当天，支持 13 种共享时间预设；按所选范围展示 Token、费用、每亿 Token 单价、请求数及趋势，提供 Token 明细和小时汇总延迟说明，切换范围取消旧请求。
+- “常用模型”复用同一范围数据，按请求次数展示前三项、品牌图标和完整名称提示，保留加载与空状态。
+- 订阅面板展示总额度已用／总额、百分比及重置时间；高级模型额度独立分区，不单列标准额度。无限额度不绘制进度，其他用量按 50%／80% 使用绿、橙、红状态色。
+- 额度说明复用明细弹层，数值保留订阅精度；套餐与重置时间适配窄屏换行。
+- 钱包模式保留余额健康、近 24 小时消耗与可用时长，优化字号、图标和换行。
 
-- `web/src/features/dashboard/components/overview/wallet-summary.tsx` — 余额标题增至 14px，健康状态文字增至 12px、指示点增至 8px；近 24 小时消耗与可用时长卡片的标签增至 13px、数值增至 16px，图标增至 14px。卡片容器向左右各扩展 12px，减少两侧留白；调整卡片内边距、文字间距与行高，并允许可用时长文字换行。
+## 实现入口
 
-## 2026-11-12：新增常用模型
-
-- `web/src/features/dashboard/components/overview/summary-usage-cards.tsx` — 在用量指标下方接入「常用模型」，复用当前用户所选时间范围的用量查询结果，随时间筛选更新；查询失败时沿用已有错误提示。
-- `web/src/features/dashboard/components/overview/top-models-summary.tsx` — 按模型汇总请求次数并降序展示前三项，使用浅色圆角条目展示品牌图标、模型名称与调用次数；品牌图标为 18px，标题、模型名与次数字号为 13px。品牌识别复用现有规则与图标加载器，品牌名称复用统一悬停提示；长模型名复用截断文本组件，保留移动端查看完整名称及加载、空状态展示。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐「常用模型」、所选时间范围内按请求次数排序的说明及调用次数文案，数字沿用界面语言对应的格式化能力。
-
-## 2026-11-12：按时间预设展示用量并精简标题说明
-
-- `web/src/features/dashboard/components/overview/summary-usage-cards.tsx` — 独立用量汇总组件，默认当天，支持 13 种时间预设；按所选范围展示总 Token、费用、每亿 Token 单价、请求数及趋势，Token 数值旁复用明细提示。时间范围与预设选择器并排靠右，标题后的问号悬停展示小时汇总与数据延迟说明。
-- `web/src/features/dashboard/components/overview/summary-cards.tsx` — 接入独立用量组件，继续保留右侧订阅或钱包面板及其查询。
-- `web/src/features/dashboard/hooks/use-dashboard-config.tsx` — 汇总指标调整为 Token、费用、单价和请求数，并统一图标配色。
-- `web/src/features/dashboard/components/ui/stat-card.tsx` — 指标值支持 React 节点，以组合 Token 明细入口。
-- `web/src/features/dashboard/api.ts` — 用量查询支持取消信号，切换时间范围时可取消旧请求。
-- `web/src/lib/date-time-presets.ts`、`web/src/features/usage-logs/components/compact-date-time-range-picker.tsx` — 复用共享时间预设计算，现有选择器兼容扩展按钮和下拉展示，并支持显式预设状态。
-- `web/src/components/description-tooltip.tsx` — 兼容扩展可选图标，概览标题使用问号；沿用共享悬停、键盘焦点与无障碍提示行为。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充用量说明与时间段指标文案的七语言翻译。
-
-## 2026-11-09：总额度与高级模型额度分区展示
-
-- `web/src/features/dashboard/components/overview/subscription-summary.tsx` — 总额度的已用和总额改为左右分列，总额数字采用次要文字色；总进度条旁展示使用百分比。高级模型额度使用独立浅色面板，显示占总额度比例、已用、总额及进度，不再单列标准模型额度。
-- 套餐名称允许换行，适配窄屏；下次重置时间拆分为标签和时间元素并允许换行。用量文字与进度继续沿用 50%／80% 的绿、橙、红阈值。
-
-以下为此前布局的历史记录，当前展示以本节为准。
-
-## 涉及文件
-
-- `web/src/features/dashboard/components/overview/summary-cards.tsx` — 保留完整订阅记录并将当前订阅展示交给独立概览组件，使高级模型额度数据能够进入概览面板。
-- `web/src/features/dashboard/components/overview/subscription-summary.tsx` — 主数字展示订阅已用额度 / 总额度，并在高级额度策略启用时以双栏展示标准模型与高级模型的已用额度、额度上限、占比和分阶段进度；无限额度、外部模式或未启用高级额度时展示总额度明细。
-
-## 变更说明
-
-- 订阅面板采用中性浅底、描边套餐标签，主数字按“已用 / 总额”展示，移除“订阅剩余额度”和分类额度的“已使用”标签；总额度问号紧随“当前订阅”标题。标准与高级额度左右排列，以细分隔线区分，两栏底部的用量和进度对齐。钱包模式保留原有背景与展示。
-- 总额度明细及分类额度说明复用 `QuotaDetailsPopover`，点击问号可查看已用额度、总额度或分类额度口径。继续复用 `Badge`、`Progress`，不新增弹层实现；现有 `SubscriptionQuotaBreakdown` 的圆环与完整明细布局不适合概览窄栏，沿用概览组件组合现有业务弹层。
-- 分类额度按 50%／80% 阈值使用绿、橙、红三档状态色，高级模型保留“占比 xx%”文案。未启用分类额度时展示总额度进度，无限额度不绘制进度条。
-- 额度数字沿用订阅模块的精确格式化能力，百分比使用当前界面语言对应的数字格式。
-- 下一次重置时间保留在面板底部；本次仅调整概览页订阅面板，不修改钱包页订阅列表和后端额度逻辑。
-
-## 自 CHANGELOG 说明列迁入
-
-概览页汇总卡片右侧面板改为订阅详情：展示当前订阅用量与总额、用量进度条（按百分比变色）、下次重置时间，无订阅时显示空状态；移除余额健康状态与续航天数；订阅计划名称以标签形式展示在标题右侧。
+- `web/src/features/dashboard/components/overview/summary-usage-cards.tsx`、`web/src/features/dashboard/components/overview/top-models-summary.tsx` — 用量及常用模型。
+- `web/src/features/dashboard/components/overview/subscription-summary.tsx`、`web/src/features/dashboard/components/overview/wallet-summary.tsx` — 订阅与钱包。
+- `web/src/lib/date-time-presets.ts`、`web/src/features/dashboard/api.ts` — 时间范围与查询。

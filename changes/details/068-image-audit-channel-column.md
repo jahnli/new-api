@@ -1,17 +1,9 @@
-# 图片审计实际使用渠道列与表格列调整
+# 图片审计实际渠道
 
 **日期**: 2026-08-10
 
-## 涉及文件
+生成记录从消费日志回写实际渠道 ID，批量补充名称，复用使用日志的编号、名称、悬停与演示遮罩，不以请求预选渠道代替真实渠道。
 
-- `model/image_studio.go`
-- `controller/image_studio_storage.go`
-- `relay/image_studio_hook.go`
-- `web/src/features/security-audit/components/image-audit-columns.tsx`
-- `web/src/features/image-studio/api.ts`
-- `web/src/features/image-studio/hooks/use-image-studio.ts`
-- `web/src/features/image-studio/lib/storage.ts`
+表格按时间、用户、耗时、图片、请求内容、渠道、模型、模式、参数、费用排列，耗时独立显示；身份和渠道沿用日志的弱化文字及常规字重，演示模式禁用渠道复制。
 
-## 自 CHANGELOG 说明列迁入
-
-图片审计新增实际使用渠道列：从请求日志回写真实渠道 ID，查询渠道名称并以使用日志样式展示彩色渠道标签；表格列顺序调整为时间、用户、耗时、图片、请求内容、渠道、模型、模式、参数、费用，耗时拆分为独立列
+入口：`model/image_studio.go`、`controller/image_studio_storage.go`、`relay/image_studio_hook.go`、`web/src/features/security-audit/components/image-audit-columns.tsx`、`web/src/features/image-studio/hooks/use-image-studio.ts`。

@@ -1,77 +1,11 @@
-# 模型定价编辑器支持本地货币输入、自定义档位名称原样回显与规则默认展开
+# 定价货币、精度与档位名称
 
 **日期**: 2026-11-15
 
-## 2026-11-15：标准档位名称统一
+- 定价编辑支持 USD/站点货币切换，输入按汇率换算，保存还原美元；保留换算后的数值精度，不使用展示舍入值写回，覆盖普通、分档、表达式和插件价格。
+- 超级管理员的 pricing_currency 偏好通过 `/api/user/self` 跨设备保存，未设置默认 USD；仅接受独立字段和 USD/site 值，更新保留其他设置，不再使用浏览器本地偏好。
+- 价格变更摘要与对比详情统一按站点货币展示，无效配置回退美元，不改变保存价格。
+- 可视化定价规则默认全部展开，保留手动折叠。自定义档位名称原样保存；新建配置、迁移预览、普通及任务表达式的默认或首档空名称使用“标准”，条件规格档位保留规格名。
+- base、standard 和“标准”在预览、价格拆解及使用日志中按界面语言统一显示；表达式展示仅替换可解析的 tier 名称字面量，自定义名称和无法解析的表达式保留原文。不批量改写已有表达式或历史日志，不改变价格、条件和计费金额。
 
-- `web/src/features/pricing/lib/billing-expr.ts` — 将 `base`、`standard` 与“标准”统一按界面语言显示为标准档位；表达式展示只替换可解析的 `tier` 名称字面量，自定义名称和无法解析的表达式保留原文。
-- `web/src/features/pricing/components/dynamic-pricing-breakdown.tsx` — 普通与任务表达式的价格拆解复用标准档位名称展示。
-- `web/src/features/pricing/lib/task-expr.ts` — 新建配置、无枚举规格行、统一价格矩阵及首档空名称兜底改用“标准”，保留已有非空名称。
-- `web/src/features/system-settings/models/model-pricing-core.ts` — 定价预览中的表达式按当前语言展示标准档位名称。
-- `web/src/features/system-settings/models/task-usage-pricing-editor.tsx` — 原始表达式输入框示例采用“标准”档位。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志摘要、命中档位和计费详情使用相同名称规则。
-
-本节更新此前默认生成 `standard` 及所有名称原样展示的记录；自定义档位名称、价格、条件与计费计算保持原有语义，不批量改写已保存表达式或历史日志。
-
-## 涉及文件
-
-- `model/option.go` — 后端注册 ModelPricingInputInLocalCurrency 选项（布尔，默认 false）
-- `web/default/src/features/system-settings/types.ts` — ModelSettings/BillingSettings 新增 ModelPricingInputInLocalCurrency 字段
-- `web/default/src/features/system-settings/billing/index.tsx` — 计费设置默认值补充新字段
-- `web/default/src/features/system-settings/billing/section-registry.tsx` — 模型设置区块注册新字段
-- `web/default/src/features/system-settings/models/model-pricing-sheet.tsx` — 定价面板核心逻辑：读取系统汇率配置，本地货币/USD 切换开关，输入值按汇率自动换算，保存时除以汇率还原为 USD；表达式模式显示货币切换并透传 currencySymbol/exchangeRate 给 TieredPricingEditor
-- `web/default/src/features/system-settings/models/tiered-pricing-editor.tsx` — 表达式阶梯定价编辑器支持本地货币：VisualTierCard 价格输入/显示按汇率换算，价格后缀徽章跟随货币符号，CostEstimator 输出本地货币金额
-- `web/default/src/features/system-settings/models/model-pricing-core.ts` — 预览行价格符号参数化（$ → 动态货币符号）
-- `web/default/src/features/system-settings/models/model-pricing-inputs.tsx` — PriceInput/PriceLane 支持 currencySymbol 属性，描述文本参数化
-- `web/default/src/features/system-settings/models/model-ratio-form.tsx` — 表单透传 inputInLocalCurrency 属性
-- `web/default/src/features/system-settings/models/model-ratio-visual-editor.tsx` — 可视化编辑器透传 inputInLocalCurrency 属性
-- `web/default/src/features/system-settings/models/ratio-settings-card.tsx` — 设置卡片绑定 ModelPricingInputInLocalCurrency 开关与持久化
-- `web/default/src/features/system-settings/models/pricing-format.ts` — SNAP_EPSILON 精度由 1e-12 调至 1e-9，避免汇率换算后的浮点误差
-- `web/default/src/i18n/locales/en.json` — 新增 6 条英文翻译
-- `web/default/src/i18n/locales/zh.json` — 新增 6 条中文翻译
-- `web/src/features/model-pricing/pricing-amount-input.tsx` — 本地货币换算后的美元价格保留数值精度，不再使用展示格式化结果保存
-- `model/model_pricing_conversion.go` — 旧倍率定价迁移为表达式时，普通 Token 档位名称使用“标准”
-- `web/src/features/pricing/lib/tier-expr.ts` — 新建可视化配置的默认档位名称使用“标准”
-- `web/src/features/system-settings/models/tiered-pricing-editor.tsx` — 预设模板采用“标准”“长上下文”档位名，读取已有表达式时保留原始档位名称
-- `web/src/features/system-settings/models/visual-billing-document-editor.tsx` — 档位输入框与卡片标题原样展示名称，输入内容原样写回；所有定价规则卡片默认展开，仍可手动折叠
-- `web/src/features/system-settings/models/model-pricing-sheet.tsx` — 新增及未设置价格模型的默认 Token 表达式使用“标准”档位
-- `controller/user.go` — 个人信息更新接口仅允许超级管理员单独提交 USD/site 定价货币偏好，并保留其他个人设置
-- `relaykit/dto/user_settings.go` — 个人设置新增 pricing_currency 字段
-- `web/src/features/model-pricing/model-pricing-panel.tsx` — 模型定价概览从当前用户设置读取货币偏好
-- `web/src/features/model-pricing/pricing-currency-selector.tsx` — 货币选择器调用个人信息接口保存选择，保存期间禁用重复操作
-- `web/src/features/system-settings/models/model-pricing-sheet.tsx` — 定价编辑器改用当前用户设置中的货币偏好
-- `web/src/stores/pricing-preferences-store.ts` — 从认证用户设置读取及更新货币偏好，停用浏览器本地偏好的读写
-- `web/src/features/system-settings/models/price-change-diff.tsx` — 价格变更摘要与对比详情统一使用站点货币，覆盖普通价格、表达式档位与插件价格，站点货币配置无效时回退美元
-- `web/src/features/pricing/lib/task-expr.ts` — 任务插件新建配置、无枚举规格行、统一价格矩阵及首档空名称兜底统一使用 standard
-
-## 变更说明
-
-### 2026-11-09：任务插件默认档位统一命名
-
-- 任务插件编辑器默认生成的档位名由 `base` 改为 `standard`，覆盖新建可视化配置、无枚举规格行、统一价格矩阵及首档空名称兜底。
-- 已有表达式解析时继续保留非空档位名；不批量改写已保存的表达式。可视化矩阵重新生成统一价格表达式时使用 `standard`，条件规格档位仍使用对应规格名称。
-- 此调整仅改变生成的档位标识，不改变单价、用量、条件及计费金额。
-
-### 2026-11-08：价格变更对比使用站点货币
-
-- 价格变更摘要和对比详情按系统配置的站点货币换算并展示，变更前后价格使用同一货币口径，覆盖普通价格、表达式档位与插件价格。
-- 站点货币配置无效时回退美元；此调整仅影响价格对比展示，不改变保存的定价数据。
-
-### 2026-10-27：定价规则默认展开
-
-- 可视化定价编辑器初始化时展开所有规则卡片，便于直接查看和编辑各条规则；保留手动折叠与展开操作。
-
-### 2026-09-23：价格精度与档位名称
-
-- 本地货币输入换算为美元后，使用 `String(nextUSD)` 保存数值，不再经 `formatPricingNumber` 舍入，避免展示精度改变实际保存价格；展示格式保持不变。
-- 档位名称作为配置数据原样保存、回显：不再将 `base` 自动改成 `standard`，也不再将 `base`、`standard` 翻译为“标准”或将输入的“标准”反向改为英文。
-- 新建配置及预设模板中的 `standard` 档位直接使用“标准”；GPT-5.4、Claude Sonnet 4.5 和 GPT-5.4 Priority/Flex 模板中的 `long_context` 直接使用“长上下文”。
-- 旧倍率定价的迁移预览生成 `tier("标准", …)`，各项价格、条件及计算逻辑保持不变。
-- 新增及“未设置价格模型”入口的初始化表达式由 `tier("base", p * 0 + c * 0)` 改为 `tier("标准", p * 0 + c * 0)`，档位标题、输入框与表达式预览保持一致，初始价格不变。
-- 已保存表达式不批量改名；其档位按原文展示，需要改名时由管理员编辑并保存。
-
-### 2026-09-23：定价货币个人偏好
-
-- 定价货币仍在模型定价编辑器中选择，选择 USD 或站点货币后通过现有 `PUT /api/user/self` 写入当前超级管理员的个人设置，跨浏览器和设备登录时沿用；未设置时默认 USD。
-- 服务端只接受独立提交的 `pricing_currency` 字段和 `USD` / `site` 两个值，校验超级管理员身份，并在更新时保留现有个人设置的其他字段。
-- 前端从当前认证用户的 `setting.pricing_currency` 读取，保存成功后同步认证状态；不再使用浏览器本地货币偏好。此设置仅影响定价编辑的显示与输入货币，不改变美元计费价格。
+入口：`web/src/features/model-pricing/`、`web/src/features/system-settings/models/model-pricing-sheet.tsx`、`web/src/features/system-settings/models/visual-billing-document-editor.tsx`、`web/src/features/pricing/lib/billing-expr.ts`、`web/src/features/pricing/lib/task-expr.ts`、`web/src/stores/pricing-preferences-store.ts`、`controller/user.go`、`model/model_pricing_conversion.go`。

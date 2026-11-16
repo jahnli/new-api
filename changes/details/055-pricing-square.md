@@ -1,237 +1,33 @@
-# 模型广场优化
+# 模型广场、分组定价与推荐
 
-**日期**: 2026-09-05 ~ 2026-10-19
+**日期**: 2026-10-19
 
-## 2026-10-19 模型卡片布局与局部配色
+## 分组价格
 
-- `web/src/features/pricing/components/model-card.tsx` — 价格网格采用 `auto-fill` 保留空列，避免无分时说明时三个价格项被拉宽；价格区不再通过自动上边距向下推移，减少同排推荐卡片高度对普通卡片价格位置的影响。正文在卡片内覆盖共享组件内边距，统一为左右 16px、上下 0；保留推荐模型渐变、边框和场景标记，以及空描述隐藏、推荐横滑区精简展示和演示模式价格遮罩。无分时说明时不添加空白占位行，真实分时提示仍按模型配置显示。
-- `web/src/styles/model-card.css` — 新增仅作用于模型卡片的浅色与深色配色，固定次要文字、图标底色、分隔线、状态色、焦点色和悬停底色，避免全站主题预设改变卡片颜色；卡片局部圆角变量设为 1rem，不修改全站共享组件。
+- 管理员可查看全部可见分组及倍率，普通用户模型详情仅显示所属分组，隐藏倍率及自动分组链；API 速率限制区域使用同一分组范围，无分组时隐藏。
+- 卡片、详情基础价格和分档价格表使用有效分组倍率；管理员明确筛选分组时跟随筛选，否则回退用户所属分组，覆盖 Token、按次及表达式价格。
+- `GroupVendorRatio` 支持分组 × 供应商配置，可视化编辑以供应商名称展示、ID 保存。最终倍率优先级为用户特殊倍率 → 分组供应商倍率 → 分组基础倍率；主中继、Realtime 预扣、任务重算与广场展示共用解析规则，日志记录命中的供应商和倍率。
 
-以下卡片历史记录中的字号放大、三列标题布局、额外上下内边距、当前用户分组优先及所有模型关闭悬停浮起，不再描述当前实现。纯恢复公共组件原有行为的部分不作为新增二开功能记录。
+## 定价响应加密
 
-## 2026-10-04 推荐配置与卡片布局优化
+`/api/pricing` 将完整响应以 AES-256-GCM 加密为 Base64 文本，使用随机 nonce 与附加认证数据，禁止缓存；`MODEL_SQUARE_AES_KEY` 至少 32 字节，缺失或加密失败不降级明文。前端通过 Web Crypto 解密并校验结构，倍率同步同时兼容加密和旧明文响应。
 
-以下为当时的卡片布局记录，后续调整以 2026-10-19 说明为准。
+前端构建期与后端运行时必须使用一致密钥，本地构建及 Docker 构建参数、运行环境均需配置；密钥会随前端构建产物使用。
 
-- `web/src/features/pricing/components/model-card.tsx` — 空描述不再显示占位文案；标题行采用图标、模型名称与复制按钮三列布局，推荐标记合并场景文字后移至计费方式同一行右侧，顶部横滑区仅在该处展示场景标签；内容区上下内边距统一为 8px，价格网格增加上下 8px 间距。计费方式、价格标签与单位、分组和端点由 12px 增至 13px，价格数字由 14px 增至 15px；推荐徽章保持 12px 字号、8px 左右内边距、14px 星标及 4px 图文间距。
-- `web/src/features/pricing/components/model-perf-badge.tsx` — 状态、成功率、延迟和吞吐标题由 11px 增至 12px，延迟与吞吐数值由 12px 增至 13px。
-- `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 支持透传布局类名，让场景标签在计费方式右侧对齐并允许长内容换行。
-- `web/src/styles/model-recommendation.css` — 推荐微光保留阴影与呼吸透明度，移除额外外圈和缩放，减少边缘视觉膨胀。
-- `web/src/features/model-square-settings/components/settings-form.tsx` — 「添加推荐」从列表底部移至顶部操作区，放在「重置修改」左侧，按钮尺寸与重置、保存统一。
-- `web/src/features/model-square-settings/types.ts` — 推荐场景预设增加「均衡之选」。
-- `web/src/i18n/static-keys.ts`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 登记并补齐新增场景的七语言文案，同时调整综合推荐场景用语，简体中文显示为「综合优选」。
+## 推荐配置与展示
 
-## 涉及文件
+- 超级管理员在 `/system-settings/model-square` 管理推荐，旧 `/model-square-settings` 跳转兼容。配置默认关闭、列表为空，以 `ModelSquareConfig` 存入既有 options；独立接口验证真实模型关联，限制请求为 256 KiB，通用 option 接口不可绕过校验。
+- 每模型只允许一条推荐，启停、场景与条目顺序可编辑。场景支持预置和自定义有序文本，最多 10 项、每项 1–40 字符，拒绝空项和精确重复；条目与场景支持拖拽及键盘排序，无场景的推荐仍生效。
+- 读取兼容旧 `scenario` 单值和历史枚举，下一次保存写入数组；历史 reason 可解析但不再作为编辑/展示项。配置本节点保存后立即更新，其他节点按配置同步周期更新；浏览器保存后刷新定价缓存。已下架模型可在后台维护，公开推荐仅包含用户可见且启用的模型。
+- 网格与表格显示推荐标记、适用场景；顶部横滑区按配置顺序集中展示推荐，标题显示数量，卡片不重复角标，无推荐时不占位。横滑区复用模型卡片、详情交互和性能指标查询缓存。
+- 横滑区自动循环漂移，卡片视口悬停、聚焦或拖拽时暂停，交互结束恢复；箭头点击先暂停再翻页，模型不足一屏不自动滚动。减少动态效果时仅保留手动操作，推荐装饰同样遵循该偏好。
+- 卡片隐藏空描述，保留真实分时说明；价格网格保留空列且不自动下推。局部浅/深配色、推荐微光和场景标记独立于全局主题，演示模式遮罩价格。
 
-- `web/default/src/features/pricing/components/model-card.tsx` — 「动态计费」标签颜色从橙色改为主题色。
-- `web/default/src/components/status-badge.tsx` — 新增 primary variant 支持主题色状态标签。
-- `controller/pricing.go` — 超级管理员可查看全部分组。
-- `web/src/features/pricing/index.tsx` — 按当前用户角色判断是否展示分组倍率，并把用户所属分组和当前筛选分组传入模型卡片与模型详情。
-- `web/default/src/features/pricing/components/pricing-toolbar.tsx` — 向筛选侧边栏透传分组倍率可见性。
-- `web/default/src/features/pricing/components/pricing-sidebar.tsx` — 分组筛选项按权限显示或隐藏倍率后缀。
-- `web/src/features/pricing/components/model-details.tsx` — 模型详情按权限过滤分组：管理员可查看全部分组与倍率，普通用户仅可见所属分组并隐藏倍率与自动分组链；同一可见分组范围传入 API 速率限制区域；独立详情页使用模型实际有效分组倍率；分档价格表按当前用户所属分组计算，管理员明确筛选分组时跟随筛选值。
-- `web/src/features/pricing/components/model-details-price.tsx` — 模型详情基础价格按当前筛选分组或用户实际所属分组计算，覆盖 Token、按次及动态表达式计费，保留供应商分组倍率。
-- `web/src/features/pricing/components/__tests__/base-price-group.test.tsx` — 覆盖筛选分组优先、全部分组时回退用户所属分组以及动态计费应用实际分组倍率。
-- `web/src/features/pricing/components/model-details-api.tsx` — API 速率限制表按权限过滤后的可见分组渲染，无可见分组时隐藏该区域。
-- `web/src/features/pricing/lib/mock-stats.ts` — 速率限制数据生成支持显式指定可见分组，并区分未指定分组与空可见分组。
-- `web/src/features/pricing/components/__tests__/rate-limit-visibility.test.ts` — 覆盖普通用户仅查看所属分组、管理员查看全部分组及无可见分组时隐藏速率限制。
-- `web/src/features/pricing/components/model-card-grid.tsx` — 把当前用户所在分组传给模型卡片。
-- `web/src/features/pricing/components/model-card.tsx` — 模型卡片计费标签旁优先显示当前用户所在分组。
-- `web/src/features/pricing/lib/model-helpers.ts` — 新增模型卡片分组显示解析逻辑，兼容未登录或用户分组为空时的回退展示。
-- `web/src/features/pricing/lib/__tests__/model-display-group.test.ts` — 覆盖当前用户分组优先、空分组回退及模型无分组场景。
+## 主要入口
 
-## 分组 × 供应商定价
+- `setting/ratio_setting/group_ratio.go`、`relay/helper/price.go`、`model/pricing.go`：供应商倍率与计费解析。
+- `common/aes_gcm.go`、`controller/pricing.go`、`controller/ratio_sync.go`、`web/src/features/pricing/lib/pricing-encryption.ts`：加密和同步。
+- `setting/model_square.go`、`model/model_square.go`、`controller/model_square.go`：推荐校验、持久化与可见性。
+- `web/src/features/model-square-settings/`、`web/src/features/pricing/`、`web/src/styles/model-card.css`：管理、展示与横滑交互。
 
-- `plan.md` — 记录分组 × 供应商定价的需求、优先级、计费链路、前后端改造方案与验证计划。
-- `controller/option.go` — 为 `GroupVendorRatio` option 增加配置合法性校验。
-- `controller/pricing.go` — 模型广场接口下发按可用分组过滤的供应商倍率及当前用户特殊倍率分组标记。
-- `model/option.go` — 注册并持久化 `GroupVendorRatio` option。
-- `model/pricing.go` — 定价缓存维护模型到启用供应商 ID 的映射，供计费路径快速解析。
-- `relay/helper/price.go` — 主计费链路统一按“用户特殊倍率 > 分组供应商倍率 > 分组基础倍率”解析最终分组倍率。
-- `service/quota.go` — Realtime WebSocket 预扣费同步使用统一供应商倍率解析逻辑。
-- `service/task_billing.go` — 任务按 Token 重算同步使用统一供应商倍率解析逻辑。
-- `service/log_info_generate.go` — 命中供应商倍率时在消费日志记录供应商 ID 与最终供应商分组倍率。
-- `setting/ratio_setting/group_ratio.go` — 新增分组供应商倍率配置、校验、复制、JSON 转换及统一优先级解析器。
-- `setting/ratio_setting/group_vendor_ratio_test.go` — 覆盖倍率优先级、免费倍率、无供应商回退、配置校验及 JSON 往返行为。
-- `types/price_data.go` — 扩展分组倍率信息，携带供应商倍率命中状态与供应商 ID。
-- `web/src/features/pricing/hooks/use-pricing-data.ts` — 按模型供应商生成有效分组倍率，保持用户特殊倍率最高优先级。
-- `web/src/features/pricing/index.tsx` — 模型详情使用所选模型计算后的有效分组倍率。
-- `web/src/features/pricing/types.ts` — 补充供应商倍率和特殊倍率分组的接口类型。
-- `web/src/features/system-settings/billing/index.tsx` — 计费设置表单默认值补充 `GroupVendorRatio`。
-- `web/src/features/system-settings/billing/section-registry.tsx` — 计费设置字段注册表补充 `GroupVendorRatio`。
-- `web/src/features/system-settings/models/group-ratio-form.tsx` — JSON 编辑模式与计费指南增加供应商倍率配置及优先级说明。
-- `web/src/features/system-settings/models/group-ratio-visual-editor.tsx` — 可视化编辑器支持按分组添加/选择/修改/删除供应商倍率，以供应商名称展示、ID 存储。
-- `web/src/features/system-settings/models/index.tsx` — 分组设置默认值补充 `GroupVendorRatio`。
-- `web/src/features/system-settings/models/ratio-settings-card.tsx` — 分组倍率卡片注册并保存供应商倍率配置。
-- `web/src/features/system-settings/types.ts` — 系统设置类型补充 `GroupVendorRatio`。
-- `web/src/i18n/locales/en.json` — 增加供应商倍率编辑器及计费优先级英文文案。
-- `web/src/i18n/locales/zh.json` — 增加供应商倍率编辑器及计费优先级简体中文文案。
-- `web/src/i18n/locales/zh-TW.json` — 增加供应商倍率编辑器及计费优先级繁体中文文案。
-- `web/src/i18n/locales/fr.json` — 增加供应商倍率编辑器及计费优先级法语文案。
-- `web/src/i18n/locales/ja.json` — 增加供应商倍率编辑器及计费优先级日语文案。
-- `web/src/i18n/locales/ru.json` — 增加供应商倍率编辑器及计费优先级俄语文案。
-- `web/src/i18n/locales/vi.json` — 增加供应商倍率编辑器及计费优先级越南语文案。
-- `web/src/i18n/locales/_reports/_sync-report.json` — 更新国际化同步统计报告。
-- `web/src/i18n/locales/_reports/fr.untranslated.json` — 更新法语未翻译项报告。
-- `web/src/i18n/locales/_reports/ja.untranslated.json` — 更新日语未翻译项报告。
-- `web/src/i18n/locales/_reports/ru.untranslated.json` — 更新俄语未翻译项报告。
-- `web/src/i18n/locales/_reports/vi.untranslated.json` — 更新越南语未翻译项报告。
-
-## 模型广场响应加密
-
-- `common/aes_gcm.go` — 新增基于 SHA-256 密钥派生、随机 nonce 和附加认证数据的 AES-256-GCM 加解密工具，要求密钥材料至少 32 字节。
-- `common/aes_gcm_test.go` — 覆盖加解密往返、随机 nonce、空密钥、短密钥及附加认证数据不一致等边界。
-- `controller/pricing.go` — 完整模型广场响应序列化后加密为 Base64 文本返回，禁止缓存；密钥缺失或加密失败时拒绝降级返回明文。
-- `controller/pricing_encryption_test.go` — 验证接口不暴露模型明文、密文可还原原始响应、响应类型与缓存头正确，以及缺少密钥时返回错误。
-- `controller/ratio_sync.go` — 倍率同步支持识别并解密加密后的 `/api/pricing` 响应，同时兼容原有明文 JSON 上游。
-- `web/src/features/pricing/api.ts` — 模型广场请求改为接收文本响应，解密成功后继续以原 `PricingData` 类型交给页面。
-- `web/src/features/pricing/lib/pricing-encryption.ts` — 用浏览器 Web Crypto API 完成 Base64 解码、AES-GCM 解密、UTF-8 转换、JSON 解析和响应结构校验。
-- `web/src/features/pricing/lib/__tests__/pricing-encryption.test.ts` — 覆盖正确密钥解密、错误密钥、短密钥和非法响应结构。
-- `web/src/env.d.ts` — 声明模型广场前端构建期密钥常量。
-- `web/rsbuild.config.ts` — 从进程环境或仓库根目录 `.env` 读取模型广场密钥并在前端构建时注入。
-- `.env.example` — 补充模型广场 AES 密钥长度、前后端一致性和 Docker 构建参数说明。
-- `Dockerfile` — 前端镜像构建阶段支持通过 `MODEL_SQUARE_AES_KEY` build arg 注入密钥。
-- `docker-compose.yml` — 正式容器运行时向后端传递模型广场 AES 密钥。
-- `docker-compose.dev.yml` — 本地容器开发环境向后端传递模型广场 AES 密钥。
-
-## 独立模型推荐配置
-
-超级管理员通过「系统设置 → 模型与路由 → 模型广场配置」（`/system-settings/model-square`）维护推荐，不依赖原有模型元信息页面。旧地址 `/model-square-settings` 自动跳转至新地址，页面沿用系统设置侧边栏与超级管理员权限。后台保留场景及启停配置；广场在模型卡片右上边缘显示「推荐」标记、卡片正文下方展示适用场景，表格在模型名称旁显示标记、名称下方显示紧凑场景标签，不再展示独立推荐区域，原列表排序、搜索、筛选和分页不变。同一模型配置多个场景时合并展示且仍只显示一个推荐标记。
-
-配置默认关闭、推荐列表为空。配置以独立 `ModelSquareConfig` JSON 项存于既有 `options` 表，无新增模型字段或表迁移。保存节点立即更新内存，其他节点经既有配置同步周期刷新（默认 60 秒）；浏览器沿用定价查询缓存，保存后主动使其失效。已下架模型保留在后台配置中供修改或删除，公开推荐仅含当前用户可见的启用模型。推荐标记采用暖金色实心星标、淡琥珀色胶囊底与清晰文字，固定在卡片右上边缘且不占用内容布局；星标与边缘微光以同一 3 秒周期同步呼吸，并遵循系统减少动态效果设置。表格复用紧凑静态样式，兼容浅色/深色主题及七语言文案。
-
-推荐理由已从后台表单和广场展示移除；后端保留兼容历史 JSON 的字段解析，省略或 null 归一化为空字符串，后台重新保存时不再提交理由。推荐配置只控制模型是否显示标记。
-
-- `setting/model_square.go` — 配置类型、大小/字段/重复校验、快照读取及可见推荐过滤。
-- `model/model_square.go` — 校验真实模型关联，事务保存配置，并按传入的可见模型过滤推荐。
-- `model/option.go` — 通用持久化入口增加推荐配置结构校验。
-- `controller/model_square.go` — 独立配置读取/保存接口，请求限制为 256 KiB。
-- `controller/option.go` — 阻止通用 option API 绕过独立配置接口的模型关联校验。
-- `controller/pricing.go` — 推荐信息随按用户分组过滤后的完整定价响应加密返回。
-- `router/api-router.go` — 注册仅超级管理员可用的配置路由并禁用响应缓存。
-- `setting/model_square_test.go`、`model/model_square_test.go`、`controller/model_square_test.go`、`router/model_square_test.go` — 覆盖配置校验、事务持久化、公开可见性、加密契约和接口鉴权。
-- `web/src/features/model-square-settings/` — 独立管理页、可搜索模型选择、表单校验、保存/重置/删除、错误重试、未保存离开提醒及模块测试。
-- `web/src/routes/_authenticated/system-settings/model-square/index.tsx`、`web/src/routeTree.gen.ts` — 系统设置下的模型广场配置路由，继承父路由的超级管理员权限限制。
-- `web/src/routes/_authenticated/model-square-settings/index.tsx` — 旧地址兼容跳转。
-- `web/src/components/layout/config/system-settings.config.ts` — 在「模型与路由」分组中加入配置入口。
-- `web/src/features/pricing/components/model-recommendation-badge.tsx` — 统一科技风格的推荐标记。
-- `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 在卡片和表格中按当前语言展示推荐模型适用场景。
-- `web/src/features/pricing/components/model-card.tsx`、`web/src/features/pricing/components/pricing-columns.tsx` — 卡片和表格模型名称旁显示标记。
-- `web/src/features/pricing/components/__tests__/recommendation-badge.test.tsx` — 标记启停、多场景去重、精确模型匹配、价格及详情交互、长名称布局和语言切换测试。
-- `web/src/features/pricing/index.tsx`、`web/src/features/pricing/types.ts`、`web/src/features/pricing/hooks/use-pricing-data.ts` — 接入推荐数据，复用分组价格、搜索和筛选条件。
-- `web/vitest.config.ts` — 把 Lobe 图标依赖交给测试转换器，支持用真实模型卡片做交互测试。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 推荐管理与展示文案。
-
-### 本次验证
-
-- `go build ./...`：通过。
-- `go test ./setting ./model ./controller ./router -run "ModelSquare|GetPricing" -count=1`：通过，包含真实路由的超级管理员鉴权和推荐数据加密/分组过滤验证。
-- `go test ./model -run "^TestModelSquareOptionPersistence$" -count=1 -v`：SQLite **3.50.4** 通过；覆盖首次保存、覆盖更新、重新加载、清空及保存失败后旧值不变。MySQL 和 PostgreSQL 因未配置 `TEST_MYSQL_DSN`、`TEST_POSTGRES_DSN` 跳过，当前也无可用 Docker；**尚未完成三库兼容验证**。后续须提供独立测试数据库并使用同一命令运行，记录实际版本与结果。
-- 推荐功能初次实现时前端相关测试共 133 项通过。入口迁入系统设置并移除推荐排序字段后，执行模型推荐设置及展示测试：4 个文件、23 项通过，覆盖新入口、旧地址跳转、权限、保存、缓存回显和推荐标记；原独立侧栏开关及其测试已移除。
-- `bun run typecheck`、涉及文件的 oxlint 检查、`bun run build`：通过。
-- 尚未执行真实浏览器与已部署后端联调。上线前应以超级管理员保存推荐，再以不同可用分组的普通用户和访客确认展示范围，检查关闭推荐、模型下架和多节点同步后的页面结果。
-
-## 顶部推荐横滑区
-
-模型广场在筛选工具栏之上新增「推荐模型」横滑区，把全部推荐模型集中到首屏，无需清空筛选或翻页即可访问。横滑区复用现有模型卡片，适用场景、分组价格、按次与动态计费、性能徽章及详情抽屉交互与网格、表格一致；横滑区内每张卡片都是推荐模型，因此不再逐张显示卡片右上角的「推荐」标记，改由标题承担：标题本身就是一枚带边框的「推荐模型」胶囊徽章，不再另写文案；无推荐模型时不渲染该区域，不占用布局。此处与前述「不再展示独立推荐区域」不冲突：卡片与表格内仍不插入独立推荐块，本次新增的是工具栏之上的横滑区，网格与表格中的卡片仍保留右上角推荐标记。
-
-横滑区与卡片网格共用抽出的性能指标查询 hook，命中同一 TanStack Query 缓存条目，不产生额外请求。轮播组件上/下一张按钮的无障碍文案由硬编码英文改为 i18next 键，并补齐七语言。
-
-- `web/src/features/pricing/components/recommended-models-shelf.tsx` — 顶部推荐横滑区：基于 embla 轮播横向展示推荐模型卡片并复用 `ModelCard`，标题与轮播按钮同排，无推荐模型时返回空；标题由小星图标加文字改为直接复用 `ModelRecommendationBadge` 的 `prominent` 胶囊徽章，文案经 `label` 传入「推荐模型」，标题节点不再单独输出文案。
-- `web/src/features/pricing/components/model-recommendation-badge.tsx` — 新增可选 `label`，默认仍为「推荐」，供徽章作为区域标题时替换文案；`prominent` 变体的上下内边距由 `py-0.75` 增至 `py-1.5`，胶囊更饱满（卡片角标与横滑区标题同用该变体）。
-- `web/src/features/pricing/components/model-card.tsx` — 新增 `showRecommendationBadge` 开关，默认显示右上角「推荐」标记；横滑区传 `false` 关闭，避免同一区域内反复声明推荐。
-- `web/src/features/pricing/index.tsx` — 在主内容列的筛选工具栏之上渲染推荐横滑区，透传价格、分组、Token 单位与演示模式等参数。
-- `web/src/features/pricing/components/index.ts` — 导出推荐横滑区组件。
-- `web/src/features/pricing/hooks/use-model-perf-badges.ts` — 抽出近 24 小时性能指标查询及按模型名索引的映射，供横滑区与卡片网格共用同一缓存条目。
-- `web/src/features/pricing/components/model-card-grid.tsx` — 改用共享性能指标 hook，移除组件内联查询。
-- `web/src/components/ui/carousel.tsx` — 轮播上/下一张按钮的屏幕阅读器文案改为 i18next 文案。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 新增「上一张 / 下一张」屏幕阅读器文案。
-
-### 本次验证
-
-- `bun run typecheck`、涉及文件的 oxlint 检查、`bun run format:check`、`bun run build`：通过。
-- 未执行真实浏览器与已部署后端联调。上线前应以已配置推荐的超级管理员确认首屏横滑区的展示范围、横向拖拽与按钮翻页行为。
-
-## 推荐横滑区自动循环滚动
-
-横滑区改为自动向前匀速漂移并首尾循环，用户无需手动翻页即可看完所有推荐模型；卡片尺寸同步放大，单张卡片承载更多信息。指针悬停、键盘焦点进入或用户拖拽时暂停，拖拽结束后恢复；系统开启「减少动态效果」时完全不启动自动滚动，仅保留手动拖拽与翻页按钮；推荐模型不足以铺满一屏时不会漂移，此时翻页按钮一并隐藏。
-
-- `web/src/features/pricing/components/recommended-models-shelf.tsx` — 接入 embla 官方 `AutoScroll` 插件，轮播开启 `loop`；用 `setApi` 拿到 embla 实例，在 `reInit` / `resize` 时比较容器滚动宽度与视口宽度，据此决定是否渲染翻页按钮；`plugins` 用 `useMemo` 保持引用稳定（embla 的 `arePluginsEqual` 只比对插件 options，但避免每次渲染新建插件实例）；以 `useMediaQuery('(prefers-reduced-motion: reduce)')` 作为自动滚动的开关；卡片宽度由 `basis-[85%] sm:basis-[340px]` 调整为 `basis-[88%] sm:basis-[380px]`。
-- `web/package.json`、`bun.lock` — 新增依赖 `embla-carousel-auto-scroll@^8.6.0`，与既有 `embla-carousel-react@^8.6.0` 同版本线（peer 依赖要求 `embla-carousel@8.6.0`，MIT）。
-
-### 变更说明
-
-- 滚动速度 `speed: 2`（像素/帧，约 120px/s）。
-- `startDelay: 0`：插件用同一个定时器处理首次启动与每次暂停后的恢复，默认 1000ms 会让鼠标移出后像卡住一样；设为 0 后移开指针立即继续漂移。
-- `stopOnInteraction: false` + `stopOnMouseEnter: true`：悬停暂停、移开恢复，拖拽结束后也恢复，避免一次拖拽就永久停住。
-- 悬停暂停的 `rootNode` 指向整个横滑区（`Carousel` 根节点，含标题行与翻页按钮），而非插件默认的轮播视口。自动滚动进行中会接管 `engine.scrollBody`，此时翻页按钮的目标位置会被自动滚动覆盖而失效，因此必须让指针移到按钮上也触发暂停，按钮才可用；不可滚动时按钮直接不渲染，避免出现永远点不动的控件。
-- `loop: true` 交给 embla 自行判定：`createEngine` 在 `slideLooper.canLoop()` 为 false 时自动降级为 `loop: false`，因此推荐模型数量不足以铺满视口时不会出现异常回绕；AutoScroll 自身在 `scrollSnapList().length <= 1` 时也不会启动。
-- `canLoop()` 要求轨道长度达到「视口宽度 + 单张卡片宽度」，即推荐模型数量少于一屏时无法无缝循环。曾尝试按需复制卡片填满轨道以实现「任何数量都滚动」，但复制会让同一模型在行内重复出现，与推荐区的语义冲突，已放弃；当前行为是卡片不足一屏则不滚动。
-- 自动滚动属于持续 5 秒以上的动效，暂停能力由悬停暂停、焦点暂停与减少动态效果三处提供。
-
-### 本次验证
-
-- `bun run typecheck`、`bunx oxlint -c .oxlintrc.json <改动文件>`、`bunx oxfmt --check <改动文件>`、`bun run build`：通过。
-- 未执行真实浏览器验证。上线前应确认循环滚动无明显跳帧、悬停与拖拽后能恢复、开启系统「减少动态效果」后横滑区保持静止。
-
-## 模型卡片悬停边框
-
-模型广场的模型卡片悬停时只做一件事——边框淡入淡出：卡片常驻一圈极淡的描边，指针移入后推荐卡片变为琥珀色、其他卡片加深，移出后按同样的 150ms 渐变还原；不使用卡片通用的浮起位移与投影动效。
-
-- `web/src/features/pricing/components/model-card.tsx` — 卡片根节点传 `data-card-hover='false'` 退出全局卡片悬停浮起，用 `border border-foreground/10` 取代 Card 自带的 `ring-1`（以 `ring-0` 关闭），推荐卡片的琥珀色描边由常驻改为仅悬停生效，非推荐卡片的 `hover:ring-foreground/20` 改为 `hover:border-foreground/20`，边框过渡由保留下来的 `transition-colors` 提供。
-
-### 变更说明
-
-- `data-card-hover='false'` 是 `web/src/styles/index.css` 中既有的卡片微交互开关（`titled-card.tsx`、个人资料与安全设置等多处已在用），这里复用它让模型卡片不参与浮起与投影，`styles/index.css` 不需要任何改动，其他卡片行为不变。
-- 退出该规则后，Card 自带的 `ring-1 ring-foreground/10` 不会再被悬停规则抹掉。若继续保留 `border-transparent`，悬停时会出现「默认淡描边 + 琥珀边框」双重描边，因此改为 `ring-0` 关掉 ring，并把这条描边本身做成实边框 `border-foreground/10`，观感与原先的 ring 一致。
-- `ring-0` 与 Card 基础的 `ring-1`、`ring-foreground/10` 同属 Tailwind ring 工具类，`cn()` 走 tailwind-merge，会正确丢弃 `ring-1` 并保留 `ring-0`。
-- 边框过渡回到 ModelCard 自己的 `transition-colors`（含 `border-color`，150ms）。它此前不生效是因为 `styles/index.css` 的卡片微交互规则没有写进 `@layer`，无层级样式整体压过 Tailwind utilities；模型卡片退出该规则后即恢复生效，无需改动 `styles/index.css`。
-- 原先的 `border-amber-300/70`、`dark:border-amber-700/60` 与 `hover:ring-foreground/20` 都不会生效：Card 基础样式用的是 `ring-1`，本身没有 `border` 宽度，只给 `border-color` 画不出边；`hover:ring-*` 则被上述无层级样式覆盖，表现为「悬停时边框消失」。
-- 浅色模式下 `--background` 与 `--card` 同为纯白，这圈极淡描边是卡片与页面背景之间唯一的边界，因此保留而未改成完全无描边。
-
-### 本次验证
-
-- `bun run typecheck`、`bunx oxlint -c .oxlintrc.json <改动文件>`、`bun run build`：通过；编译产物确认 `transition-colors` 含 `border-color`、`ring-0` 已生成，`styles/index.css` 的卡片规则与改动前一致。
-- 未执行真实浏览器验证。上线前应确认悬停只有边框渐变、没有位移与投影，移出后同样渐变还原，推荐卡片与其他模型卡片的反馈一致。
-
-## 自 CHANGELOG 说明列迁入
-
-模型广场与分组定价优化：动态计费标签改为主题色；管理员可查看全部分组、分组倍率及 API 速率限制，普通用户仅见所属分组；模型卡片显示当前用户分组；模型详情基础价格按筛选分组或用户实际所属分组显示；新增分组 × 供应商倍率配置，按用户特殊倍率 > 供应商倍率 > 基础倍率的优先级统一计费、日志审计与广场价格展示，并提供可视化编辑器及多语言文案；广场完整定价响应改用环境变量密钥做 AES-256-GCM 加密，前端解密校验后展示，兼容加密响应的倍率同步与本地、Docker 部署；新增独立的超级管理员「模型广场配置」入口，可按场景配置推荐模型及启停，广场按用户可见模型与筛选条件显示推荐标记与适用场景，复用现有价格与详情交互；筛选工具栏之上新增「推荐模型」顶部横滑区，集中展示全部推荐模型卡片，复用现有模型卡片的价格、分组、性能徽章与详情交互，无推荐模型时不渲染；横滑区与卡片网格共用抽出的性能指标查询 hook，命中同一缓存条目而不产生额外请求；轮播上/下一张按钮的无障碍文案由硬编码英文改为 i18next 并补齐七语言
-
-## 推荐配置自由化与横滑区优化
-
-「使用场景」由固定五值枚举改为自由文本多值有序列表：管理员既可点选预置项（综合推荐 / 图像生成 / 自建模型），也可直接输入自定义场景，chips 带序号并支持拖拽排序；推荐条目本身也可拖拽或用上下方向键调整顺序，条目顺序即横滑区展示顺序。不带场景的推荐同样生效。
-
-### 涉及文件
-
-- `setting/model_square.go` — `ModelSquareRecommendation.Scenario`（固定枚举）改为 `Scenarios []string`；解析同时接受旧 `scenario` 单值字段并迁移旧枚举值（大小写与首尾空格不敏感）；规格为 ≤10 项、单项 1..40 rune、条目内精确重复报错；唯一键由 `[scenario, model_name]` 改为 `model_name`，同一模型不再允许重复推荐。
-- `setting/model_square_test.go`、`model/model_square_test.go`、`controller/model_square_test.go` — 用例改用 `scenarios` 字段，覆盖旧字段迁移、自定义场景被接受、重复模型与场景超限报错；API 往返用例改为两个不同模型。
-- `web/src/features/model-square-settings/types.ts` — 删除场景枚举联合类型与旧常量，改为 `MODEL_SQUARE_SCENARIO_PRESETS` 及场景数量、长度上限常量。
-- `web/src/features/model-square-settings/lib/schema.ts` — 场景校验改为数组（非空、≤10 项、单项 ≤40 字符），新增「模型重复」与「同一条目内场景重复」两条 `superRefine` 检查。
-- `web/src/features/model-square-settings/components/recommendation-fields.tsx` — 场景输入由 `NativeSelect` 单选换成 `MultiSelect`（预置项 + 自由输入 + 批量粘贴 + 序号 + 拖拽排序）；卡片改为 `Reorder.Item` 并加拖拽手柄（`useDragControls`，手柄同时支持上下方向键排序），标题序号改为徽标。
-- `web/src/features/model-square-settings/components/settings-form.tsx` — 推荐列表改用 `Reorder.Group` 包裹（以 `entries.swap` 交换条目，避免输入项卸载）；「启用模型推荐」开关与保存/重置按钮合并到同一行；新增 `FormDirtyIndicator`；底部动作行只保留「添加推荐」。
-- `web/src/features/model-square-settings/index.tsx` — 页面骨架改用共享的 `SettingsPageFrame`，移除自写的 `SectionPageLayout` 结构。
-- `web/src/components/multi-select.tsx` — 兼容扩展三个默认关闭的可选属性：`showChipOrder`（chip 序号徽标）、`reorderable`（原生 HTML5 拖拽重排，另支持 `Alt` + 左右方向键）、`inputAriaLabel`（输入框可访问名），既有调用方行为不变。
-- `web/src/features/pricing/types.ts` — 删除 `ModelRecommendationScenario` 联合类型，`scenario` 改为 `scenarios: string[]`。
-- `web/src/features/pricing/hooks/use-pricing-data.ts` — 推荐判定改为「出现在推荐条目中即为推荐」，空场景不再被判为未推荐；多来源场景按配置顺序拼接去重。
-- `web/src/features/pricing/components/model-recommendation-scenarios.tsx` — 删除穷举的场景到文案映射，直接 `t(scenario)` 渲染，自动兼容任意自定义文本。
-- `web/src/features/pricing/components/model-recommendation-badge.tsx` — 新增可选 `count`，在标签后显示数量徽标。
-- `web/src/features/pricing/components/recommended-models-shelf.tsx` — 标题显示推荐模型数量；`AutoScroll` 不再把整行标题纳入暂停区域，暂停范围收窄为卡片视口；上/下一张按钮点击前先 `autoScroll.reset()`，让漂移停下后再滚动。
-- `web/src/features/system-settings/components/settings-page.tsx` — 导出 `SettingsPageFrame`，使非 `SettingsPage` 驱动的页面也能复用同一套头部插槽接线。
-- `web/src/features/system-settings/components/settings-page-context.tsx` — `SettingsPageFormActions` 新增 `inline` 模式，按钮在表单行内右对齐渲染而不 portal 到页头；既有调用方仍走 portal。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json`、`web/src/i18n/static-keys.ts` — 新增 8 个文案键并补齐七语言；以常量数组经 `t(value)` 渲染的 3 个预置场景标签登记进静态键。
-
-### 变更说明
-
-- 旧值迁移只发生在读取阶段：旧 `scenario` 字段与旧枚举文本（`general` / `coding` / `chat` / `writing` / `image`，忽略大小写与首尾空格）在解析时被改写为对应预置标签，DB 中的旧值在下一次保存时落成新形态，因此不需要数据迁移脚本。
-- 场景值不做大小写归一化，因为预置项本身就是 i18n 键；校验只拒绝空值、超长与精确重复，未知自定义场景一律放行，历史脏数据因此可被修复而不是阻断定价接口。
-- `multi-select.tsx` 的 `reorderable` 使用原生 HTML5 拖拽（chip 即拖拽源，`onDragStart` 命中删除按钮时取消），落点判定沿用仓库既有的左右半区模式；键盘重排为 `Alt` + 左右方向键交换相邻项。仓库另有 `motion/react` 的 `Reorder` 范式，但它要求独立手柄且面向纵向列表，推荐条目排序按其范式实现，横向 chips 保留原生拖拽。
-- 横滑区暂停范围回到 embla 默认 root node（即卡片视口）。此前为让箭头可用而让整行标题也暂停漂移，现在箭头改为点击时先 `reset()` 停止漂移、滚动 settle 后自动恢复，因此标题与箭头悬停不再暂停滚动。
-- 「保存 / 重置 / 未保存的更改」最初位于页面底部动作行，随后移入页头，最终与「启用模型推荐」开关同行；`FormDirtyIndicator` 仍走在标题状态位，与其余设置页保持一致。
-
-### 本次验证
-
-- `bun run typecheck`、`bun run lint`（改动文件无 error）、对改动文件执行 `bunx oxfmt --write`、`bun run build`：通过；后端 `gofmt -l` 无输出，`go build ./...` 通过，`go test ./setting/... ./model/... ./controller/... -run ModelSquare` 全部通过。
-- `bun run format:check` 会报 `model-recommendation-badge.tsx`，经 `git status` 确认该文件在 HEAD 中即未格式化，与本次改动无关。
-- **未执行** SQLite / MySQL / PostgreSQL 三库验证矩阵（本机无 docker、mysql、psql 客户端）：本次未涉及模型、迁移、索引或裸 SQL 改动，但 `TestModelSquareOptionPersistence` 的 mysql 与 postgres 子用例因缺 DSN 被跳过，跨库兼容性属未验证。
-- 未执行真实浏览器验证。上线前应确认：场景 chips 的拖拽与序号、推荐条目的拖拽排序、无场景的推荐仍在横滑区出现、悬停到卡片才暂停滚动、箭头点击后漂移能恢复、开启系统「减少动态效果」后横滑区保持静止。
+原记录仅有 SQLite 3.50.4 的部分持久化验证，MySQL/PostgreSQL 矩阵及部署联调未完成；本次不据此声明三库或页面运行验证通过。

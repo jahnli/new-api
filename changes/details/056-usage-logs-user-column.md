@@ -1,489 +1,55 @@
-# 使用日志增强：用户信息、请求内容与审计
+# 使用日志、请求内容与审计
 
-**日期**: 2026-09-09 ~ 2026-11-16（最后更新 2026-11-16）
+**日期**: 2026-11-16
 
-## 2026-11-16 非工作时间通知预览与共享弹框
+## 日志查询与身份
 
-- `controller/security_audit.go` — 非工作时间通知新增只预览入口，预览与发送共用参数处理并接收界面语言；发送按收件人公司配置执行，并设置 90 秒超时。
-- `router/api-router.go` — 在安全审计路由组注册 `/off_hours/notice-preview` 接口。
-- `service/feishu_department.go` — 非工作时间通知改用共享预览数据、图片上传及飞书卡片构建流程，使用红色主题、频繁请求主图及时间和请求次数字段；支持自定义字段图标与可变字段数量，预览和发送共用七语言文案。公司凭据及旧全局配置清理见 [#026](026-feishu-credentials.md)。
-- `i18n/locales/{en,zh-CN,zh-TW,fr,ja,ru,vi}.yaml` — 补充非工作时间通知正文、提醒和请求次数标签的七语言翻译。
-- `web/src/features/security-audit/api.ts`、`web/src/features/security-audit/types.ts` — 增加可取消的通知预览请求与可选语言参数，沿用统一服务端错误处理。
-- `web/src/features/security-audit/components/off-hours-violation-notice.tsx` — 通知入口改用铃铛图标及通用通知文案，打开弹框后加载预览，展示收件人和通知类型，保留演示模式身份遮蔽。
-- `web/src/features/usage-logs/components/dialogs/request-notice-dialog.tsx` — 基于现有 `ConfirmDialog` 抽出共享通知弹框，统一收件人、内容配置、预览加载与错误重试；仅在预览成功且不在刷新时允许发送，发送期间阻止重复提交。
-- `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx` — 请求通知复用共享弹框，保留通知类型选择和目标模型系列配置。
-- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx`、`web/src/features/usage-logs/types.ts` — 预览支持服务端指定的可选字段图标列表，未指定时沿用原有图标。
+- 使用、任务及常规审计批量补充显示名、真实头像、平台身份和性别，首屏可展示身份，完整资料按权限悬停加载；管理员“仅自己”范围仍显示身份，不将是否显示用户列与资料读取权限混同。
+- 头像、显示名/用户名、资料卡及飞书跳转复用共享身份组件，演示模式遮蔽真实身份并停止详情请求。任务详情同步真实头像，插件作者与安全链接置于悬停提示。
+- 使用与审计保存原始 User-Agent，最多 512 个 Unicode 字符；新审计只写顶层字段，旧重复元数据兼容读取，错误日志同步记录客户端信息，仅影响新记录。
+- 普通日志支持时间、类型、角色、用户、分组、渠道、请求及上游请求 ID 筛选。模型可多选或自定义，逗号多值作 OR 匹配；渠道可搜索下拉，启用、优先级及权重排序，后端兼容 ID 精确和名称不区分大小写包含匹配。
+- 渠道位于主筛选，请求 ID 位于默认收起的高级筛选；保留手动展开，不显示条件数徽章。日志类型分页独立，默认每页 10 条，详情固定右侧。
+- 渠道、重试链和分组倍率等敏感详情仅超级管理员可见；订阅消费金额及来源持续展示，保留工具附加费标记。模型映射悬停显示，请求处理名称去重后仅向超级管理员显示“已处理 · 名称”。
 
-## 2026-11-16 使用日志模型列宽调整
+## Token 汇总与导出
 
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 模型列宽度由 202px 增至 218px，为模型名称提供更多展示空间。
+- Token 汇总、明细和综合单价仅超级管理员日志视图展示；汇总从主库 `quota_data` 按筛选条件读取四类 Token，与主统计一次返回，不另发悬停明细请求。RPM/TPM、金额与百分比复用语言相关格式化。
+- 汇总缓存命中率为缓存读取 ÷（非缓存输入 + 缓存读取 + 缓存写入），无输入显示占位符，保留一位小数。单条明细按 usage_semantic 区分 OpenAI 输入已含缓存与 Anthropic 输入不含缓存，旧日志回退 claude 标记；包含各时长写入缓存，输出不参与分母，无输入或数量不一致显示 `-`，保留两位小数。
+- 单条 Token 点击打开分类，移出数值和浮层后延迟关闭；总量、输入/输出、缓存明细复用共享组件。
+- 仅超级管理员可从全部或个人范围导出 XLSX，使用界面当前筛选草稿，无需先查询；个人接口仍强制当前用户。支持取消、单用户去重、全局并发限制和十分钟超时，单次流式读取后落临时文件，明细与汇总同源并受 Excel 行数上限保护。
+- 导出按当前货币或额度单位换算，订阅优先取实际消费，金额以十进制额度累计、八位小数数值写入；输入按 usage 语义扣除已包含缓存，缓存分项不重复相加。说明保留订阅消费与钱包实扣差别、筛选边界和尾差，演示模式遮蔽费用和渠道，请求传递浏览器时区，文件名标明筛选范围。
 
-## 2026-11-16 任务日志用户、渠道与列布局优化
+## 请求内容留存
 
-- `controller/task.go` — 管理端任务日志补充用户显示名称、真实头像、性别与渠道名称；按当前页用户去重查询资料，按渠道去重读取名称，保留原有用户名与飞书身份信息。
-- `dto/task.go` — 任务响应增加可选的显示名称、头像地址、性别与渠道名称字段，供列表及详情复用。
-- `web/src/features/usage-logs/types.ts` — 同步任务日志展示字段的可选类型定义。
-- `web/src/features/usage-logs/components/columns/column-helpers.tsx` — 渠道列支持传入名称字段，复用使用日志的渠道可见性规则，以上方编号、下方名称及悬停提示展示，保留复制与敏感信息、演示模式遮罩。
-- `web/src/features/usage-logs/components/columns/task-logs-columns.tsx` — 用户列复用使用日志的头像与资料展示组件；列顺序调整为提交时间、用户、插件、渠道、耗时、状态、进度、任务 ID、制品、详情。收紧提交时间、用户、渠道及详情列，插件与任务 ID 获得更多展示空间；提交时间列宽配置为 110，用户为 120，渠道与详情均为 80，保留标准日期时间格式。插件展示名称、标识与版本，作者名称及安全链接移至悬停提示。
-- `web/src/features/usage-logs/components/dialogs/task-details-dialog.tsx` — 详情弹框的用户信息移至标题后，使用小尺寸头像并传入显示名称、真实头像与性别，对齐使用日志详情样式，保留演示模式遮罩。
+- `RecordRequestMessageEnabled` 默认关闭，在安全审计设置中独立配置；中继异步保存文本、多模态占位、生图/编辑 Prompt 及请求参数，按 request_id 关联日志并截断超长内容。
+- 管理端批量读取与通知接口仅超级管理员可用，POST body 承载批量 ID；普通日志界面非超级管理员或演示模式不加载、不开放完整内容入口。
+- 摘要仅截断展示，点击查看完整会话。弹框支持整组展开/收起、逐消息复制反馈，消息、请求参数与运行信息独立滚动；运行信息按权限展示耗时、Token、费用、渠道、令牌、映射、IP 等。
 
-## 2026-11-15 筛选位置与默认收起状态
+## 审计分类与异常时段
 
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 互换渠道与请求 ID 筛选位置：渠道移至首行，请求 ID 移入高级筛选；使用日志高级筛选默认收起，移动端同步调整筛选顺序，并按实际字段位置更新高级筛选激活状态与移动端筛选数量。
-- `web/src/features/usage-logs/components/logs-filter-toolbar.tsx` — 新增默认展开状态配置，供使用日志默认收起高级筛选；其他复用页面沿用原有默认展开状态，保留手动展开与收起操作。
+- 常规审计支持登录、订阅、余额、账户安全、操作及 Access Token 分类。额度/订阅成功事件归属被操作用户并记录操作者、增减前后与订阅关联；失败保留操作审计，颜色区分增加、减少和覆盖。
+- 常规审计用户筛选按当前用户名或显示名包含匹配，去除首尾空格并转义 LIKE 特殊字符；从主库找用户 ID 后查询独立日志库，兼容中文组合输入。
+- 异常时段、图片及 SMTP 审计整合在审计日志页，仅超级管理员可访问，旧安全审计路由保留重定向，各类分页筛选隔离。图片保存及审计开关见 [#058](058-online-image-generation.md)。
+- 异常时段审计使用结构化 off_hours 配置，默认启用、窗口 03–07 时，支持时间和用户筛选、按天数排序、常用模型及日志详情。旧版审计配置仍按兼容逻辑转换；关闭时提示配置引导。
 
-## 2026-11-15 请求处理标记展示名称与可见范围
+## 通知及发送前预览
 
-- `web/src/features/usage-logs/components/request-plugin-record.tsx` — 模型下方的请求处理标记改为“已处理 · 处理名称”，按当前界面语言展示并去重合并多个名称；复用表格次级文本样式，将标记及其内部文字设为 12px，避免被单元格统一的 13px 样式覆盖；限制内容最大宽度，长名称截断并保留完整悬浮提示。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 请求处理标记仅向超级管理员显示，普通管理员和用户不显示该标记，复用现有角色判断。
+- 超级管理员可从含用户和请求 ID 的消费/错误日志详情或请求内容发送通知，“仅自己”详情同样可用，演示模式隐藏。支持非工作内容、安全风险、频繁请求、模型切换、客户端与模型匹配五类；切换模型必须选择已启用且关联模型的供应商系列，由后端校验并填充名称。
+- 异常时段通知校验用户、实际起止时间及正请求次数，并与请求通知共用收件人、响应式预览弹框、语言及错误重试；预览不发送消息，加载失败或刷新中不可发送，发送中防重复提交。
+- 请求通知按用户公司配置选择飞书/钉钉及独立平台身份；公司缺失、不存在或未设平台时才回退邮箱。公司停用、凭据不全或身份无效直接报错，邮件校验邮箱与 SMTP。异常时段通知按所属公司飞书应用发送，凭据规则见 [#026](026-feishu-credentials.md)。正式发送最长 90 秒。
+- 预览和发送共用七语言内容与分类图片，非工作/安全风险/频繁请求及异常时段采用红色，模型切换与客户端匹配采用橙色。安全风险分项说明，频繁请求提示检查脚本、并发和重试；模型切换显示当前与目标系列、提示无法保证可用性并尽快更换；匹配提醒说明 Claude Code/Claude 与 Codex/GPT 的对应关系。
+- 飞书图片上传在 HTTP 429/5xx 时最多重试两次，遵循取消；SMTP 通知附加用途、用户等审计关联。
 
-## 2026-11-15 时间列宽度调整
+## SMTP 发送审计
 
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 使用日志时间列宽度由 171 调整为 145，减少右侧留白，保留原有时间格式与日志类型展示。
+- 邮件发送记录用途、用户/操作者、通知投递、请求 ID、阶段耗时、TLS 和接受/失败/不确定状态，不保存正文、验证码、凭据或原始 SMTP 错误响应；上下文和最长 90 秒超时贯穿发送。
+- 独立主库表保存每次尝试，列表脱敏邮箱并省略阶段事件，详情显示诊断时间线；支持状态、用途、收件人、用户、请求 ID、时间及测试标记筛选，仅超级管理员可读取。
+- 每分钟维护超时未完成状态并按 `SMTP_AUDIT_RETENTION_DAYS` 清理，默认 90 天。
 
-## 2026-11-15 通知卡片列表、客户端匹配提醒与主题统一
+## 主要入口
 
-通知弹框与图片主题以本节为准，下方较早记录中的下拉选择、弹框尺寸、橙色频繁请求主题及分类素材目录保留为历史说明。
-
-- `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx` — 通知类型改为直接展示的五项单选卡片列表，复用现有单选组与字段组件，支持整行选择及选中高亮；图标缩至 14px、底座缩至 24px，目标模型系列仅在选中“模型切换”时紧随该项展开；弹框高度增至视口的 90%，最大宽度增至 1152px，保持左右预览布局与小屏滚动。
-- `controller/request_message.go`、`web/src/features/usage-logs/types.ts` — 请求通知校验与前端类型增加“客户端与模型匹配”分类，沿用手动预览和发送流程。
-- `service/feishu_department.go` — 新增客户端与模型匹配提醒，建议在 Claude Code 中使用 Claude 系列、在 Codex 中使用 GPT 系列，或切换到当前模型对应的客户端；模型切换与匹配提醒统一使用橙色主题，频繁请求改为红色主题；飞书发送按主题复用字段图标，并为模型指导类通知共用提醒图标。
-- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 预览按通知类型识别主图与模型指导内容，按红色或橙色主题选择共享字段图标；模型切换继续隐藏独立模型字段，客户端匹配提醒保留该字段。
-- `web/notice_assets.go` — 更新嵌入资源范围，包含根目录主图、共享警告图标、共享严重风险图标及安全风险专用插图。
-- `web/public/notice/client-model-match.png`、`web/public/notice/model-switch.png`、`web/public/notice/non-work.png` — 新增客户端匹配主图、更新模型切换主图，并将非工作内容主图移至统一目录。
-- `web/public/notice/frequent-request.png` — 频繁请求主图统一为珊瑚红，保留立体明暗效果、原始尺寸与透明背景。
-- `web/public/notice/warn/{alarm,client,id,model,time}.png`、`web/public/notice/critical/{client,id,model,time}.png` — 整合橙色警告与红色严重风险图标；安全风险目录继续保留专用主图和分项提示插图。
-- `web/public/notice/frequent-request/`、`web/public/notice/model-switch/`、`web/public/notice/non-work/` — 移除旧分类素材目录中的图片，原字段图标统一改用共享主题资源。
-- `i18n/locales/{en,zh-CN,zh-TW,fr,ja,ru,vi}.yaml`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐客户端与模型匹配通知标题、正文、建议及选择项的七语言文案。
-
-## 2026-11-15 频繁请求通知与标准档位展示
-
-- `controller/request_message.go` — 请求通知预览与发送接受“频繁请求”分类。
-- `service/feishu_department.go` — 新增频繁请求通知，使用橙色卡头、独立主图与字段图标，提示排查自动化脚本、并发和重试逻辑；预览及飞书发送共用标题、正文与提醒。
-- `web/notice_assets.go` — 将频繁请求图片嵌入后端，供飞书卡片上传使用。
-- `web/public/notice/frequent-request/client.png`、`web/public/notice/frequent-request/id.png`、`web/public/notice/frequent-request/logo.png`、`web/public/notice/frequent-request/model.png`、`web/public/notice/frequent-request/time.png` — 新增该分类主图及客户端、请求编号、模型和时间图标。
-- `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx`、`web/src/features/usage-logs/types.ts` — 通知类型选择器和请求类型增加“频繁请求”，沿用现有手动预览与发送流程。
-- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 频繁请求预览使用对应主图和字段图标。
-- `i18n/locales/{en,zh-CN,zh-TW,fr,ja,ru,vi}.yaml`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充通知标题、正文、排查建议及分类名称的七语言文案。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 计费摘要与命中档位将 `base`、`standard` 和“标准”按界面语言统一展示，自定义名称保留原文；共用规则与定价预览见 [标准档位说明](049-model-pricing-local-currency.md)。
-
-## 2026-11-13 模型切换通知强化可用性提醒
-
-- `i18n/locales/zh-CN.yaml` — 模型切换通知正文补充“无法保证可用性”，并提示“请尽快更换至”目标系列；保留当前模型与目标系列动态占位符，通知预览及实际发送共用此文案。
-- `i18n/locales/en.yaml`、`i18n/locales/zh-TW.yaml`、`i18n/locales/fr.yaml`、`i18n/locales/ja.yaml`、`i18n/locales/ru.yaml`、`i18n/locales/vi.yaml` — 同步更新其余六种语言，保持可用性风险及尽快切换的提示含义一致。
-- 验证：`go build ./i18n`、七种语言 YAML 语法与模型/目标系列占位符检查、`git diff --check` 均通过。
-
-## 2026-11-09 单条 Token 明细新增缓存命中率
-
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — Token 明细新增缓存命中率，按日志用量语义区分输入是否包含缓存：Anthropic 语义以输入、缓存读取和缓存写入之和为分母，OpenAI 语义以输入为分母；无显式语义的旧日志回退使用 `claude` 标记。缓存写入包含 5 分钟、1 小时及 12 小时类别，计入分母但不算命中，输出不参与计算；无输入或缓存数量超过总输入时显示 `-`。
-- `web/src/components/token-breakdown-tooltip-content.tsx` — 兼容扩展现有共享明细组件，通过可选属性在底部展示命中率，保留两位小数，复用已有七语言文案与数字格式化器；未传该属性的汇总调用保持原有展示。
-- `web/src/features/usage-logs/types.ts` — 补充日志 `usage_semantic` 字段类型，供前端识别输入统计口径。
-- 验证：`bunx --no-install tsc -b` 通过，三个修改文件的 oxlint 与 oxfmt 检查通过；`bun run typecheck` 因脚本引用不存在的 `check` 命令失败，已使用上述 TypeScript 编译器命令验证。未执行浏览器页面验证，未新增、修改或运行测试。
-
-## 2026-10-30 错误日志补记客户端信息
-
-- `service/relay_error.go` — 错误日志生成时复用现有客户端采集方法，将请求原始 User-Agent 写入 `other.user_agent`，供使用日志的客户端列直接显示；沿用最多 512 个 Unicode 字符的截断规则，未携带该请求头时不写入，仅对新日志生效。
-- 验证：`go build ./service`、`git diff --check` 通过，`gofmt -l service/relay_error.go` 无输出；未新增、修改或运行测试。
-
-## 2026-10-30 请求通知卡片与个人日志入口
-
-- `service/feishu_department.go`、`controller/request_message.go` — 三类请求通知使用各自的主图和图标生成飞书卡片，安全风险提示拆分为三条说明，模型切换正文显示当前模型与所选目标系列；模型切换不展示独立模型字段，发送时上传对应图片并使用请求上下文。
-- `service/notification_image_upload.go` — 飞书图片上传遇到 HTTP 429 或 5xx 时最多重试两次，重试等待支持请求取消，最终接口错误包含图片文件名以便排查。
-- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx`、`web/src/features/usage-logs/types.ts` — 通知预览同步展示各类型图片、提示和请求信息，按类型使用独立素材目录；安全提示与模型切换提示显示专用图标。
-- `web/public/notice/non-work/`、`web/public/notice/security-alert/`、`web/public/notice/model-switch/`、`web/notice_assets.go` — 按通知类型组织图片，并将图片嵌入后端以供飞书上传。
-- `i18n/locales/en.yaml`、`i18n/locales/zh-CN.yaml`、`i18n/locales/zh-TW.yaml` — 更新三类通知文案及模型切换动态名称，提供安全风险分项提示。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 超级管理员切换到「仅自己」时，符合条件的消费或错误日志详情仍显示通知入口；演示模式和其他日志可见性限制保持不变。
-- `web/src/components/ui/alert-dialog.tsx` — 允许点击遮罩关闭的确认弹框强制渲染遮罩，确保点击空白关闭可用。
-
-## 2026-10-28 请求通知按公司平台发送与邮件兜底
-
-- `controller/request_message.go` — 请求通知读取完整用户资料，复用预览内容与统一通知发送服务；预览不再要求绑定飞书，正式发送设置 90 秒超时，并为邮件附加请求通知用途与用户 ID 的 SMTP 审计上下文。
-- `service/request_notice.go` — 根据用户所属公司选择飞书或钉钉应用及对应平台身份；公司未填写、不存在或未配置平台时使用用户邮箱。公司停用、平台凭据不完整或平台身份无效时返回错误，不自动改用邮件；邮件路径校验邮箱及 SMTP 配置。通知标题与配色沿用预览，正文和字段转义后交由共享发送服务处理。
-- `model/company.go` — 新增按规范化公司名称精确读取公司配置的方法，供请求通知选择发送平台与应用。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补齐公司停用、通知平台配置错误和平台身份无效的七语言提示，并统一部分语言的邮箱与 SMTP 错误文案。
-
-## 2026-10-28 请求内容通知分类与发送前预览
-
-- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx`、`request-notice-button.tsx` — 请求内容弹框使用共享红色「通知」按钮，支持「非工作内容」「安全风险」「模型切换」三种类型；模型切换必须从已关联模型的启用供应商中选择目标系列，支持搜索和红色必选标记。确认弹框采用左侧接收人与类型、右侧通知预览的响应式布局，最大宽度为 1024px、高度为视口的 75%；允许非发送状态点击空白关闭，通知类型下拉复用分组内边距。切换类型、目标系列或界面语言重新获取预览，加载中或失败时禁用发送，失败可重试。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情右上角复用相同通知按钮和确认弹框；仅超级管理员可在含用户及请求 ID 的消费或错误日志中使用，演示模式下隐藏，并传入模型、时间和客户端信息。
-- `web/src/features/usage-logs/components/dialogs/request-notice-preview.tsx` — 通知预览复用共享卡片组件及企业通知标题配色；按类型展示橙色、红色或蓝色标题栏，展示完整正文、请求时间、请求 ID 与客户端，非模型切换类型额外展示模型字段；模型切换使用圆形切换图标，不显示独立模型字段。
-- `web/src/features/usage-logs/api.ts`、`web/src/features/usage-logs/types.ts` — 通知载荷增加类型、当前界面语言和客户端；新增可取消的预览请求及结构化预览类型，检查业务失败与缺失预览数据。
-- `controller/request_message.go`、`router/api-router.go` — 预览与发送共用参数及通知类型校验；模型切换要求有效的目标供应商，并校验供应商启用且关联模型，再由后端填入名称；预览接口仅超级管理员可调用且不发送消息，正式发送的平台与接收人校验见上方公司平台发送说明。
-- `service/feishu_department.go` — 预览和发送共用通知内容构建：模型切换采用蓝色卡头，正文带当前模型和以【】标注的目标供应商系列，提醒通过模型广场选择具体模型并关注飞书后续通知；不再单独列出模型字段，动态名称按普通文本输出。非工作内容采用橙色卡头、安全风险采用红色卡头；卡片包含客户端，移除「如误告警，忽略即可」。
-- `i18n/locales/en.yaml`、`i18n/locales/zh-CN.yaml`、`i18n/locales/zh-TW.yaml` — 补充三类通知与旧通知的标题、正文和字段标签；模型切换文案分段并带当前模型及目标系列，支持英文、简体中文和繁体中文，其他界面语言回退英文。
-- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补充模型切换、目标系列及校验提示等七语言文案。
-
-## 2026-10-27 安全审计用户模糊筛选
-
-- `model/audit_log.go` — 用户筛选从审计记录中的用户名精确匹配改为按当前用户的用户名或显示名称包含匹配；去除关键词首尾空格并转义 LIKE 通配符，先从主库查询匹配用户 ID，再筛选独立日志库中的审计记录，无匹配用户时返回空结果。
-- `web/src/features/usage-logs/audit/components/audit-log-filter-bar.tsx` — 全部日志范围的用户筛选提示改为「用户名或显示名称」，中文输入法组合输入期间保留草稿，组合结束后提交筛选值。
-- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json` — 补充「用户名或显示名称」的七语言文案。
-
-## 2026-10-25 缓存命中率展示与详情列宽
-
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 命中率标签改为复用七语言「缓存命中率」文案，位置调整为 Token 汇总之后、综合单价之前，加载骨架同步换位；百分比使用共享数字格式化器随界面语言展示，仍保留一位小数。计算公式不变：缓存读取 ÷（非缓存输入 + 缓存读取 + 缓存写入），无输入 Token 时显示 `-`。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 详情列默认宽度从 155px 增至 165px，最大列宽从 175px 增至 185px，内容宽度上限从 150px 增至 160px，保留右侧固定及点击详情行为。
-
-## 2026-10-23 统计栏新增命中率
-
-以下为初次加入时的布局，当前标签和顺序以 2026-10-25 说明为准。
-
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统计栏在综合单价右侧新增「命中率」徽标，按缓存读取 ÷（非缓存输入 + 缓存读取 + 缓存写入）计算，保留一位小数，无输入 Token 时显示 `-`，缓存写入计入分母且视为未命中，与数据总览同口径；Token 明细与命中率仅在超级管理员日志视图展示，切换视图时按需携带 `token_breakdown`；Token 明细改为主统计一次请求返回，移除悬停时的独立明细请求与延迟加载状态。
-- `model/log.go` — `LogStatsOptions.TokenBreakdownOnly` 改为 `TokenBreakdown`，统计不再短路为只返回 Token 明细；`SumUsedQuota` 在原有 `quota_data` 聚合中一并取回非缓存输入/输出与缓存读取/写入汇总，避免前端为 Token 明细重复请求。
-- `controller/log.go` — 日志统计与个人统计接口改用新的 `TokenBreakdown` 选项，保留 `token_breakdown` 查询参数语义。
-
-## 2026-10-21 请求内容摘要交互精简
-
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 请求内容列移除最新消息摘要外层的悬浮提示，保留截断展示、多条消息数量提示及点击打开完整对话的入口。
-
-## 2026-10-06 高级筛选入口精简
-
-- `web/src/features/usage-logs/components/logs-filter-toolbar.tsx` — 移除展开/收起按钮旁的已启用高级筛选数量徽章，保留展开、收起及筛选行为。
-
-## 2026-10-06 Token 明细交互与统计可见性
-
-- `web/src/components/token-breakdown-tooltip-content.tsx` — 总量改为可选，分类明细支持原始数量或亿 Token 单位，供单条日志与汇总复用。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 单条日志点击 Token 数值显示输入、输出、缓存读取与缓存写入明细，提示框宽度调整为 12rem；鼠标在当前 Token 内容与提示框之间移动时保持显示，离开两者后延迟 150 毫秒关闭，组件卸载时清理定时器。
-- `web/src/features/usage-logs/components/usage-logs-table.tsx` — Token 缓存等次要文字统一为 12px，与主数值区分层次。
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 汇总、明细入口和综合单价仅在超级管理员日志视图展示，加载骨架同步按权限裁剪。
-
-## 2026-10-05 SMTP 发送审计
-
-- `common/email.go`、`common/smtp_audit.go` — 邮件发送统一接入请求上下文与最长 90 秒超时，记录发送用途、关联用户与通知、SMTP 阶段耗时、TLS 信息及接受、失败或结果不确定状态；仅记录安全错误分类，不保存正文、验证码、凭据或原始 SMTP 错误响应。
-- `model/smtp_audit.go`、`model/main.go` — 在主库注册独立 SMTP 审计表，按发送尝试保存初始与最终状态，支持分页、状态、用途、收件人、用户、请求 ID、时间与测试标记筛选。
-- `controller/smtp_audit.go`、`router/api-router.go`、`middleware/access_token_routes.go` — 新增仅超级管理员可访问的列表与详情接口；列表脱敏邮箱并省略阶段事件，详情提供完整诊断时间线。
-- `controller/custom_oauth.go`、`controller/email_binding.go`、`controller/misc.go`、`controller/oauth.go`、`controller/user.go`、`controller/wechat.go` — 相关邮件发送传递请求上下文及发送用途、用户和操作者等审计关联信息。
-- `service/account_security.go`、`service/email_binding.go`、`service/notification_worker.go`、`service/user_notify.go` — 账户安全、邮箱绑定、企业通知和用户提醒邮件接入审计元数据，企业通知关联投递记录、发送次数及测试标记。
-- `service/system_task.go` — 每分钟维护 SMTP 审计，将超过发送截止时间及宽限期的未完成记录标为结果不确定；按 `SMTP_AUDIT_RETENTION_DAYS` 清理历史记录，默认保留 90 天。
-- `web/src/features/usage-logs/audit/api.ts`、`index.tsx`、`web/src/routes/_authenticated/usage-logs/audit.tsx` — 审计日志新增仅超级管理员可见的 SMTP 分类和独立分页筛选参数，分类页按需加载；统一顶部操作区域的最小高度。
-- `web/src/features/usage-logs/audit/smtp/api.ts`、`index.tsx`、`filter-bar.tsx`、`details-dialog.tsx`、`labels.ts` — 新增 SMTP 审计列表、筛选与发送详情界面，展示状态、用途及诊断信息。
-- `web/src/i18n/locales/en.json`、`zh.json`、`zh-TW.json`、`fr.json`、`ja.json`、`ru.json`、`vi.json` — 补充 SMTP 审计界面的七语言文案。
-
-## 2026-10-04 筛选布局与统计数字优化
-
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 日期范围控件占满所在列，微调主筛选网格的时间、模型和类型列宽，使第一排筛选控件分配更紧凑。
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — RPM、TPM 复用 `formatNumber`，按当前界面语言格式化数字，提高大数值的可读性。
-
-## 涉及文件
-
-- `model/log.go` — 日志只读字段增加 DisplayName/AvatarUrl/OpenId，批量补充用户资料；模型名称筛选取首尾空格后包含匹配，复用跨 SQLite、MySQL、PostgreSQL、ClickHouse 的 LIKE 转义。
-- `model/clickhouse_log_test.go` — 覆盖 ClickHouse 模型名称匹配和通配符转义。
-- `model/task.go`、`model/user.go`、`model/user_cache.go`、`controller/task.go`、`dto/task.go`、`relay/relay_task.go` — 任务日志透传 open_id，复用用户基础缓存填充资料。
-- `web/default/src/lib/utils.ts`、`web/default/src/features/home/components/sections/cta.tsx` — 统一构造飞书 openId 聊天链接。
-- `web/default/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 用户列展示头像、显示名、资料卡与飞书跳转；调整列顺序/宽度、IP、User-Agent、详情固定列和错误色；费用提示保留订阅来源，请求内容与倍率按权限显示。
-- `web/src/features/usage-logs/` — 工具调用费用显示与测试、固定详情列、每页 10 条、请求内容批量查询及违规通知。
-- `model/request_message.go`、`controller/request_message.go`、`service/request_message.go` — 新增请求内容模型、批量查询和违规通知；异步记录文本、多模态、生图/编辑 Prompt 及模型参数，支持截断与序列化。
-- `controller/relay.go`、`router/api-router.go`、`model/option.go`、`model/main.go`、`common/constants.go` — 中继接入请求记录，注册模型、开关及仅超级管理员可访问的批量/通知路由。
-- `web/default/src/features/usage-logs/components/dialogs/request-content-dialog.tsx`、`request-messages-provider.tsx`、`api.ts`、`types.ts` — 请求内容弹框与按页批量加载；内容/参数各自独立滚动，展示用户资料、User-Agent，支持复制和违规通知；非超级管理员不发起查询。
-- `controller/security_audit.go`、`service/feishu_department.go`、`service/violation_notice_test.go` — 非工作时间违规通知按用户、实际时间范围和请求次数校验后发送飞书安全审计卡片。
-- `web/src/features/security-audit/` — 将「非工作时间请求」标签统一为「异常时段审计」；从审计日志打开通知入口时补充请求上下文、发送中禁用和成功/失败提示。
-- `web/default/src/features/system-settings/security/`、`web/src/features/system-settings/security/` — 请求内容开关迁至安全审计，优化审计设置响应式布局及七语言文案。
-- `relay/common/relay_info.go`、`relay/common/client_app.go`、`service/log_info_generate.go` — 保存并写入原始 User-Agent，不做客户端名称映射。
-- `web/default/src/features/usage-logs/` — 普通日志筛选改为紧凑两排布局，移除令牌名称条件，角色可输入名称；修复管理员“仅自己”范围的用户资料显示。
-- `web/src/features/usage-logs/components/log-cost-display.tsx` — 工具调用附加费组件接入后恢复订阅抵扣费用金额直接展示；悬停或键盘聚焦金额时提示订阅扣款来源，保留工具附加费标记
-- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx` — 补充订阅抵扣金额可见、订阅来源 Tooltip 和工具附加费标记共存的测试
-- `web/default/src/features/usage-logs/components/columns/task-logs-columns.tsx` — 任务日志用户列头像点击改为经 open_id 跳转飞书，不再打开用户信息弹框
-- `web/default/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 桌面端宽度调整为屏幕宽度 50%
-- `web/default/src/features/usage-logs/components/usage-logs-mobile-card.tsx` — 移动端卡片在令牌前展示 IP 地址字段
-- `web/src/features/usage-logs/components/usage-logs-table.tsx` — 自定义行渲染合并固定列样式，详情列表头和内容单元格固定右侧；默认分页统一为每页 10 条
-- `web/default/src/features/usage-logs/components/logs-filter-toolbar.tsx` — 高级筛选默认展开，不再默认折叠
-- `web/default/src/features/usage-logs/index.tsx` — 普通日志页不再渲染冗余页标题，任务日志保留标题与子分类切换
-- `web/default/src/features/usage-logs/section-registry.tsx` — 导航标题统一为 Usage Logs
-- `web/default/src/components/layout/components/section-page-layout.tsx` — 无标题、操作区和面包屑时跳过顶部 header 容器，避免空元素占位
-- `web/default/src/features/usage-logs/data/schema.ts` — Zod schema 新增 display_name、avatar_url、open_id、gender 字段
-- `web/default/src/features/usage-logs/types.ts` — UserInfo 扩展完整用户详情字段并补充 open_id，TaskLog 补充 open_id
-- `web/default/src/i18n/locales/en.json` — 新增 "Timing / First Token"、"Request Content"、"Record request content" 等翻译
-- `web/default/src/i18n/locales/zh.json` — 新增 "耗时 / 首字"、"请求内容"、"记录请求内容" 等翻译
-- `model/request_message.go` — 新增 RequestMessage 模型（request_id 关联 logs 表），存储用户提示词和模型参数
-- `controller/request_message.go` — 管理员和普通用户批量查询 request_message 接口；新增 POST body 批量解析，避免分页 100 时 request_ids 拼入 URL 导致线上网关 502；新增违规通知接口，校验 open_id 后发送飞书安全审计提醒
-- `service/request_message.go` — 中继请求后异步记录用户输入：多模态内容提取为占位符、截断超长对话、序列化参数；支持从生图与图片编辑请求提取 Prompt，使用日志可展示图片请求内容
-- `service/request_message_test.go` — 补充生图 Prompt 记录、首尾空白清理和空提示词跳过的测试
-- `service/feishu_department.go` — 新增飞书交互卡片发送与违规通知卡片构造；单请求卡片展示请求时间、模型与 Request ID，非工作时间卡片展示当天实际请求时间范围与请求次数，提示正常业务可忽略、异常操作需查账号及密钥
-- `service/violation_notice_test.go` — 覆盖单请求与非工作时间两类违规通知卡片的红色模板、正文和关键字段
-- `controller/relay.go` — 中继入口调用 RecordRequestMessage 记录请求内容
-- `router/api-router.go` — 新增 /api/request_message 和 /api/request_message/self 路由；管理端批量查询改为 RootAuth，仅超级管理员可读任意用户请求内容；补充 /batch 与 /self/batch POST 路由承载批量 request_ids；新增 /notify-violation 及仅超级管理员可调用的 /api/security_audit/off_hours/notify-violation 非工作时间通知路由
-- `common/constants.go` — 新增 RecordRequestMessageEnabled 全局开关
-- `model/option.go` — 系统选项注册和运行时更新 RecordRequestMessageEnabled
-- `model/main.go` — AutoMigrate 注册 RequestMessage 模型
-- `web/default/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 请求内容详情弹窗展示完整用户消息列表和请求参数；顶部新增头像、显示名和用户名，模型/格式/时间/请求 ID 与 User-Agent 排在用户信息右侧，请求 ID 放大并去掉两行多余间距；内容与参数左右并排，参数默认展开并缩窄，弹框统一为视口 85% 高度并修复高度计算；新增违规通知按钮和确认弹框，发送后 toast 提示结果；两区域独立滚动，保留 JSON 横向阅读格式
-- `web/default/src/features/usage-logs/components/request-messages-provider.tsx` — RequestMessagesProvider 上下文，按当前页 request_id 批量加载请求内容；新增 canViewRequestContent 控制，非超级管理员不发起查询
-- `web/default/src/features/usage-logs/api.ts` — 新增 getRequestMessages API；批量查询改为 POST /batch 并经 body 传 request_ids，避免分页 100 时 query 过长；新增 notifyRequestMessageViolation API
-- `web/default/src/features/usage-logs/types.ts` — 新增 RequestMessage 接口；LogOtherData 复用 user_agent 承载中继请求的原始 User-Agent；新增 NotifyViolationRequest 类型
-- `controller/security_audit.go` — 新增非工作时间违规通知接口，校验用户、实际请求时间范围和请求次数，确认飞书绑定后发送安全审计卡片
-- `controller/security_audit_test.go` — 覆盖缺少用户、时间范围倒置和请求次数非正数的接口校验
-- `web/src/features/security-audit/api.ts`、`web/src/features/security-audit/types.ts` — 增加非工作时间违规通知请求 API 与载荷类型，日志弹窗目标携带用户、实际请求时间范围与请求次数
-- `web/src/features/security-audit/components/off-hours-columns.tsx`、`web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 从非工作时间记录打开日志弹窗时传递通知上下文，在弹窗标题栏右上角、关闭按钮左侧展示违规通知操作
-- `web/src/features/security-audit/components/off-hours-violation-notice.tsx` — 新增违规通知按钮、二次确认、发送中禁用以及成功和失败提示
-- `web/src/features/security-audit/components/__tests__/off-hours-violation-notice.test.tsx` — 测试覆盖表格不新增违规通知列、日志弹窗右上角展示按钮及选中记录通知入口
-- `web/default/src/features/usage-logs/components/usage-logs-table.tsx` — 包裹 RequestMessagesProvider，按当前页日志批量加载请求内容；按用户角色传入可见性，仅超级管理员允许加载
-- `web/default/src/features/system-settings/maintenance/log-settings-section.tsx` — 从运维日志维护中移除「记录请求内容」开关
-- `web/default/src/features/system-settings/operations/section-registry.tsx` — 运维设置不再传入 RecordRequestMessageEnabled 默认值
-- `web/default/src/features/system-settings/operations/index.tsx` — 运维设置默认值移除 RecordRequestMessageEnabled
-- `web/default/src/features/system-settings/security/audit-section.tsx` — 安全审计页面新增「记录请求内容」开关，保存审计设置时更新 RecordRequestMessageEnabled
-- `web/default/src/features/system-settings/security/section-registry.tsx` — 将 RecordRequestMessageEnabled 服务端配置传入安全审计表单
-- `web/default/src/features/system-settings/security/index.tsx` — 安全审计设置补充与后端一致的关闭默认值
-- `web/default/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 测试覆盖请求内容记录开关在安全审计页面的展示和启用状态
-- `web/default/src/features/system-settings/types.ts` — 将 RecordRequestMessageEnabled 从 OperationsSettings 迁移到 SecuritySettings
-- `web/src/features/system-settings/security/audit-section.tsx` — 安全审计设置改为响应式卡片布局，并将请求内容留存、异常时段审计、图片审计与历史拆分为三个平级模块，避免误解请求内容仅在异常时段记录。
-- `web/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 补充安全审计卡片结构、半宽布局、时间区域及开关状态的测试断言。
-- `web/src/i18n/locales/*.json` — 补齐请求内容留存、异常时段审计和图片审计卡片说明的七语言翻译。
-- `relay/common/relay_info.go` — RelayInfo 新增 ClientApp 字段，基础中继信息生成时保存原始 User-Agent
-- `relay/common/client_app.go` — 新增 DetectClientApp，返回请求携带的原始 User-Agent，不做客户端名称映射
-- `relay/common/client_app_test.go` — 覆盖 DetectClientApp 原始 User-Agent 返回、缺失头与 nil 安全场景
-- `service/log_info_generate.go` — 文本类使用日志 other 字段写入 user_agent，供前端表格展示
-- `web/default/src/i18n/locales/en.json`、`web/default/src/i18n/locales/zh.json`、`web/default/src/i18n/locales/fr.json`、`web/default/src/i18n/locales/ja.json`、`web/default/src/i18n/locales/ru.json`、`web/default/src/i18n/locales/vi.json` — 新增 User-Agent 表头翻译和违规通知相关文案
-- `web/default/src/components/dialog.tsx` — Dialog 组件样式调整
-- `web/default/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 高级筛选移除令牌名称条件；角色筛选可输入角色名称，候选下拉仅展示角色名称、不按内部 role 值过滤；筛选区重排为两排紧凑布局：第一排时间、模型、类型、用户名和请求 ID，第二排分组、上游请求 ID、角色、渠道 ID 和日志范围切换，并微调时间与类型控件宽度
-- `web/default/src/features/usage-logs/components/logs-filter-toolbar.tsx` — 支持为主筛选网格传入自定义列宽样式，普通日志页加宽时间选择器并保持其他筛选项紧凑
-- `web/default/src/features/usage-logs/index.tsx` — 将全部/仅自己日志范围切换从页面操作区移入普通日志筛选区
-- `web/default/src/features/usage-logs/components/usage-logs-table.tsx` — 普通日志表格 URL/列筛选状态移除 token_name 与 token 查询参数映射
-- `web/default/src/features/usage-logs/lib/filter.ts` — 构造普通日志筛选 URL 参数时不再写入 token 条件
-- `web/default/src/features/usage-logs/lib/utils.ts` — 请求日志接口参数时不再从搜索参数或列筛选生成 token_name 条件
-- `web/default/src/features/usage-logs/types.ts` — CommonLogFilters 移除 token 字段
-- `web/default/src/routes/_authenticated/usage-logs/$section.tsx` — 使用日志路由搜索参数 schema 移除 token
-- `web/default/src/components/ui/combobox-input.tsx` — ComboboxInput 支持关闭自定义值提示与按 value 过滤，筛选输入数值时不弹出无关候选
-- `web/default/src/components/ui/combobox.tsx` — 透传 ComboboxInput 的自定义值提示和 value 过滤开关
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 令牌列和详情列摘要仅在管理员日志视图中展示分组倍率或用户专属倍率，避免普通用户及「仅自己」视图泄露倍率
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情弹框的计费明细仅向管理员日志视图展示分组倍率或用户专属倍率
-- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 多条请求消息新增单个胶囊按钮，可按当前状态一键切换全部展开或收起；复制反馈按消息唯一标识隔离，避免重复内容同时显示已复制。
-- `web/src/features/usage-logs/components/dialogs/__tests__/request-content-collapse.test.tsx`、`request-content-copy.test.tsx` — 测试覆盖批量展开/收起、单条折叠以及重复消息仅高亮实际点击的复制按钮。
-
-## 「仅自己」用户信息展示修复
-
-- `model/log.go` — 抽取日志用户资料批量补充逻辑，个人日志接口同步返回 display_name、avatar_url、open_id 和 gender，确保「仅自己」模式与全部日志的头像及身份数据一致
-- `model/log_user_filter_test.go` — 新增个人日志返回展示名、头像、飞书 open_id 和性别字段的测试
-- `web/src/features/usage-logs/components/usage-logs-table.tsx` — 将日志数据范围与用户列/资料卡权限拆分，管理员切换「仅自己」后仍显示用户列并加载完整资料
-- `web/src/features/usage-logs/lib/columns.ts` — 用户列工厂改为接收独立的列可见性和资料加载权限选项
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 用户列支持独立显示控制，完整资料异步加载后同步刷新头像、展示名和用户名
-- `web/src/features/usage-logs/components/columns/__tests__/self-scope-user-details.test.tsx` — 新增「仅自己」模式下头像、用户身份文本和悬停资料卡入口保持可见的组件测试
-
-## 2026-08-19 渠道和分组倍率权限收紧
-
-- `web/src/features/usage-logs/components/usage-logs-table.tsx` — 渠道列可见性收紧为仅超级管理员，并向各日志类型列工厂传递权限。
-- `web/src/features/usage-logs/lib/columns.ts`、`web/src/features/usage-logs/components/columns/drawing-logs-columns.tsx`、`web/src/features/usage-logs/components/columns/task-logs-columns.tsx` — 绘图日志和任务日志列工厂支持独立控制渠道列，普通管理员不再看到渠道列。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 公共日志的渠道列、令牌列分组倍率摘要和详情预览按超级管理员权限显示。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 详情弹窗的渠道、重试链和分组倍率按独立权限控制，供数据总览复用时隐藏敏感字段。
-
-## 2026-08-21 普通日志渠道搜索
-
-- `controller/log.go` — 普通日志列表和统计接口保留渠道搜索字符串，后端按渠道 ID 或渠道名称处理。
-- `model/log.go` — 从主库渠道表解析渠道 ID 和渠道名称模糊匹配结果，再过滤日志数据库中的普通日志和统计数据；新增渠道 ID/名称查询测试覆盖。
-- `model/log_user_filter_test.go` — 验证普通日志按渠道 ID 精确查询和按渠道名称模糊查询。
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 筛选框文案由「Channel ID」改为「Channel」。
-- `web/src/features/usage-logs/lib/utils.ts`、`web/src/features/usage-logs/types.ts` — 渠道筛选参数改为字符串，保留渠道 ID 或渠道名称输入后传给接口。
-
-## 2026-08-25 普通日志渠道下拉筛选
-
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 渠道筛选由文本输入改为可搜索下拉框并分页加载全部渠道；启用渠道优先，随后按优先级、权重和 ID 降序；选项以编号徽章和渠道名称分栏展示，禁用渠道在末尾显示禁用标签，选中后在筛选框中保留完整样式。
-- `web/src/components/ui/combobox-input.tsx` — 可搜索下拉选项新增尾部内容和完整选中态渲染能力，将浮层、选项间距、悬停效果及右侧选中对勾统一为 Select 风格。
-- `web/src/components/ui/combobox.tsx` — 透传可搜索下拉框的完整选中态配置。
-
-## 2026-08-25 渠道名称搜索忽略大小写
-
-- `model/log.go` — 渠道名称模糊匹配统一对字段和搜索参数应用 `LOWER`，确保 SQLite、MySQL 和 PostgreSQL 下均不区分大小写，同步作用于日志列表和统计查询。
-- `model/log_user_filter_test.go` — 使用大写搜索词匹配混合大小写渠道名称，验证大小写不敏感的模糊搜索行为。
-
-## 2026-08-24 模型映射详情悬浮展示
-
-- `web/src/features/usage-logs/components/model-badge.tsx` — 模型映射详情由点击弹窗改为悬浮或键盘聚焦显示，浮层宽度 24rem，允许请求模型和实际模型的长名称完整换行。
-- `web/src/features/usage-logs/components/__tests__/model-badge-interaction.test.tsx` — 测试覆盖模型映射详情使用悬浮卡片、24rem 宽度及长模型名称不截断。
-
-## 2026-09-01 演示模式日志隐私遮蔽
-
-- `web/src/lib/demo-mode.ts` — 增加通用金额遮蔽函数，仅把格式化后的金额数字替换为星号并保留货币符号。
-- `web/src/lib/__tests__/demo-mode.test.ts` — 测试覆盖美元、人民币及无货币符号金额的演示模式遮蔽规则。
-- `web/src/features/usage-logs/components/log-cost-display.tsx` — 费用列在演示模式下隐藏普通费用和订阅费用数字，保留配置的货币符号。
-- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx` — 测试覆盖普通费用、订阅费用及货币符号保留行为。
-- `web/src/features/usage-logs/lib/channel-visibility.ts` — 演示模式统一遮蔽渠道编号、渠道名称和悬浮详情，避免无名称渠道继续泄露编号。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 渠道徽章、悬浮详情和重试链隐藏渠道信息；详情列金额保留货币符号并隐藏数字；令牌列不再展示分组倍率；请求内容列改为星号占位并移除完整内容入口。
-- `web/src/features/usage-logs/components/columns/column-helpers.tsx` — 任务日志和绘图日志共用渠道列在演示模式下隐藏渠道编号并禁用复制。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情弹框隐藏渠道、重试链和分组倍率，遮蔽计费明细、违规费用、订阅额度与动态价格中的金额数字。
-- `web/src/features/usage-logs/components/dialogs/task-details-dialog.tsx` — 任务详情弹框隐藏渠道编号和配额数字，保留配额货币符号。
-- `web/src/features/usage-logs/components/usage-logs-table.tsx` — 演示模式停止批量加载请求内容，避免已遮蔽的正文继续进入前端。
-- `web/src/features/pricing/components/dynamic-pricing-breakdown.tsx` — 动态计费价格被遮蔽时保留当前配置的货币符号。
-
-## 2026-09-05 普通日志模型下拉筛选
-
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 模型筛选由文本输入改为可搜索下拉框；管理员从全部渠道聚合、去重并排序模型，普通用户加载自身可用模型，同时保留自定义模型名称输入。
-
-## 2026-09-10 审计日志用户列统一
-
-- `model/audit_log.go`、`model/log.go` — 审计列表复用使用日志的用户资料批量查询，首屏直接补齐 display_name、avatar_url、open_id 和 gender，不再等前端悬停后逐条加载。
-- `controller/access_token_audit_test.go` — 接口与数据库矩阵测试覆盖审计列表首屏返回完整用户展示资料。
-- `web/src/features/usage-logs/components/log-user-cell.tsx`、`components/columns/common-logs-columns.tsx` — 抽取并复用日志用户单元格，统一头像、显示名/用户名双行、演示模式遮蔽、飞书跳转和悬停资料卡；使用日志与审计日志的用户 ID 统一为相同的弱化文字色。
-- `web/src/features/usage-logs/audit/api.ts`、`components/audit-log-columns.tsx`、`components/audit-log-viewer.tsx` — 审计日志用户列首屏消费完整展示资料；仅管理员全部记录范围在悬停时按需加载资料卡其余字段，个人范围不发起无权限请求。
-- `web/src/features/usage-logs/audit/__tests__/viewer.test.tsx` — 测试覆盖详情接口调用前已展示审计日志用户头像、显示名和用户名，悬停后再加载完整资料。
-
-## 2026-09-10 使用日志列字重统一
-
-- `web/src/features/usage-logs/components/log-cost-display.tsx` — 费用列金额由半粗体改为常规字重，保留订阅提示和工具调用附加费标记。
-- `web/src/components/data-table/core/data-table-header.tsx`、`column-header.tsx`、`web/src/tanstack-table.d.ts` — 通用数据表格列元数据支持指定列头字重，无排序与可排序列头都将样式应用到标题文字。
-- `web/src/features/usage-logs/components/log-ip-address.tsx` — 抽取使用日志与审计日志共用的 IP 地址徽章，统一敏感信息遮蔽、复制、长地址悬浮提示、常规字重和细描边图标。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx`、`log-user-cell.tsx` — 使用日志时间和用户列头改为半粗体，时间值、日志类型标签、用户名称和头像回退文字保持常规字重；令牌徽章用常规字重，IP 地址改为复用公共组件。
-- `web/src/features/usage-logs/audit/components/audit-log-columns.tsx`、`audit-log-details-dialog.tsx` — 审计日志时间和用户列头改为半粗体，时间与用户单元格内容保持常规字重，详情列按钮中的“详情”文字用常规字重；IP 地址改为复用公共组件并调整时间、IP 列宽。
-- `web/src/features/usage-logs/components/usage-logs-table.tsx`、`audit/components/audit-log-viewer.tsx` — 使用日志和审计日志表格正文及内部元素统一为常规字重。
-- `web/src/features/usage-logs/components/__tests__/cost-display.test.tsx`、`group-price-display.test.tsx`、`components/columns/__tests__/self-scope-user-details.test.tsx`、`audit/__tests__/viewer.test.tsx` — 测试覆盖日志列头与内容字重、费用和令牌/IP 样式，以及审计详情按钮字重。
-
-## 2026-09-10 审计日志详情弹框尺寸统一
-
-- `web/src/features/usage-logs/components/dialogs/log-detail-layout.tsx` — 提取日志详情弹框共用的桌面端宽度、移动端边距和内容高度配置。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 使用日志详情弹框改为复用统一尺寸配置。
-- `web/src/features/usage-logs/audit/components/audit-detail-value.tsx`、`audit-log-details-dialog.tsx` — 审计详情值支持附加样式；审计日志详情弹框复用使用日志尺寸配置，桌面端统一为视口 50% 宽、内容最高 72dvh，User-Agent 内容宽度占弹框 80%。
-
-## 2026-09-10 User-Agent 采集规则统一
-
-- `common/user_agent.go` — 新增日志与审计共用的 User-Agent 截断方法，保留客户端原始值并按最多 512 个 Unicode 字符安全截断。
-- `relay/common/client_app.go` — 使用日志采集原始 User-Agent 时调用公共截断方法，继续写入 `other.user_agent`。
-- `model/audit_log.go` — 审计日志写入顶层 `user_agent` 前调用同一公共截断方法，统一采集边界。
-- `controller/user.go` — 登录审计不再向 `other.user_agent` 重复写入 User-Agent，统一由审计日志顶层字段保存。
-- `model/audit_other.go` — 将 `AuditOther.UserAgent` 标记为仅供历史记录解码兼容的废弃字段，新记录不再赋值。
-- `model/log.go` — 更新登录审计注释，明确 User-Agent 统一写入审计表顶层字段。
-
-## 2026-09-11 安全审计整合至审计日志
-
-- `web/src/features/usage-logs/audit/index.tsx`、`api.ts` — 审计日志页提供常规审计、异常时段审计和图片审计分类；仅超级管理员显示安全审计分类，切换分类时隔离各表分页状态，并按需加载安全审计界面。
-- `web/src/features/security-audit/index.tsx` — 安全审计改为嵌入审计日志页面，复用统一分类导航与页面布局；保留日期、用户名筛选，审计开关关闭时展示配置引导。
-- `web/src/features/security-audit/components/image-audit-table.tsx`、`off-hours-table.tsx` — 图片审计和非工作时间审计的分页、筛选状态统一写入审计日志路由。
-- `web/src/routes/_authenticated/usage-logs/audit.tsx` — 审计日志路由接管安全审计分类、筛选和分页参数，非超级管理员直接访问该分类时跳转无权限页面。
-- `web/src/routes/_authenticated/security-audit/$section.tsx` — 原安全审计路由保留为兼容入口，将合法分类和现有查询参数重定向到审计日志页面。
-- `web/src/hooks/use-sidebar-data.ts` — 移除重复的独立安全审计侧边栏入口，统一从审计日志进入。
-- `web/src/i18n/locales/en.json`、`zh.json`、`zh-TW.json`、`fr.json`、`ja.json`、`ru.json`、`vi.json` — 补齐审计类型、常规审计、禁用状态和配置引导的七语言文案。
-
-## 2026-09-13 普通日志详情列加重
-
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 普通日志「详情」列的日志内容与计费摘要改用表格默认字重（半粗体），不再强制常规字重；省略占位符与「+N」折叠计数继续用常规字重以保持层次。
-
-## 2026-09-13 用户身份组件统一
-
-- `web/src/features/usage-logs/components/log-user-identity.tsx` — 新增共用身份块组件 `LogUserIdentity`：头像 + 显示名/用户名 + 悬停资料卡；日志行自带作者信息，移入头像时按 user_id 懒加载完整资料；支持 `sm`/`default`/`lg` 三档字号、`canFetchDetails` 关闭拉取、`children` 承载右侧附加信息；头像统一 34px（`sm` 档 24px），用户名沿用使用日志表格的 `text-muted-foreground/70`，内外两层垂直居中。
-- `web/src/components/dialog.tsx` — `Dialog` 新增 `headerLeading`（标题前）与 `headerTrailing`（标题后）两个插槽；未传时行为不变，不影响其它弹框。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 日志详情弹框标题后挂载小尺寸身份块，仅在存在 user_id 或 username 时显示；去掉原本为占位新增的正文身份区块。
-- `web/src/features/usage-logs/components/dialogs/task-details-dialog.tsx` — 任务详情弹框标题前挂载身份块；仅管理员任务列表有 username 时显示；按演示模式遮蔽用户名与头像。
-- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 改为复用共用组件承载头像与显示名/用户名，模型、格式、时间、请求 ID 与 User-Agent 经 `children` 传入，删除内联的头像渲染与资料拉取代码。
-- `web/src/features/usage-logs/audit/components/audit-log-details-dialog.tsx` — 审计日志详情弹框正文首行改为「身份块在左、日志摘要与成功/失败状态及时刻在右」的同排布局，删除内联身份代码并补齐演示模式遮蔽。
-- `web/src/features/security-audit/components/image-audit-detail-dialog.tsx` — 图片审计生成详情弹框顶栏改用共用组件的 `lg` 档，保留右侧时间。
-- `web/src/features/security-audit/components/image-audit-request-content-dialog.tsx` — 图片审计请求内容弹框改用共用组件，User-Agent 等信息经 `children` 传入。
-- `web/src/features/data-overview/components/user-stats-dialog.tsx` — 用户统计弹框改用共用组件，删除为悬停卡片手工构造的完整 `UserColumnRow` 映射；身份信息与时间筛选合并为同一行（时间筛选按内容宽度靠右、小屏自动换行），去掉原分隔线并微调上下留白。
-- `web/src/features/users/components/data-table-row-actions.tsx` — 行操作传给用户统计弹框的临时用户对象补齐 `avatar_url`、`open_id`、`gender`，修复该弹框头像需悬停后才显示的问题。
-
-## 2026-09-14 审计日志新增余额与订阅分类
-
-- `model/audit_log.go` — 新增 `AuditCategoryBalance`（`balance`）与 `AuditCategorySubscription`（`subscription`）常量并加入 `ValidAuditCategory` 白名单，审计列表接口可按新分类筛选；分类字段仍为 `varchar(24)` / ClickHouse `String`，无 schema 变更，`ValidAuditCategory` 改为 `slices.Contains` 判断。
-- `model/log.go` — 拆出 `RecordCategoryAuditLog`，由调用方显式指定分类，用户名查询、`AuditOther` 组装与状态/成功标记推导逻辑不变；`RecordOperationAuditLog` 签名与行为保持不变，内部推导分类后委托，既有十余处调用不动。
-- `controller/user_quota.go` — 调整额度成功后审计条目归属改为被操作用户（`actor_role` 仍记录操作者角色），分类记为 `balance`；失败仍记 `operation` 并保留 `failure_reason`；目标用户不存在时归属回退为操作者，避免用户列为空。
-- `controller/subscription.go` — 新增 `recordSubscriptionQuotaAudit`：订阅额度增减成功后在 `subscription` 分类下记录订阅 ID、套餐 ID、金额（元）、额度增量与调整前后总额度，归属订阅所属用户并抑制中间件兜底条目；订阅行查询失败时不标记已记录，事件仍由兜底产生。
-- `controller/audit.go` — 补充订阅额度增减的英文兜底文案。
-- `model/subscription.go` — 新增 `GetUserSubscriptionById`，供审计读取订阅所属用户、套餐与总额度。
-- `web/src/features/usage-logs/audit/components/audit-log-filter-bar.tsx`、`web/src/routes/_authenticated/usage-logs/audit.tsx` — 分类筛选新增余额与订阅两项，顺序调整为 全部分类 → 登录 → 订阅 → 余额 → 账户安全 → 操作审计 → Access Token；路由搜索参数的分类枚举同步扩展。
-- `web/src/features/usage-logs/lib/quota-audit-operation.ts` — 补上订阅额度增减两条动作，额度调整文案改为动词开头的单行（如 `增加额度：500000 · 500000 → 1000000`），并输出 `outcome`（动词 + 增/减/覆盖色调）与不含动词的数值 `detail`。
-- `web/src/features/usage-logs/audit/components/quota-outcome-badge.tsx` — 新增额度调整标记徽标：增加绿、减少红、覆盖灰。
-- `web/src/features/usage-logs/audit/components/audit-log-columns.tsx`、`audit-log-details-dialog.tsx` — 事件列与详情弹窗的额度调整改为「彩色徽标 + 数额 · 前 → 后」，不再重复操作动词与目标用户。
-- `web/src/features/usage-logs/lib/format.ts` — 使用日志侧的额度审计内容改为动词开头的单行（去掉 `(ID: n)` 那行），并补上订阅额度增减模板。
-- `web/src/features/usage-logs/audit/lib/audit-details.ts` — 额度与订阅条目在被操作用户本人查看时不再显示自己为「操作者」，补充订阅 ID 字段标签与 `balance`/`subscription` 的分类兜底文案。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json`、`web/src/i18n/static-keys.ts` — 补充「覆盖额度」「订阅 ID」「{{action}}：{{quota}}」等七语言文案并登记动态键，移除已废弃的「请求数额：{{quota}}」。
-
-## 2026-09-16 非工作时间弹框用户身份组件
-
-- `web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 原标题为 `使用日志 - 用户名 · 日期 · 时段` 的单行拼接文本，改为标题只留「使用日志」、下方复用共用身份组件 `LogUserIdentity` 展示头像与显示名/用户名，日期、时段、请求数经 `children` 传入名字右侧；违规通知按钮仍留在标题行右侧（关闭按钮左侧）。参照图片审计请求内容弹框的用法取 `sm` 档（头像 24px、名字 `text-xs`、用户名 `text-[11px]`），附加信息行同步降为 `text-xs`、间距收到 `gap-1`，头部整体间距 `gap-2.5`。演示模式沿用既有约定：用户名传空、头像置空、关闭 `canFetchDetails`，仅显示脱敏显示名。请求数复用已有 i18n 键 `{{value}} requests`，未新增文案。
-- `web/src/features/security-audit/types.ts` — `OffHoursDetailTarget` 新增可选 `avatarUrl`，让弹框首屏即有头像，不必等悬停拉取资料。
-- `web/src/features/security-audit/components/off-hours-columns.tsx` — 打开弹框时传入列表行已有的 `avatar_url`。
-
-## 2026-09-17 请求内容弹框新增请求信息区块
-
-- `web/src/features/usage-logs/components/dialogs/request-log-summary.tsx` — 新增 `RequestLogSummary`，把当前请求日志行已有的运行信息以明细行展示：响应时间（流式请求附带 FRT）、输入/输出 Token、缓存读取/写入、费用、渠道（编号 + 名称）、重试链、令牌、分组、模型映射、上游请求 ID、IP 地址；取值为 0 或字段为空时不渲染该行；缓存写入优先取 5 分钟与 1 小时分项之和，无分项时回退 `cache_creation_tokens`；明细行容器用 `flex flex-col gap-2.5` 排布，行间距 10px，只在实际渲染出的行之间生效（字段为空的行不参与）；行内文字尺寸由容器统一覆盖，不改动共用的 `DetailRow`。
-- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 右栏在请求参数之外新增「请求信息」折叠区块，两个区块各占 50% 高度并各自内部滚动，折叠其中一个时另一个占满剩余高度；请求信息排在请求参数上方，内容左内缩 24px 与区块标题文字对齐，字号在容器上用 `[&_span]:text-[13px]` 覆盖为 13px（`DetailRow` 自身保持 12px，日志详情与审计日志详情弹框不受影响）；`log` 属性为可选，未传入时不渲染该区块；弹框尺寸由 `h-[85vh] sm:max-w-[78rem]` 改为 `h-[92vh] sm:w-[95vw] sm:max-w-[95vw]`，桌面端宽度占视口 95%、高度 92vh，移动端仍为 `w-full`，`h-[92vh]` 未触及 Dialog 默认的 `max-h-[calc(100vh-2rem)]` 上限。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 打开请求内容弹框时传入当前行日志，供区块展示运行信息。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ru,ja,vi}.json` — 新增 "Request Info" / 「请求信息」区块标题的七语言翻译。
-
-## 2026-09-23 使用日志多模型筛选、Token 汇总与 Excel 导出
-
-- `controller/log.go` — 管理员与个人日志统计响应新增累计输入、输出 Token 总量字段，供筛选结果汇总展示。
-- `controller/log_export.go` — 新增管理员与个人日志导出处理器，校验筛选条件和时区；个人导出强制限定当前用户及权限范围，并通过单用户去重、全局并发上限、十分钟超时与临时文件控制导出资源占用。
-- `model/log.go` — 模型名称筛选支持逗号分隔的多值 OR 查询，每个值保留包含匹配或显式通配符语义；日志统计同步汇总全部输入、输出 Token。
-- `model/log_export.go` — 新增导出筛选与精简行模型，沿用日志列表的模型、用户、角色、渠道、分组及请求 ID 等筛选语义，以单次结果流遍历导出数据，并兼容 SQLite、MySQL、PostgreSQL 与 ClickHouse 排序。
-- `router/api-router.go` — 注册管理员 `/api/log/export` 与个人 `/api/log/self/export` 下载接口；两个接口均收紧为超级管理员认证，普通管理员和普通用户无法直接调用导出。
-- `service/log_export.go` — 使用 Excelize 流式生成 XLSX，导出时间、类型、模型、费用及输入/输出/缓存 Token；费用按当前显示币种或额度单位转换，订阅日志优先采用订阅实际消耗，演示模式遮蔽费用，并限制 Excel 单表最大行数。
-- `go.mod`、`go.sum` — 引入 Excelize 及其传递依赖，用于流式生成 Excel 工作簿。
-- `web/src/features/usage-logs/components/common-logs-export-button.tsx` — 新增导出与取消按钮，按当前日志范围和筛选条件发起下载，展示进行中状态及成功、空数据、失败反馈。
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 模型筛选由单选搜索改为可创建选项的多选组件，以逗号拼接筛选值；工具栏接入日志导出操作，并仅向超级管理员显示导出按钮。
-- `web/src/features/usage-logs/lib/export-excel.ts` — 复用当前列表参数构造管理员或个人导出请求，传递浏览器时区、校验 XLSX 响应与导出条数，并按筛选时间范围生成中文下载文件名。
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统计栏新增累计 Token 徽标，按当前界面语言格式化并以亿 Token 为单位展示，同时补齐加载骨架与换行布局。
-- `web/src/features/usage-logs/constants.ts`、`web/src/features/usage-logs/types.ts` — 日志统计默认值与类型新增 `total_tokens` 字段。
-
-## 2026-09-24 Excel 导出直接使用当前筛选条件
-
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 从界面当前尚未提交的筛选草稿构造导出参数，覆盖时间、模型、类型、用户、角色、分组、渠道及请求 ID 等条件；修改条件后无需先点击查询即可直接导出。
-- `web/src/features/usage-logs/components/common-logs-export-button.tsx` — 导出按钮改为接收当前筛选参数，不再读取上一次查询写入路由的参数，也不再让旧表格列筛选覆盖当前条件。
-- `web/src/features/usage-logs/lib/export-excel.ts` — 收紧导出配置类型，仅保留导出请求实际需要的筛选、范围与用户字段，后端仍按完整筛选结果生成 XLSX。
-
-## 2026-09-24 使用日志订阅来源展示
-
-- `web/src/features/usage-logs/components/usage-logs-table.tsx` — 使用日志始终显示订阅计费来源，移除按管理员套餐或个人订阅状态查询后再决定列可见性的逻辑，避免因订阅配置状态造成费用来源信息缺失。
-
-## 2026-09-24 使用日志 Token 分类汇总
-
-- `controller/log.go` — 管理员与个人统计接口透传请求上下文，并支持按需返回 Token 分类明细；个人统计显式限定当前用户，统计响应直接返回完整结构。
-- `model/log.go` — 日志统计拆分额度、实时 RPM/TPM 与 Token 汇总查询；Token 总量改从主库小时聚合数据读取，筛选辅助方法按查询实际使用的数据库方言生成条件，兼容主库与独立日志库。
-- `model/log_token_stats.go` — 新增基于 `quota_data` 的 Token 汇总查询，复用日志页的时间、模型、用户、角色、令牌、渠道和分组筛选，并可返回输入、输出、缓存读取及缓存写入四类明细。
-- `web/src/features/usage-logs/api.ts`、`web/src/features/usage-logs/types.ts` — 统计请求支持分类明细参数和中止信号，响应类型补充四类 Token 字段。
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 徽标新增详情入口，仅在打开悬浮提示时加载分类明细；筛选变化会取消旧请求，并为汇总和明细分别展示加载、失败及重试状态。
-- `web/src/components/token-breakdown-tooltip-content.tsx` — 抽取统一的 Token 分类明细组件，按当前界面语言以亿 Token 展示总量、输入、输出、缓存读取和缓存写入。
-- `web/src/features/data-overview/components/department-stats-cards.tsx` — 部门统计卡片复用统一 Token 分类明细组件，移除重复的 Tooltip 内容实现，既有展示口径保持不变。
-
-## 2026-09-25 使用日志 Token 综合单价
-
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — Token 分类悬浮明细按当前筛选范围的总消费与总 Token 计算每百万 Token 综合单价，使用账单货币格式固定显示两位小数，并在敏感金额隐藏时同步遮蔽；悬停触发明细请求时延迟 200 毫秒显示加载图标，数据返回后再打开明细，短请求及缓存命中不闪烁加载状态；统一由 Tooltip 管理触发器与弹框间的悬停边界，避免边缘位置反复开关。
-- `web/src/components/token-breakdown-tooltip-content.tsx` — Token 明细顶部依次展示总 Token 与单价，输入、输出及缓存分类继续排列在分隔线下方。
-
-## 2026-09-26 悬停明细与复制提示统一
-
-### 变更说明
-
-- Token 分类统计的激活与关闭统一由 Tooltip 的打开状态回调驱动，移除触发按钮独立的移入、移出、聚焦及失焦状态切换，避免指针在按钮与浮层之间移动时反复关闭；重新激活且上次请求失败时重试加载。保留已有的 200 毫秒加载图标延迟、数据返回后再展示明细及金额脱敏行为。
-- 日志页与图片审计继承全局 TooltipProvider，普通提示使用公共延迟；完整会话、错误、客户端和任务产物说明不再使用浏览器原生标题。公共实现与全站接入范围见 [#039](039-user-management-table.md#2026-09-26-表格说明与全站悬停提示统一)。
-- IP 地址与令牌名称直接复用 StatusBadge 的复制提示，移除依赖字符数的外层提示条件，避免中文名称实际被列宽截断但字符数未达阈值时无法查看完整内容；继续只向提示和复制入口传递当前允许展示的内容。
-- 提示词、失败原因、日志详情及图片审计请求内容中的兼容复制动作复用 CopyButton。请求内容弹窗保留按消息标识区分的跨按钮复制状态，避免重复消息同时显示复制成功，仅替换其提示外观。
-
-### 涉及文件
-
-- `web/src/features/usage-logs/components/common-logs-stats.tsx` — 统一异步明细激活、悬停边界与失败后重新加载，移除局部 Provider。
-- `web/src/features/usage-logs/components/columns/column-helpers.tsx` — 公共日志单元格说明迁为共享提示。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 流式异常、渠道、客户端及详情入口继承统一提示，令牌名称直接复用公共徽标。
-- `web/src/features/usage-logs/components/columns/drawing-logs-columns.tsx` — 图片预览和完整提示词入口去除原生标题。
-- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx` — 日志类型停用说明改用公共提示。
-- `web/src/features/usage-logs/components/log-ip-address.tsx` — 去除按地址长度创建的空外层提示，复用徽标复制与完整内容提示。
-- `web/src/features/usage-logs/components/log-cost-display.tsx` — 费用与计费来源说明继承全局配置。
-- `web/src/features/usage-logs/components/model-badge.tsx` — 提供商名称改用公共提示，保留原模型映射预览。
-- `web/src/features/usage-logs/components/task-artifacts.tsx` — 未保存为产物的结果说明继承全局配置。
-- `web/src/features/usage-logs/components/timing-metrics-cell.tsx` — 流式状态异常提示移除局部 Provider。
-- `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` — 请求转换等复制入口复用 CopyButton。
-- `web/src/features/usage-logs/components/dialogs/fail-reason-dialog.tsx` — 失败原因复制入口复用 CopyButton。
-- `web/src/features/usage-logs/components/dialogs/prompt-dialog.tsx` — 提示词与否定提示词复制入口复用 CopyButton。
-- `web/src/features/usage-logs/components/dialogs/request-content-dialog.tsx` — 保留原消息复制状态，按钮说明改用公共提示。
-- `web/src/features/security-audit/components/image-audit-columns.tsx` — 渠道与参数完整内容提示统一。
-- `web/src/features/security-audit/components/image-audit-request-content-dialog.tsx` — 请求内容复制入口复用 CopyButton。
-
-### 2026-09-26 日志与审计冗余提示精简
-
-在上述统一提示基础上，关闭以下已能直接辨识或点击查看的说明，不添加原生 `title` 替代。复制、详情弹框、头像资料卡与模型映射明细卡继续保留。
-
-涉及文件：
-
-- `web/src/features/usage-logs/components/log-user-cell.tsx` — 共享用户单元格的姓名、账号及脱敏占位由 LongText 改为普通截断文字，不再显示文字 Tooltip；保留头像资料卡、飞书跳转和原有脱敏逻辑，同步作用于复用该单元格的常规审计。
-- `web/src/features/usage-logs/components/model-badge.tsx` — 通过公共组件的 `showTooltip={false}` 关闭模型名复制提示，移除提供商图标提示；保留点击复制及有映射或响应差异时的明细入口，复用该模型徽标的审计页面同步生效。
-- `web/src/features/usage-logs/components/columns/common-logs-columns.tsx` — 请求内容和详情列移除“点击查看完整对话”“点击查看完整详情”的 Tooltip 包装，保留按钮、无障碍名称及打开弹框的事件。
-- `web/src/features/usage-logs/components/log-ip-address.tsx` — 透传可选 `showTooltip` 至 StatusBadge，默认行为不变。
-- `web/src/features/usage-logs/audit/components/audit-log-columns.tsx` — 常规审计 IP 列显式关闭悬停提示，保留点击复制与成功反馈；普通使用日志 IP 列未关闭。
-- `web/src/features/security-audit/components/off-hours-columns.tsx` — 非工作时间请求的每个 IP 徽标关闭复制悬停提示，保留复制功能；多个 IP 超过展示数量时仍使用原有完整列表提示。
-- `web/src/features/security-audit/components/image-audit-columns.tsx` — 图片审计请求内容按钮移除说明 Tooltip，保留两行摘要、空内容禁用状态及点击查看完整请求内容。
-
-## 2026-09-24 使用日志 Excel 标题、汇总说明与文件名
-
-- `service/log_export.go` — 表头上方按层次展示深蓝标题、浅蓝三栏统计摘要（导出记录、记录分布、费用合计），下方用标签与内容两列分别说明数据来源、筛选范围、费用口径和 Token 口径，移除类型对照；保留实际的包含/通配符匹配与含结束边界语义，不套用脚本的固定数据或数据库名。
-- `service/log_export.go` — 单次读取日志后临时落盘，汇总与明细取自同一批记录且不将全量日志常驻内存；用十进制额度累计计算八位小数费用，金额明细改为可求和的数值单元格；缓存写入取写入/创建/分项之和最大值，输入按语义扣除已包含的缓存，Anthropic 输入不重复扣除。费用与渠道说明遵循演示模式遮蔽。
-- `service/log_export.go` — 说明按主题分行、精简重复文案，保留订阅消费与钱包实扣区别、八位小数尾差及缓存子项不重复相加提示；说明行合并、换行并按中英文宽度调整高度，深蓝表头位于第八行，数据从第九行开始；同步冻结窗格、筛选区域与 Excel 行数上限。
-- `controller/log_export.go`、`web/src/features/usage-logs/lib/export-excel.ts` — 下载文件名统一采用同一命名规则，使用 UTF-8 响应头传递中文文件名；按渠道 ID 筛选时复用现有渠道查询读取名称，文件名、标题和筛选说明共用该名称，查询条件保持原值；已删除或未命名渠道使用文字占位，下载兜底不再拼接渠道 ID，演示模式继续隐藏渠道。
-
-## 自 CHANGELOG 说明列迁入
-
-使用日志与请求内容优化：完善用户信息、权限控制、分页筛选、列布局与详情弹框；新增 IP、User-Agent、请求内容及生图 Prompt 展示，支持头像资料卡与飞书跳转；使用日志与审计日志统一保存原始 User-Agent（限 512 个 Unicode 字符），登录审计仅写顶层字段并兼容读取历史重复元数据；请求内容支持参数并排查看、独立滚动、复制与违规通知，接口收紧为仅超级管理员可用；弹框支持一键切换全部展开/收起，修复复制重复消息时多个按钮同时显示已复制；优化费用、渠道标签、敏感信息显示及管理员「仅自己」视图；安全审计改响应式布局，非工作时间请求支持违规通知；请求内容弹框折叠触发器改为 div，避免生成原生 button；渠道列与分组倍率等敏感信息进一步收紧为仅超级管理员可见；普通日志渠道筛选改为可搜索下拉框，按启用状态、优先级与权重排序，以编号徽章、禁用标签及完整选中态展示，支持按 ID 精确查询与按名称不区分大小写模糊查询；模型筛选同样可搜索，管理员聚合渠道模型、普通用户加载可用模型，保留自定义输入；模型映射详情改为悬浮展示并加宽，长模型名称支持完整换行；演示模式进一步遮蔽费用数字（保留货币符号）、渠道编号与名称、重试链、详情分组倍率及请求内容，令牌列不显示倍率，并阻断请求内容加载与查看；审计日志用户列复用使用日志的头像、显示名/用户名与悬停资料卡 UI，首屏批量返回用户资料，用户 ID 统一弱化文字色；使用日志费用金额与令牌徽章统一常规字重，IP 地址抽取公共组件供使用日志与审计日志复用，统一常规字重与细描边图标；审计与使用日志的时间、用户列头加粗而正文保持常规字重，审计详情按钮文字不加粗；审计详情弹框与使用日志统一桌面端宽度与内容高度，优化 User-Agent 内容宽度；非工作时间与图片安全审计整合进审计日志页，超级管理员在统一分类中切换，原独立入口自动跳转兼容，普通用户仍仅访问常规审计；普通日志「详情」列（日志内容与计费摘要）改为默认加粗字重，省略占位与「+N」折叠计数保持弱化字重；抽出共用用户身份组件（头像 + 显示名/用户名 + 悬停资料卡 + 演示模式遮蔽），统一用于使用日志详情、任务详情、请求内容、审计日志详情、图片审计详情与图片审计请求内容、用户统计弹框，收敛各弹框重复的头像与资料拉取逻辑（净减约 400 行）；Dialog 新增 headerLeading/headerTrailing 插槽承载标题前后内容：使用日志详情在标题后（小尺寸）、任务详情在标题前、审计日志详情与用户统计弹框在正文首行左侧；身份块头像统一 34px，用户名颜色与字号对齐使用日志表格用户列（70% 弱化色、13px），上下垂直居中；用户统计弹框身份信息与时间筛选合并为同一行，去掉下方分隔线并微调留白；用户管理行操作向该弹框补齐 avatar_url、open_id、gender，修复头像需悬停后才显示；图片审计表格套用与使用日志、审计日志相同的 13px 单元格规则，用户、耗时、请求内容、渠道、模型五列统一弱化色与常规字重（头像首字母 semibold、耗时改弱化常规字重、渠道编号去掉随机彩色改用 70% 弱化色）；用户列列宽对齐使用日志：去掉显式宽度改用默认值，单元格固定 120px、去掉左侧额外内边距，姓名信息块弹性宽度，演示模式占位同步收窄；渠道列改用使用日志的渠道展示口径（编号、名称、悬浮提示与演示模式遮蔽统一），演示模式下禁用编号复制；渠道列加宽至 145px、渠道名宽度放宽至 125px，参数列收窄至 130px 并按内容宽度截断（自动表格布局下仅调列宽会被内容撑破，故两列同时约束内容宽度）
+- `model/log.go`、`model/log_token_stats.go`、`controller/log.go`：日志及汇总；`model/log_export.go`、`controller/log_export.go`、`service/log_export.go`：导出。
+- `model/request_message.go`、`controller/request_message.go`、`service/request_message.go`：留存、批量读取与通知。
+- `model/security_audit.go`、`controller/security_audit.go`、`setting/system_setting/audit_setting.go`：异常时段与配置兼容。
+- `service/request_notice.go`、`service/feishu_department.go`：公司路由、预览与通知；`common/smtp_audit.go`、`model/smtp_audit.go`、`service/system_task.go`：SMTP 审计。
+- `web/src/features/usage-logs/`、`web/src/features/security-audit/`、`web/src/features/system-settings/security/`：页面与配置。公共提示规则见 [#039](039-user-management-table.md)。

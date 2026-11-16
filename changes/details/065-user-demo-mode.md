@@ -1,23 +1,11 @@
-# 用户演示模式与敏感信息脱敏
+# 用户演示模式
 
-**日期**: 2026-07-23 ~ 08-04
+**日期**: 2026-08-04
 
-## 涉及文件
+- 个人设置开启后立即生效，服务端合并保存，保留通知、语言、侧边栏及扣费偏好。
+- 用户管理、数据总览、使用/任务日志和安全审计统一以 *** 遮蔽用户名及身份资料，隐藏真实头像、资料卡、备注和飞书跳转并停止详情加载；后台筛选仍使用真实身份。
+- 渠道页遮罩分组和模型，禁止切换敏感信息；广场遮罩价格、表达式及分组倍率。
+- 日志隐藏渠道编号/名称、重试链和倍率，金额保留货币符号并遮罩数字，请求内容不批量加载且无完整内容入口；任务和图片审计使用相同规则。
+- 演示模式用于界面隐私展示，不替代服务端访问控制。
 
-- `controller/user.go` — 保存演示模式并合并现有设置，避免覆盖通知、语言、侧边栏和扣费偏好。
-- `dto/user_settings.go` — 增加演示模式字段。
-- `web/src/features/channels/` — 演示模式遮罩渠道分组、模型信息，并禁用敏感信息切换。
-- `web/src/features/pricing/` — 遮罩价格、动态计费表达式和分组倍率，统一传递可见性状态。
-- `web/src/features/profile/`、`web/src/hooks/use-demo-mode.ts`、`web/src/lib/demo-mode.ts` — 新增设置开关、响应式 Hook、统一价格和身份遮罩工具。
-- `web/src/features/usage-logs/` — 遮罩渠道名称、用户名和身份入口，停止加载用户详情。
-- `web/src/features/users/components/shared-user-columns.tsx` — 用户管理与数据总览共用列遮罩显示名、用户名、备注、头像、资料卡和飞书跳转。
-- `web/src/features/security-audit/` — 遮罩非工作时段、图片审计中的用户名，保留原用户名供后台查询；禁用真实头像和资料加载。
-- `web/src/i18n/locales/{en,fr,ja,ru,vi,zh-TW,zh}.json` — 补充演示模式多语言文案。
-
-## 2026-08-04 用户身份脱敏扩展
-
-- `web/src/lib/demo-mode.ts` — 用户名统一遮罩为 `***`。
-- `web/src/features/usage-logs/components/columns/task-logs-columns.tsx`、`web/src/features/usage-logs/components/usage-logs-mobile-card.tsx` — 任务日志和移动端日志同步遮罩用户名与身份入口。
-- `web/src/features/security-audit/components/off-hours-columns.tsx`、`web/src/features/security-audit/components/off-hours-detail-dialog.tsx` — 遮罩审计用户列和日志详情标题，后台查询仍用原用户名。
-- `web/src/features/security-audit/components/image-audit-columns.tsx` — 遮罩图片审计用户名并禁用真实头像和资料悬停请求。
-- `web/src/lib/__tests__/demo-mode.test.ts`、`web/src/features/users/components/__tests__/username-visibility.test.tsx`、`web/src/features/security-audit/components/__tests__/user-visibility.test.tsx` — 覆盖 `***`、普通模式原值及姓名、头像、链接不泄露。
+入口：`controller/user.go`、`relaykit/dto/user_settings.go`、`web/src/hooks/use-demo-mode.ts`、`web/src/lib/demo-mode.ts` 及各页面共享身份/金额组件。

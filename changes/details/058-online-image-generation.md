@@ -1,149 +1,32 @@
-# 在线生图与图片审计管理
+# 在线生图与图片审计
 
 **日期**: 2026-11-15
 
-## 2026-11-15：并发单图生成、即时展示与编辑入口精简
+## 生成与编辑
 
-本节更新此前 GPT Image 使用单次多图请求及蒙版、标注编辑的记录。
+- 在线生图提供生成、参考图编辑、提示词预设、预览下载、收藏和历史恢复，通过 `/pg/images/generations`、`/pg/images/edits` 复用 Playground 中继、模型分发及真实计费日志。
+- 模型适配器分别管理 GPT Image、Seedream 的默认参数、能力、归一化、校验和请求构造；优先选择 gpt-image-2，切换模型族可恢复各自配置，生成使用启动快照并锁定模型与参数。
+- GPT Image 按明确型号控制尺寸、品质、背景、压缩、输入保真度、复杂度、流式和输出格式。批次最多 10 张，SVG 限单张；参考图最多 16 张，每张为小于 50 MB 的 PNG/JPEG/WebP，提示词上限 32000 字符，静态自定义尺寸按型号校验。
+- 支持适用型号的流式中间预览和 GIF/SVG。GIF 仅自动或自定义尺寸，自定义宽高为正整数且为 16 的倍数，不套用静态图像素预算；帧数 2–16、时长 20–2000 毫秒，不支持流式和压缩，最终组合由上游判定。SVG 只在当前会话展示和下载，不写历史。
+- 多图并发发送单图请求，每个请求按 `n: 1` 构建，逐张更新预览、成功或失败占位；结果按原始序号排列，重试沿用原位。单图耗时不含保存，批次耗时取最长请求。
+- 成功结果立即展示，历史保存串行排队；保存失败保留结果并提示，生成完成后仍等待保存队列。生成中可停止，保存中显示独立状态，忙碌期间禁用配置及重置。
+- 页面仅提供参考图编辑，不提供蒙版或标注图层入口及载荷；该界面边界不代表删除原生 API 的相关协议能力。
 
-- `web/src/features/image-studio/hooks/use-image-studio.ts` — 按所选数量并发发送单图请求，每个请求基于 `n: 1` 构造；每张图片独立更新流式预览、成功结果和失败状态，成功后立即展示，历史保存串行排队，避免保存阻塞其他请求的完成回调。保存异常保留已显示结果并提示错误；生成结束后继续等待保存队列完成，期间保持忙碌状态。
-- `web/src/features/image-studio/hooks/use-image-studio.ts` — 当前会话保留每个请求的原始序号和耗时，失败重试成功后沿用原位置；批次耗时使用最长请求耗时，单图耗时排除历史保存时间。
-- `web/src/features/image-studio/components/result-grid.tsx` — 图片、失败与加载占位按原始请求序号排列，显示序号徽标；多图分别展示耗时，单图在摘要中展示耗时，复用语言相关数字格式化；尚未保存的图片显示保存状态。
-- `web/src/features/image-studio/components/generate-panel.tsx`、`web/src/features/image-studio/index.tsx` — 区分生成、保存与忙碌状态，生成期间提供停止操作，保存期间显示禁用的保存按钮，忙碌期间禁用模型、提示词、参考图及重置操作。
-- `web/src/features/image-studio/api.ts`、`web/src/features/image-studio/lib/model-params/index.ts` — 移除蒙版和标注载荷构建、上传及组合校验，参考图编辑仍使用原有图片请求流程。
-- `web/src/features/image-studio/lib/model-params/gpt-image/edit-input.ts` — 保留参考图格式及大小校验，移除编辑图层校验与标注模型判断。
-- `web/src/features/image-studio/lib/model-params/gpt-image/edit-layer.tsx` — 删除蒙版与标注图层上传组件；页面移除对应入口、状态与历史恢复逻辑。
-- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx` — GIF 提示改为不支持流式输出与压缩，移除蒙版相关说明。
-- `web/src/features/image-studio/types.ts` — 图片及失败项补充当前会话请求序号，图片补充请求耗时；删除页面记录及请求中的蒙版、标注字段。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json`、`web/src/i18n/locales/_reports/{ja,ru}.untranslated.json` — 删除已移除的蒙版与标注文案，更新 GIF 提示、耗时翻译及相应报告。
+## 保存与审计
 
-## 2026-11-09：GIF 提示文案补充记录
+- `audit_setting.image_studio` 是在线生图保存、现有原生 API 自动归档及图片审计的唯一开关，默认开启，仅超级管理员可修改；归档只覆盖已有响应采集链路，不代表所有提供商、流式或异步接口均支持。
+- 文件使用 `IMAGE_STUDIO_S3_DSN` 配置 S3 兼容存储，校验凭据及 Bucket，特殊字符需百分号编码，对象写入 image 目录。历史元数据在数据库，消费日志及扣费独立于保存开关。
+- 关闭开关跳过新建及追加图片并返回 `persisted: false`；前端仍临时预览、下载和重试，但不进历史、不更新收藏或用量，刷新后不能恢复，再开启不自动补录。保存中关闭时清理本次已写对象，已有记录保留且仍可查看。
+- 展示与存储上限独立，默认分别 20、50，最高 1000；保留 `image_studio_max_history` 作为存储配置键。移除/清空只隐藏，保存后的存储裁剪才永久删除最旧记录及对象，隐藏记录仍计入存储数量。
+- 原生 API 成功响应可异步提取 URL/base64 保存，跳过 Playground 重复记录，失败清理已存文件；保存原始 User-Agent，与日志同源。
+- 图片审计仅超级管理员可查询，支持日期、用户、图片预览下载和完整请求/参数详情；默认本月、每页 10 条。关闭时隐藏分类、直接访问回退常规审计，服务端拒绝审计查询。实际渠道与列规则见 [#068](068-image-audit-channel-column.md)。
 
-- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx`、`web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — GIF 提示移除“帧时长按 10 毫秒取整”的说明，保留不支持蒙版、流式输出和压缩的提示，同步七语言文案。
+## 主要入口
 
-## 2026-11-08：GIF 尺寸选项与结果信息优化
+- `controller/playground.go`、`router/relay-router.go`：图片中继入口。
+- `web/src/features/image-studio/`：模型参数、请求与流解析、并发生成、结果和历史。
+- `relay/helper/valid_request.go`、`relay/channel/openai/adaptor.go`、`relaykit/dto/openai_image.go`：帧参数及 multipart 协议校验/转发，保留可选字段显式值。
+- `model/image_studio.go`、`controller/image_studio_storage.go`、`controller/image_studio_relay_hook.go`、`relay/image_studio_hook.go`：记录、存储、隐藏与自动归档。
+- `setting/system_setting/audit_setting.go`、`web/src/features/security-audit/`：配置和审计。
 
-- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx` — GIF 输出的尺寸菜单隐藏静态图片预设，仅保留“自动”和“自定义尺寸”，选择自定义后继续展示宽高输入框；保留其他输出格式的尺寸菜单，补充 GIF 尺寸、帧数与生成数量组合限制及失败时的调整建议。
-- `web/src/features/image-studio/lib/model-params/gpt-image/config.ts` — GIF 历史或缓存中的具体尺寸字符串统一转换为自定义宽高，包括原静态预设值，避免菜单隐藏预设后无法回显；GIF 自定义宽高校验正整数及 16 的倍数，不套用静态图片的最小像素数和宽高比限制，最终组合是否可用仍由上游判定。
-- `web/src/features/image-studio/components/result-grid.tsx` — 结果栏在品质值前增加“品质”标签，避免“低／中／高”等孤立文字被误认为尺寸单位。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充 GIF 自定义尺寸提示的七语言翻译；变更日志只记录提示用途，不将界面文案中的数值表述作为已经完成官方 GIF 规则验证的结论。
-
-本次依据当前未提交差异记录以上行为；`web/src/features/image-studio/hooks/use-image-studio-state.ts` 的差异为格式变化，不单独记为功能调整。当前代码没有“切换 GIF 时强制重置尺寸为自动”的逻辑，故本节不声明该行为。
-
-## 2026-11-07：GPT Image 参数、流式预览与编辑扩展
-
-以下内容更新此前 GPT Image 多张生成不发送 `n`、并行单图请求的实现记录；Seedream 保留原有请求方式。
-
-- `web/src/features/image-studio/lib/model-params/gpt-image/config.ts`、`web/src/features/image-studio/lib/model-params/gpt-image/types.ts` — 按明确的模型名称区分 GPT Image 1.5、1-mini、2、2.5 与 2.6 等型号的能力，分别归一化尺寸、品质、透明背景、压缩、输入保真度和复杂度；GPT Image 单次最多请求 10 张、最多使用 16 张参考图，SVG 限单张；补充自定义静态图尺寸校验与 GIF 帧数、帧时长配置。
-- `web/src/features/image-studio/lib/model-params/gpt-image/params.tsx`、`web/src/features/image-studio/components/params-panel.tsx` — 按模型和生成/编辑模式显示可用参数，尺寸选项展示分辨率档位、像素与宽高比；新增流式输出、中间预览数量、GIF 帧参数及 SVG/复杂度等适用控件。
-- `web/src/features/image-studio/lib/model-params/index.ts`、`web/src/features/image-studio/hooks/use-image-studio-state.ts` — 模型切换、配置恢复和请求构建使用当前型号的能力约束，传递编辑模式并按支持情况携带蒙版或标注图层。
-- `web/src/features/image-studio/lib/model-params/gpt-image/edit-input.ts` — 新增参考图与编辑图层校验：参考图须为小于 50 MB 的 PNG、JPEG 或 WebP；图层须为与首张参考图同尺寸的透明 PNG，蒙版要求首张参考图为 PNG，标注图层另校验像素上限与实际透明像素，并限制可用模型。
-- `web/src/features/image-studio/lib/model-params/gpt-image/edit-layer.tsx` — 新增蒙版与标注图层上传、缩略图和移除操作，复用共享 `Button`、`Input`、`Label` 与错误处理，补充图层用途及互斥说明。
-- `web/src/features/image-studio/components/generate-panel.tsx`、`web/src/features/image-studio/index.tsx` — GPT Image 参考图上传增加格式、大小限制与数量说明，提示词限制为 32,000 字符；编辑面板按模型及格式展示互斥的蒙版/标注入口，首张参考图变化或重置时清理图层，生成期间禁用相关操作。
-- `web/src/features/image-studio/api.ts` — GPT Image 编辑请求改用 multipart 上传参考图与可选图层；流式请求解析生成/编辑中间图片及完成事件，支持即时预览、逐张完成回调、取消与流错误提示，并检查蒙版、标注和 GIF 的组合约束。
-- `web/src/features/image-studio/hooks/use-image-studio.ts` — GPT Image 改为携带 `n` 的批量请求，流式完成图片逐张展示与保存，并按未完成数量生成失败占位；记录上游实际尺寸、品质、格式、背景及用量，支持 GIF/SVG MIME 类型，SVG 因存储格式兼容限制仅在当前会话展示，不写入历史。
-- `web/src/features/image-studio/components/result-grid.tsx` — 生成过程中展示中间预览图；结果信息优先使用实际图片尺寸，补充背景、图像 Token 与 SVG Token 用量，并复用语言相关数字格式化。
-- `web/src/features/image-studio/lib/image-utils.ts`、`web/src/features/image-studio/types.ts` — 补齐 GIF/SVG 下载扩展名、批量与流式请求参数、编辑图层及上游用量和结果元数据类型。
-- `relaykit/dto/openai_image.go` — 图片请求新增可省略的指针字段 `complexity`、`frame_count`、`frame_duration_ms`，保留字段缺省与显式值的区别。
-- `relay/helper/valid_request.go` — multipart 解析补齐输出格式、复杂度和帧参数，拒绝重复或非法帧参数，限制帧数为 2–16、帧时长为 20–2000 毫秒并要求 GIF 格式；适用的 GIF 请求禁止流式、中间预览和蒙版。
-- `relay/channel/openai/adaptor.go` — multipart 编辑转发支持 `markup` 图层及复杂度、帧参数，过滤 Playground 内部 `group` 字段，并在创建上传分段或复制失败时及时关闭文件。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 补充模型参数、流式预览、编辑图层、格式限制与上传校验的七语言文案。
-
-本次仅根据工作区差异更新变更日志，未执行构建、测试或真实生图联调；下文历史验证记录对应此前改动。
-
-## 涉及文件
-
-- `controller/playground.go` — Playground 中继抽为可复用逻辑，新增图片格式入口。
-- `router/relay-router.go` — 新增 `/pg/images/generations` 和 `/pg/images/edits` 路由。
-- `middleware/distributor.go` — Playground 图片生成/编辑请求参与模型解析和 relay mode 设置。
-- `relay/constant/relay_mode.go` — Playground 图片路径识别为图片生成/编辑模式。
-- `web/default/src/features/image-studio/` — 新增在线生图前端功能：参数配置、生成/编辑面板、结果展示、历史记录、提示词预设和本地存储；补充 gpt-image-2 参数适配、模型专属参数、4K 尺寸预设、自定义尺寸校验、最多 4 张生成、生成进度与停止按钮，结果参数值支持翻译；生成/编辑请求不再发送 n 参数，多张生成改为并行单图请求，部分失败时保留成功图片、显示灰色失败占位并汇总消费日志，不再弹出 warning toast。
-- `web/default/src/routes/_authenticated/image-studio/index.tsx` — 新增在线生图认证路由。
-- `web/default/src/hooks/use-sidebar-config.ts` — 注册在线生图路由对应的侧边栏配置。
-- `web/default/src/hooks/use-sidebar-data.ts` — 在快捷方式分组中新增“在线生图”入口。
-- `web/default/src/routeTree.gen.ts` — 更新 TanStack Router 生成路由树。
-- `web/default/package.json`、`web/bun.lock` — 新增前端依赖以支持在线生图功能。
-- `relay/image_handler.go`、`constant/context_key.go`、`service/text_quota.go` — 图片生成消费日志写入结构化参数详情，覆盖尺寸、品质、生成数量、背景、输出格式、输出压缩、审核敏感度、水印等配置。
-- `relay/helper/valid_request.go` — 图片请求校验新增生成数量上限，超过 4 张时直接拒绝。
-- `web/default/src/features/usage-logs/components/dialogs/details-dialog.tsx`、`web/default/src/features/usage-logs/types.ts` — 使用日志详情新增图片参数区块，按结构化字段本地化展示图片生成配置。
-- `relay/channel/openai/adaptor.go`、`relay/channel/openai/image_edit_test.go` — OpenAI 图生图支持将前端 JSON data URL 图片转为 multipart 文件上传，补齐 Content-Length 并增加测试，避免上游空图或 EOF。
-- `web/default/src/features/image-studio/index.tsx`、`web/default/src/features/image-studio/lib/image-utils.ts` — 历史生成结果支持一键带入图生图，远程图片先转为 data URL；重置时清空提示词、参考图、当前结果与错误。
-- `web/default/src/features/image-studio/components/generate-panel.tsx`、`web/default/src/features/image-studio/components/result-grid.tsx` — 生成进度文案移除单图预估时间，思考动画加快，清空按钮改为重置。
-- `web/default/src/i18n/locales/*.json`、`web/default/src/i18n/locales/_reports/*.json`、`web/default/src/i18n/locales/_extras/*.json` — 补齐图片参数日志详情和并行生成失败占位文案的多语言翻译，更新同步报告并清理过期额外翻译清单。
-- `model/image_studio.go` — 新增 ImageStudioGeneration 数据库模型，含图片元数据（尺寸、格式、大小）和收藏/用量字段，CRUD 方法支持按用户分页查询、收藏标记、用量更新和删除。
-- `controller/image_studio_storage.go`、`controller/image_studio_storage_backend.go` — 图片存储由本地磁盘迁移至 S3 兼容对象存储（MinIO、RustFS 等），对象统一写入 `image` 目录，继续通过 API 提供访问、删除等能力；地址、访问账号、访问密码和 Bucket 改由单个 DSN 环境变量 IMAGE_STUDIO_S3_DSN 配置，并校验连接信息完整性；内部命名从 MinIO 改为 S3Storage 以反映协议兼容性。
-- `controller/image_studio_storage_backend_test.go` — 验证 S3 对象目录为 `image`、从 DSN 读取 Bucket，以及缺失访问凭据时拒绝初始化。
-- `.env.example`、`docker-compose.yml` — 在线生图 S3 兼容存储配置统一使用单个 DSN 环境变量 IMAGE_STUDIO_S3_DSN，并说明凭据特殊字符的百分号编码要求及 MinIO/RustFS 两种典型示例。
-- `go.mod`、`go.sum` — 引入 MinIO Go SDK 依赖。
-- `model/main.go` — 注册 ImageStudioGeneration 模型的数据库迁移。
-- `router/api-router.go` — 注册 /api/image-studio 路由组（CRUD + 静态文件访问）。
-- `web/default/src/features/image-studio/api.ts` — 新增服务端存储相关 API 调用函数（store/list/delete/clear/favorite/usage）。
-- `web/default/src/features/image-studio/types.ts` — 新增服务端数据类型定义（ImageStudioGenerationRecord、StoreImageStudioGenerationPayload 等），从上游生图请求类型移除 n 字段，保留历史记录中的请求总数和失败图片数量元数据。
-- `web/default/src/features/image-studio/lib/storage.ts` — 历史记录存储层重构为调用服务端 API，移除 localStorage 实现；根据请求总数与成功图片数恢复失败占位数量。
-- `web/default/src/features/image-studio/hooks/use-image-studio.ts` — 生成完成后调用服务端存储 API 持久化图片，返回服务端 URL 替代 data URL；多张生成按所选数量并行发送不带 n 的单图请求，聚合成功结果、失败数量和各请求消费日志，移除部分失败 warning toast。
-- `web/default/src/features/image-studio/hooks/use-generation-history.ts` — 历史加载改为从服务端 API 获取。
-- `web/default/src/features/image-studio/components/result-grid.tsx` — 结果网格适配服务端图片 URL 展示；部分请求失败时追加等量灰色“生图失败”占位卡；大图预览将图片与提示词框统一为最大 960px/92vw 宽度，图片、提示词和操作栏作为整体按视口居中，优化三部分间距并保持缩放与旋转。
-- `web/default/src/features/image-studio/components/history-panel.tsx` — 历史面板适配服务端数据结构。
-- `web/default/src/features/image-studio/constants.ts` — 新增 IMAGE_STUDIO_GENERATIONS API 端点常量；在线生图最大生成数量改为 4。
-- `controller/security_audit.go`、`router/api-router.go`、`setting/system_setting/audit_setting.go` — 新增图片审计分页接口与独立开关，默认启用；安全审计路由收紧为仅超级管理员访问，关闭图片审计开关时接口拒绝查询。
-- `model/image_studio.go` — 图片生成记录新增安全审计查询，关联用户展示信息并批量加载图片资源，兼容 SQLite、MySQL 和 PostgreSQL。
-- `web/default/src/features/security-audit/` — 安全审计新增图片审计页：日期与用户筛选、图片缩略图及大图预览、请求内容 Tooltip、生成详情、图片下载和分页；入口与页面仅超级管理员可见，关闭图片审计开关时隐藏对应区块；表格默认分页每页 10 条；移除预览界面冗余提示词标签并统一详情标签尺寸；生成详情与请求内容弹框统一为最大 78rem、视口 85% 高度，头像和用户资料展示一致，放大详情文字，图片数量改为主题色标签；审计大图预览同步统一图片与提示词宽度、视口居中及三部分间距；请求内容列改为可点击入口，打开参考使用日志布局的独立弹框，左右展示完整提示词与生成参数并支持复制；弹框底部以 `contain` 完整比例展示最多 4 张生成图片，点击后叠层打开大图预览，关闭后返回请求内容弹框；头像悬停按需加载完整用户资料卡片；移除表格详情列；图片审计默认选中本月，非工作时间请求默认筛选当天。
-- `web/default/src/i18n/locales/*.json`、`web/default/src/i18n/locales/_reports/*.json` — 补充图片审计界面多语言文案并更新同步报告。
-- `constant/context_key.go`、`dto/openai_image.go`、`relay/channel/openai/relay_image.go`、`relay/image_handler.go`、`relay/image_studio_hook.go` — 新增原生 API 生图自动归档链路：从成功响应提取 URL 或 base64 图片，跳过 Playground 重复记录，响应完成后异步调度存储。
-- `controller/image_studio_relay_hook.go` — 下载或解码原生 API 生成图片，写入对象存储和在线生图历史；失败时清理已存文件，按配置裁剪超限历史。
-- `setting/system_setting/audit_setting.go`、`model/image_studio.go`、`controller/image_studio_storage.go` — 新增原生 API 生图自动保存开关与每用户历史存储上限（1–1000，当前默认 50），列表和裁剪统一读取管理员配置，超限记录连同对象存储图片一并删除。
-- `web/src/features/system-settings/security/`、`web/src/features/system-settings/types.ts`、`web/src/i18n/locales/*.json` — 安全审计设置新增自动保存开关和历史上限输入，串接默认值、类型、表单校验、测试及七语言文案。
-- `model/image_studio.go`、`controller/image_studio_storage.go`、`controller/image_studio_relay_hook.go`、`relay/image_studio_hook.go` — 生图记录采集 User-Agent：ImageStudioGeneration 新增 UserAgent 字段（varchar(512)，随 AutoMigrate 加列），在线生图 UI 存储路径取 `c.Request.UserAgent()`，原生 API 中继路径 ImageAutoRecordInput 携带 `info.ClientApp`；与使用日志同源，仅记录原始 User-Agent 不做客户端名称映射。
-- `web/src/features/security-audit/types.ts`、`web/src/features/security-audit/components/image-audit-request-content-dialog.tsx` — ImageAuditItem 新增可选 user_agent 字段，图片审计请求内容弹框在头像右侧模型/模式/时间行下方单独一行完整展示 User-Agent（break-all 不截断），与使用日志请求内容弹框展示口径一致。
-- `setting/system_setting/audit_setting.go`、`setting/system_setting/audit_setting_test.go` — 将历史限制拆分为独立的在线生图展示上限与存储上限，保留旧配置键作为存储上限以兼容已有部署；展示上限默认值调整为 20，存储上限默认值调整为 50，覆盖两个上限的默认值、独立配置和边界钳制。
-- `model/image_studio.go`、`model/image_studio_test.go` — 生图记录新增 `hidden_from_studio` 展示隐藏标记；普通历史查询排除隐藏记录，单条移除与清空仅设置隐藏状态，不删除数据库数据；存储裁剪继续统计全部记录并永久删除超限的最旧记录，补充隐藏、清空和裁剪测试。
-- `controller/image_studio_storage.go`、`controller/image_studio_relay_hook.go` — 历史列表按展示上限查询并向前端下发展示数量；在线生图删除接口改为仅隐藏记录，只有 UI 保存和原生 API 自动归档后的存储裁剪会永久删除数据库记录及 MinIO 图片。
-- `web/src/features/system-settings/security/`、`web/src/features/system-settings/types.ts` — 安全审计设置将原历史上限拆分为“在线生图展示上限”和“在线生图存储上限”，分别保存独立配置并补充设置界面测试。
-- `web/src/features/image-studio/` — 历史加载及新增记录统一使用服务端下发的动态展示上限，前端无服务端响应时的展示兜底值调整为 20；删除和清空文案明确仅从在线生图历史隐藏，补充展示裁剪、删除行为和可访问文案测试。
-- `web/src/i18n/locales/*.json` — 补齐展示上限、存储上限及历史隐藏行为的七语言文案。
-- `model/ability.go` — 分组可用模型按名称倒序返回，使在线生图默认优先选择名称以 g 开头的模型。
-- `controller/model_list_test.go` — 补充分组模型名称倒序接口测试，固定 `gpt-image` 排在 `dall-e` 前的契约。
-- `web/src/features/image-studio/lib/model-params/`、`web/src/features/image-studio/types.ts` — 将模型参数重构为可辨识联合类型和模型适配器注册表，由各适配器集中管理默认值、支持范围、参数校验、配置归一化与请求构建；GPT Image 和 Seedream 参数类型、尺寸及数量约束相互隔离。
-- `web/src/features/image-studio/hooks/use-image-studio-state.ts`、`web/src/features/image-studio/hooks/use-image-studio.ts` — 默认选择 `gpt-image-2`，按模型族缓存并恢复参数，模型或分组切换时归一化配置；生成过程中禁用参数和模型切换，单次任务使用启动时的参数快照，避免异步生成期间配置漂移。
-- `web/src/features/image-studio/components/generate-panel.tsx`、`web/src/features/image-studio/components/params-panel.tsx`、`web/src/features/image-studio/index.tsx` — 参数面板改为基于当前模型适配器渲染，数量参数下沉至模型专属配置，并统一生成按钮、参考图和模型选择器的禁用状态。
-- `web/src/features/image-studio/components/__tests__/*.test.tsx`、`web/src/features/image-studio/hooks/__tests__/generation-progress.test.tsx` — 更新模型专属参数布局测试，并增加生成期间锁定模型与参数控件的测试覆盖。
-
-### 2026-09-27 涉及文件
-
-- `setting/system_setting/audit_setting.go` — 图片审计统一使用 `image_studio` 开关，移除独立的原生 API 自动保存字段及默认值。
-- `controller/image_studio_storage.go`、`router/api-router.go` — 新增登录用户可读的生图保存状态接口；新建和追加图片入口按总开关跳过保存，下载完成后再次检查开关并清理本次已写入的图片。
-- `controller/image_studio_relay_hook.go`、`relay/channel/openai/relay_image.go` — 原生 API 图片来源采集和后台归档统一服从图片审计开关。
-- `web/src/features/image-studio/api.ts`、`web/src/features/image-studio/types.ts` — 读取保存状态，识别服务端明确跳过保存的响应，增加临时结果标记。
-- `web/src/features/image-studio/hooks/use-image-studio.ts` — 生成及重试前读取保存状态，关闭时直接使用生成结果展示；处理生成期间关闭保存的情况，并合并重试返回的图片。
-- `web/src/features/image-studio/hooks/use-generation-history.ts`、`web/src/features/image-studio/index.tsx` — 临时结果不进入历史列表，不向服务端更新收藏或用量；新增生成时移除上一份临时结果，展示未保存提示，并等待历史加载完成后允许生成。
-- `web/src/features/system-settings/security/audit-section.tsx`、`web/src/features/system-settings/security/index.tsx`、`web/src/features/system-settings/security/section-registry.tsx`、`web/src/features/system-settings/types.ts` — 设置页保留一个图片审计开关及展示、存储两个上限，删除独立 API 自动保存的表单、默认值、类型和提交逻辑，精简三项说明。
-- `web/src/features/system-settings/security/__tests__/audit-settings.test.tsx` — 清理现有界面用例中已删除的 API 自动保存参数，保留原有断言。
-- `web/src/features/usage-logs/audit/index.tsx` — 图片审计未开启时隐藏标签；直接访问已关闭的图片审计分区时回退至常规审计并替换地址中的分区参数。
-- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 同步总开关、临时结果提示和精简说明，删除废弃开关及旧说明翻译。
-- `web/src/i18n/locales/_reports/{ja,ru,zh}.untranslated.json` — 同步移除废弃 API 自动保存文案的报告条目。
-
-## 2026-09-27：统一图片审计与保存开关
-
-以下规则取代此前独立图片审计查询开关与 API 自动归档开关的配置方式；下方旧记录保留用于追踪功能演变。
-
-- 沿用 `audit_setting.image_studio` 作为唯一开关，默认开启；仅超级管理员能修改，对所有用户的在线生图保存及现有原生 API 自动归档链路生效。原 `auto_save_api_image_generation` 不再参与运行逻辑。
-- 开启时，在线生图保存图片和历史，现有 API 自动归档链路随之启用，审计页可查询已保存记录。API 自动归档仍限于现有图片响应采集链路，不表示所有提供商、流式或异步接口均已覆盖；持久化仍依赖可用的对象存储。
-- 关闭时，后端跳过新增记录和追加图片，返回 `persisted: false`；前端将其视为按配置不保存，继续临时展示生成结果，支持预览、下载及失败重试，刷新或离开页面后无法从历史恢复。临时结果不会因重新开启开关而自动补录。
-- 在线生图页面提示用户在刷新或离开前下载。临时结果不出现在历史列表，也不触发收藏或用量持久化；真实消费日志及扣费流程保持独立。
-- 图片审计标签仅在配置明确开启时展示。关闭后直接访问图片审计分区会回退到常规审计，后端审计查询继续拒绝未开启的请求。
-- 已有记录不因关闭而删除，用户仍可查看自己的已有历史。展示上限和存储上限保持独立；移除或清空历史仍只隐藏，超出存储上限时才在后续保存后的裁剪中永久删除最旧记录及图片。
-- 设置说明简化为“保存在线生图、API 生图及历史记录”“历史记录的最大条数；移除记录不删除已存储的记录或图片”“生图记录存储上限，超出后删除存储及图片”，并同步七语言。
-
-## 本次验证
-
-- `go build ./...`：通过。
-- 在 `web/` 执行 `bun run typecheck`：通过；对本次修改的前端文件执行 `oxlint -c .oxlintrc.json` 和 `oxfmt --check`：通过。
-- 在 `web/` 执行 `bun run build --log-level error`：开关合并后通过；后续说明精简与标签隐藏改动已执行类型检查、定向 lint 和格式检查，未再次构建。
-- 在 `web/` 执行 `bun run i18n:sync`：完成语言同步及报告更新。
-- 未运行测试，未执行真实生图联调或三种数据库的实库验证，不据此声明这些行为已经验证。
-
-## 自 CHANGELOG 说明列迁入
-
-2026-09-17 的说明：新增在线生图功能：图片生成/编辑、参数预设与历史记录服务端持久化（S3 兼容对象存储、模型参数按适配器管理），并配套安全审计图片审计页与原生 API 生图自动归档
-
-新增在线生图功能：支持图片生成/编辑、参数配置、提示词预设、历史记录和 Playground 图片中继接口；补充 gpt-image-2 参数适配、模型专属参数、4K 尺寸预设、自定义尺寸校验、最多 8 张生成、生成进度/停止按钮与结果参数翻译优化；优化加载态、历史记录选中态、弹窗遮罩和大图性能；使用日志详情支持结构化展示图片生成参数并补齐翻译；侧边栏入口及 6 语言文案调整为「在线生图」；修复 OpenAI 图生图 JSON 转 multipart 上传、历史图一键带入图生图、生成进度与重置交互；生成历史改为服务端持久化：新增 ImageStudioGeneration 数据库模型与文件存储控制器，前端历史记录由 localStorage 迁移至服务端 API；图片文件存储由本地磁盘迁移至 S3 兼容对象存储（支持 MinIO、RustFS 等），Bucket 与凭据统一由 IMAGE_STUDIO_S3_DSN 环境变量配置且对象目录固定为 image；生成数量上限收紧为最多 4 张，并在后端图片请求校验中同步限制；生成/编辑请求不再发送 n 参数，多张生成改为并行单图请求，支持部分成功保留、灰色失败占位展示及消费汇总，不再弹出部分失败 warning toast；安全审计新增图片审计页，支持按时间和用户筛选全员生图记录、预览与下载图片、查看请求内容及生成详情，用户头像支持悬停资料卡片；生成详情与请求内容弹框统一为最大 78rem、视口 85% 高度，放大详情文字并将图片数量改为主题色标签；在线生图与图片审计大图预览统一图片和提示词宽度，整体按视口居中并优化图片区、提示词与操作栏间距；图片审计由独立开关控制并默认启用，安全审计入口、页面与接口收紧为仅超级管理员可访问，关闭开关时隐藏图片审计区块并拒绝查询；图片审计表格默认分页调整为每页 10 条，预览界面精简提示词展示并统一详情标签尺寸；图片审计请求内容列支持点击打开完整内容弹框，参考使用日志采用左右布局展示提示词与生成参数，并支持复制请求内容；弹框底部增加最多 4 张完整比例图片预览，点击可叠层查看大图且保留请求内容弹框，头像悬停加载用户资料卡片；移除图片审计表格详情列；图片审计默认选中本月，非工作时间请求默认筛选当天；新增原生 API 生图自动归档开关（默认关闭），成功响应可异步保存至在线生图历史且跳过 Playground 重复记录；生图记录新增 User-Agent 采集：在线生图 UI 存储路径取浏览器请求头、原生 API 中继路径取 RelayInfo.ClientApp，图片审计请求内容弹框在头像右侧单独一行完整展示 User-Agent（与使用日志口径一致，仅记录原始值不做映射）；历史上限拆分为独立的在线生图展示上限和存储上限，默认值分别调整为 20 和 50，用户移除或清空历史仅隐藏记录并保留数据库与对象存储数据，只有超过存储上限时才永久裁剪最旧记录及图片；用户可用模型按名称倒序返回，使在线生图默认优先选择 g 开头模型；模型参数系统重构为按模型适配器管理独立默认值、校验、请求构建和参数缓存，切换 GPT Image 与 Seedream 时可恢复各自配置，并在生成期间锁定模型参数；S3 兼容存储的地址、访问账号、访问密码和 Bucket 四项环境变量合并为单个 DSN，并校验凭据与 Bucket 完整性
+原记录未完成真实生图联调、S3 行为及三库实库验证；这里记录代码行为和限制，不据此宣称提供商能力已联调通过。

@@ -1,88 +1,77 @@
 # 变更日志
 
-仅记录二开修改，用于追踪本地定制与上游的差异。详细文件列表见 [details/](details/) 目录。
+仅列当前仍有效的本地定制及必要兼容约束；已撤销的中间方案通过 Git 历史查询。详情见 [details/](details/)。
 
 | 编号 | 日期 | 说明 | 详情 |
 |------|------|------|------|
-| 001 | 2026-07-05 | 默认前端固定为 default 并彻底移除 classic：清理后端主题切换、classic embed、Docker 构建阶段与前端 workspace | [详情](details/001-default-frontend-only.md) |
-| 002 | 2026-07-09 | 全局品牌重命名 New API → AI Gateway，清理后端中继、文档、Electron 与前端脚本中的品牌残留 | [详情](details/002-brand-rename.md) |
-| 003 | 2026-09-02 | 首页定制：移除 Footer/开源卡片/CTA 推广区等区块，替换模型标签，优化三步上手与 Hero 轨道动画，并新增统计微光动画、glass 卡片 UI 与飞书联系信息 | [详情](details/003-homepage-customization.md) |
-| 004 | 2026-11-09 | 前端开发与构建适配：移除开发模式 HTTPS 启动命令与证书读取配置，统一使用 HTTP，端口占用时允许自动切换；Lobe 图标库升级至 6.15 系列，新增配套 UI 依赖，动态加载改用安装目录别名与 .mjs 模块路径 | [详情](details/004-frontend-build-config.md) |
-| 005 | 2026-06-19 | 移除开发环境 devtools 面板 | `web/default/src/routes/__root.tsx` |
+| 002 | 2026-07-09 | 全局品牌统一为 AI Gateway，保留协议及模块兼容标识。 | [详情](details/002-brand-rename.md) |
+| 003 | 2026-09-02 | 定制首页 Hero、三步上手和统计动画；底部展示已配置的飞书支持联系人。 | [详情](details/003-homepage-customization.md) |
+| 004 | 2026-11-09 | 升级 Lobe 图标依赖并适配安装目录别名与 .mjs 动态加载；开发服务使用本地端口配置。 | [详情](details/004-frontend-build-config.md) |
+| 005 | 2026-06-19 | 移除开发环境 devtools 面板 | `web/src/routes/__root.tsx` |
 | 006 | 2026-06-19 | 删除 About 页面及所有相关引用 | [详情](details/007-remove-about.md) |
 | 007 | 2026-06-19 | 删除兑换码管理界面及前端引用 | [详情](details/008-remove-redemption-frontend.md) |
-| 008 | 2026-06-19 | 删除后端兑换码功能及数据库表 | [详情](details/009-remove-redemption-backend.md) |
-| 009 | 2026-07-16 | Toast UI 优化：关闭按钮移至右上角；状态色改为固定配色，由全局语义颜色变量统一管理（不再跟随主题预设） | `web/default/src/styles/index.css`、`web/default/src/components/ui/sonner.tsx`、`web/default/src/styles/theme.css` |
+| 008 | 2026-06-19 | 移除后端兑换码接口、模型与配置；启动时尝试删除旧 redemptions 表。 | [详情](details/009-remove-redemption-backend.md) |
+| 009 | 2026-07-16 | Toast 关闭按钮置于右上角，状态颜色使用固定语义配色，不随主题预设变化。 | `web/src/styles/index.css`、`web/src/components/ui/sonner.tsx`、`web/src/styles/theme.css` |
 | 010 | 2026-06-19 | 移除 Anthropic 和 Simple Large-font 主题颜色预设 | [详情](details/011-remove-theme-presets.md) |
-| 011 | 2026-06-19 | 侧边栏样式默认值改为 floating，选项顺序调整为浮动→侧边栏→内嵌 | `web/default/src/context/layout-provider.tsx`、`web/default/src/components/config-drawer.tsx` |
-| 012 | 2026-06-19 | 侧边栏背景色改为透明（所有主题预设、明暗模式） | `web/default/src/styles/theme.css`、`web/default/src/styles/theme-presets.css` |
-| 013 | 2026-06-19 | 主题预设定制：新增碧空并设为默认、移除海风、侧边栏选中色改主题色、移除预设文字标签及翻译、调整预设顺序、修复预设属性 Bug | [详情](details/014-theme-preset-customization.md) |
-| 014 | 2026-06-20 | 侧边栏「聊天」菜单重命名为「快捷方式」，含 6 语言翻译 | [详情](details/015-sidebar-chat-to-shortcuts.md) |
-| 015 | 2026-06-20 | 弹出层与卡片背景色不再混入主题色，浅/深模式各用纯净底色；dialog footer 去掉背景色，与内容区统一 | [详情](details/016-dialog-theme-color.md) |
-| 016 | 2026-06-20 | Lake View 主题预设配色改为 #233633 / #63e2b7 薄荷绿色系 | `web/default/src/styles/theme-presets.css`、`web/default/src/lib/theme-customization.ts` |
-| 017 | 2026-06-20 | Lake View 侧边栏选中文字颜色改为 #18a058 | `web/default/src/components/ui/sidebar.tsx`、`web/default/src/styles/theme-presets.css` |
-| 018 | 2026-06-20 | 修复侧边栏选中项悬停时文字颜色被覆盖的问题，保持主题色 | `web/default/src/components/ui/sidebar.tsx` |
-| 019 | 2026-06-20 | 移除邀请人/邀请码功能（后端模型/控制器/路由、前端组件/类型/i18n、数据库迁移、计费设置默认值残留字段修复） | [详情](details/020-remove-invitation.md) |
-| 020 | 2026-09-17 | 移除概览页引导区域：不再展示「开始使用」步骤、推荐操作与请求示例，折叠态与展开记忆一并去除 | [详情](details/020-remove-overview-setup-guide.md) |
-| 021 | 2026-11-09 | 个人资料页订阅卡片优化：以圆环展示订阅剩余额度，按容器宽度并排或纵向展示高级模型额度面板，已用与总额分列，不再单列标准额度；高级模型列表明确区分加载失败与空配置提示，并补齐七语言翻译 | [详情](details/021-profile-subscription-card.md) |
-| 022 | 2026-08-24 | 渠道界面优化：默认视图改为列表，视图切换按钮顺序调整为列表→卡片，桌面端默认分页调整为每页 50 条；模型映射添加按钮移至列表顶部，新映射插入首行 | [详情](details/022-channel-interface.md) |
-| 023 | 2026-11-16 | 移除 LDAP 登录、绑定、连接检测、用户名过滤与目录资料同步，清理接口、配置、依赖及多语言界面；公司注册规则独立保存，仅保留公司、显示名称和自动订阅套餐；确认当前库旧配置已清空后，删除 LDAP 启动迁移、配置过滤及旧登录流程专用拦截；保留 OIDC 公司注册、现有用户与会话及独立公司平台的部门查询、通知能力 | [详情](details/024-ldap-login.md) |
-| 024 | 2026-11-16 | 登录页移除 LDAP 内联表单与切换入口，开启 OIDC 时优先展示企业统一登录，保留其他已启用登录方式；保留左右分栏、浅蓝极光背景及玻璃光球、随机漂移与减少动态效果适配，统一欢迎标题与登录方式副标题 | [详情](details/025-ldap-default-login.md) |
-| 025 | 2026-07-21 | 移除 User 表 name 字段，飞书同步的姓名改写入 display_name；LDAP 注册邮箱在配置飞书邮箱后缀时优先用 username + 后缀拼接，未配置后缀则回退 LDAP 邮箱属性 | `model/user.go`、`service/feishu_sync.go`、`controller/ldap.go` |
-| 026 | 2026-11-16 | 飞书凭据按公司配置读取；非工作时间通知改用收件人所属公司的飞书应用，校验公司状态、平台配置和接收人身份，移除全局应用凭据、单租户令牌缓存及部署环境变量透传，仅保留支持联系人环境配置 | [详情](details/026-feishu-credentials.md) |
-| 027 | 2026-06-23 | 用户头像改用 avatar_url 字段：后端 API 下发 avatar_url，前端头像组件优先展示图片、无图时回退首字母 | [详情](details/028-avatar-url.md) |
-| 028 | 2026-06-23 | LDAP 注册时飞书同步改为同步调用，确保首次登录响应即包含头像；SyncFeishuUser 回写 user 指针字段 | `controller/ldap.go`、`service/feishu_sync.go` |
-| 029 | 2026-06-23 | 前端类型检查改为 git pre-commit hook 自动执行，移除 Cursor Hook 方案，适用于所有 git 客户端 | `.githooks/pre-commit`、`.cursor/hooks.json`、`web/default/AGENTS.md` |
-| 029 | 2026-11-16 | OAuth 登录调整：移除 GitHub、Discord、Telegram、LinuxDO 登录及相关数据与界面；OIDC 支持手动登录、可选静默登录与 Casdoor 双向退出联动，补充令牌校验、会话关联及七语言配置说明；静默登录沿用原回调并保留 MFA，修复超时误撤销和退出后重新登录受阻，精简隐藏回调加载；手动授权前重置会话不再写入退出暂停偏好，授权地址就绪后恢复静默登录资格，兼容旧版标记并统一使用 semi 存储前缀；修复开发代理导致的退出 403；首次注册同步 Casdoor 员工资料，按工作单位分配订阅，改用独立公司注册规则，仅保留公司、显示名称与套餐，移除同步平台、应用凭据和邮箱后缀；飞书与钉钉身份分别读取 Casdoor 属性，后续登录不更新资料或追加套餐；删除 OAuth 回调提示组件，各提供商的登录、绑定与身份验证回调均不再展示中间提示页，保留授权处理、结果提示及跳转逻辑；退出确认统一使用通用文案并精简简体中文提示 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
-| 030 | 2026-06-23 | 修复 LDAP 系统设置不回显配置，并在保存 LDAP 登录状态后刷新前端状态缓存 | `web/default/src/features/system-settings/auth/section-registry.tsx`、`web/default/src/features/system-settings/hooks/use-update-option.ts` |
-| 031 | 2026-06-23 | 清理认证系统设置中已移除 OAuth 提供商的残留前端参数 | `web/default/src/features/system-settings/auth/section-registry.tsx` |
-| 032 | 2026-09-05 | 飞书支持联系人入口：后端通过 FEISHU_SUPPORT_OPEN_ID 暴露 openId，首页与错误页复用联系卡片并动态构造 applink；未配置时隐藏 | [详情](details/032-feishu-support-contact.md) |
-| 033 | 2026-06-23 | 登录页切换按钮与登录按钮大小统一，去掉多余的 h-11 rounded-lg | `web/default/src/features/auth/sign-in/components/user-auth-form.tsx` |
-| 034 | 2026-06-23 | 用户头像下拉菜单增强：头像旁显示用户名、角色标签前加图标（👑🏅🧑‍💼）、下拉菜单改为悬停触发、移除分组显示 | [详情](details/034-profile-dropdown-enhance.md) |
-| 035 | 2026-09-18 | 移除概览页常见问答面板，不再展示飞书文档跳转入口 | [详情](details/035-faq-panel-redesign.md) |
-| 036 | 2026-06-24 | 系统公告弹窗宽度由 26rem 加大到 36rem | `web/default/src/components/notification-popover.tsx` |
-| 037 | 2026-10-14 | 订阅管理增强：支持公司范围订阅、分类额度调整与高级模型限额，优化管理弹框和额度变化预览，完善结算及不足提示；页面拆分为订阅套餐与额度策略标签页，高级模型配置改为页内分区展示；额度策略卡片统一淡边框并关闭悬停浮起；增减额度入口直接展示，弹框加宽加高并采用并排布局，显示当前高级占比及带颜色方向提示的实时调整预览，支持点击空白关闭；全员订阅仅更新所选公司中该套餐当前生效的订阅，其他用户跳过且不新增，保留已用额度并同步七语言提示 | [详情](details/037-subscribe-all-users.md) |
-| 038 | 2026-06-24 | 系统设置侧边栏菜单默认展开：新增 NavCollapsible.defaultOpen 属性，系统设置下所有分组设为默认展开 | `web/default/src/components/layout/types.ts`、`web/default/src/components/layout/components/nav-group.tsx`、`web/default/src/components/layout/config/system-settings.config.ts` |
-| 039 | 2026-11-16 | 用户管理与共享交互增强：完善统计筛选、成本中心、分组联动与跨页选择，统一悬停提示并精简重复说明；移除按密码是否为空区分 LDAP 与手动的注册方式列、筛选及后端分类，避免误标 OIDC 用户；恢复用户删除入口与确认弹窗，接入删除专用身份验证，成功后刷新列表，并禁用超级管理员账户的删除入口；新增批量启用、禁用、删除与修改分组，操作按钮显示图标和文字，沿用逐用户安全验证并汇总处理结果，保留失败及未处理项勾选 | [详情](details/039-user-management-table.md) |
-| 040 | 2026-07-17 | 日志筛选日期范围选择器快捷预设由 5 个扩展为 13 个（含季度、半年等），新增 dayjs quarterOfYear 插件及 6 语言翻译；周范围统一按周一至周日计算，避免受 locale 周起始日影响 | [详情](details/040-date-picker-presets.md) |
-| 041 | 2026-11-09 | 飞书同步改用 directory/v1/employees/mget 单接口，并重构 User 表飞书字段；头像优先使用 avatar_640，缺失时回退 avatar_240；职级、职位描述、出生日期、探亲地、民族改为五个独立字段并直接同步写入，保留数据库旧列但移除其模型映射与应用读写，对外模式同步清空新字段响应 | [详情](details/041-feishu-field-refactor.md) |
-| 042 | 2026-11-09 | 用户资料悬停卡片以飞书风格展示职级、部门、入职日期等资料，敏感字段仅超级管理员可见，支持公司名称与性别图标；资料卡片和任职概览改读五个独立资料字段，移除旧 JSON 解析及字段映射，并同步数据总览、用量日志和安全审计的数据传递 | [详情](details/042-user-profile-hover-card.md) |
-| 043 | 2026-11-13 | 数据总览增强：完善部门统计、使用分析、排行、日志、导出与权限裁剪，支持模型系列单价趋势与多公司数据隔离；超级管理员新增跨公司总览与公司统计，BP 和部门领导保持原授权范围；使用分析独立加载费用分布，补齐图表悬浮指标、人数单位及调用占比；子部门统计列按对外模式拆分为独立 hooks，并在对外模式增加带倍率的分组列和销售列；部门人员列表新增成本中心列，人员原部门保留展示但消费数据不重复统计；移除平均响应时间、错误率及对应日志聚合，导出同步移除，保留原两行布局和响应时间空位；日期范围桌面端按完整时间撑开，修复结束时间截断；数据总览默认时间范围由本月改为本周，按周一至周日初始化并查询 | [详情](details/043-data-overview.md) |
-| 044 | 2026-07-08 | 新增「事业部 AI BP」（role=2）和「中心 AI BP」（role=3）两个用户角色，用户编辑界面支持角色修改，6 语言翻译 | [详情](details/044-add-bp-roles.md) |
-| 045 | 2026-07-07 | 数据总览权限开放：BP 角色与部门负责人可访问数据总览，部门树按角色层级自动裁剪，部门负责人改为动态判定 | [详情](details/045-data-overview-access.md) |
-| 046 | 2026-11-15 | 概览页用量与订阅面板优化：用量默认当天并支持 13 种时间预设，展示总 Token、费用、单价、请求数及趋势，补充 Token 明细；时间范围移至选择器旁，小时汇总延迟说明改为标题问号悬停提示；新增「常用模型」，按所选范围展示当前用户调用最多的三个模型、品牌图标和请求次数，品牌名称使用统一悬停提示；订阅已用与总额分列，展示使用百分比，高级模型额度独立分区并显示占比，套餐名称与重置时间适配窄屏换行；钱包面板放大余额标题、状态文字和指示点，近 24 小时消耗与可用时长卡片放大文字及图标、缩小两侧留白并优化换行 | [详情](details/046-overview-subscription-summary.md) |
-| 047 | 2026-08-19 | 数据总览通知功能增强：支持数据报告周期推送、部门超额与请假超额提醒；新增供飞书报表通知服务调用的 HMAC 签名内部接口，按 BP 显式部门配置与部门负责人关系返回可访问公司/部门统计及接收人 open_id，支持跨公司 BP 范围且不扩张管理员权限 | [详情](details/047-notify-settings.md) |
-| 048 | 2026-08-17 | 数据总览导出功能增强：支持导出当前部门统计数据与图表为 Excel，涵盖子部门详情与用户列表；补充飞书未注册员工姓名、人民币汇率换算及模型系列图表 | [详情](details/048-data-overview-export.md) |
-| 049 | 2026-11-15 | 模型定价编辑器支持本地货币输入及超级管理员跨设备同步货币偏好，保留价格精度与自定义档位名称；所有定价规则卡片默认展开，保留手动折叠；价格变更摘要与对比详情按站点货币展示，配置无效时回退美元；任务插件默认、统一价格及首档空名称改用“标准”，base、standard 与“标准”在定价预览、价格拆解及使用日志中按界面语言统一展示，不批量改写已有表达式或改变计费金额 | [详情](details/049-model-pricing-local-currency.md) |
+| 011 | 2026-06-19 | 侧边栏默认 floating，选项按浮动、侧边栏、内嵌排列。 | `web/src/context/layout-provider.tsx`、`web/src/components/config-drawer.tsx` |
+| 012 | 2026-06-19 | 侧边栏背景在明暗模式和各预设中使用透明色。 | `web/src/styles/theme.css`、`web/src/styles/theme-presets.css` |
+| 013 | 2026-06-23 | 碧空设为默认，移除海风，Lake View 使用薄荷绿；预设隐藏文字标签，侧栏选中及悬停色保持一致。 | [详情](details/014-theme-preset-customization.md) |
+| 014 | 2026-06-20 | 侧边栏及配置中的“聊天”统一显示为“快捷方式”，同步多语言。 | [详情](details/015-sidebar-chat-to-shortcuts.md) |
+| 015 | 2026-06-20 | 弹层与卡片采用明暗模式底色，不混主题色；对话框页脚与内容背景一致。 | [详情](details/016-dialog-theme-color.md) |
+| 019 | 2026-06-20 | 移除邀请码、邀请关系及奖励，清理注册、OAuth、钱包及计费设置；旧列不再读写。 | [详情](details/020-remove-invitation.md) |
+| 020 | 2026-09-17 | 移除概览上手步骤、请求示例、推荐操作及折叠状态。 | [详情](details/020-remove-overview-setup-guide.md) |
+| 021 | 2026-11-09 | 个人订阅以圆环展示剩余额度，高级额度独立分区；按宽度自适应，区分模型清单加载失败与空配置。 | [详情](details/021-profile-subscription-card.md) |
+| 022 | 2026-08-24 | 渠道默认列表和每页 50 条；模型映射顶部添加，新项插入首行。 | [详情](details/022-channel-interface.md) |
+| 023 | 2026-11-16 | 公司注册规则独立保存公司、显示名和套餐；飞书/钉钉身份分开使用，保留旧数据升级要求。 | [详情](details/024-ldap-login.md) |
+| 024 | 2026-11-16 | OIDC 开启时优先企业统一登录，保留其他已启用方式；登录页采用分栏极光与光球背景，支持动态效果降级。 | [详情](details/025-ldap-default-login.md) |
+| 026 | 2026-11-16 | 部门查询与通知读取所属公司飞书凭据；非工作时间通知校验公司、平台和身份，不使用全局应用兜底。 | [详情](details/026-feishu-credentials.md) |
+| 027 | 2026-06-23 | 登录与个人信息下发 avatar_url，前端优先用户照片，无图回退。 | [详情](details/028-avatar-url.md) |
+| 029 | 2026-11-16 | 保留 OIDC、微信及自定义提供商；OIDC 支持可选静默登录、MFA 和 Casdoor 双向退出，仅首次注册映射资料及套餐。 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
+| 032 | 2026-09-05 | 首页与错误页共享飞书联系卡片，通过 FEISHU_SUPPORT_OPEN_ID 配置，未配置隐藏。 | [详情](details/032-feishu-support-contact.md) |
+| 034 | 2026-06-23 | 顶部用户菜单显示用户名及角色图标，悬停打开，不重复展示分组。 | [详情](details/034-profile-dropdown-enhance.md) |
+| 035 | 2026-09-18 | 概览不展示 FAQ 面板或其飞书文档入口。 | [详情](details/035-faq-panel-redesign.md) |
+| 036 | 2026-06-24 | 公告弹窗宽度扩大至 36rem。 | `web/src/components/notification-popover.tsx` |
+| 037 | 2026-10-14 | 按公司更新当前生效的同套餐订阅，保留已用且不新增；支持分类额度调整、高级模型限额及幂等预扣、结算与退款。 | [详情](details/037-subscribe-all-users.md) |
+| 038 | 2026-06-24 | 系统设置侧栏各分组默认展开，支持 NavCollapsible.defaultOpen。 | `web/src/components/layout/types.ts`、`web/src/components/layout/components/nav-group.tsx`、`web/src/components/layout/config/system-settings.config.ts` |
+| 039 | 2026-11-16 | 用户统计、成本中心与分组联动，支持跨页批量操作及删除验证；共享列头筛选与悬停提示。 | [详情](details/039-user-management-table.md) |
+| 040 | 2026-07-17 | 日期范围提供 13 项预设，周范围固定周一至周日。 | [详情](details/040-date-picker-presets.md) |
+| 041 | 2026-11-09 | 员工资料使用五个独立字段，旧 JSON 列保留但不再读写；OIDC 仅首次注册填充，对外裁剪内部字段。 | [详情](details/041-feishu-field-refactor.md) |
+| 042 | 2026-11-09 | 共享用户资料卡按独立字段展示任职信息；手机号、生日、民族、探亲地仅超级管理员可见。 | [详情](details/042-user-profile-hover-card.md) |
+| 043 | 2026-11-13 | 多公司数据总览默认本周，按授权范围提供部门统计、人员、排行和趋势；成本中心归属防重复，超级管理员可跨公司汇总。 | [详情](details/043-data-overview.md) |
+| 044 | 2026-08-19 | 新增 BP（role=2），数据总览按显式部门配置授权。 | [详情](details/044-add-bp-roles.md) |
+| 045 | 2026-07-07 | 管理员、已配部门的 BP 及动态判定的部门负责人可进入数据总览，服务端校验实际范围。 | [详情](details/045-data-overview-access.md) |
+| 046 | 2026-11-15 | 概览用量默认当天，展示趋势与常用模型前三项；订阅总额/高级额度分区，钱包展示余额健康和近 24 小时消耗。 | [详情](details/046-overview-subscription-summary.md) |
+| 047 | 2026-08-19 | 个人报表周期与超额提醒；HMAC 内部报表接口按 BP 显式部门及负责人关系返回统计，不自动扩大管理员权限。 | [详情](details/047-notify-settings.md) |
+| 048 | 2026-08-17 | 按当前授权范围导出 Excel 统计、图表及可选子部门/人员页，费用换算人民币，按需补充未注册成员。 | [详情](details/048-data-overview-export.md) |
+| 049 | 2026-11-15 | 定价支持站点货币、跨设备偏好与完整保存精度，规则默认展开；标准档位名称本地化，自定义名称保留。 | [详情](details/049-model-pricing-local-currency.md) |
 | 050 | 2026-07-01 | 渠道表格移除「已使用 / 剩余」列及卡片视图中的余额展示，清理相关翻译 | [详情](details/050-remove-channel-balance-column.md) |
-| 051 | 2026-11-15 | 个人资料页优化：左侧使用可拖动、点击翻转的双面照片挂绳头像，右侧整合身份信息与账户统计，移除重复头像并将用户编号简化为 #ID；适配移动端、暗色主题与静态降级，照片和首帧就绪后展示且加载区域保持透明；备用卡面提高纹理分辨率与文字清晰度，移除顶部品牌文字，缩小占位头像并调整用户编号字号；保留邮箱旁不显示分组、API 请求数万前加空格，以及仅超级管理员可切换且默认开启的日志 IP 记录设置 | [详情](details/051-profile-settings.md) |
-| 052 | 2026-07-01 | 全站进度条分阶段变色统一：阈值统一为 50%/80%（绿→橙→红），涉及概览订阅、用户表格、数据总览；修复子部门统计 formatCNY 传入 undefined 导致崩溃 | [详情](details/052-progress-bar-color-unify.md) |
-| 053 | 2026-10-15 | 新增或编辑未设置定价的模型时，补全价格和缓存读取价格默认开启；表达式定价草稿默认包含零值缓存读取价格，已有表达式保持原配置，并补充定价通道初始化测试 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/__tests__/pricing-initialization.test.ts`、`web/src/features/system-settings/models/model-pricing-sheet.tsx` |
-| 054 | 2026-07-01 | 模型广场与模型定价编辑器默认分页大小从 20 改为 100 | `web/default/src/features/pricing/constants.ts`、`web/default/src/features/system-settings/models/model-ratio-visual-editor.tsx` |
-| 055 | 2026-10-19 | 模型广场与分组定价优化：新增分组 × 供应商倍率配置与统一计费优先级，分档价格表按当前用户或管理员筛选分组显示；定价响应加密；新增超级管理员推荐配置与自动循环横滑区；推荐标签位于计费方式右侧并保留特殊装饰，隐藏空描述；价格网格保留空列并取消自动下推，不为缺失说明添加空白行，卡片采用独立浅深色配色与局部内边距；新增「均衡之选」场景，「添加推荐」移至重置左侧 | [详情](details/055-pricing-square.md) |
-| 056 | 2026-11-16 | 使用日志与审计设置优化：时间列宽度由 171 调整为 145，减少右侧留白，模型列宽度由 202px 增至 218px；完善用户信息、权限筛选、详情导出与 Token 统计，并拆分安全审计配置模块；微调筛选布局，RPM/TPM 复用语言相关数字格式化；渠道与请求 ID 筛选互换位置，渠道移至首行、请求 ID 移入高级筛选，使用日志高级筛选默认收起；新增 SMTP 发送审计、筛选与诊断详情；Token 汇总与综合单价仅超级管理员可见，单条 Token 明细点击显示、移出关闭，统一次要文字字号；单条 Token 明细新增两位小数的缓存命中率，按用量语义区分输入是否包含缓存，缓存写入计入分母但不算命中，无输入或数据不一致时显示占位符；移除高级筛选展开/收起按钮的数量徽章；统计栏在单价左侧展示缓存命中率（缓存读取占输入 Token 比例），百分比按界面语言格式化，Token 明细随主统计一次请求返回；请求内容摘要取消悬浮提示并保留点击查看完整对话，详情列加宽 10px；安全审计支持按用户名或显示名称模糊筛选，适配独立日志库及中文输入法，并补齐七语言提示；请求内容和日志详情复用通知入口，支持非工作内容、安全风险、频繁请求、模型切换及客户端与模型匹配分类，选择目标供应商系列并预览卡片，展示客户端并跟随界面语言；各类飞书通知及预览使用分类图片和图标，安全风险分项展示，模型切换显示当前模型与目标系列；超级管理员在「仅自己」日志详情中可发送通知；请求通知按用户公司配置发送飞书或钉钉，未配置公司平台时使用邮件，预览不再要求绑定飞书，并校验发送配置与平台身份；修复错误日志漏记客户端信息，补记原始 User-Agent 并复用 512 字符截断规则；模型切换通知补充无法保证可用性及尽快更换目标系列的提醒，预览与实际发送同步更新七语言文案；频繁请求通知统一红色卡头、主图与字段图标，提醒排查脚本、并发与重试逻辑；通知类型改为带小图标的单选卡片列表，目标系列在模型切换项下展开，弹框增至 90% 视口高度、最大宽度 1152px；新增客户端与模型匹配提醒及七语言文案，模型切换与匹配提醒统一橙色主题，共用警告与严重风险图标；计费摘要与详情的标准档位名称随界面语言统一展示，自定义名称保留原文；模型下方仅向超级管理员显示“已处理 · 处理名称”，普通管理员和用户隐藏该标记，使用 12px 次级字号，长名称截断并保留完整悬浮提示；任务日志用户与渠道展示对齐使用日志，详情补齐真实头像，调整列顺序及宽度，插件作者名称与链接移至悬停提示；非工作时间通知新增发送前预览，与请求通知共用收件人及预览弹框，卡片统一红色主题、分类图片与字段图标，跟随界面语言并补齐七语言通知文案 | [详情](details/056-usage-logs-user-column.md) |
-| 057 | 2026-10-06 | 数据看板筛选与统计优化：统一时间范围/粒度/用户名筛选与搜索重置，整合消耗分布与用户排行，quota_data 与图表统一按四类 Token 统计；日期范围桌面端按完整时间撑开，筛选栏空间不足时自动换行，修复结束时间截断 | [详情](details/057-dashboard-filters.md) |
-| 058 | 2026-11-15 | 在线生图支持生成编辑与历史管理，统一图片审计及保存开关，关闭后临时展示结果并隐藏审计入口；按 GPT Image 型号适配参数，支持流式预览及 GIF/SVG 输出，SVG 结果仅在当前会话展示；多图改为并发单图请求，结果即时展示、历史排队保存，按原始请求序号排列图片与失败占位，显示单图耗时并区分生成和保存状态；移除蒙版与标注编辑入口、状态及请求字段，保留参考图编辑；GIF 尺寸仅保留自动与自定义，按格式校验，补充尺寸与品质展示，提示不支持流式输出和压缩，同步七语言文案 | [详情](details/058-online-image-generation.md) |
-| 059 | 2026-07-04 | 排行榜 Token 可见性与热门模型 Tooltip 优化：所有 Token 数字仅超级管理员可见，热门模型悬停提示右侧显示连续排行编号，并更新 Token 排行相关 6 语言文案 | [详情](details/059-rankings-token-visibility.md) |
-| 060 | 2026-09-10 | API 密钥界面优化：名称列截断、创建时默认选中用户分组、编辑时高级设置默认展开，IP 限制列新增「快速导入」下拉（含 CC Switch） | [详情](details/060-api-keys-name-truncate.md) |
-| 061 | 2026-07-06 | 新增用户创建后自动订阅套餐：系统设置可选择自动绑定套餐，普通注册、LDAP 首次创建和后台新增用户后创建订阅并记录来源；设置选择框回显套餐名称 | [详情](details/061-registration-auto-subscribe.md) |
-| 062 | 2026-08-27 | 管理入口权限细化：模型、订阅管理、系统信息和系统设置仍仅限超级管理员；渠道管理新增默认关闭、可按管理员分配的「渠道界面查看」权限，未授权时隐藏入口并拦截路由；用户角色变更同步刷新认证版本，并按最终角色保存或清理管理员权限 | [详情](details/062-admin-entry-permissions.md) |
+| 051 | 2026-11-15 | 个人资料采用可拖动翻转的照片挂绳及静态降级；日志 IP 默认记录，仅超级管理员可切换。 | [详情](details/051-profile-settings.md) |
+| 052 | 2026-07-01 | 额度消耗按 50%/80% 阈值使用绿、橙、红；子部门金额格式化兼容缺省值。 | [详情](details/052-progress-bar-color-unify.md) |
+| 053 | 2026-10-15 | 新增或未定价模型默认开启补全及缓存读取价格，表达式草稿包含零值缓存读取，已有配置保留。 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/model-pricing-sheet.tsx` |
+| 054 | 2026-07-01 | 模型广场及定价编辑器默认每页 100 条。 | `web/src/features/pricing/constants.ts`、`web/src/features/system-settings/models/model-ratio-visual-editor.tsx` |
+| 055 | 2026-10-19 | 分组供应商倍率按统一优先级计费，定价响应加密；超级管理员维护有序推荐，广场按可见范围展示并自动横滑。 | [详情](details/055-pricing-square.md) |
+| 056 | 2026-11-16 | 使用日志完善筛选、Token 语义统计和超级管理员导出；整合请求留存、分类通知预览、异常时段及 SMTP 审计。 | [详情](details/056-usage-logs-user-column.md) |
+| 057 | 2026-10-06 | 看板与 Flow 共用日期/粒度筛选，默认当天；管理员用户消耗分析及四类 Token 聚合统一。 | [详情](details/057-dashboard-filters.md) |
+| 058 | 2026-11-15 | 在线生图按型号配置生成/参考图编辑，支持流式与适用 GIF/SVG；并发单图、即时结果、排队保存，审计与历史共用开关。 | [详情](details/058-online-image-generation.md) |
+| 059 | 2026-07-04 | 排行榜 Token 数字仅超级管理员可见，热门模型悬浮列表显示连续排名。 | [详情](details/059-rankings-token-visibility.md) |
+| 060 | 2026-09-10 | 密钥默认用户分组，编辑展开高级设置；快速导入使用当前 Origin，Codex 保留 /v1。 | [详情](details/060-api-keys-name-truncate.md) |
+| 061 | 2026-11-16 | 普通注册、后台建号和 OIDC 首次注册按公司规则自动分配套餐，失败不阻断建号，后续登录不重复分配。 | [详情](details/061-registration-auto-subscribe.md) |
+| 062 | 2026-08-27 | 普通管理员按授权进入渠道界面，模型/订阅/系统入口仅超级管理员；角色变更刷新认证版本并清理权限。 | [详情](details/062-admin-entry-permissions.md) |
 | 063 | 2026-07-06 | 本地访问限流默认关闭：全局 API/Web、关键接口和搜索限流默认禁用 | `common/init.go` |
-| 064 | 2026-09-14 | 新增 AI 中转站周报统计脚本：按使用日志计费快照拆分输入/输出/缓存 Token 与费用，汇总均价、缓存命中率及费用 Top 5 模型；修正缓存命中率口径，缓存写入计入输入侧与命中率分母 | [详情](details/064-weekly-stats-script.md) |
-| 065 | 2026-08-04 | 用户演示模式：个人设置开启后即时生效；渠道页隐藏分组/模型，模型广场遮罩价格、动态计费表达式/分组倍率，使用日志遮罩渠道；用户管理、数据总览、使用日志和安全审计统一以 `***` 脱敏用户名，并隐藏真实头像、资料卡和飞书跳转；更新通知配置不覆盖其他用户设置 | [详情](details/065-user-demo-mode.md) |
-| 067 | 2026-09-30 | 全站分页参数隔离：使用日志与安全审计各分区独立保存分页；渠道及模型管理的模型、供应商、部署列表改用内存分页，不读写 URL 或本地存储，刷新恢复首页与默认数量；渠道默认每页 50 条，模型桌面端默认每页 50 条 | [详情](details/067-pagination-isolation.md) |
-| 068 | 2026-08-10 | 图片审计新增实际使用渠道列：从请求日志回写真实渠道 ID，查询渠道名称并以使用日志样式展示彩色渠道标签；表格列顺序调整为时间、用户、耗时、图片、请求内容、渠道、模型、模式、参数、费用，耗时拆分为独立列 | [详情](details/068-image-audit-channel-column.md) |
-| 069 | 2026-08-21 | 数据总览 BP 可见范围改为显式多部门配置：新增 overview_dept_ids JSON 数组完全替代 bp_level 业务代码，用户编辑支持完整部门树多选 | [详情](details/069-bp-level-overview.md) |
-| 071 | 2026-08-19 | 移除中心 BP（role=3）角色：删除后端 RoleCenterBP 常量及所有相关分支，前端去掉 CENTER_BP 选项与翻译，数据库中 role=3 统一替换为 role=2；AI BP 角色改名为 BP（七语言同步更新） | [详情](details/071-remove-center-bp-role.md) |
-| 072 | 2026-10-20 | 渠道健康飞书通知：支持渠道自动启停及使用日志错误阈值告警，可配置统计窗口并限制重复通知；告警固定简体中文，展示错误总数、时段及主要出错渠道和模型，并提供错误日志筛选与渠道管理跳转按钮 | [详情](details/072-feishu-channel-status-notify.md) |
+| 064 | 2026-09-14 | 周报按历史计费快照汇总 Token、费用和 Top 5 模型；缓存写入计入输入及命中率分母。 | [详情](details/064-weekly-stats-script.md) |
+| 065 | 2026-08-04 | 演示模式遮罩身份、价格、渠道及模型敏感信息，停止资料和请求内容加载，保存时保留其他设置。 | [详情](details/065-user-demo-mode.md) |
+| 067 | 2026-09-30 | 用户、密钥和各日志分页独立；模型/供应商/部署/渠道改用内存分页，刷新恢复默认。 | [详情](details/067-pagination-isolation.md) |
+| 068 | 2026-08-10 | 图片审计从消费日志补充实际渠道，身份和渠道复用日志展示，耗时独立列。 | [详情](details/068-image-audit-channel-column.md) |
+| 069 | 2026-08-21 | BP 可见范围由 overview_dept_ids 显式配置，最多 100 部门，父节点含子树且支持跨公司；旧 bp_level 不自动转换。 | [详情](details/069-bp-level-overview.md) |
+| 072 | 2026-10-20 | 渠道自动启停飞书通知及错误阈值告警，支持窗口、冷却与统计降级，提供错误日志和渠道跳转。 | [详情](details/072-feishu-channel-status-notify.md) |
 | 073 | 2026-09-03 | 渠道分组字段长度由 64 扩展至 1024 个字符，支持为单个渠道配置更多分组 | `model/channel.go` |
-| 074 | 2026-11-13 | 任务插件官方市场标题去除 New API 品牌前缀，统一显示为 Official Plugins；市场源选择器仅展示站点名称，悬停时显示 URL，并补齐七语言翻译 | [详情](details/074-task-plugin-official-title.md) |
-| 075 | 2026-11-16 | 对外模式：仅通过 EXTERNAL_MODE 环境变量控制，true 为对外，false、未设置或留空为对内，移除后台开关及数据库配置读写，忽略旧配置；隐藏用户内部信息，后端同步清空相关数据；用户支持绑定多个 role=2 销售、逐项移除或清空，兼容原单销售绑定，服务端去重校验并记录审计；用户列表与对外数据总览销售列展示全部已绑定销售，复用头像和资料悬浮卡片（含手机号），补齐七语言翻译；非超级管理员不可查看或选择分流分组，分流接口省略分组字段；用户列表统计改为全部时间，对内模式恢复当月；前端根据状态接口统一展示模式对应的字段与统计范围；新增客户类型（未设置/试用/付费）与结算方式（预付/后付）商业属性，列表展示两列并支持列标题单选筛选，编辑弹窗新增商业属性分区，服务端规范化取值、拦截非法参数并记录审计，仅在对外模式开启时允许修改；用户表格将分组、销售、客户类型和结算方式前移至使用量之后、时间之前，时间列由 260px 收窄至 200px，对内列顺序与时间列宽保持不变 | [详情](details/075-external-mode.md) |
-| 076 | 2026-09-10 | 前端开发规范移除测试章节及测试强制要求：新增功能、缺陷修复或 UI 行为变更不再强制同步新增或更新测试，提交前不再要求运行受影响测试 | `web/AGENTS.md` |
-| 077 | 2026-09-22 | 彻底移除前端系统更新功能：顶栏与系统设置不再提供版本检查入口，并清理发布查询、状态管理及相关多语言文案 | [详情](details/077-remove-system-update.md) |
-| 078 | 2026-11-13 | 渠道创建与编辑统一采用居中弹框，并优化头部状态、供应商与连接操作布局；高级自定义渠道改用蓝青紫渐变连接图标，供应商选择与渠道列表统一展示；移除 SiliconFlow 推荐注册链接提示及七语言对应文案 | [详情](details/078-channel-mutate-dialog.md) |
-| 079 | 2026-10-12 | 企业通知存储与发送优化：正文和图片改存 S3，保留两张业务表；按提交时间组织对象，删除记录时立即清理文件并支持失败补偿；正式发送、测试与重试统一最多 10 人并发；邮箱收件人支持域名补全，测试复用已填邮箱并限制最多 20 人；优化邮件图片样式并移除正文重复标题，测试确认框支持点击空白关闭；飞书与钉钉支持公司多选，正式通知按用户公司归属限定收件人，各公司使用自己的应用独立发送并保存记录，确认页展示分公司人数，兼容旧单公司模板并补齐七语言文案；飞书卡片升级为 JSON 2.0，支持正文 Markdown 一级至六级标题；飞书测试通知及预览在标题文字后显示靛蓝色标签图标与固定 Test 标识，重试保留测试状态 | [详情](details/079-notification-storage-concurrency.md) |
+| 074 | 2026-11-13 | 插件市场标题为 Official Plugins，来源仅显示名称，悬停查看 URL。 | [详情](details/074-task-plugin-official-title.md) |
+| 075 | 2026-11-16 | EXTERNAL_MODE 控制对外模式并裁剪内部资料和非超级管理员分流分组；统计全时段，支持多销售及客户/结算标签。 | [详情](details/075-external-mode.md) |
+| 076 | 2026-09-10 | 前端规范取消强制新增和运行测试的要求。 | `web/AGENTS.md` |
+| 077 | 2026-09-22 | 移除前端版本更新入口、发布查询、比较和状态管理。 | [详情](details/077-remove-system-update.md) |
+| 078 | 2026-11-13 | 渠道创建/编辑统一居中弹框，高级自定义渠道使用独立图标，移除推荐注册链接。 | [详情](details/078-channel-mutate-dialog.md) |
+| 079 | 2026-10-12 | 企业通知正文/图片存 S3，投递最多 10 人并发；公司多选独立发送，删除失败补偿，飞书支持 JSON 2.0 与 Test 标识。 | [详情](details/079-notification-storage-concurrency.md) |
 | 080 | 2026-09-19 | 模型管理的新增、补充资料、编辑与定价操作统一改为居中弹框 | [详情](details/080-model-mutate-dialog.md) |
-| 081 | 2026-09-22 | 移除用户签到功能：删除每日签到与随机额度奖励、个人资料签到日历、后台签到配置及相关接口和数据模型 | [详情](details/081-remove-checkin.md) |
-| 082 | 2026-10-28 | 清空多个渠道的内置模型列表，并移除 AWS 模型名称映射及跨区域支持配置 | [详情](details/082-channel-model-lists.md) |
-| 083 | 2026-11-06 | 报价表同步脚本支持通过 --group 指定分组，默认沿用 Basic，忽略大小写并去除首尾空白；拒绝空分组或无法唯一匹配的分组 | `scripts/sync_price_sheet.py` |
+| 081 | 2026-09-22 | 移除上游签到界面、接口、随机奖励和配置，停止迁移签到表，保留旧表。 | [详情](details/081-remove-checkin.md) |
+| 082 | 2026-10-28 | 精简渠道内置模型：多渠道清空，OpenAI/Claude/Codex/DeepSeek 保留当前少量项；清空 AWS ID 映射及模型跨区域支持表。 | [详情](details/082-channel-model-lists.md) |
+| 083 | 2026-11-06 | 报价同步支持 --group，默认 Basic；忽略大小写、去除首尾空白，拒绝空值或非唯一匹配。 | `scripts/sync_price_sheet.py` |

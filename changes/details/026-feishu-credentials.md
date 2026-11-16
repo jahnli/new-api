@@ -1,41 +1,13 @@
-# 飞书凭据惰性读取，并移除全局 FEISHU_EMAIL_SUFFIX 兜底
+# 飞书凭据按公司配置
 
 **日期**: 2026-11-16
 
-## 2026-11-16 移除全局飞书应用凭据
+- 飞书部门查询和通知读取所属公司的应用凭据，不使用全局 `FEISHU_APP_ID`、`FEISHU_APP_SECRET` 或邮箱后缀兜底。
+- 非工作时间通知使用收件人公司的应用，校验公司启用状态、飞书平台、凭据和接收人身份；移除全局单租户令牌缓存及部署变量透传。
+- `FEISHU_SUPPORT_OPEN_ID` 仅用于支持联系人，通过惰性读取避免早于 `.env` 加载；与企业通知应用凭据分开。
 
-非工作时间通知改用收件人所属公司的飞书应用配置，移除最后一处全局应用凭据读取及单租户令牌缓存。下方 LDAP 同步内容保留为历史记录，当前凭据来源以独立公司配置为准。
+## 实现入口
 
-- `setting/system_setting/feishu.go` — 删除 `FeishuAppID`、`FeishuAppSecret` 及对应环境变量读取，仅保留支持联系人 `FEISHU_SUPPORT_OPEN_ID` 的惰性读取。
-- `service/feishu_department.go` — 删除全局应用令牌缓存与旧卡片发送入口；非工作时间通知按用户公司获取应用配置，校验公司启用状态、飞书平台、应用凭据与接收人平台身份后发送。
-- `.env.example` — 移除 `FEISHU_APP_ID`、`FEISHU_APP_SECRET` 示例，注明应用凭据在公司配置中设置。
-- `docker-compose.yml` — 移除上述两个全局应用凭据环境变量的透传。
-
-通知预览、卡片及界面变更见 [#056](056-usage-logs-user-column.md)。
-
-## 背景
-
-飞书凭据最初以全局环境变量提供（单公司部署）。多公司支持后，凭据与邮箱后缀已可在「系统设置 → 认证 → LDAP 公司同步配置」中按公司配置，全局环境变量退化为兜底值。
-
-保留全局兜底带来两个问题：
-
-1. 同一份配置散落在环境变量与 per-company 配置两处，排查困难。
-2. `syncPlatform` 为 `none` 的公司会落入飞书分支：注册时被套上全局邮箱后缀，且在全局凭据存在时真的发起飞书 API 调用，查不到 open_id 后持续刷错误日志。
-
-飞书按邮箱反查 open_id，缺少后缀无法拼出企业邮箱，因此后缀与凭据同属必填项，不适合分层兜底。钉钉从 LDAP `extensionAttribute12` 直接取 userid，本就只走 per-company 配置。
-
-## 涉及文件
-
-- `setting/system_setting/feishu.go` — 飞书凭据改为惰性读取（`sync.OnceValue`），避免包导入时 `.env` 未加载导致同步失败；移除 `feishuEmailSuffix`、`FeishuEmailSuffix()` 及仅服务于全局兜底的 `FeishuEnabled()`；保留 `FeishuAppID`/`FeishuAppSecret`（违规通知卡片发送仍使用）与 `FeishuSupportOpenID`
-- `service/feishu_sync.go` — `resolveFeishuSyncConfig` 去掉全局兜底分支，凭据与邮箱后缀只来自 LDAP 公司同步配置；公司名为空、无同步配置、平台非飞书、或 AppID/AppSecret/EmailSuffix 任一为空时返回未配置，不触发同步
-- `controller/ldap.go` — 注册邮箱解析由 `if/else` 改为按 `syncPlatform` 三分支显式处理：钉钉留空待同步回填、飞书用 per-company 后缀拼接（无后缀回退 LDAP 邮箱属性）、无同步直接用 LDAP 邮箱属性；注册后同步与 `LDAPBind` 的异步同步同样收敛为仅在平台明确为钉钉或飞书时触发，`none` 不再误入飞书链路
-- `.env.example` — 移除 `FEISHU_EMAIL_SUFFIX`，补充 `FEISHU_SUPPORT_OPEN_ID`
-- `docker-compose.yml` — 移除 `FEISHU_EMAIL_SUFFIX` 环境变量透传
-
-## 升级注意
-
-原先依赖 `FEISHU_EMAIL_SUFFIX` 的部署，需在 LDAP 公司同步配置中为每个飞书公司填写「飞书邮箱后缀」。未填写时该公司不再触发飞书同步，注册邮箱回退为 LDAP 邮箱属性。
-
-## 自 CHANGELOG 说明列迁入
-
-Feishu 凭据改为惰性读取（sync.OnceValue），避免包导入时 .env 未加载导致同步失败；移除全局 FEISHU_EMAIL_SUFFIX 环境变量与 FeishuEnabled 兜底，飞书凭据及邮箱后缀统一只从 LDAP 公司同步配置读取，后缀缺失即视为未配置、不触发同步；LDAP 注册邮箱与登录/绑定后的同步改为按 syncPlatform 显式三分支，平台为 none 的公司不再误入飞书链路
+- `service/feishu_client.go`、`service/feishu_department.go` — 公司凭据和通知。
+- `setting/system_setting/feishu.go`、`.env.example`、`docker-compose.yml` — 支持联系人及部署配置。
+- 通知预览与卡片见 [使用日志与审计](056-usage-logs-user-column.md)。

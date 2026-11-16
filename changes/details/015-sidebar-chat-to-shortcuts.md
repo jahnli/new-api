@@ -1,15 +1,7 @@
-# 侧边栏「聊天」菜单重命名为「快捷方式」
+# 侧边栏聊天改为快捷方式
 
 **日期**: 2026-06-20
 
-## 涉及文件
+侧边栏分组及管理员、用户的侧边栏配置将 Chat 改为 Shortcuts（快捷方式），保留 chat 模块标识与链接语义；相关标题、描述同步多语言。
 
-- `web/default/src/hooks/use-sidebar-data.ts` — 侧边栏分组与菜单项标题由 `t('Chat')` 改为 `t('Shortcuts')`
-- `web/default/src/features/system-settings/maintenance/sidebar-modules-section.tsx` — 管理员侧边栏模块配置中 chat 模块标题与描述更新
-- `web/default/src/features/profile/components/sidebar-modules-card.tsx` — 用户侧边栏模块配置中 chat 模块标题与描述更新
-- `web/default/src/i18n/locales/en.json` — 新增 `Shortcuts`、`Quick access links to chat applications.`、`Quick access links to chat applications` 翻译键
-- `web/default/src/i18n/locales/zh.json` — 同上，中文：快捷方式
-- `web/default/src/i18n/locales/fr.json` — 同上，法语：Raccourcis
-- `web/default/src/i18n/locales/ja.json` — 同上，日语：ショートカット
-- `web/default/src/i18n/locales/ru.json` — 同上，俄语：Ярлыки
-- `web/default/src/i18n/locales/vi.json` — 同上，越南语：Lối tắt
+入口：`web/src/hooks/use-sidebar-data.ts`、`web/src/features/system-settings/maintenance/sidebar-modules-section.tsx`、`web/src/features/profile/components/sidebar-modules-card.tsx`。
