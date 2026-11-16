@@ -109,8 +109,30 @@ export function useUsersColumns(
     groupRatios,
   })
 
-  return useMemo(
-    () => [
+  return useMemo(() => {
+    const primaryColumns: ColumnDef<User>[] = []
+    const detailColumns: ColumnDef<User>[] = []
+
+    for (const column of sharedColumns) {
+      const columnId =
+        column.id ?? ('accessorKey' in column ? column.accessorKey : '')
+      if (
+        externalMode &&
+        ['created_at', 'monthly_common_model', 'role', 'status'].includes(
+          columnId
+        )
+      ) {
+        detailColumns.push(
+          columnId === 'created_at'
+            ? { ...column, size: 200, minSize: 200 }
+            : column
+        )
+      } else {
+        primaryColumns.push(column)
+      }
+    }
+
+    return [
       {
         id: 'select',
         header: ({ table }) => (
@@ -136,7 +158,7 @@ export function useUsersColumns(
         enableHiding: false,
         size: 40,
       } satisfies ColumnDef<User>,
-      ...sharedColumns,
+      ...primaryColumns,
       ...(externalMode
         ? [
             {
@@ -156,6 +178,7 @@ export function useUsersColumns(
             userSettlementModeColumn(t),
           ]
         : []),
+      ...detailColumns,
       {
         accessorKey: 'company',
         header: () => t('Company'),
@@ -168,7 +191,6 @@ export function useUsersColumns(
         cell: ({ row }) => <DataTableRowActions row={row} />,
         meta: { pinned: 'right' as const },
       } satisfies ColumnDef<User>,
-    ],
-    [sharedColumns, t, externalMode]
-  )
+    ]
+  }, [sharedColumns, t, externalMode])
 }

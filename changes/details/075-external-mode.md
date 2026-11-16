@@ -1,10 +1,10 @@
 # 对外模式：隐藏内部信息、限制分流分组可见性并调整用户统计范围
 
-**日期**: 2026-11-10
+**日期**: 2026-11-16
 
 ## 说明
 
-在系统设置 → 系统行为中提供“对外模式”开关。开启后，用户列表隐藏包含部门、岗位职级（自定义字段）与入职日期的“任职概况”列，后端清空相关内部信息。保存开关后刷新前端状态缓存，使已有的列隐藏逻辑及时生效，关闭后恢复显示。
+运行模式仅通过后端环境变量 `EXTERNAL_MODE` 配置：`true` 为对外，`false`、未设置或留空为对内，修改后重启后端生效。对外模式下，用户列表隐藏包含部门、岗位职级（自定义字段）与入职日期的“任职概况”列，后端清空相关内部信息。后台不再提供模式开关，旧数据库中的 `ExternalModeEnabled` 配置不再生效。
 
 对外模式下，除超级管理员外，数据看板的分流页面不显示分组列、分组切换入口或分组筛选项；`/api/data/flow` 与 `/api/data/flow/self` 响应省略 `use_group` 字段。前端按分组可见性区分查询缓存，过滤失效的选中项，并在可见列不足时仅恢复允许显示的列，避免重新展示分组。超级管理员保留分流分组功能，登录与刷新响应中的 `data.user.group` 保持不变。
 
@@ -12,15 +12,15 @@
 
 ## 涉及文件
 
-- `setting/operation_setting/operation_setting.go` — 新增 ExternalModeEnabled 全局变量
-- `model/option.go` — 注册 ExternalModeEnabled 配置的持久化与初始化
+- `setting/operation_setting/operation_setting.go` — 通过 EXTERNAL_MODE 初始化运行模式，校验环境变量取值
+- `model/option.go` — 不再注册或应用 ExternalModeEnabled 数据库配置，忽略旧配置并拒绝写入
 - `controller/misc.go` — 通过 /api/status 暴露 external_mode_enabled 状态
 - `controller/user.go` — 在 attachSubscriptionQuota 中按对外模式清空部门、岗位、入职日期等字段，并将用户统计和常用模型查询切换为全部时间；关闭后恢复当月
 - `web/src/features/auth/types.ts` — SystemStatus 类型新增 external_mode_enabled 字段
-- `web/src/features/system-settings/types.ts` — OperationsSettings 类型新增 ExternalModeEnabled 字段
-- `web/src/features/system-settings/general/system-behavior-section.tsx` — 对外模式开关 UI（label + 描述 + Switch）
-- `web/src/features/system-settings/operations/index.tsx` — 默认值新增 ExternalModeEnabled
-- `web/src/features/system-settings/operations/section-registry.tsx` — 行为配置传递 ExternalModeEnabled
+- `web/src/features/system-settings/types.ts` — 移除运行模式的数据库配置类型
+- `web/src/features/system-settings/general/system-behavior-section.tsx` — 移除对外模式开关及表单字段
+- `web/src/features/system-settings/operations/index.tsx` — 移除运行模式的设置默认值
+- `web/src/features/system-settings/operations/section-registry.tsx` — 移除运行模式的设置传递
 - `web/src/features/users/components/shared-user-columns.tsx` — 按对外模式排除任职概况列，并隐藏额度列“固定为当月”的说明
 - `web/src/features/users/components/users-table.tsx` — 查询缓存键包含对外模式状态，切换时重新获取列表且不沿用另一模式的占位数据
 - `web/src/hooks/use-external-mode.ts` — 新增 useExternalMode hook，从 status 读取对外模式状态
@@ -28,7 +28,7 @@
 - `controller/usedata.go` — 两个分流接口在对外模式下按请求者角色清空非超级管理员响应中的分组数据
 - `model/usedata_flow.go` — 分流响应的 use_group 增加空值省略标记，清空后不再序列化该字段
 - `web/src/features/dashboard/components/flow/flow-charts.tsx` — 按对外模式和角色移除分组展示与选择入口，隔离查询缓存并处理模式切换后的列和筛选状态
-- `web/src/features/system-settings/hooks/use-update-option.ts` — 保存对外模式开关后失效状态查询并清理持久化状态缓存
+- `web/src/features/system-settings/hooks/use-update-option.ts` — 移除运行模式数据库设置的状态刷新配置
 
 ## 2026-09-28 销售绑定与资料展示
 
@@ -84,3 +84,23 @@
 ### 验证状态
 
 `go build ./...`、前端 `bunx tsgo -b`、`bun run build`、修改文件的 lint 与格式检查均通过，未运行测试。当前缺少三库验证环境，新增字段在 SQLite、MySQL、PostgreSQL 上的新建及升级迁移兼容验证尚未完成。
+
+## 2026-11-16 用户表格列顺序与时间列宽调整
+
+对外用户表格的默认可见列顺序调整为：勾选框 → ID → 用户名 → 已用/总额 → 使用量 → 分组 → 销售 → 客户类型 → 结算方式 → 时间 → 常用模型 → 角色 → 状态 → 操作。时间列默认宽度由 260px 收窄至 200px，最小宽度由 240px 调整为 200px，减少右侧留白。公司列继续默认隐藏，对内模式保留原有列顺序与时间列宽。
+
+### 涉及文件
+
+- `web/src/features/users/components/users-columns.tsx` — 复用现有列定义，仅在对外模式下将时间、常用模型、角色和状态放在商业属性列之后，并将时间列默认及最小宽度设为 200px。
+
+## 2026-11-16 运行模式改为环境变量配置
+
+移除对外模式的后台开关、表单、类型及数据库配置注册与应用逻辑。`EXTERNAL_MODE=true` 启用对外模式，`false`、未设置或留空使用对内模式，非法值阻止后端启动。配置仅在启动时读取，前端继续通过 `/api/status` 获取生效模式。旧数据库配置被忽略，旧设置写入请求被拒绝，不删除数据库历史记录。
+
+### 涉及文件
+
+- `main.go`、`setting/operation_setting/operation_setting.go` — 在加载 .env 后、初始化数据库前校验并初始化运行模式。
+- `model/option.go` — 移除模式配置注册和生效分支，过滤旧配置并拒绝旧设置写入。
+- `.env.example`、`docker-compose.yml`、`docker-compose.dev.yml` — 补充 EXTERNAL_MODE 配置说明与容器环境变量透传，默认对内模式。
+- `web/src/features/system-settings/general/system-behavior-section.tsx`、`web/src/features/system-settings/types.ts`、`web/src/features/system-settings/operations/index.tsx`、`web/src/features/system-settings/operations/section-registry.tsx`、`web/src/features/system-settings/hooks/use-update-option.ts` — 移除后台模式开关及相关表单、配置和缓存刷新字段。
+- `web/src/i18n/locales/{en,zh,zh-TW,fr,ja,ru,vi}.json` — 清理已移除的后台模式开关说明。

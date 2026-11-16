@@ -1,10 +1,23 @@
 package operation_setting
 
-import "strings"
+import (
+	"errors"
+	"os"
+	"strings"
+)
 
 var DemoSiteEnabled = false
 var SelfUseModeEnabled = false
 var ExternalModeEnabled = false
+
+func InitExternalMode() error {
+	externalMode := strings.TrimSpace(os.Getenv("EXTERNAL_MODE"))
+	if externalMode != "" && externalMode != "true" && externalMode != "false" {
+		return errors.New("EXTERNAL_MODE must be true, false, or empty")
+	}
+	ExternalModeEnabled = externalMode == "true"
+	return nil
+}
 
 var AutomaticDisableKeywords = []string{
 	"Your credit balance is too low",

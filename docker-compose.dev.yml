@@ -30,6 +30,7 @@ services:
       - SQL_DSN=postgresql://root:123456@postgres:5432/ai-gateway
       - REDIS_CONN_STRING=redis://redis
       - TZ=Asia/Shanghai
+      - EXTERNAL_MODE=${EXTERNAL_MODE:-false}
       - BATCH_UPDATE_ENABLED=true
       - MODEL_SQUARE_AES_KEY=${MODEL_SQUARE_AES_KEY}
       # Local HTTP dev mode: keep Secure=false and leave TRUSTED_URL unset. This disables the refresh/logout OriginGuard so the :5173 -> :3000 dev proxy works.
