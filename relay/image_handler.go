@@ -172,7 +172,7 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (AIGatewayError *t
 			if errors.As(err, &apiErr) {
 				return apiErr
 			}
-			return types.NewError(err, types.ErrorCodeConvertRequestFailed)
+			return newConvertRequestFailedError(c, info, err)
 		}
 		relaycommon.AppendRequestConversionFromRequest(info, convertedRequest)
 
