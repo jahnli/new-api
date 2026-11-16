@@ -104,10 +104,6 @@ func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, 
 }
 
 func newLoginSession(userID int, authVersion int64, loginMethod, ip, userAgent string, oidc ...model.OIDCSessionBinding) (*model.UserSession, string, error) {
-	// Reject unfinished sign-in flows from the retired directory provider.
-	if strings.TrimSpace(loginMethod) == "ldap" {
-		return nil, "", ErrLoginSessionInvalid
-	}
 	refreshSecret, err := common.GenerateRandomCharsKey(64)
 	if err != nil {
 		return nil, "", err

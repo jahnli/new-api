@@ -2,7 +2,7 @@
 
 **日期**: 2026-11-16
 
-当前行为以末尾「2026-11-16：移除 LDAP 并迁移公司注册规则」为准；此前 LDAP 登录、目录同步、邮箱后缀与名单配置说明保留为历史记录。
+当前行为以末尾「2026-11-16：清理 LDAP 迁移与兼容代码」为准；此前 LDAP 登录、目录同步、邮箱后缀、名单配置及启动迁移说明保留为历史记录。
 
 ## 涉及文件
 
@@ -117,3 +117,23 @@
 在临时目录使用隔离数据库启动应用（`new-api.exe --port 39041 --log-dir <临时日志目录>`，`SQLITE_PATH` 指向隔离文件），应用 SQLite 版本为 3.50.4（modernc.org/sqlite v1.40.1），辅助 sqlite3 CLI 为 3.50.6。全新数据库启动与重启成功；合成旧配置后连续启动两次，确认注册字段及套餐保留、`ldap.*` 选项清零、公司 LDAP 登录方式移除、独立平台凭据和大整数原值保留，`/api/status` 成功且不再返回 LDAP 标志。
 
 当前环境缺少 MySQL、PostgreSQL 与 Docker，未完成这两种数据库的验证，也未验证由真实最新发布版本数据库升级的路径；上述 SQLite 合成数据验证不能替代完整三库兼容验证。此次日志整理仅复核提交差异并执行文档空白检查，未重新运行构建或测试。
+
+## 2026-11-16：清理 LDAP 迁移与兼容代码
+
+确认当前数据库的旧 LDAP 配置和待完成登录流程均已清空后，删除剩余 LDAP 专用迁移与拦截逻辑。应用启动不再迁移旧公司规则、删除旧配置或清理公司登录方式；恢复尚未迁移的旧数据库时，需要单独处理这些数据。
+
+OIDC 继续使用 `company_registration.configs`，公司匹配、显示名称映射及首次注册自动订阅逻辑保持不变。现有用户、订阅、历史会话和审计记录均保留，不因本次清理强制退出用户。
+
+### 涉及文件
+
+- `model/company_registration_migration.go` — 删除旧公司规则迁移、LDAP 配置删除及公司登录方式清理函数。
+- `main.go` — 删除启动迁移调用及不再使用的 `fmt` 导入。
+- `model/option.go` — 删除 `ldap.*` 配置写入拦截及内存配置过滤分支。
+- `service/auth_session.go` — 删除旧 LDAP 登录流程创建会话的专用拒绝分支。
+
+### 验证记录
+
+- `gofmt -w main.go model/option.go service/auth_session.go`、`go build ./...`、`git diff --check` 通过；未新增、修改或运行测试。
+- 通过 `python -` 执行临时数据库检查与清理，使用当前 `.env` 的主库连接，数据库版本为 PostgreSQL 18.6。事务内执行参数化 `DELETE FROM options WHERE lower(key) LIKE %s`，参数为 `ldap.%`，连续两次提交均删除 0 条；复查 LDAP 配置项、公司 LDAP 登录方式及 LDAP 认证流程均为 0。
+- `company_registration.configs` 的 3 条规则及公司配置保持不变；套餐 ID 1（Team）和 ID 2（Trial）均存在且启用，第 3 条规则不自动订阅。OIDC 已启用，相关配置及代码调用关系已复核，未实际创建账号验证。
+- 本次仅核验当前 PostgreSQL 数据库，未执行 SQLite、MySQL 或真实发布版本升级验证；不能据此宣称完整三库兼容验证通过。

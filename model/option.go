@@ -315,9 +315,6 @@ func SyncOptions(frequency int) {
 }
 
 func validateOptionValue(key string, value string) error {
-	if strings.HasPrefix(key, "ldap.") {
-		return fmt.Errorf("Invalid parameters")
-	}
 	if key == system_setting.CompanyRegistrationOptionKey {
 		_, err := system_setting.NormalizeCompanyRegistrationConfigsJSON(value)
 		return err
@@ -476,7 +473,7 @@ func UpdateOptionsBulk(values map[string]string) error {
 }
 
 func updateOptionMap(key string, value string) (err error) {
-	if key == retiredThemeOptionKey || key == legacyAccessTokenRetireAtKey || strings.HasPrefix(key, "ldap.") {
+	if key == retiredThemeOptionKey || key == legacyAccessTokenRetireAtKey {
 		common.OptionMapRWMutex.Lock()
 		delete(common.OptionMap, key)
 		common.OptionMapRWMutex.Unlock()
