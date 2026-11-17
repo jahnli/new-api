@@ -30,7 +30,6 @@ import {
   useDataTable,
   type DataTablePinnedColumn,
 } from '@/components/data-table'
-import { useMediaQuery } from '@/hooks'
 import { useExternalMode } from '@/hooks/use-external-mode'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import {
@@ -88,7 +87,6 @@ export function UsersTable() {
   const { t } = useTranslation()
   const externalMode = useExternalMode()
   const { refreshTrigger } = useUsers()
-  const isMobile = useMediaQuery('(max-width: 640px)')
 
   const { data: groupsResponse } = useQuery({
     queryKey: ['groups-with-ratios'],
@@ -120,9 +118,11 @@ export function UsersTable() {
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: {
-      pageSizeStorageKey: 'page-size:users',
+      pageSizeStorageKey: externalMode
+        ? 'page-size:users:external'
+        : 'page-size:users:internal',
       defaultPage: 1,
-      defaultPageSize: isMobile ? 10 : 20,
+      defaultPageSize: externalMode ? 100 : 10,
     },
     globalFilter: { enabled: true, key: 'filter' },
     columnFilters: [
