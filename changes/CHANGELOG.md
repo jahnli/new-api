@@ -66,7 +66,7 @@
 | 072 | 2026-10-20 | 渠道自动启停飞书通知及错误阈值告警，支持窗口、冷却与统计降级，提供错误日志和渠道跳转。 | [详情](details/072-feishu-channel-status-notify.md) |
 | 073 | 2026-09-03 | 渠道分组字段长度由 64 扩展至 1024 个字符，支持为单个渠道配置更多分组 | `model/channel.go` |
 | 074 | 2026-11-13 | 插件市场标题为 Official Plugins，来源仅显示名称，悬停查看 URL。 | [详情](details/074-task-plugin-official-title.md) |
-| 075 | 2026-11-16 | EXTERNAL_MODE 控制对外模式并裁剪内部资料和非超级管理员分流分组；统计全时段，支持多销售及客户/结算标签。 | [详情](details/075-external-mode.md) |
+| 075 | 2026-11-17 | EXTERNAL_MODE 控制对外模式并裁剪内部资料和非超级管理员分流分组；统计全时段，支持多销售及客户/结算标签；销售限 oidc_id 非空且 role 不为 100 的用户。 | [详情](details/075-external-mode.md) |
 | 076 | 2026-09-10 | 前端规范取消强制新增和运行测试的要求。 | `web/AGENTS.md` |
 | 077 | 2026-09-22 | 移除前端版本更新入口、发布查询、比较和状态管理。 | [详情](details/077-remove-system-update.md) |
 | 078 | 2026-11-13 | 渠道创建/编辑统一居中弹框，高级自定义渠道使用独立图标，移除推荐注册链接。 | [详情](details/078-channel-mutate-dialog.md) |

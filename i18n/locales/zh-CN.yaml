@@ -106,7 +106,7 @@ user.register_disabled: "管理员关闭了新用户注册"
 user.not_exists: "用户不存在"
 user.email_already_taken: "邮箱地址已被占用"
 user.no_permission_higher_level: "无权更新同权限等级或更高权限等级的用户信息"
-user.invalid_sales_user: "请选择存在且角色为销售（role = 2）的用户，或解除绑定"
+user.invalid_sales_user: "请选择已绑定 OIDC 账号且不是超级管理员的现有用户，或解除绑定"
 oauth.bind_success: "绑定成功"
 
 request_notice.non_work_title: "非工作内容通知"

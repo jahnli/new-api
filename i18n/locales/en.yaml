@@ -105,7 +105,7 @@ user.register_disabled: "New user registration has been disabled by administrato
 user.not_exists: "User does not exist"
 user.email_already_taken: "Email address is already in use"
 user.no_permission_higher_level: "No permission to update users of same or higher permission level"
-user.invalid_sales_user: "Select an existing sales user (role = 2) or clear the assignment"
+user.invalid_sales_user: "Select an existing user with a linked OIDC account who is not a super administrator, or clear the assignment"
 oauth.bind_success: "Binding successful"
 
 request_notice.non_work_title: "Non-work content notification"

@@ -25,7 +25,7 @@ type SalesUser struct {
 func GetSalesUsers() ([]SalesUser, error) {
 	users := make([]SalesUser, 0)
 	err := DB.Model(&User{}).Select("id", "username", "display_name").
-		Where("role = ?", common.RoleBUBP).Order("id ASC").Find(&users).Error
+		Where("oidc_id <> ? AND role <> ?", "", common.RoleRootUser).Order("id ASC").Find(&users).Error
 	return users, err
 }
 
@@ -65,7 +65,7 @@ func LoadUserSales(users []*User) error {
 	for start := 0; start < len(ids); start += 500 {
 		var batch []SalesUser
 		if err := DB.Model(&User{}).Select("id", "username", "display_name", "avatar_url", "role", "email", "mobile", "job_number", "description", "background_image", "company", "gender", "open_id").
-			Where("id IN ? AND role = ?", ids[start:min(start+500, len(ids))], common.RoleBUBP).
+			Where("id IN ? AND oidc_id <> ? AND role <> ?", ids[start:min(start+500, len(ids))], "", common.RoleRootUser).
 			Find(&batch).Error; err != nil {
 			return err
 		}

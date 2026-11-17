@@ -1012,10 +1012,10 @@ func UpdateUser(c *gin.Context) {
 		for start := 0; start < len(salesUserIDs); start += 500 {
 			batch := salesUserIDs[start:min(start+500, len(salesUserIDs))]
 			var count int64
-			if err := tx.Model(&model.User{}).Where("id IN ? AND role = ?", batch, common.RoleBUBP).Count(&count).Error; err != nil {
+			if err := tx.Model(&model.User{}).Where("id IN ? AND oidc_id <> ? AND role <> ?", batch, "", common.RoleRootUser).Count(&count).Error; err != nil {
 				return err
 			}
-			if count != int64(len(batch)) || (slices.Contains(batch, updatedUser.Id) && updatedUser.Role != common.RoleBUBP) {
+			if count != int64(len(batch)) || (slices.Contains(batch, updatedUser.Id) && updatedUser.Role == common.RoleRootUser) {
 				return invalidSalesUser
 			}
 		}
