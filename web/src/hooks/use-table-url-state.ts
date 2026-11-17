@@ -11,7 +11,9 @@ type SearchRecord = Record<string, unknown>
 // one table does not change the initial page size of another table.
 const DEFAULT_PAGE_SIZE_STORAGE_KEY = 'page-size'
 
-function getStoredPageSize(storageKey: string): number | undefined {
+function getStoredPageSize(storageKey: string | false): number | undefined {
+  if (storageKey === false) return undefined
+
   try {
     const pageSize = Number.parseInt(localStorage.getItem(storageKey) ?? '', 10)
     return pageSize > 0 ? pageSize : undefined // pageSize > 0 also rejects NaN
@@ -20,7 +22,9 @@ function getStoredPageSize(storageKey: string): number | undefined {
   }
 }
 
-function setStoredPageSize(storageKey: string, pageSize: number) {
+function setStoredPageSize(storageKey: string | false, pageSize: number) {
+  if (storageKey === false) return
+
   try {
     localStorage.setItem(storageKey, String(pageSize))
   } catch {
@@ -43,7 +47,7 @@ type UseTableUrlStateParams = {
     mode?: 'url' | 'memory'
     pageKey?: string
     pageSizeKey?: string
-    pageSizeStorageKey?: string
+    pageSizeStorageKey?: string | false
     defaultPage?: number
     defaultPageSize?: number
   }

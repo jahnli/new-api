@@ -118,9 +118,7 @@ export function UsersTable() {
     search: route.useSearch(),
     navigate: route.useNavigate(),
     pagination: {
-      pageSizeStorageKey: externalMode
-        ? 'page-size:users:external'
-        : 'page-size:users:internal',
+      pageSizeStorageKey: false,
       defaultPage: 1,
       defaultPageSize: externalMode ? 100 : 10,
     },

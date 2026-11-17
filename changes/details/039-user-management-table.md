@@ -7,7 +7,7 @@
 - 用户列表及搜索返回有效订阅、统计用量、常用模型与启用／禁用人数；人数遵循筛选条件并排除已删除及其他状态。对内统计当前自然月，对外统计全部时间，详见 [对外模式](075-external-mode.md)。
 - 有效订阅使用其已用／总额；无订阅按统计期消耗加钱包余额计算总额。显式订阅状态避免查询失败被误判，无效分母不绘制进度。
 - 共享“使用量”列展示 Token、费用、请求次数和每亿 Token 单价，列头可切换四项服务端排序；默认按创建时间降序，排序或筛选变化重置分页，行 ID 使用用户 ID 保持跨页选择稳定。
-- 用户列表对内默认每页 10 条、对外 100 条，桌面与移动端一致；每页数量优先使用 URL 参数，其次读取当前模式的本地偏好，最后使用默认值。偏好分别保存为 `page-size:users:internal` 与 `page-size:users:external`，不再读取旧 `page-size:users` 偏好。
+- 用户列表对内默认每页 10 条、对外 100 条，桌面与移动端一致；每页数量优先使用 URL 参数，没有参数时使用当前模式的默认值。调整分页只更新 URL，不读写 `localStorage`，已有本地分页偏好不再生效。
 - “任职概况”合并部门、职级和入职日期，时间列按最后登录／创建时间排列；角色、状态使用列头单选筛选，公司选项来自服务端去重列表。分组展示基础倍率，加载失败仅显示名称。
 - 用户管理与部门人员列表共享列、资料卡和分析入口，保留溢出提示、空值及演示脱敏行为。
 
@@ -32,7 +32,8 @@
 ## 实现入口
 
 - `controller/user.go`、`model/user.go`、`model/log.go`、`common/page_info.go` — 统计、筛选、排序、成本中心与分组事务。
-- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`、`web/src/features/users/components/users-mutate-drawer.tsx` — 共享列、按模式设置默认分页及隔离每页数量偏好、选择与编辑。
+- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`、`web/src/features/users/components/users-mutate-drawer.tsx` — 共享列、按模式设置默认分页并禁用分页本地存储、选择与编辑。
+- `web/src/hooks/use-table-url-state.ts` — 支持通过 `pageSizeStorageKey: false` 关闭每页数量的本地存储读写。
 - `web/src/features/users/hooks/use-bulk-user-actions.ts`、`web/src/features/users/components/users-delete-dialog.tsx` — 批量与删除。
 - `web/src/components/text-tooltip.tsx`、`web/src/components/description-tooltip.tsx`、`web/src/hooks/use-overflow.ts` — 提示及共享溢出观察。
 - `web/src/components/data-table/core/column-header.tsx`、`web/src/components/data-table/core/column-filter-header.tsx` — 多排序字段与列头筛选。

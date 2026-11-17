@@ -33,7 +33,7 @@
 | 036 | 2026-06-24 | 公告弹窗宽度扩大至 36rem。 | `web/src/components/notification-popover.tsx` |
 | 037 | 2026-10-14 | 按公司更新当前生效的同套餐订阅，保留已用且不新增；支持分类额度调整、高级模型限额及幂等预扣、结算与退款。 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧栏各分组默认展开，支持 NavCollapsible.defaultOpen。 | `web/src/components/layout/types.ts`、`web/src/components/layout/components/nav-group.tsx`、`web/src/components/layout/config/system-settings.config.ts` |
-| 039 | 2026-11-18 | 用户统计、成本中心与分组联动，支持跨页批量操作及删除验证；共享列头筛选与悬停提示，用户列表对内默认每页 10 条、对外 100 条，分页偏好按模式独立保存。 | [详情](details/039-user-management-table.md) |
+| 039 | 2026-11-18 | 用户统计、成本中心与分组联动，支持跨页批量操作及删除验证；共享列头筛选与悬停提示，用户列表对内默认每页 10 条、对外 100 条，分页仅使用 URL 参数与默认值。 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日期范围提供 13 项预设，周范围固定周一至周日。 | [详情](details/040-date-picker-presets.md) |
 | 041 | 2026-11-09 | 员工资料使用五个独立字段，旧 JSON 列保留但不再读写；OIDC 仅首次注册填充，对外裁剪内部字段。 | [详情](details/041-feishu-field-refactor.md) |
 | 042 | 2026-11-09 | 共享用户资料卡按独立字段展示任职信息；手机号、生日、民族、探亲地仅超级管理员可见。 | [详情](details/042-user-profile-hover-card.md) |
@@ -60,7 +60,7 @@
 | 063 | 2026-07-06 | 本地访问限流默认关闭：全局 API/Web、关键接口和搜索限流默认禁用 | `common/init.go` |
 | 064 | 2026-09-14 | 周报按历史计费快照汇总 Token、费用和 Top 5 模型；缓存写入计入输入及命中率分母。 | [详情](details/064-weekly-stats-script.md) |
 | 065 | 2026-08-04 | 演示模式遮罩身份、价格、渠道及模型敏感信息，停止资料和请求内容加载，保存时保留其他设置。 | [详情](details/065-user-demo-mode.md) |
-| 067 | 2026-09-30 | 用户、密钥和各日志分页独立；模型/供应商/部署/渠道改用内存分页，刷新恢复默认。 | [详情](details/067-pagination-isolation.md) |
+| 067 | 2026-11-18 | 用户列表分页仅使用 URL 参数与默认值，密钥和各日志分页独立；模型/供应商/部署/渠道使用内存分页，刷新恢复默认。 | [详情](details/067-pagination-isolation.md) |
 | 068 | 2026-08-10 | 图片审计从消费日志补充实际渠道，身份和渠道复用日志展示，耗时独立列。 | [详情](details/068-image-audit-channel-column.md) |
 | 069 | 2026-08-21 | BP 可见范围由 overview_dept_ids 显式配置，最多 100 部门，父节点含子树且支持跨公司；旧 bp_level 不自动转换。 | [详情](details/069-bp-level-overview.md) |
 | 072 | 2026-10-20 | 渠道自动启停飞书通知及错误阈值告警，支持窗口、冷却与统计降级，提供错误日志和渠道跳转。 | [详情](details/072-feishu-channel-status-notify.md) |
