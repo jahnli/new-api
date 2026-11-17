@@ -79,7 +79,7 @@ import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 import { accountPasswordSchema } from '@/lib/password-policy'
-import { ROLE } from '@/lib/roles'
+import { ROLE, getRoleLabelKey } from '@/lib/roles'
 import { AuthOperationError } from '@/lib/secure-verification'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
@@ -129,6 +129,7 @@ export function UsersMutateDrawer({
   const { t } = useTranslation()
   const isUpdate = !!currentRow
   const externalMode = useExternalMode()
+  const bpRoleLabel = t(getRoleLabelKey(ROLE.BU_BP, externalMode))
   const { triggerRefresh, requestVerification } = useUsers()
   const currentUser = useAuthStore((s) => s.auth.user)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -394,7 +395,7 @@ export function UsersMutateDrawer({
                       <Select
                         items={[
                           { value: '1', label: t('Common User') },
-                          { value: '2', label: t('BP') },
+                          { value: '2', label: bpRoleLabel },
                           { value: '10', label: t('Admin') },
                         ]}
                         onValueChange={(value) =>
@@ -416,7 +417,7 @@ export function UsersMutateDrawer({
                             <SelectItem value='1'>
                               {t('Common User')}
                             </SelectItem>
-                            <SelectItem value='2'>{t('BP')}</SelectItem>
+                            <SelectItem value='2'>{bpRoleLabel}</SelectItem>
                             <SelectItem value='10'>{t('Admin')}</SelectItem>
                           </SelectGroup>
                         </SelectContent>
@@ -508,7 +509,8 @@ export function UsersMutateDrawer({
                         </FormControl>
                         <FormDescription>
                           {t(
-                            'Select which departments this BP user can access in Data Overview. Selecting a department grants access to all its sub-departments.'
+                            'Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.',
+                            { role: bpRoleLabel }
                           )}
                         </FormDescription>
                         <FormMessage />

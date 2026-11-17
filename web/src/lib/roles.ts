@@ -28,12 +28,13 @@ const ROLE_ICONS: Record<RoleValue, string> = {
   [ROLE.GUEST]: '👁️',
 }
 
-export function getRoleLabelKey(role?: number): string {
+export function getRoleLabelKey(role?: number, externalMode = false): string {
+  if (externalMode && role === ROLE.BU_BP) return 'Sales'
   return ROLE_LABEL_KEYS[role as RoleValue] ?? ROLE_LABEL_KEYS[DEFAULT_ROLE]
 }
 
-export function getRoleLabel(role?: number): string {
-  return t(getRoleLabelKey(role))
+export function getRoleLabel(role?: number, externalMode = false): string {
+  return t(getRoleLabelKey(role, externalMode))
 }
 
 export function getRoleIcon(role?: number): string {

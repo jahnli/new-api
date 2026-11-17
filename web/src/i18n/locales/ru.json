@@ -6740,6 +6740,7 @@
     "Select vendor": "Выбрать поставщика",
     "Select version": "Выбрать версию",
     "Select visible departments": "Выберите видимые отделы",
+    "Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Выберите отделы, к которым пользователь с ролью «{{role}}» может получить доступ в обзоре данных. Выбор отдела также открывает доступ ко всем его подразделениям.",
     "Select which departments this BP user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Выберите отделы, к которым пользователь BP может получить доступ в обзоре данных. Выбор отдела также открывает доступ ко всем его подразделениям.",
     "Selectable groups": "Выбираемые группы",
     "selected": "выбрано",

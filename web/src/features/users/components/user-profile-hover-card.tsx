@@ -13,7 +13,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useExternalMode } from '@/hooks/use-external-mode'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
+import { getRoleLabelKey } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { USER_ROLE, USER_ROLES } from '../constants'
@@ -72,6 +74,7 @@ const ROLE_TOOLTIP_LABELS: Partial<Record<number, string>> = {
 
 export function UserProfileHoverCard(props: UserProfileHoverCardProps) {
   const { t } = useTranslation()
+  const externalMode = useExternalMode()
   const { user } = props
 
   const primaryName = user.display_name || user.username
@@ -84,7 +87,10 @@ export function UserProfileHoverCard(props: UserProfileHoverCardProps) {
     user.gender === 2 ? 'shrink-0 text-pink-500' : 'shrink-0 text-sky-500'
   const RoleIcon = roleConfig?.icon
   const genderLabel = user.gender === 2 ? '女' : '男'
-  const roleLabel = ROLE_TOOLTIP_LABELS[user.role]
+  const roleLabel =
+    user.role === USER_ROLE.BU_BP
+      ? t(getRoleLabelKey(user.role, externalMode))
+      : ROLE_TOOLTIP_LABELS[user.role]
   const isRoot = useAuthStore((s) => s.auth.user?.role) === USER_ROLE.ROOT
 
   const bannerStyle: React.CSSProperties = user.background_image

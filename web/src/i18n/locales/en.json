@@ -6740,6 +6740,7 @@
     "Select vendor": "Select vendor",
     "Select version": "Select version",
     "Select visible departments": "Select visible departments",
+    "Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.",
     "Select which departments this BP user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Select which departments this BP user can access in Data Overview. Selecting a department grants access to all its sub-departments.",
     "Selectable groups": "Selectable groups",
     "selected": "selected",

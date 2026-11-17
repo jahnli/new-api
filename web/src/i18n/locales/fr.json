@@ -6740,6 +6740,7 @@
     "Select vendor": "Sélectionner le fournisseur",
     "Select version": "Choisir une version",
     "Select visible departments": "Sélectionner les départements visibles",
+    "Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Sélectionnez les départements auxquels cet utilisateur ayant le rôle « {{role}} » peut accéder dans la vue d’ensemble. La sélection d’un département inclut tous ses sous-départements.",
     "Select which departments this BP user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Sélectionnez les départements auxquels cet utilisateur BP peut accéder dans la vue d’ensemble. La sélection d’un département inclut tous ses sous-départements.",
     "Selectable groups": "Groupes sélectionnables",
     "selected": "sélectionné",

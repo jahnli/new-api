@@ -29,6 +29,7 @@ import { CHANNEL_STATUS } from '@/features/channels/constants'
 import { channelsQueryKeys } from '@/features/channels/lib/channel-actions'
 import { getGroups } from '@/features/users/api'
 import { useMediaQuery } from '@/hooks'
+import { useExternalMode } from '@/hooks/use-external-mode'
 import { getUserGroups, getUserModels } from '@/lib/api'
 import { ROLE, getRoleLabelKey } from '@/lib/roles'
 import { requireServerSuccess } from '@/lib/server-error-message'
@@ -133,6 +134,7 @@ export function CommonLogsFilterBar<TData>(
   props: CommonLogsFilterBarProps<TData>
 ) {
   const { t } = useTranslation()
+  const externalMode = useExternalMode()
   const isMobile = useMediaQuery('(max-width: 640px)')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -277,9 +279,9 @@ export function CommonLogsFilterBar<TData>(
     () =>
       USER_CATEGORY_ROLE_VALUES.map((role) => ({
         value: `role:${role}`,
-        label: t(getRoleLabelKey(role)),
+        label: t(getRoleLabelKey(role, externalMode)),
       })),
-    [t]
+    [t, externalMode]
   )
   const exportSearchParams = useMemo(
     () => ({

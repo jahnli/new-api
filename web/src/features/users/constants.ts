@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 
 import type { StatusVariant } from '@/components/status-badge'
+import { getRoleLabelKey } from '@/lib/roles'
 
 import type {
   User as UserType,
@@ -95,9 +96,16 @@ export const USER_ROLES = {
   },
 } as const
 
-export const getUserRoleOptions = (t: (key: string) => string) => [
+export const getUserRoleOptions = (
+  t: (key: string) => string,
+  externalMode = false
+) => [
   { label: t('User'), value: String(USER_ROLE.USER), icon: User },
-  { label: t('BP'), value: String(USER_ROLE.BU_BP), icon: Building2 },
+  {
+    label: t(getRoleLabelKey(USER_ROLE.BU_BP, externalMode)),
+    value: String(USER_ROLE.BU_BP),
+    icon: Building2,
+  },
   { label: t('Admin'), value: String(USER_ROLE.ADMIN), icon: Users },
   { label: t('Root'), value: String(USER_ROLE.ROOT), icon: Shield },
 ]

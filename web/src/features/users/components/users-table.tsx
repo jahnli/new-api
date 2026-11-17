@@ -321,7 +321,7 @@ export function UsersTable() {
           {
             columnId: 'role',
             title: t('Role'),
-            options: getUserRoleOptions(t),
+            options: getUserRoleOptions(t, externalMode),
             singleSelect: true,
           },
           {

@@ -10,6 +10,7 @@
 
 ## 销售与商业属性
 
+- 对外模式下 BP（`role=2`）统一显示为“销售”，覆盖用户列表、角色筛选、创建与编辑、资料悬浮卡、顶部用户菜单、移动端抽屉、个人资料及挂绳卡片、使用日志角色筛选；部门可见范围说明随角色名称切换，支持七种语言。对内仍显示 BP，角色值、权限和销售候选条件不变。
 - 仅对外模式可修改销售绑定，支持多个销售、搜索、逐项移除和清空；销售候选须满足 users 表中 oidc_id 非空且 role 不为 100，不再限于 BP。未修改则保留原值，读取和请求兼容旧单销售。
 - 候选列表、保存校验及资料加载统一采用上述条件；后端校验正整数和用户存在，去重并在事务内保存和记录前后编号；资料批量加载且按绑定顺序展示。已删除或不再满足销售条件的账号不展示资料，编辑保留失效编号供移除。
 - 用户列表展示全部有效销售，子部门统计仍取代表用户的全部销售；共用头像、手机号、资料卡和演示遮罩，不表示汇总部门所有员工的销售。
@@ -23,5 +24,12 @@
 - `i18n/locales/en.yaml`、`i18n/locales/zh-CN.yaml`、`i18n/locales/zh-TW.yaml`：销售绑定错误提示同步说明 OIDC 绑定及非超级管理员条件。
 - `controller/usedata.go`、`model/usedata_flow.go`：Flow 分组裁剪。
 - `web/src/hooks/use-external-mode.ts`、`web/src/features/users/`、`web/src/features/dashboard/components/flow/`：模式、列表和编辑。
+- `web/src/lib/roles.ts`、`web/src/features/users/constants.ts`：按模式生成 BP 角色名称和筛选选项。
+- `web/src/hooks/use-user-display.ts`：顶部菜单和移动端抽屉订阅模式变化并更新角色名称。
+- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`：共享角色列及筛选随模式展示“销售”或 BP。
+- `web/src/features/users/components/users-mutate-drawer.tsx`、`web/src/features/users/components/user-profile-hover-card.tsx`：角色选择、部门说明及资料卡提示使用模式对应名称。
+- `web/src/features/profile/components/profile-header.tsx`、`web/src/features/profile/components/profile-lanyard.tsx`：个人资料徽标和挂绳卡片使用模式对应名称。
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx`：使用日志角色筛选同步名称。
+- `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json`：新增带角色名称占位符的部门范围说明，复用现有“销售”翻译。
 
 原记录未完成销售/商业字段的三库新建与升级矩阵。2026-11-17 销售条件调整已通过 `go build ./...` 与 `git diff --check`，按仓库要求未运行测试；本机未发现 MySQL、PostgreSQL 或 Docker 工具，三库运行验证仍未完成。

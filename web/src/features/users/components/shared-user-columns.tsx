@@ -48,6 +48,7 @@ import { useDemoMode } from '@/hooks/use-demo-mode'
 import { useExternalMode } from '@/hooks/use-external-mode'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatQuota } from '@/lib/format'
+import { ROLE, getRoleLabelKey } from '@/lib/roles'
 import { calculateUnitPricePer100MTokens } from '@/lib/unit-price'
 import { cn } from '@/lib/utils'
 
@@ -468,7 +469,8 @@ export function userActivityTimeColumn<T extends UserColumnRow>(
 }
 
 function userRoleColumn<T extends UserColumnRow>(
-  t: (key: string) => string
+  t: (key: string) => string,
+  externalMode: boolean
 ): ColumnDef<T> {
   return {
     accessorKey: 'role',
@@ -476,7 +478,7 @@ function userRoleColumn<T extends UserColumnRow>(
       <DataTableColumnHeaderFilter
         column={column}
         label={t('Role')}
-        options={getUserRoleOptions(t)}
+        options={getUserRoleOptions(t, externalMode)}
       />
     ),
     cell: ({ row }) => {
@@ -488,7 +490,13 @@ function userRoleColumn<T extends UserColumnRow>(
           {roleConfig.icon && (
             <roleConfig.icon size={16} className='text-muted-foreground' />
           )}
-          <span className='text-sm'>{t(roleConfig.labelKey)}</span>
+          <span className='text-sm'>
+            {t(
+              roleValue === ROLE.BU_BP
+                ? getRoleLabelKey(roleValue, externalMode)
+                : roleConfig.labelKey
+            )}
+          </span>
         </div>
       )
     },
@@ -627,7 +635,7 @@ export function useSharedUserColumns<T extends UserColumnRow>(
     columns.push(userActivityTimeColumn<T>(t))
     columns.push(userModelColumn<T>(t, { accessor: opts.modelAccessor }))
     columns.push({
-      ...userRoleColumn<T>(t),
+      ...userRoleColumn<T>(t, externalMode),
       filterFn: matchesSelectedFilterValues,
     })
 

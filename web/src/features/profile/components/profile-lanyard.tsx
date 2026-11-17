@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useExternalMode } from '@/hooks/use-external-mode'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { getUserAvatarFallback } from '@/lib/avatar'
 import { getRoleLabel } from '@/lib/roles'
@@ -38,6 +39,7 @@ class LanyardBoundary extends Component<
 
 export function ProfileLanyard(props: { profile: UserProfile }) {
   const { t } = useTranslation()
+  const externalMode = useExternalMode()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const [unavailable, setUnavailable] = useState(false)
   const [ready, setReady] = useState(false)
@@ -77,7 +79,7 @@ export function ProfileLanyard(props: { profile: UserProfile }) {
   const name = getDisplayName(props.profile)
   const username = props.profile.username
   const initials = getUserAvatarFallback(username || name)
-  const role = getRoleLabel(props.profile.role)
+  const role = getRoleLabel(props.profile.role, externalMode)
   const userId = `${t('User ID')} ${props.profile.id}`
   const placeholderTexture = useMemo(() => {
     if (avatarUrl && failedAvatarUrl !== avatarUrl) return undefined

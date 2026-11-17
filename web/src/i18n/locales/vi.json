@@ -6740,6 +6740,7 @@
     "Select vendor": "Chọn nhà cung cấp",
     "Select version": "Chọn phiên bản",
     "Select visible departments": "Chọn phòng ban được hiển thị",
+    "Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Chọn các phòng ban mà người dùng có vai trò {{role}} này có thể truy cập trong Tổng quan dữ liệu. Chọn một phòng ban sẽ bao gồm tất cả phòng ban con của phòng ban đó.",
     "Select which departments this BP user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "Chọn các phòng ban mà người dùng BP có thể truy cập trong Tổng quan dữ liệu. Chọn một phòng ban sẽ bao gồm tất cả phòng ban con của phòng ban đó.",
     "Selectable groups": "Nhóm có thể chọn",
     "selected": "đã chọn",

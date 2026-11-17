@@ -6740,6 +6740,7 @@
     "Select vendor": "选择供应商",
     "Select version": "选择版本",
     "Select visible departments": "选择可见部门",
+    "Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "选择该{{role}}用户在数据总览中可以访问的部门。选择一个部门后，将自动包含其所有子部门。",
     "Select which departments this BP user can access in Data Overview. Selecting a department grants access to all its sub-departments.": "选择该 BP 用户在数据总览中可以访问的部门。选择一个部门后，将自动包含其所有子部门。",
     "Selectable groups": "可选分组",
     "selected": "已选择",

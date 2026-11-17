@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useExternalMode } from '@/hooks/use-external-mode'
 import { formatQuota, formatRequestCount } from '@/lib/format'
 import { getRoleLabel } from '@/lib/roles'
 
@@ -23,6 +24,7 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
   const { t } = useTranslation()
+  const externalMode = useExternalMode()
 
   if (loading) {
     return (
@@ -52,7 +54,7 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
   if (!profile) return null
 
   const displayName = getDisplayName(profile)
-  const roleLabel = getRoleLabel(profile.role)
+  const roleLabel = getRoleLabel(profile.role, externalMode)
   const stats: {
     label: string
     value: string

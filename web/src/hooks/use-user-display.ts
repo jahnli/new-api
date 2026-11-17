@@ -4,12 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { getRoleIcon, getRoleLabel } from '@/lib/roles'
 import type { AuthUser } from '@/stores/auth-store'
 
+import { useExternalMode } from './use-external-mode'
+
 /**
  * Custom hook to format user display information
  * Centralizes user display logic used across ProfileDropdown and MobileDrawer
  */
 export function useUserDisplay(user: AuthUser | null | undefined) {
   const { t } = useTranslation()
+  const externalMode = useExternalMode()
   return useMemo(() => {
     if (!user) {
       return {
@@ -42,7 +45,7 @@ export function useUserDisplay(user: AuthUser | null | undefined) {
       .slice(0, 2)
 
     // Get role label and icon
-    const roleLabel = getRoleLabel(user.role)
+    const roleLabel = getRoleLabel(user.role, externalMode)
     const roleIcon = getRoleIcon(user.role)
 
     return {
@@ -52,5 +55,5 @@ export function useUserDisplay(user: AuthUser | null | undefined) {
       roleLabel,
       roleIcon,
     }
-  }, [user, t])
+  }, [user, t, externalMode])
 }
