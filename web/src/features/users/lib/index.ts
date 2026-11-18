@@ -12,6 +12,7 @@ export {
   type CostCenterSelection,
   getCostCenterDepartmentPath,
   USER_FORM_DEFAULT_VALUES,
+  requiresUserUpdateVerification,
   transformFormDataToPayload,
   transformUserToFormDefaults,
 } from './user-form'

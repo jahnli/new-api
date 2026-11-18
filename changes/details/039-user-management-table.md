@@ -11,6 +11,11 @@
 - “任职概况”合并部门、职级和入职日期，时间列按最后登录／创建时间排列；角色、状态使用列头单选筛选，公司选项来自服务端去重列表。分组展示基础倍率，加载失败仅显示名称。
 - 用户管理与部门人员列表共享列、资料卡和分析入口，保留溢出提示、空值及演示脱敏行为。
 
+## 创建与编辑用户
+
+- 桌面弹窗左栏显示账户字段，右栏显示角色、成本中心等扩展字段，中间的竖线延伸至较高一栏的底部。窄屏按相同顺序上下排列，以横线分隔。两栏共用表单校验和保存操作。
+- 角色和成本中心省略字段下方的说明文字。选中 BP（对外称“销售”）后可配置数据总览可见部门。对外模式下，客户类型直接接在部门相关字段之后，付费客户可选结算方式，编辑已有用户时可绑定销售。分组选择器在左栏显示基础倍率。
+
 ## 成本中心与分组
 
 - 可配置一个成本中心，以单元素部门 JSON 数组保存并校验公司 ID、部门 ID 和名称，不允许公司根节点；支持回填和清除，完整路径不含公司名。
@@ -32,7 +37,9 @@
 ## 实现入口
 
 - `controller/user.go`、`model/user.go`、`model/log.go`、`common/page_info.go` — 统计、筛选、排序、成本中心与分组事务。
-- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`、`web/src/features/users/components/users-mutate-drawer.tsx` — 共享列、按模式设置默认分页并禁用分页本地存储、选择与编辑。
+- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx` — 共享列、跨页选择与分模式分页。
+- `web/src/features/users/components/users-mutate-drawer.tsx` 统一加载和保存表单。`user-account-fields.tsx` 与 `user-extension-fields.tsx` 分别渲染账户和扩展字段，`user-group-field.tsx` 负责分组选择及倍率展示，三个组件均位于同目录。
+- `web/src/features/users/lib/user-form.ts` 合并两组校验规则、默认值与提交参数。`user-account-form.ts` 保留基础账户转换，`user-form-extensions.ts` 处理成本中心、可见部门、角色和对外运营属性的回填与提交，兼容旧单销售数据。
 - `web/src/hooks/use-table-url-state.ts` — 支持通过 `pageSizeStorageKey: false` 关闭每页数量的本地存储读写。
 - `web/src/features/users/hooks/use-bulk-user-actions.ts`、`web/src/features/users/components/users-delete-dialog.tsx` — 批量与删除。
 - `web/src/components/text-tooltip.tsx`、`web/src/components/description-tooltip.tsx`、`web/src/hooks/use-overflow.ts` — 提示及共享溢出观察。

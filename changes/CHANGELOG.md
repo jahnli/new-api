@@ -33,7 +33,7 @@
 | 036 | 2026-06-24 | 公告弹窗宽度扩大至 36rem。 | `web/src/components/notification-popover.tsx` |
 | 037 | 2026-10-14 | 按公司更新当前生效的同套餐订阅，保留已用且不新增；支持分类额度调整、高级模型限额及幂等预扣、结算与退款。 | [详情](details/037-subscribe-all-users.md) |
 | 038 | 2026-06-24 | 系统设置侧栏各分组默认展开，支持 NavCollapsible.defaultOpen。 | `web/src/components/layout/types.ts`、`web/src/components/layout/components/nav-group.tsx`、`web/src/components/layout/config/system-settings.config.ts` |
-| 039 | 2026-11-18 | 用户统计、成本中心与分组联动，支持跨页批量操作及删除验证；共享列头筛选与悬停提示，用户列表对内默认每页 10 条、对外 100 条，分页仅使用 URL 参数与默认值。 | [详情](details/039-user-management-table.md) |
+| 039 | 2026-11-18 | 创建和编辑用户时，账户与扩展字段在桌面分栏、窄屏上下排列，统一保存。用户统计、成本中心与分组联动，支持跨页批量操作及删除验证；共享列头筛选与悬停提示，用户列表对内默认每页 10 条、对外 100 条，分页仅使用 URL 参数与默认值。 | [详情](details/039-user-management-table.md) |
 | 040 | 2026-07-17 | 日期范围提供 13 项预设，周范围固定周一至周日。 | [详情](details/040-date-picker-presets.md) |
 | 041 | 2026-11-09 | 员工资料使用五个独立字段，旧 JSON 列保留但不再读写；OIDC 仅首次注册填充，对外裁剪内部字段。 | [详情](details/041-feishu-field-refactor.md) |
 | 042 | 2026-11-09 | 共享用户资料卡按独立字段展示任职信息；手机号、生日、民族、探亲地仅超级管理员可见。 | [详情](details/042-user-profile-hover-card.md) |
