@@ -8,7 +8,7 @@
 - 头像、显示名/用户名、资料卡及飞书跳转复用共享身份组件，演示模式遮蔽真实身份并停止详情请求。任务详情同步真实头像，插件作者与安全链接置于悬停提示。
 - 使用与审计保存原始 User-Agent，最多 512 个 Unicode 字符；新审计只写顶层字段，旧重复元数据兼容读取，错误日志同步记录客户端信息，仅影响新记录。
 - 普通日志支持时间、类型、角色、用户、分组、渠道、请求及上游请求 ID 筛选。模型可多选或自定义，逗号多值作 OR 匹配；渠道可搜索下拉，启用、优先级及权重排序，后端兼容 ID 精确和名称不区分大小写包含匹配。
-- 渠道位于主筛选，请求 ID 位于默认收起的高级筛选；保留手动展开，不显示条件数徽章。日志类型分页独立，默认每页 10 条，详情固定右侧。
+- 渠道位于主筛选，请求 ID 位于默认收起的高级筛选；保留手动展开，不显示条件数徽章。普通日志中，管理员的「全部 / 仅自己」切换位于桌面筛选栏顶部右侧，紧邻「展开 / 收起」按钮，收起高级筛选时仍可切换。移动端在筛选抽屉中切换。日志类型分页独立，默认每页 10 条，详情固定右侧。
 - 渠道、重试链和分组倍率等敏感详情仅超级管理员可见；订阅消费金额及来源持续展示，保留工具附加费标记。模型映射悬停显示，请求处理名称去重后仅向超级管理员显示“已处理 · 名称”。
 
 ## Token 汇总与导出
@@ -54,4 +54,5 @@
 - `model/security_audit.go`、`controller/security_audit.go`、`setting/system_setting/audit_setting.go`：异常时段与配置兼容。
 - `service/request_notice.go`、`service/feishu_department.go`：公司路由、预览与通知；`common/smtp_audit.go`、`model/smtp_audit.go`、`service/system_task.go`：SMTP 审计。
 - `web/src/features/usage-logs/`、`web/src/features/security-audit/`、`web/src/features/system-settings/security/`：页面与配置。公共提示规则见 [#039](039-user-management-table.md)。
+- `web/src/features/usage-logs/components/common-logs-filter-bar.tsx`、`web/src/features/usage-logs/components/logs-filter-toolbar.tsx`：普通日志范围切换与筛选栏布局。
 - `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx`、`web/src/features/usage-logs/components/dialogs/request-notice-dialog.tsx`：通知类型选择、目标模型系列选择及共用预览布局。

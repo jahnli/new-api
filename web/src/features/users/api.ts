@@ -80,6 +80,8 @@ export async function searchUsers(
     company = '',
     role = '',
     status = '',
+    customer_type,
+    settlement_mode,
     p = 1,
     page_size = 10,
     sort_by,
@@ -91,6 +93,8 @@ export async function searchUsers(
   queryParams.set('company', company)
   if (role) queryParams.set('role', role)
   if (status) queryParams.set('status', status)
+  if (customer_type) queryParams.set('customer_type', customer_type)
+  if (settlement_mode) queryParams.set('settlement_mode', settlement_mode)
   queryParams.set('p', String(p))
   queryParams.set('page_size', String(page_size))
   if (sort_by) queryParams.set('sort_by', sort_by)

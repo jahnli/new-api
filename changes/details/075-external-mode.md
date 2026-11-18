@@ -1,6 +1,6 @@
 # 对外模式与客户属性
 
-**日期**: 2026-11-17
+**日期**: 2026-11-18
 
 ## 模式与数据边界
 
@@ -15,7 +15,7 @@
 - 候选列表、保存校验及资料加载统一采用上述条件；后端校验正整数和用户存在，去重并在事务内保存和记录前后编号；资料批量加载且按绑定顺序展示。已删除或不再满足销售条件的账号不展示资料，编辑保留失效编号供移除。
 - 用户列表展示全部有效销售，子部门统计仍取代表用户的全部销售；共用头像、手机号、资料卡和演示遮罩，不表示汇总部门所有员工的销售。
 - 客户类型为 unset/trial/paid（未设置/试用/付费）；结算方式为 unset/prepaid/postpaid。非付费客户归一为未设置，付费客户未指定时使用预付。两字段有索引，服务端规范化和校验，变更记录审计；结算方式是运营标签，不改变实际计费。
-- 对外列表支持商业属性列头单选筛选，写入路由并参与请求；编辑分区仅对外显示，关闭时拒绝修改、保留已有值。分组、销售及商业列位于使用量之后、时间之前，时间列 200px；对内列序与宽度保持原规则。
+- 对外用户列表可在工具栏和列头分别单选客户类型与结算方式。选项写入路由，由搜索接口按已选条件筛选列表及分页总数，两个条件可组合使用；编辑分区仅对外显示，关闭时拒绝修改、保留已有值。分组、销售及商业列位于使用量之后、时间之前，时间列 200px；对内列序与宽度保持原规则。
 
 ## 主要入口
 
@@ -26,7 +26,7 @@
 - `web/src/hooks/use-external-mode.ts`、`web/src/features/users/`、`web/src/features/dashboard/components/flow/`：模式、列表和编辑。
 - `web/src/lib/roles.ts`、`web/src/features/users/constants.ts`：按模式生成 BP 角色名称和筛选选项。
 - `web/src/hooks/use-user-display.ts`：顶部菜单和移动端抽屉订阅模式变化并更新角色名称。
-- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`：共享角色列及筛选随模式展示“销售”或 BP。
+- `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`：共享角色列及筛选随模式展示“销售”或 BP。`web/src/features/users/api.ts` 将客户类型和结算方式随用户搜索请求发送。
 - `web/src/features/users/components/users-mutate-drawer.tsx`、`web/src/features/users/components/user-profile-hover-card.tsx`：角色选择、部门说明及资料卡提示使用模式对应名称。
 - `web/src/features/profile/components/profile-header.tsx`、`web/src/features/profile/components/profile-lanyard.tsx`：个人资料徽标和挂绳卡片使用模式对应名称。
 - `web/src/features/usage-logs/components/common-logs-filter-bar.tsx`：使用日志角色筛选同步名称。

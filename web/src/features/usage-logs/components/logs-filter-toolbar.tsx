@@ -26,6 +26,7 @@ interface LogsFilterToolbarProps<TData> {
   table: Table<TData>
   primaryFilters: ReactNode
   primaryFiltersClassName?: string
+  primaryAction?: ReactNode
   advancedFilters?: ReactNode
   defaultAdvancedOpen?: boolean
   compactMobile?: boolean
@@ -239,8 +240,9 @@ export function LogsFilterToolbar<TData>(props: LogsFilterToolbarProps<TData>) {
         >
           {props.primaryFilters}
         </div>
-        {advancedToggle && (
-          <div className='flex shrink-0 items-center justify-end'>
+        {(props.primaryAction != null || advancedToggle) && (
+          <div className='flex shrink-0 items-center justify-end gap-2'>
+            {props.primaryAction}
             {advancedToggle}
           </div>
         )}
