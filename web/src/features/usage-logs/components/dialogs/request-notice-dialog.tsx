@@ -42,10 +42,12 @@ export function RequestNoticeDialog(props: RequestNoticeDialogProps) {
         if (canSend && !props.isSending) props.onConfirm()
       }}
     >
-      <div className='grid min-h-0 grid-cols-1 gap-5 overflow-y-auto px-1 py-1 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]'>
-        <div className='min-w-0 space-y-4 md:border-r md:pr-5'>
-          <div className='bg-muted/40 space-y-2 rounded-lg border p-3'>
-            <p className='text-muted-foreground text-xs'>{t('Recipient')}</p>
+      <div className='grid min-h-0 grid-cols-1 gap-5 overflow-y-auto px-1 py-1 md:grid-cols-[clamp(13rem,25%,17rem)_minmax(0,1fr)]'>
+        <div className='bg-muted/60 flex min-w-0 flex-col gap-4 self-start rounded-xl p-3'>
+          <div className='border-foreground/10 flex flex-col gap-2.5 border-b px-2 pt-1 pb-4'>
+            <p className='text-muted-foreground text-xs font-medium'>
+              {t('Recipient')}
+            </p>
             {props.recipient}
           </div>
           {props.children}

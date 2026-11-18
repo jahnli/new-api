@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   ArrowLeftRight,
   Bell,
+  Check,
   Gauge,
   MessageSquareWarning,
   MonitorCheck,
@@ -16,7 +17,7 @@ import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
 import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
-import { Field, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { FieldLegend, FieldSet } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { getVendors } from '@/features/models/api'
@@ -155,6 +156,7 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
             username={props.user.username}
             displayName={props.user.display_name}
             avatarUrl={props.user.avatar_url}
+            nameClassName='min-w-0 max-w-full shrink'
           />
         }
         emptyPreview={
@@ -165,12 +167,16 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
         }
       >
         <FieldSet>
-          <FieldLegend id={notificationTypeId} variant='label'>
+          <FieldLegend
+            id={notificationTypeId}
+            variant='label'
+            className='text-muted-foreground mb-2 px-2 data-[variant=label]:text-xs'
+          >
             {t('Notification type')}
           </FieldLegend>
           <RadioGroup
             aria-labelledby={notificationTypeId}
-            className='gap-2.5'
+            className='gap-1'
             value={notificationType}
             disabled={notifyMutation.isPending}
             onValueChange={(value) => {
@@ -212,26 +218,28 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
                 icon: MonitorCheck,
               },
             ].map((option) => (
-              <div key={option.value} className='space-y-2'>
-                <FieldLabel
+              <div key={option.value} className='min-w-0'>
+                <Label
                   htmlFor={`${notificationTypeId}-${option.value}`}
-                  className='group/notice bg-background hover:border-primary/30 hover:bg-muted/40 has-data-checked:border-primary/50 has-data-checked:bg-primary/5 has-data-checked:text-primary focus-within:ring-primary/20 cursor-pointer transition-colors focus-within:ring-2 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-[>[data-slot=field]]:rounded-xl *:data-[slot=field]:p-3'
+                  className='text-muted-foreground hover:bg-muted hover:text-foreground has-data-checked:bg-primary/10 has-data-checked:text-primary has-focus-visible:ring-ring flex min-h-11 cursor-pointer gap-3 rounded-lg px-3 py-2 transition-colors has-focus-visible:ring-2 has-disabled:cursor-not-allowed has-disabled:opacity-50'
                 >
-                  <Field orientation='horizontal' className='gap-3'>
-                    <span className='bg-muted text-muted-foreground group-has-data-checked/notice:bg-primary group-has-data-checked/notice:text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-md transition-colors'>
-                      <option.icon className='size-3.5' aria-hidden='true' />
-                    </span>
-                    <span className='min-w-0 flex-1 leading-snug'>
-                      {option.label}
-                    </span>
-                    <RadioGroupItem
-                      id={`${notificationTypeId}-${option.value}`}
-                      value={option.value}
-                    />
-                  </Field>
-                </FieldLabel>
+                  <option.icon className='size-4 shrink-0' aria-hidden='true' />
+                  <span className='min-w-0 flex-1 leading-snug'>
+                    {option.label}
+                  </span>
+                  <RadioGroupItem
+                    id={`${notificationTypeId}-${option.value}`}
+                    value={option.value}
+                    className='sr-only'
+                  />
+                  <Check
+                    aria-hidden='true'
+                    className='size-4 shrink-0 opacity-0 peer-data-checked:opacity-100'
+                    strokeWidth={2.5}
+                  />
+                </Label>
                 {option.value === 'model_switch' && isModelSwitch && (
-                  <div className='space-y-2 px-3 pb-2'>
+                  <div className='border-primary/20 my-2 ms-5 flex min-w-0 flex-col gap-2 border-s ps-4 pe-2'>
                     <Label htmlFor={targetVendorInputId} required>
                       {t('Target model series')}
                     </Label>

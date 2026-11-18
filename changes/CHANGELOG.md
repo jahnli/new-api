@@ -50,7 +50,7 @@
 | 053 | 2026-10-15 | 新增或未定价模型默认开启补全及缓存读取价格，表达式草稿包含零值缓存读取，已有配置保留。 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/model-pricing-sheet.tsx` |
 | 054 | 2026-07-01 | 模型广场及定价编辑器默认每页 100 条。 | `web/src/features/pricing/constants.ts`、`web/src/features/system-settings/models/model-ratio-visual-editor.tsx` |
 | 055 | 2026-10-19 | 分组供应商倍率按统一优先级计费，定价响应加密；超级管理员维护有序推荐，广场按可见范围展示并自动横滑。 | [详情](details/055-pricing-square.md) |
-| 056 | 2026-11-16 | 使用日志完善筛选、Token 语义统计和超级管理员导出；整合请求留存、分类通知预览、异常时段及 SMTP 审计。 | [详情](details/056-usage-logs-user-column.md) |
+| 056 | 2026-11-18 | 使用日志完善筛选、Token 语义统计和超级管理员导出；整合请求留存、分类通知、异常时段及 SMTP 审计，通知弹框采用紧凑的响应式预览布局。 | [详情](details/056-usage-logs-user-column.md) |
 | 057 | 2026-10-06 | 看板与 Flow 共用日期/粒度筛选，默认当天；管理员用户消耗分析及四类 Token 聚合统一。 | [详情](details/057-dashboard-filters.md) |
 | 058 | 2026-11-15 | 在线生图按型号配置生成/参考图编辑，支持流式与适用 GIF/SVG；并发单图、即时结果、排队保存，审计与历史共用开关。 | [详情](details/058-online-image-generation.md) |
 | 059 | 2026-07-04 | 排行榜 Token 数字仅超级管理员可见，热门模型悬浮列表显示连续排名。 | [详情](details/059-rankings-token-visibility.md) |

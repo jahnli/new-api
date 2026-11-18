@@ -1,6 +1,6 @@
 # 使用日志、请求内容与审计
 
-**日期**: 2026-11-16
+**日期**: 2026-11-18
 
 ## 日志查询与身份
 
@@ -36,6 +36,7 @@
 
 - 超级管理员可从含用户和请求 ID 的消费/错误日志详情或请求内容发送通知，“仅自己”详情同样可用，演示模式隐藏。支持非工作内容、安全风险、频繁请求、模型切换、客户端与模型匹配五类；切换模型必须选择已启用且关联模型的供应商系列，由后端校验并填充名称。
 - 异常时段通知校验用户、实际起止时间及正请求次数，并与请求通知共用收件人、响应式预览弹框、语言及错误重试；预览不发送消息，加载失败或刷新中不可发送，发送中防重复提交。
+- 两类通知共用预览布局。宽屏左侧集中展示收件人和可用选项，右侧留出更多空间预览通知，窄屏上下排列。请求通知类型以紧凑的图标列表呈现，勾选标记显示当前类型，选择模型切换时在该选项下方显示目标模型系列。
 - 请求通知按用户公司配置选择飞书/钉钉及独立平台身份；公司缺失、不存在或未设平台时才回退邮箱。公司停用、凭据不全或身份无效直接报错，邮件校验邮箱与 SMTP。异常时段通知按所属公司飞书应用发送，凭据规则见 [#026](026-feishu-credentials.md)。正式发送最长 90 秒。
 - 预览和发送共用七语言内容与分类图片，非工作/安全风险/频繁请求及异常时段采用红色，模型切换与客户端匹配采用橙色。安全风险分项说明，频繁请求提示检查脚本、并发和重试；模型切换显示当前与目标系列、提示无法保证可用性并尽快更换；匹配提醒说明 Claude Code/Claude 与 Codex/GPT 的对应关系。
 - 飞书图片上传在 HTTP 429/5xx 时最多重试两次，遵循取消；SMTP 通知附加用途、用户等审计关联。
@@ -53,3 +54,4 @@
 - `model/security_audit.go`、`controller/security_audit.go`、`setting/system_setting/audit_setting.go`：异常时段与配置兼容。
 - `service/request_notice.go`、`service/feishu_department.go`：公司路由、预览与通知；`common/smtp_audit.go`、`model/smtp_audit.go`、`service/system_task.go`：SMTP 审计。
 - `web/src/features/usage-logs/`、`web/src/features/security-audit/`、`web/src/features/system-settings/security/`：页面与配置。公共提示规则见 [#039](039-user-management-table.md)。
+- `web/src/features/usage-logs/components/dialogs/request-notice-button.tsx`、`web/src/features/usage-logs/components/dialogs/request-notice-dialog.tsx`：通知类型选择、目标模型系列选择及共用预览布局。
