@@ -6242,6 +6242,7 @@
     "Request processing plugins": "Плагины обработки запросов",
     "Request processing steps": "Шаги обработки запросов",
     "Request processing: {{names}}": "Обработка запросов: {{names}}",
+    "Request Protocol": "Протокол запроса",
     "Request rejected locally": "Запрос отклонён локально",
     "Request retry": "Повтор запросов",
     "Request rule pricing": "Правила ценообразования по запросу",

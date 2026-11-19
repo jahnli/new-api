@@ -4,10 +4,12 @@ import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
 
 import type { UsageLog } from '../../data/schema'
 import { parseLogOther } from '../../lib/format'
+import { LogRequestTransportBadge } from '../log-request-transport-badge'
 import { DetailRow } from './log-detail-layout'
 
 interface RequestLogSummaryProps {
   log: UsageLog
+  requestId: string
 }
 
 /**
@@ -135,6 +137,18 @@ export function RequestLogSummary(props: RequestLogSummaryProps) {
 
       {props.log.ip && (
         <DetailRow label={t('IP Address')} value={props.log.ip} mono />
+      )}
+
+      {(other?.request_path || /-ws-\d+$/.test(props.requestId)) && (
+        <DetailRow
+          label={t('Request Protocol')}
+          value={
+            <LogRequestTransportBadge
+              requestId={props.requestId}
+              requestPath={other?.request_path}
+            />
+          }
+        />
       )}
     </div>
   )

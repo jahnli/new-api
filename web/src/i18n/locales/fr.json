@@ -6242,6 +6242,7 @@
     "Request processing plugins": "Plugins de traitement des requêtes",
     "Request processing steps": "Étapes du traitement des requêtes",
     "Request processing: {{names}}": "Traitement des requêtes : {{names}}",
+    "Request Protocol": "Protocole de requête",
     "Request rejected locally": "Requête rejetée localement",
     "Request retry": "Relance des requêtes",
     "Request rule pricing": "Règles de tarification de requête",

@@ -6242,6 +6242,7 @@
     "Request processing plugins": "请求处理插件",
     "Request processing steps": "请求处理步骤",
     "Request processing: {{names}}": "请求处理：{{names}}",
+    "Request Protocol": "请求协议",
     "Request rejected locally": "请求在本地被拒绝",
     "Request retry": "请求重试",
     "Request rule pricing": "请求规则计费",

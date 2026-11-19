@@ -6242,6 +6242,7 @@
     "Request processing plugins": "Plugin xử lý yêu cầu",
     "Request processing steps": "Các bước xử lý yêu cầu",
     "Request processing: {{names}}": "Xử lý yêu cầu: {{names}}",
+    "Request Protocol": "Giao thức yêu cầu",
     "Request rejected locally": "Yêu cầu bị từ chối cục bộ",
     "Request retry": "Thử lại yêu cầu",
     "Request rule pricing": "Quy tắc tính giá theo request",

@@ -6242,6 +6242,7 @@
     "Request processing plugins": "請求處理外掛",
     "Request processing steps": "請求處理步驟",
     "Request processing: {{names}}": "請求處理：{{names}}",
+    "Request Protocol": "請求協定",
     "Request rejected locally": "請求在本機被拒絕",
     "Request retry": "請求重試",
     "Request rule pricing": "請求規則收費",

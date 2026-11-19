@@ -874,15 +874,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
           {props.log.request_id && (
             <DetailRow
               label={t('Request ID')}
-              value={
-                <span className='flex flex-wrap items-center gap-1.5'>
-                  <span>{props.log.request_id}</span>
-                  <LogRequestTransportBadge
-                    requestId={props.log.request_id}
-                    requestPath={other?.request_path}
-                  />
-                </span>
-              }
+              value={props.log.request_id}
               mono
             />
           )}
@@ -981,6 +973,17 @@ export function DetailsDialog(props: DetailsDialogProps) {
                       </span>
                     )}
                 </span>
+              }
+            />
+          )}
+          {(other?.request_path || /-ws-\d+$/.test(props.log.request_id)) && (
+            <DetailRow
+              label={t('Request Protocol')}
+              value={
+                <LogRequestTransportBadge
+                  requestId={props.log.request_id}
+                  requestPath={other?.request_path}
+                />
               }
             />
           )}

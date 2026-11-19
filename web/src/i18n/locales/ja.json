@@ -6242,6 +6242,7 @@
     "Request processing plugins": "リクエスト処理プラグイン",
     "Request processing steps": "リクエスト処理のステップ",
     "Request processing: {{names}}": "リクエスト処理：{{names}}",
+    "Request Protocol": "リクエストプロトコル",
     "Request rejected locally": "ローカルで拒否",
     "Request retry": "リクエスト再試行",
     "Request rule pricing": "リクエストルールの課金",
