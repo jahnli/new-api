@@ -307,6 +307,7 @@ func (s *responsesWSSession) runCall(c *gin.Context, state *responsesWSCallState
 		info.IsStream = true
 		info.SetRequestPluginIngress(ingressSteps, ingressRecord)
 		common.SetContextKey(c, appconstant.ContextKeyIsStream, true)
+		service.RecordRequestMessage(info, &create.Request)
 		if apiErr = PrepareRequestBilling(c, info); apiErr != nil {
 			return apiErr
 		}
@@ -335,6 +336,7 @@ func (s *responsesWSSession) runCall(c *gin.Context, state *responsesWSCallState
 				info.IsStream = true
 				info.SetRequestPluginIngress(ingressSteps, ingressRecord)
 				common.SetContextKey(c, appconstant.ContextKeyIsStream, true)
+				service.RecordRequestMessage(info, &create.Request)
 				if apiErr = PrepareRequestBilling(c, info); apiErr != nil {
 					return apiErr
 				}

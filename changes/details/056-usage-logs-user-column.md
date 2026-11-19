@@ -23,6 +23,7 @@
 ## 请求内容留存
 
 - `RecordRequestMessageEnabled` 默认关闭，在安全审计设置中独立配置；中继异步保存文本、多模态占位、生图/编辑 Prompt 及请求参数，按 request_id 关联日志并截断超长内容。
+- Responses WebSocket 的首次请求及连接复用后的每次 `response.create` 均使用同一采集逻辑，按该次请求 ID 留存用户输入和参数，标记为流式请求；没有可留存用户输入时不写入记录，渠道重试不重复采集。仅对开启留存后的新请求生效，历史缺失内容不会自动补回。
 - 管理端批量读取与通知接口仅超级管理员可用，POST body 承载批量 ID；普通日志界面非超级管理员或演示模式不加载、不开放完整内容入口。
 - 摘要仅截断展示，点击查看完整会话。弹框支持整组展开/收起、逐消息复制反馈，消息、请求参数与运行信息独立滚动；运行信息按权限展示耗时、Token、费用、渠道、令牌、映射、IP 等。
 
@@ -52,6 +53,7 @@
 
 - `model/log.go`、`model/log_token_stats.go`、`controller/log.go`：日志及汇总；`model/log_export.go`、`controller/log_export.go`、`service/log_export.go`：导出。
 - `model/request_message.go`、`controller/request_message.go`、`service/request_message.go`：留存、批量读取与通知。
+- `relay/responses_websocket.go`：在首次请求和连接复用路径中采集请求内容，每次请求在准备计费前调用留存服务。
 - `model/security_audit.go`、`controller/security_audit.go`、`setting/system_setting/audit_setting.go`：异常时段与配置兼容。
 - `service/request_notice.go`、`service/feishu_department.go`：公司路由、预览与通知；`common/smtp_audit.go`、`model/smtp_audit.go`、`service/system_task.go`：SMTP 审计。
 - `web/src/features/usage-logs/`、`web/src/features/security-audit/`、`web/src/features/system-settings/security/`：页面与配置。公共提示规则见 [#039](039-user-management-table.md)。
