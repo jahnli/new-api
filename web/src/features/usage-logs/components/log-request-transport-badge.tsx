@@ -26,8 +26,8 @@ export function LogRequestTransportBadge(props: LogRequestTransportBadgeProps) {
         className={cn(
           'h-4 rounded-md px-1.5 py-0 text-[11px]! leading-none',
           isWebSocket
-            ? 'border-info/25 bg-info/10 text-info'
-            : 'border-border/70 bg-muted/50 text-muted-foreground'
+            ? 'border-info/15 bg-info/5 text-info/85'
+            : 'border-border/50 bg-muted/30 text-muted-foreground/85'
         )}
       >
         {isWebSocket ? t('WS') : t('HTTP')}

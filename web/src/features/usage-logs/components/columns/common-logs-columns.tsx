@@ -1049,7 +1049,7 @@ export function useCommonLogsColumns(
                 onlyWhenOverflow
                 contentClassName='max-w-md font-mono text-xs break-all'
               >
-                <span className='text-muted-foreground block truncate font-mono text-xs !font-normal'>
+                <span className='text-muted-foreground/85 block truncate font-mono text-xs !font-normal'>
                   {client}
                 </span>
               </TextTooltip>
