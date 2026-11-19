@@ -90,6 +90,7 @@ import { DetailsDialog } from '../dialogs/details-dialog'
 import { RequestContentDialog } from '../dialogs/request-content-dialog'
 import { LogCostDisplay } from '../log-cost-display'
 import { LogIpAddress } from '../log-ip-address'
+import { LogRequestTransportBadge } from '../log-request-transport-badge'
 import { LogUserCell } from '../log-user-cell'
 import { ModelBadge } from '../model-badge'
 import {
@@ -1040,22 +1041,28 @@ export function useCommonLogsColumns(
 
         const other = parseLogOther(log.other)
         const client = other?.user_agent
-        if (!client) {
-          return (
-            <span className='text-muted-foreground/40 !font-normal'>—</span>
-          )
-        }
-
         return (
-          <TextTooltip
-            content={client}
-            onlyWhenOverflow
-            contentClassName='max-w-md font-mono text-xs break-all'
-          >
-            <span className='text-muted-foreground block max-w-[150px] truncate font-mono text-xs !font-normal'>
-              {client}
-            </span>
-          </TextTooltip>
+          <div className='flex max-w-[150px] min-w-0 flex-col gap-0.5'>
+            {client ? (
+              <TextTooltip
+                content={client}
+                onlyWhenOverflow
+                contentClassName='max-w-md font-mono text-xs break-all'
+              >
+                <span className='text-muted-foreground block truncate font-mono text-xs !font-normal'>
+                  {client}
+                </span>
+              </TextTooltip>
+            ) : (
+              <span className='text-muted-foreground/40 !font-normal'>—</span>
+            )}
+            {isTimingLogType(log.type) && (
+              <LogRequestTransportBadge
+                requestId={log.request_id}
+                requestPath={other?.request_path}
+              />
+            )}
+          </div>
         )
       },
       size: 150,

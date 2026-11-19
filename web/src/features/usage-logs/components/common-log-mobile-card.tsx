@@ -42,6 +42,7 @@ import {
   isDisplayableLogType,
   isTimingLogType,
 } from '../lib/utils'
+import { LogRequestTransportBadge } from './log-request-transport-badge'
 import { ModelBadge, ResponseModelDetails } from './model-badge'
 import { StreamTpsCell, TimingMetricsCell } from './timing-metrics-cell'
 import { useLogsViewScope, useUsageLogsContext } from './usage-logs-provider'
@@ -182,13 +183,21 @@ export function CommonLogMobileCard<TData>(props: {
       >
         {fields.time.visible && (
           <div className='flex min-w-0 flex-col items-start justify-between gap-1'>
-            <StatusBadge
-              label={t(config.label)}
-              variant={config.color as StatusVariant}
-              copyable={false}
-              showDot
-              className='h-5 px-0 text-xs'
-            />
+            <div className='flex flex-wrap items-center gap-x-1.5'>
+              <StatusBadge
+                label={t(config.label)}
+                variant={config.color as StatusVariant}
+                copyable={false}
+                showDot
+                className='h-5 px-0 text-xs'
+              />
+              {timing && (
+                <LogRequestTransportBadge
+                  requestId={log.request_id}
+                  requestPath={other?.request_path}
+                />
+              )}
+            </div>
             <Button
               variant='ghost'
               aria-label={`${t('Time')}: ${fields.time.value}`}

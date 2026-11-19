@@ -88,6 +88,7 @@ import {
   isTimingLogType,
 } from '../../lib/utils'
 import { USAGE_BILLING_PATH, type LogOtherData } from '../../types'
+import { LogRequestTransportBadge } from '../log-request-transport-badge'
 import { LogUserIdentity } from '../log-user-identity'
 import { ResponseModelDetails } from '../model-badge'
 import { PluginAuthorLink } from '../plugin-author-link'
@@ -873,7 +874,15 @@ export function DetailsDialog(props: DetailsDialogProps) {
           {props.log.request_id && (
             <DetailRow
               label={t('Request ID')}
-              value={props.log.request_id}
+              value={
+                <span className='flex flex-wrap items-center gap-1.5'>
+                  <span>{props.log.request_id}</span>
+                  <LogRequestTransportBadge
+                    requestId={props.log.request_id}
+                    requestPath={other?.request_path}
+                  />
+                </span>
+              }
               mono
             />
           )}

@@ -21,7 +21,9 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { formatTimestampToDate } from '@/lib/format'
 
 import type { UsageLog } from '../../data/schema'
+import { parseLogOther } from '../../lib/format'
 import type { RequestMessage } from '../../types'
+import { LogRequestTransportBadge } from '../log-request-transport-badge'
 import { LogUserIdentity } from '../log-user-identity'
 import { parseUserMessages } from '../request-messages-provider'
 import { LOG_DETAILS_DIALOG_CONTENT_HEIGHT } from './log-detail-layout'
@@ -133,6 +135,14 @@ export function RequestContentDialog(props: RequestContentDialogProps) {
                     )}
                   </Button>
                 </TextTooltip>
+                <LogRequestTransportBadge
+                  requestId={props.requestMessage.request_id}
+                  requestPath={
+                    props.log
+                      ? parseLogOther(props.log.other)?.request_path
+                      : undefined
+                  }
+                />
               </div>
               {props.client && (
                 <div className='text-muted-foreground flex min-w-0 items-start gap-1 text-sm'>
