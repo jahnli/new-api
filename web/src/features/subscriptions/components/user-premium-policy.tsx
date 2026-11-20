@@ -45,7 +45,14 @@ export function UserPremiumPolicy(props: {
     queryKey: ['subscription-premium', 'user', props.userId],
     queryFn: () => getUserPremiumPolicy(props.userId),
   })
-  if (query.isPending) return <LoadingState inline />
+  if (query.isPending) {
+    return (
+      <LoadingState
+        inline
+        className='min-h-12 w-full shrink-0 justify-center'
+      />
+    )
+  }
   if (query.isError) {
     return (
       <ErrorState
