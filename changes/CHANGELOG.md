@@ -54,7 +54,7 @@
 | 057 | 2026-10-06 | 看板与 Flow 共用日期/粒度筛选，默认当天；管理员用户消耗分析及四类 Token 聚合统一。 | [详情](details/057-dashboard-filters.md) |
 | 058 | 2026-11-15 | 在线生图按型号配置生成/参考图编辑，支持流式与适用 GIF/SVG；并发单图、即时结果、排队保存，审计与历史共用开关。 | [详情](details/058-online-image-generation.md) |
 | 059 | 2026-07-04 | 排行榜 Token 数字仅超级管理员可见，热门模型悬浮列表显示连续排名。 | [详情](details/059-rankings-token-visibility.md) |
-| 060 | 2026-11-20 | 新建密钥默认使用用户分组，编辑时展开高级设置。快速导入支持 CC Switch 和 Magpie，导入 Magpie 时可按密钥权限选择模型。 | [详情](details/060-api-keys-name-truncate.md) |
+| 060 | 2026-11-20 | 密钥桌面列表采用紧凑列间距；新建默认使用用户分组，编辑时展开高级设置。快速导入支持 CC Switch 和 Magpie，导入 Magpie 时可按密钥权限选择模型。 | [详情](details/060-api-keys-name-truncate.md) |
 | 061 | 2026-11-16 | 普通注册、后台建号和 OIDC 首次注册按公司规则自动分配套餐，失败不阻断建号，后续登录不重复分配。 | [详情](details/061-registration-auto-subscribe.md) |
 | 062 | 2026-08-27 | 普通管理员按授权进入渠道界面，模型/订阅/系统入口仅超级管理员；角色变更刷新认证版本并清理权限。 | [详情](details/062-admin-entry-permissions.md) |
 | 063 | 2026-07-06 | 本地访问限流默认关闭：全局 API/Web、关键接口和搜索限流默认禁用 | `common/init.go` |
