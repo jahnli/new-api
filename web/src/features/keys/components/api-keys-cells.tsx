@@ -1,4 +1,11 @@
-import { Check, Copy, Loader2, ArrowRightLeft, ChevronDown } from 'lucide-react'
+import {
+  Check,
+  Copy,
+  Loader2,
+  ArrowRightLeft,
+  ChevronDown,
+  Bird,
+} from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -237,16 +244,21 @@ function ApiKeyRestrictionCell(props: {
 
 export function QuickImportCell({ apiKey }: { apiKey: ApiKey }) {
   const { t } = useTranslation()
-  const { resolveRealKey, setResolvedKey, setCurrentRow, setOpen } =
-    useApiKeys()
+  const {
+    resolveRealKey,
+    loadingKeys,
+    setResolvedKey,
+    setCurrentRow,
+    setOpen,
+  } = useApiKeys()
 
-  const handleCCSwitchClick = useCallback(async () => {
+  async function openImportDialog(target: 'cc-switch' | 'magpie') {
     const realKey = await resolveRealKey(apiKey.id)
     if (!realKey) return
     setResolvedKey(realKey)
     setCurrentRow(apiKey)
-    setOpen('cc-switch')
-  }, [apiKey, resolveRealKey, setResolvedKey, setCurrentRow, setOpen])
+    setOpen(target)
+  }
 
   return (
     <DropdownMenu>
@@ -263,10 +275,22 @@ export function QuickImportCell({ apiKey }: { apiKey: ApiKey }) {
         <ChevronDown className='size-3 opacity-60' />
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' className='w-[160px]'>
-        <DropdownMenuItem onClick={() => void handleCCSwitchClick()}>
+        <DropdownMenuItem
+          disabled={loadingKeys[apiKey.id]}
+          onClick={() => void openImportDialog('cc-switch')}
+        >
           {t('CC Switch')}
           <DropdownMenuShortcut>
             <ArrowRightLeft size={14} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={loadingKeys[apiKey.id]}
+          onClick={() => void openImportDialog('magpie')}
+        >
+          {t('Magpie')}
+          <DropdownMenuShortcut>
+            <Bird size={14} />
           </DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
