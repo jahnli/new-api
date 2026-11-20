@@ -129,15 +129,15 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         header: t('API Key'),
         cell: ({ row }) => <ApiKeyCell apiKey={row.original} />,
         enableSorting: false,
-        size: 260,
+        size: 230,
       },
       {
         id: 'quota',
         accessorKey: 'remain_quota',
         header: `${t('Quota')} (${quotaUnit})`,
         cell: ({ row }) => <ApiKeyQuotaCell apiKey={row.original} now={now} />,
-        size: 260,
-        minSize: 260,
+        size: 220,
+        minSize: 220,
       },
       {
         accessorKey: 'group',
@@ -154,7 +154,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
             />
           )
         },
-        size: 220,
+        size: 160,
         meta: { mobileHidden: true },
       },
       {
@@ -163,7 +163,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         header: t('Models'),
         cell: ({ row }) => <ModelLimitsCell apiKey={row.original} />,
         enableSorting: false,
-        size: 160,
+        size: 100,
         meta: { mobileHidden: true },
       },
       {
@@ -172,7 +172,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         header: t('IP Restriction'),
         cell: ({ row }) => <IpRestrictionsCell apiKey={row.original} />,
         enableSorting: false,
-        size: 160,
+        size: 100,
         meta: { mobileHidden: true },
       },
       {
