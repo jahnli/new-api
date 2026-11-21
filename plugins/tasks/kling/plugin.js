@@ -85,7 +85,7 @@ const KLING4_ACTIONS = { "text-to-video": "text_to_video", "image-to-video": "im
 // kling-v3, then of Kling 4.0. The host protocols send the one nearest the
 // request's size; without a size Kling uses its default, 16:9.
 const KLING_ASPECT_RATIOS = ["16:9", "9:16", "1:1"];
-const KLING4_ASPECT_RATIOS = ["16:9", "9:16", "1:1", "21:9"];
+const KLING4_ASPECT_RATIOS = ["16:9", "9:16", "1:1", "21:9", "4:3", "3:4"];
 
 // Kling's numeric error codes for the statuses the gateway answers with
 // (kling.ai/document-api/api/get-started/error-codes).
@@ -506,7 +506,7 @@ export const native = {
     const entry = Object.assign(
       { status: statusMap[task.status] || "submitted", create_time: task.created_at * 1000, update_time: (task.updated_at || task.created_at) * 1000 },
       kling4Entry(result),
-      { id: task.task_id },
+      { id: task.task_id }
     );
     if (task.status === "FAILURE" && entry.status !== "failed") {
       entry.status = "failed";
@@ -548,7 +548,8 @@ export function buildSubmitRequest(ctx) {
     if (req.prompt) body.prompt = req.prompt;
     if (req.image) body.image = req.image;
     if (req.mode) body.mode = req.mode;
-    if (action === "text_to_video" && req.size !== undefined && req.size !== null && req.size !== "") body.aspect_ratio = aspectRatio(sizeDimensions(req.size), KLING_ASPECT_RATIOS);
+    if (action === "text_to_video" && req.size !== undefined && req.size !== null && req.size !== "")
+      body.aspect_ratio = aspectRatio(sizeDimensions(req.size), KLING_ASPECT_RATIOS);
     Object.assign(body, metadata);
     body.model_name = model;
     body.mode = klingMode(body.mode);

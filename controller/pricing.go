@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"maps"
 	"net/http"
 	"os"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
@@ -29,50 +29,31 @@ func filterPricingByUsableGroups(pricing []model.Pricing, usableGroup map[string
 
 	filtered := make([]model.Pricing, 0, len(pricing))
 	for _, item := range pricing {
-		if common.StringsContains(item.EnableGroup, "all") {
-			filtered = append(filtered, item)
-			continue
-		}
+		// The pricing cache is shared by all viewers.
+		groups := make([]string, 0, len(item.EnableGroup))
 		for _, group := range item.EnableGroup {
-			if _, ok := usableGroup[group]; ok {
-				filtered = append(filtered, item)
-				break
+			if _, ok := usableGroup[group]; ok || group == "all" {
+				groups = append(groups, group)
 			}
+		}
+		if len(groups) > 0 {
+			item.EnableGroup = groups
+			filtered = append(filtered, item)
 		}
 	}
 	return filtered
 }
 
 func GetPricing(c *gin.Context) {
-	pricing := model.GetPricing()
-	userId, exists := c.Get("id")
-	usableGroup := map[string]string{}
-	groupRatio := map[string]float64{}
-	maps.Copy(groupRatio, ratio_setting.GetGroupRatioCopy())
+	userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+	usableGroup := service.GetUserUsableGroups(userGroup)
+	autoGroups := service.GetUserAutoGroup(userGroup)
+	groupRatio := ratio_setting.GetGroupRatioCopy()
 	groupVendorRatio := ratio_setting.GetGroupVendorRatioCopy()
 	// 命中用户特殊倍率的分组（特殊倍率优先于供应商倍率，前端据此判定）
 	groupSpecialRatios := make([]string, 0)
-	var group string
-	var role int
-	if exists {
-		user, err := model.GetUserById(userId.(int), false)
-		if err == nil {
-			group = user.Group
-			role = user.Role
-			for g := range groupRatio {
-				ratio, ok := ratio_setting.GetGroupGroupRatio(group, g)
-				if ok {
-					groupRatio[g] = ratio
-					groupSpecialRatios = append(groupSpecialRatios, g)
-				}
-			}
-		}
-	}
-
-	usableGroup = service.GetUserUsableGroups(group)
-	autoGroups := service.GetUserAutoGroup(group)
-	if role >= common.RoleRootUser {
-		for groupName := range ratio_setting.GetGroupRatioCopy() {
+	if c.GetInt("role") >= common.RoleRootUser {
+		for groupName := range groupRatio {
 			if _, ok := usableGroup[groupName]; !ok {
 				usableGroup[groupName] = setting.GetUsableGroupDescription(groupName)
 			}
@@ -84,11 +65,17 @@ func GetPricing(c *gin.Context) {
 			}
 		}
 	}
-	pricing = filterPricingByUsableGroups(pricing, usableGroup)
-	// check groupRatio contains usableGroup
-	for group := range ratio_setting.GetGroupRatioCopy() {
+	pricing := filterPricingByUsableGroups(model.GetPricing(), usableGroup)
+	for group := range groupRatio {
 		if _, ok := usableGroup[group]; !ok {
 			delete(groupRatio, group)
+			continue
+		}
+		if userGroup != "" {
+			if ratio, ok := ratio_setting.GetGroupGroupRatio(userGroup, group); ok {
+				groupRatio[group] = ratio
+				groupSpecialRatios = append(groupSpecialRatios, group)
+			}
 		}
 	}
 	for group := range groupVendorRatio {
