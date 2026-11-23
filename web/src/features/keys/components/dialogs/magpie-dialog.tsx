@@ -34,7 +34,7 @@ export function MagpieDialog({
 }) {
   const { t } = useTranslation()
   const { status, loading } = useStatus()
-  const [name, setName] = useState('')
+  const [name, setName] = useState('My Codex')
   const [app, setApp] = useState<MagpieApp>('Codex')
   const [model, setModel] = useState<string | null>(null)
   const models = useQuery({
@@ -116,6 +116,7 @@ export function MagpieDialog({
             const selected = magpieApps.find((item) => item === value)
             if (selected && selected !== app) {
               setApp(selected)
+              setName(`My ${selected}`)
               setModel(null)
             }
           }}
@@ -138,6 +139,7 @@ export function MagpieDialog({
         <Input
           id='magpie-name'
           value={name}
+          placeholder={`My ${app}`}
           maxLength={80}
           onChange={(event) => setName(event.target.value)}
         />
