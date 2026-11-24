@@ -46,6 +46,7 @@ func applyExplicitLogTextFilter(tx *gorm.DB, column string, value string) (*gorm
 }
 
 // resolveChannelIDs accepts either a channel ID or part of a channel name.
+// Numeric values match only channel IDs, never channel names.
 // Channel metadata lives in the main database, while logs may use a separate
 // database, so the matching IDs are resolved before filtering the log query.
 func resolveChannelIDs(value string) ([]int, error) {
@@ -69,6 +70,7 @@ func resolveChannelIDs(value string) ([]int, error) {
 
 	if channelID, err := strconv.Atoi(value); err == nil {
 		addChannelID(channelID)
+		return channelIDs, nil
 	}
 
 	namePattern, err := sanitizeContainsLikePattern(value, common.MainDatabaseType())
