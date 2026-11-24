@@ -1,0 +1,55 @@
+# Linux container jobs require an online amd64 Docker executor with tag "docker".
+.linux-container:
+  tags:
+    - docker
+
+prepare-version:
+  extends: .linux-container
+  stage: prepare
+  image: docker:29.10.0-cli
+  rules:
+    - if: "$TASK_TYPE =~ /^(docker-publish|docker-multiarch|electron-build|release)$/"
+  script:
+    - |
+      BUILD_VERSION=${CI_COMMIT_TAG:-$(git describe --tags --always)}
+      if ! printf '%s\n' "$BUILD_VERSION" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$'; then
+        echo "The version must be a valid Docker tag and artifact filename."
+        exit 1
+      fi
+      printf '%s\n' "$BUILD_VERSION" > VERSION
+      echo "Building version: $BUILD_VERSION"
+  artifacts:
+    paths:
+      - VERSION
+    expire_in: 7 days
+
+build-frontend:
+  extends: .linux-container
+  stage: build
+  image: oven/bun:1.4.4
+  rules:
+    - if: '$TASK_TYPE == "electron-build" || $TASK_TYPE == "release"'
+  needs:
+    - prepare-version
+  variables:
+    NODE_OPTIONS: --max-old-space-size=4096
+  script:
+    - export VITE_REACT_APP_VERSION="$(cat VERSION)"
+    - cd web
+    - bun install --frozen-lockfile
+    - CI='' DISABLE_ESLINT_PLUGIN=true bun run build
+  artifacts:
+    paths:
+      - VERSION
+      - web/dist/
+    expire_in: 7 days
+
+# A tag run publishes durable assets to this project's Package Registry and Release.
+# Branch runs retain downloadable job artifacts without creating a tag or Release.
+.publish-release:
+  extends: .linux-container
+  stage: publish
+  image: python:3.14-alpine
+  resource_group: gitlab-release
+  script:
+    - python .gitlab/scripts/publish-release.py
