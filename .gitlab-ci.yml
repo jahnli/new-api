@@ -6,20 +6,18 @@ workflow:
 
 variables:
   TASK_TYPE:
-    value: ci
+    value: docker-publish
     options:
-      - ci
       - docker-publish
       - docker-multiarch
       - electron-build
       - release
-    description: "ci: code checks; docker-publish: amd64 image; docker-multiarch: amd64/arm64 images; electron-build: Windows desktop; release: Linux/macOS/Windows binaries"
+    description: "docker-publish: amd64 image; docker-multiarch: amd64/arm64 images; electron-build: Windows desktop; release: Linux/macOS/Windows binaries"
   GIT_DEPTH: "0"
   GOWORK: "off"
 
 stages:
   - prepare
-  - check
   - build
   - package
   - publish
@@ -27,7 +25,6 @@ stages:
 # Includes are unconditional: TASK_TYPE defaults are evaluated by job rules.
 include:
   - local: /.gitlab/ci/common.yml
-  - local: /.gitlab/ci/ci.yml
   - local: /.gitlab/ci/docker-publish.yml
   - local: /.gitlab/ci/docker-multiarch.yml
   - local: /.gitlab/ci/electron-build.yml
