@@ -308,8 +308,9 @@ type VerificationRequirements struct {
 	PasswordEncryptionEnabled bool                        `json:"password_encryption_enabled"`
 }
 
-// securityVerificationPolicy is the only operation-to-method policy. Device
-// support and disabled providers never turn an enrolled factor into an absent one.
+// securityVerificationPolicy defines the base operation-to-method policy.
+// GetVerificationRequirements prefers linked OIDC over the password fallback.
+// Device support and disabled providers never turn an enrolled factor into an absent one.
 func securityVerificationPolicy(scope string, state model.UserVerificationState) ([]VerificationMethodOption, error) {
 	var methods []string
 	if state.HasTwoFA {
@@ -390,6 +391,18 @@ func GetVerificationRequirements(identity AuthIdentity, scope string) (*Verifica
 	}
 	requirements := &VerificationRequirements{Scope: scope, Methods: methods, OAuthProviders: []VerificationOAuthProvider{}, PasswordEncryptionEnabled: common.PasswordLoginEncryptionEnabled}
 	for i := range methods {
+		if methods[i].Method == VerificationMethodPassword {
+			if provider := oauth.GetProvider("oidc"); provider != nil && provider.IsEnabled() {
+				user, err := model.GetUserById(identity.UserID, false)
+				if err != nil {
+					return nil, err
+				}
+				if user.OidcId != "" {
+					methods[i].Method = VerificationMethodOAuth
+					requirements.OAuthProviders = []VerificationOAuthProvider{{Slug: "oidc", Name: provider.GetName(), UserID: user.OidcId}}
+				}
+			}
+		}
 		if methods[i].Method == VerificationMethodPassword && !common.PasswordLoginEnabled {
 			switch scope {
 			case VerificationScopeAccountBind, VerificationScopeAccountUnbind, VerificationScopePasswordSet, VerificationScopePasswordChange, VerificationScopeAccountDelete,
@@ -408,13 +421,15 @@ func GetVerificationRequirements(identity AuthIdentity, scope string) (*Verifica
 			methods[i].Available, methods[i].Reason = false, "OAuth verification requires a browser sign-in. Enable two-factor authentication or a Passkey to continue."
 			continue
 		}
-		user, err := model.GetUserById(identity.UserID, false)
-		if err != nil {
-			return nil, err
-		}
-		requirements.OAuthProviders, err = verificationOAuthProviders(user)
-		if err != nil {
-			return nil, err
+		if len(requirements.OAuthProviders) == 0 {
+			user, err := model.GetUserById(identity.UserID, false)
+			if err != nil {
+				return nil, err
+			}
+			requirements.OAuthProviders, err = verificationOAuthProviders(user)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if len(requirements.OAuthProviders) == 0 {
 			methods[i].Available, methods[i].Reason = false, "No linked OAuth provider is available."

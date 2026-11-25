@@ -1,6 +1,6 @@
-# OAuth 与 OIDC 登录、退出及注册资料
+# OAuth 与 OIDC 登录、退出、敏感操作验证及注册资料
 
-**日期**: 2026-11-16
+**日期**: 2026-11-25
 
 ## 登录与退出
 
@@ -9,6 +9,12 @@
 - 主动跨系统退出先撤销网关会话，再使用 Casdoor 浏览器会话跳转发现配置的退出端点，不持久保存原始身份令牌；不可用时保留本地退出结果并提示。内部普通退出调用仍只撤销网关会话。
 - `/api/oauth/oidc/backchannel-logout` 验证签名退出通知，按会话或用户撤销关联登录，持久化记录支持重复通知和过期清理。主动跨系统退出始终校验来源；开发代理保留浏览器 Host。
 - 登出端点原则上要求 HTTPS，本机回环地址允许 HTTP；拒绝含用户凭据或片段的地址。返回地址固定为已配置站点的 `/sign-in`。
+
+## 敏感操作身份验证
+
+- 禁用用户等使用统一身份验证的敏感操作，已有 2FA／Passkey 时仍使用对应方式；两者均未配置、同时有密码与已绑定且启用的内置 OIDC 时，服务端仅提供 OIDC 验证，不受本次登录方式影响。
+- OIDC 未绑定或被关闭时保留密码验证；密码登录被关闭时不可使用密码。OIDC 验证失败不自动切换为密码，已有 2FA／Passkey 不可用时也不降级。
+- OIDC 验证必须使用浏览器登录会话，个人访问令牌不可完成该验证；回调校验当前绑定账号，验证凭证仍绑定操作者、会话、具体操作及目标，有效期一分钟且仅可使用一次。
 
 ## 可选静默登录
 
@@ -31,7 +37,8 @@
 - `oauth/oidc.go`、`oauth/oidc_tokens.go`、`oauth/oidc_logout.go` — 协议校验与登出地址。
 - `controller/oidc_logout.go`、`controller/oidc_silent.go`、`controller/oauth.go`、`service/oidc_profile.go` — 退出、静默授权及首次注册。
 - `model/oidc_logout.go`、`model/user_session.go`、`service/auth_session.go`、`service/login_verification.go` — 会话关联与 MFA。
+- `service/security_verification.go`、`service/oauth_verification.go`、`service/auth_token.go` — 敏感操作验证方式选择、OIDC 绑定校验及一次性凭证。
 - `web/src/features/auth/lib/oidc-silent-login.ts`、`web/src/lib/oidc-silent-preference.ts`、`web/src/components/sign-out-dialog.tsx` — 浏览器探测与退出偏好。
 - `web/src/features/system-settings/auth/oauth-section.tsx` — 配置、地址复制及说明。
 
-历史构建与静态检查通过不代表真实身份提供方联调或三库迁移已验证；相关完整运行矩阵仍无已完成依据。此次仅整理文档，未运行这些验证。
+敏感操作验证优先级变更已执行 `go build ./...` 和 `git diff --check`，均通过；按项目要求未新增、修改或运行测试。构建与静态检查通过不代表真实身份提供方联调或三库迁移已验证，相关完整运行矩阵仍无已完成依据。

@@ -26,7 +26,7 @@
 | 024 | 2026-11-16 | OIDC 开启时优先企业统一登录，保留其他已启用方式；登录页采用分栏极光与光球背景，支持动态效果降级。 | [详情](details/025-ldap-default-login.md) |
 | 026 | 2026-11-16 | 部门查询与通知读取所属公司飞书凭据；非工作时间通知校验公司、平台和身份，不使用全局应用兜底。 | [详情](details/026-feishu-credentials.md) |
 | 027 | 2026-06-23 | 登录与个人信息下发 avatar_url，前端优先用户照片，无图回退。 | [详情](details/028-avatar-url.md) |
-| 029 | 2026-11-16 | 保留 OIDC、微信及自定义提供商；OIDC 支持可选静默登录、MFA 和 Casdoor 双向退出，仅首次注册映射资料及套餐。 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
+| 029 | 2026-11-25 | 保留 OIDC、微信及自定义提供商；OIDC 支持可选静默登录、MFA 和 Casdoor 双向退出，仅首次注册映射资料及套餐；敏感操作无 2FA／Passkey 时，已绑定且启用的 OIDC 优先于密码验证。 | [详情](details/029-remove-github-discord-telegram-linuxdo-oauth.md) |
 | 032 | 2026-09-05 | 首页与错误页共享飞书联系卡片，通过 FEISHU_SUPPORT_OPEN_ID 配置，未配置隐藏。 | [详情](details/032-feishu-support-contact.md) |
 | 034 | 2026-06-23 | 顶部用户菜单显示用户名及角色图标，悬停打开，不重复展示分组。 | [详情](details/034-profile-dropdown-enhance.md) |
 | 035 | 2026-09-18 | 概览不展示 FAQ 面板或其飞书文档入口。 | [详情](details/035-faq-panel-redesign.md) |
