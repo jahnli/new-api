@@ -175,19 +175,19 @@ function QuotaUsagePanel(props: {
       : formatPremiumQuota(props.limit.toString())
   const formattedUsed = formatPremiumQuota(props.used.toString())
   let usageColor = {
-    text: 'text-emerald-700 dark:text-emerald-400',
+    text: 'text-emerald-500',
     progress: '[&_[data-slot=progress-indicator]]:bg-emerald-500',
   }
   if (props.limit === null) {
     usageColor = { text: 'text-muted-foreground', progress: '' }
   } else if (percent === null || percent >= 80) {
     usageColor = {
-      text: 'text-red-600 dark:text-red-400',
+      text: 'text-red-500',
       progress: '[&_[data-slot=progress-indicator]]:bg-red-500',
     }
   } else if (percent >= 50) {
     usageColor = {
-      text: 'text-amber-700 dark:text-amber-400',
+      text: 'text-amber-500',
       progress: '[&_[data-slot=progress-indicator]]:bg-amber-500',
     }
   }
