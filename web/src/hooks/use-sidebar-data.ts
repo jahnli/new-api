@@ -26,6 +26,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import type { SidebarBadges, SidebarData } from '@/components/layout/types'
+import { useExternalMode } from '@/hooks/use-external-mode'
 import {
   ADMIN_PERMISSION_ACTIONS,
   ADMIN_PERMISSION_RESOURCES,
@@ -42,7 +43,8 @@ import { useAuthStore } from '@/stores/auth-store'
 export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
   const { t } = useTranslation()
   const user = useAuthStore((s) => s.auth.user)
-  const canShowDataOverview = canAccessDataOverview(user)
+  const externalMode = useExternalMode()
+  const canShowDataOverview = canAccessDataOverview(user, externalMode)
 
   return {
     navGroups: [

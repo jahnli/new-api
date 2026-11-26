@@ -1,6 +1,6 @@
 # 对外模式与客户属性
 
-**日期**: 2026-11-18
+**日期**: 2026-11-26
 
 ## 模式与数据边界
 
@@ -17,6 +17,13 @@
 - 客户类型为 unset/trial/paid（未设置/试用/付费）；结算方式为 unset/prepaid/postpaid。非付费客户归一为未设置，付费客户未指定时使用预付。两字段有索引，服务端规范化和校验，变更记录审计；结算方式是运营标签，不改变实际计费。
 - 对外用户列表可在工具栏和列头分别单选客户类型与结算方式。选项写入路由，由搜索接口按已选条件筛选列表及分页总数，两个条件可组合使用；这些编辑字段仅对外显示，关闭时拒绝修改、保留已有值。分组、销售及商业列位于使用量之后、时间之前，时间列 200px；对内列序与宽度保持原规则。
 
+## 数据总览与报表授权
+
+- 对外普通用户及销售通过 `overview_dept_ids` 显式配置公司或部门范围，用户扩展字段均提供该配置；对内仍仅 BP 展示该项。
+- 整公司授权开放公司根节点及完整部门树，部门授权仅开放所选子树，可跨公司配置；无组织平台的公司必须显式选择公司节点。
+- 对外报表通知按显式公司或部门生成范围，不叠加所属公司或部门负责人关系；公司级授权生成公司范围报表。
+- 侧栏按对外模式及有效授权显示数据总览入口；进入页面时重新获取授权树，统计请求在读取人员范围缓存前重新校验权限。具体规则见 [入口授权](045-data-overview-access.md) 与 [可见范围配置](069-bp-level-overview.md)。
+
 ## 主要入口
 
 - `setting/operation_setting/operation_setting.go`、`model/option.go`、`controller/misc.go`：环境初始化与状态。
@@ -28,6 +35,9 @@
 - `web/src/hooks/use-user-display.ts`：顶部菜单和移动端抽屉订阅模式变化并更新角色名称。
 - `web/src/features/users/components/shared-user-columns.tsx`、`web/src/features/users/components/users-table.tsx`：共享角色列及筛选随模式展示“销售”或 BP。`web/src/features/users/api.ts` 将客户类型和结算方式随用户搜索请求发送。
 - `web/src/features/users/components/user-extension-fields.tsx`、`web/src/features/users/components/user-profile-hover-card.tsx`：角色选择、部门说明及资料卡提示使用模式对应名称。
+- `controller/department.go`、`middleware/auth.go`、`service/data_overview_company.go`、`service/feishu_department.go`：公司与部门节点、显式范围裁剪、入口鉴权及缓存读取前权限校验。
+- `service/report_notify.go`：对外报表通知使用显式公司或部门授权。
+- `web/src/features/users/types.ts`、`web/src/hooks/use-sidebar-data.ts`、`web/src/routes/_authenticated/data-overview/index.tsx`：可见范围字段说明、侧栏入口与进入页面时刷新授权。
 - `web/src/features/profile/components/profile-header.tsx`、`web/src/features/profile/components/profile-lanyard.tsx`：个人资料徽标和挂绳卡片使用模式对应名称。
 - `web/src/features/usage-logs/components/common-logs-filter-bar.tsx`：使用日志角色筛选同步名称。
 - `web/src/i18n/locales/en.json`、`web/src/i18n/locales/zh.json`、`web/src/i18n/locales/zh-TW.json`、`web/src/i18n/locales/fr.json`、`web/src/i18n/locales/ja.json`、`web/src/i18n/locales/ru.json`、`web/src/i18n/locales/vi.json`：新增带角色名称占位符的部门范围说明，复用现有“销售”翻译。

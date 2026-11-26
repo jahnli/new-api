@@ -7,6 +7,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 )
 
 var (
@@ -102,7 +103,11 @@ func GetReportNotifyUserReports(req *ReportNotifyUserReportsRequest) (*ReportNot
 }
 
 func getReportNotifyScopes(user *model.User) ([]reportNotifyScope, error) {
-	leaderDepartmentIDs := user.GetLeaderDepartmentIDs()
+	explicitOnly := operation_setting.ExternalModeEnabled && UsesOverviewDepartments(user.Role)
+	var leaderDepartmentIDs []string
+	if !explicitOnly {
+		leaderDepartmentIDs = user.GetLeaderDepartmentIDs()
+	}
 	overviewDepartmentIDs := ParseOverviewDeptIDs(user.OverviewDeptIDs)
 	if len(overviewDepartmentIDs) == 0 && len(leaderDepartmentIDs) == 0 {
 		return []reportNotifyScope{}, nil
@@ -115,7 +120,18 @@ func getReportNotifyScopes(user *model.User) ([]reportNotifyScope, error) {
 
 	scopes := make([]reportNotifyScope, 0)
 	for _, company := range companies {
-		if user.Company != company.Name {
+		if explicitOnly && !canSeeOverviewCompany(company, user, user.Role) {
+			continue
+		}
+		if !explicitOnly && user.Company != company.Name {
+			continue
+		}
+		if hasOverviewCompanyGrant(overviewDepartmentIDs, user.Role, company.Id) {
+			scopes = append(scopes, reportNotifyScope{
+				company:        company,
+				departmentID:   companyNodeValue(company.Id),
+				departmentName: company.Name,
+			})
 			continue
 		}
 		if company.Platform == model.CompanyPlatformNone {

@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"path"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -682,6 +683,9 @@ func buildDeptTree(items []feishuDeptItem) []*DeptTreeNode {
 
 // ── Permission trimming ───────────────────────────────────────────
 
+// External overview selections are scoped to a company or one of its departments.
+var overviewNodePattern = regexp.MustCompile(`^(company:[1-9][0-9]*|dept:[1-9][0-9]*:.+)$`)
+
 // ParseOverviewDeptIDs returns the configured department node values, removing
 // empty and duplicate entries before permission matching.
 func ParseOverviewDeptIDs(values []string) []string {
@@ -692,6 +696,9 @@ func ParseOverviewDeptIDs(values []string) []string {
 	seenValues := make(map[string]bool, len(values))
 	for _, value := range values {
 		value = strings.TrimSpace(value)
+		if operation_setting.ExternalModeEnabled && !overviewNodePattern.MatchString(value) {
+			continue
+		}
 		if value == "" || seenValues[value] {
 			continue
 		}
@@ -727,8 +734,7 @@ func trimTreeForUser(fullTree []*DeptTreeNode, userRole int, userOpenID string, 
 		return trimmed, leaderDeptIDs
 	}
 
-	// BP role: scope driven by explicitly configured department node values.
-	if userRole == common.RoleBUBP {
+	if UsesOverviewDepartments(userRole) {
 		return trimTreeForExplicitDepts(fullTree, overviewDeptIDs)
 	}
 
@@ -749,8 +755,7 @@ func trimTreeForUser(fullTree []*DeptTreeNode, userRole int, userOpenID string, 
 }
 
 // trimTreeForExplicitDepts trims the tree so only the explicitly listed node
-// values (and their entire sub-trees) are enabled. Used for BP users with
-// admin-configured visible departments.
+// values (and their entire sub-trees) are enabled.
 func trimTreeForExplicitDepts(fullTree []*DeptTreeNode, deptNodeValues []string) ([]*DeptTreeNode, []string) {
 	if len(deptNodeValues) == 0 {
 		return markAllDisabled(fullTree), nil
@@ -904,7 +909,7 @@ func GetDepartmentTree(userID int, userRole int) (*DepartmentTreeResponse, error
 
 // GetFullDepartmentTree returns the complete department tree for all configured
 // companies without any permission trimming. Used by admin users when configuring
-// visible departments for BP users.
+// visible departments for users.
 func GetFullDepartmentTree() (*DepartmentTreeResponse, error) {
 	companies, err := model.ListEnabledCompanies()
 	if err != nil {

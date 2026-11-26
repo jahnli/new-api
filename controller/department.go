@@ -28,7 +28,7 @@ func GetDepartmentTree(c *gin.Context) {
 
 // GetFullDepartmentTreeForAdmin returns the complete unfiltered department tree
 // for all configured companies. Only accessible by admin users; used when
-// configuring visible departments for BP users.
+// configuring visible departments for users.
 func GetFullDepartmentTreeForAdmin(c *gin.Context) {
 	resp, err := service.GetFullDepartmentTree()
 	if err != nil {

@@ -25,7 +25,6 @@ import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
 import {
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -40,7 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DepartmentTreeSelect } from '@/features/data-overview/components/department-tree-select'
-import { ROLE, getRoleLabelKey } from '@/lib/roles'
+import { ROLE, getRoleLabelKey, usesOverviewDepartments } from '@/lib/roles'
 
 import { getAdminFullDepartmentTree, getSalesUsers } from '../api'
 import {
@@ -65,7 +64,7 @@ export function UserExtensionFields(props: UserExtensionFieldsProps) {
   const { t } = useTranslation()
   const { control } = useFormContext<UserFormValues>()
   const bpRoleLabel = t(getRoleLabelKey(ROLE.BU_BP, props.externalMode))
-  const targetIsBP = useWatch({ control, name: 'role' }) === ROLE.BU_BP
+  const role = useWatch({ control, name: 'role' }) ?? ROLE.USER
   const selectedCustomerType = useWatch({ control, name: 'customer_type' })
   const salesQuery = useQuery({
     queryKey: ['user-sales-options'],
@@ -193,7 +192,7 @@ export function UserExtensionFields(props: UserExtensionFieldsProps) {
         )}
       />
 
-      {targetIsBP && (
+      {usesOverviewDepartments(role, props.externalMode) && (
         <FormField
           control={control}
           name='overview_dept_ids'
@@ -210,12 +209,6 @@ export function UserExtensionFields(props: UserExtensionFieldsProps) {
                   disabled={fullDeptTreeLoading}
                 />
               </FormControl>
-              <FormDescription>
-                {t(
-                  'Select which departments this {{role}} user can access in Data Overview. Selecting a department grants access to all its sub-departments.',
-                  { role: bpRoleLabel }
-                )}
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

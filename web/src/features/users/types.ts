@@ -173,7 +173,7 @@ export interface UserFormData {
   role?: number // Only used when creating user
   customer_type?: UserCustomerType
   settlement_mode?: UserSettlementMode
-  overview_dept_ids?: string[] // Explicitly configured visible department node values for BP users
+  overview_dept_ids?: string[] // Explicitly configured visible department node values for data overview
   cost_center?: string // Canonical single-department JSON array for the user's cost center
   quota?: number // Only used when updating user
   group?: string // Only used when updating user

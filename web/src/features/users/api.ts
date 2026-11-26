@@ -308,7 +308,7 @@ export async function adminUnbindCustomOAuth(
 
 /**
  * Get the full unfiltered department tree for admin configuration.
- * Used when configuring visible departments for BP users.
+ * Used when configuring visible departments for users.
  */
 export async function getAdminFullDepartmentTree(): Promise<{
   success: boolean

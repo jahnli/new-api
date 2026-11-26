@@ -54,7 +54,7 @@ const highCostThresholdCNY = 10.0
 var costBucketUpperBoundsCNY = []float64{0, 10, 50, 100, 200, 400, 800}
 
 // overviewAudienceCacheTTL lets the five parallel overview endpoints share one
-// lightweight member resolve. Keep short so role/department changes still refresh.
+// lightweight member resolve. Department access is checked before each cache lookup.
 const overviewAudienceCacheTTL = 30 * time.Second
 
 var overviewAudienceSingleflight singleflight.Group
@@ -123,6 +123,11 @@ func parseCompanyDepartmentValue(companyID int, value string) (string, bool, err
 	return value, false, nil
 }
 
+// UsesOverviewDepartments reports whether explicitly assigned departments define the user's overview scope.
+func UsesOverviewDepartments(role int) bool {
+	return role == common.RoleBUBP || (operation_setting.ExternalModeEnabled && role >= common.RoleCommonUser && role < common.RoleAdminUser)
+}
+
 func getAuthorizedOverviewCompany(companyID int, userID int, userRole int) (*model.Company, error) {
 	company, err := model.GetEnabledCompanyByID(companyID)
 	if err != nil {
@@ -135,13 +140,39 @@ func getAuthorizedOverviewCompany(companyID int, userID int, userRole int) (*mod
 	if err != nil {
 		return nil, ErrCompanyAccessDenied
 	}
-	if userRole == common.RoleBUBP && overviewDepartmentBelongsToCompany(user.OverviewDeptIDs, company.Id) {
+	if canSeeOverviewCompany(company, user, userRole) {
 		return company, nil
 	}
-	if user.Company != company.Name {
-		return nil, ErrCompanyAccessDenied
+	// Internal BP users may also request their home company directly.
+	if !operation_setting.ExternalModeEnabled && userRole == common.RoleBUBP && user.Company == company.Name {
+		return company, nil
 	}
-	return company, nil
+	return nil, ErrCompanyAccessDenied
+}
+
+func canSeeOverviewCompany(company *model.Company, user *model.User, role int) bool {
+	if role >= common.RoleRootUser {
+		return true
+	}
+	if !UsesOverviewDepartments(role) {
+		return user.Company == company.Name
+	}
+	if hasOverviewCompanyGrant(user.OverviewDeptIDs, role, company.Id) {
+		return true
+	}
+	if operation_setting.ExternalModeEnabled && company.Platform == model.CompanyPlatformNone {
+		return false
+	}
+	return overviewDepartmentBelongsToCompany(user.OverviewDeptIDs, company.Id)
+}
+
+// hasOverviewCompanyGrant checks the exact company selection, independently of grants to individual departments.
+func hasOverviewCompanyGrant(values []string, role int, companyID int) bool {
+	if !operation_setting.ExternalModeEnabled || !UsesOverviewDepartments(role) {
+		return false
+	}
+	companyValue := companyNodeValue(companyID)
+	return slices.ContainsFunc(values, func(value string) bool { return strings.TrimSpace(value) == companyValue })
 }
 
 func overviewDepartmentBelongsToCompany(overviewDeptIDs []string, companyID int) bool {
@@ -219,10 +250,9 @@ func getCompanyDepartmentTree(userID int, userRole int) (*DepartmentTreeResponse
 		return nil, fmt.Errorf("get user: %w", err)
 	}
 	visibleCompanies := make([]*model.Company, 0, len(companies))
+	explicitDepartments := UsesOverviewDepartments(userRole)
 	for _, company := range companies {
-		if userRole >= common.RoleRootUser ||
-			(userRole == common.RoleBUBP && overviewDepartmentBelongsToCompany(user.OverviewDeptIDs, company.Id)) ||
-			(userRole != common.RoleBUBP && user.Company == company.Name) {
+		if canSeeOverviewCompany(company, user, userRole) {
 			visibleCompanies = append(visibleCompanies, company)
 		}
 	}
@@ -262,7 +292,7 @@ func getCompanyDepartmentTree(userID int, userRole int) (*DepartmentTreeResponse
 			// eagerly. Other companies expose a company-level node with
 			// Loading=true so the frontend can fetch their subtree on demand
 			// when the user expands them in the selector.
-			if index != 0 && userRole != common.RoleBUBP {
+			if index != 0 && !explicitDepartments {
 				companyNode.Disabled = userRole < common.RoleRootUser
 				companyNode.Loading = true
 				return
@@ -280,10 +310,7 @@ func getCompanyDepartmentTree(userID int, userRole int) (*DepartmentTreeResponse
 			}
 			fullTree := buildOverviewDepartmentTree(company.Id, company.Platform, directory.Departments)
 			leaderIDs := prefixLeaderDepartmentIDs(company.Id, leaderDepartmentIDs)
-			trimmed, visibleLeaderIDs := trimTreeForUser(fullTree, userRole, user.PlatformID(company.Platform), leaderIDs, overviewDeptIDs)
-			companyNode.Disabled = userRole < common.RoleRootUser
-			companyNode.Children = trimmed
-			results[index].leaderDeptIDs = visibleLeaderIDs
+			results[index].leaderDeptIDs = setOverviewCompanyChildren(companyNode, fullTree, userRole, user.PlatformID(company.Platform), leaderIDs, overviewDeptIDs)
 		}(index, company)
 	}
 	wg.Wait()
@@ -358,11 +385,19 @@ func GetCompanySubtreeNode(companyID int, userID int, userRole int) (*CompanySub
 	fullTree := buildOverviewDepartmentTree(company.Id, company.Platform, directory.Departments)
 	leaderIDs := prefixLeaderDepartmentIDs(company.Id, user.GetLeaderDepartmentIDs())
 	overviewDeptIDs := ParseOverviewDeptIDs(user.OverviewDeptIDs)
-	trimmed, visibleLeaderIDs := trimTreeForUser(fullTree, userRole, user.PlatformID(company.Platform), leaderIDs, overviewDeptIDs)
-	companyNode.Disabled = userRole < common.RoleRootUser
-	companyNode.Children = trimmed
-	response.LeaderDeptIDs = visibleLeaderIDs
+	response.LeaderDeptIDs = setOverviewCompanyChildren(companyNode, fullTree, userRole, user.PlatformID(company.Platform), leaderIDs, overviewDeptIDs)
 	return response, nil
+}
+
+func setOverviewCompanyChildren(companyNode *DeptTreeNode, fullTree []*DeptTreeNode, role int, platformUserID string, leaders, grants []string) []string {
+	if hasOverviewCompanyGrant(grants, role, companyNode.CompanyID) {
+		companyNode.Children = fullTree
+		return []string{companyNode.Value}
+	}
+	companyNode.Disabled = role < common.RoleRootUser
+	children, visibleIDs := trimTreeForUser(fullTree, role, platformUserID, leaders, grants)
+	companyNode.Children = children
+	return visibleIDs
 }
 
 func ensureDepartmentAccessible(company *model.Company, directory *overviewDirectory, departmentID string, companyRoot bool, userID int, userRole int) error {
@@ -378,11 +413,14 @@ func ensureDepartmentAccessible(company *model.Company, directory *overviewDirec
 	if userRole >= common.RoleRootUser {
 		return nil
 	}
-	if companyRoot {
-		return ErrDepartmentAccessDenied
-	}
 	user, err := model.GetUserById(userID, false)
 	if err != nil {
+		return ErrDepartmentAccessDenied
+	}
+	if hasOverviewCompanyGrant(user.OverviewDeptIDs, userRole, company.Id) {
+		return nil
+	}
+	if companyRoot {
 		return ErrDepartmentAccessDenied
 	}
 	fullTree := buildOverviewDepartmentTree(company.Id, company.Platform, directory.Departments)
@@ -445,6 +483,24 @@ func resolveCompanyOverviewAudience(companyID int, departmentValue string, userI
 	if companyID <= 0 {
 		return nil, true, ErrCompanyIDRequired
 	}
+	company, err := getAuthorizedOverviewCompany(companyID, userID, userRole)
+	if err != nil {
+		return nil, true, err
+	}
+	departmentID, companyRoot, err := parseCompanyDepartmentValue(company.Id, departmentValue)
+	if err != nil {
+		return nil, true, err
+	}
+	var directory *overviewDirectory
+	if company.Platform != model.CompanyPlatformNone {
+		directory, err = fetchCompanyDirectory(company)
+		if err != nil {
+			return nil, true, err
+		}
+	}
+	if err := ensureDepartmentAccessible(company, directory, departmentID, companyRoot, userID, userRole); err != nil {
+		return nil, true, err
+	}
 	cacheKey := companyOverviewCacheKey(
 		companyID,
 		"audience",
@@ -457,7 +513,7 @@ func resolveCompanyOverviewAudience(companyID int, departmentValue string, userI
 		if cached, ok := loadCompanyOverviewCache(cacheKey); ok {
 			return cached.(*overviewAudience), nil
 		}
-		audience, err := buildCompanyOverviewAudience(companyID, departmentValue, userID, userRole, registeredBefore)
+		audience, err := buildCompanyOverviewAudience(company, directory, departmentID, companyRoot, registeredBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -522,20 +578,9 @@ func resolveOverviewAudience(companyID int, departmentID string, userID int, use
 	return resolveCompanyOverviewAudience(companyID, departmentID, userID, userRole, registeredBefore)
 }
 
-func buildCompanyOverviewAudience(companyID int, departmentValue string, userID int, userRole int, registeredBefore int64) (*overviewAudience, error) {
-	company, err := getAuthorizedOverviewCompany(companyID, userID, userRole)
-	if err != nil {
-		return nil, err
-	}
-	departmentID, companyRoot, err := parseCompanyDepartmentValue(company.Id, departmentValue)
-	if err != nil {
-		return nil, err
-	}
+func buildCompanyOverviewAudience(company *model.Company, directory *overviewDirectory, departmentID string, companyRoot bool, registeredBefore int64) (*overviewAudience, error) {
 	audience := &overviewAudience{company: company, departmentID: departmentID}
 	if company.Platform == model.CompanyPlatformNone {
-		if !companyRoot {
-			return nil, ErrDepartmentAccessDenied
-		}
 		users, err := queryOverviewUsers(company, nil, registeredBefore)
 		if err != nil {
 			return nil, err
@@ -545,13 +590,6 @@ func buildCompanyOverviewAudience(companyID int, departmentValue string, userID 
 		audience.totalUsers = len(users)
 		audience.forceRegisteredOnly = true
 		return audience, nil
-	}
-	directory, err := fetchCompanyDirectory(company)
-	if err != nil {
-		return nil, err
-	}
-	if err := ensureDepartmentAccessible(company, directory, departmentID, companyRoot, userID, userRole); err != nil {
-		return nil, err
 	}
 	departmentIDs := collectOverviewDepartmentIDs(directory.Departments, departmentID, companyRoot, company.Platform)
 	if len(departmentIDs) == 0 {
