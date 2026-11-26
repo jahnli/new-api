@@ -894,6 +894,8 @@ export const STATIC_I18N_KEYS = [
   'Email confirmation code resend',
   // Administrative step-up titles keyed by ManageUser action.
   'Verify to disable user',
+  'Disable scheduled',
+  'Scheduled disable canceled',
   'Verify to enable user',
   'Verify to promote user',
   'Verify to demote user',

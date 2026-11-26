@@ -174,11 +174,12 @@ export async function deleteUser(
 export async function manageUser(
   id: number,
   action: ManageUserAction,
-  proofToken: string
+  proofToken: string,
+  disableAt?: number
 ): Promise<ApiResponse<Partial<User>>> {
   const res = await api.post(
     '/api/user/manage',
-    { id, action },
+    { id, action, disable_at: disableAt },
     securityProofConfig(proofToken)
   )
   return res.data

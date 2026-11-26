@@ -1,6 +1,6 @@
 # 用户管理与共享表格交互
 
-**日期**: 2026-11-18
+**日期**: 2026-11-26
 
 ## 用户统计与表格
 
@@ -24,6 +24,9 @@
 
 ## 用户操作
 
+- 单个及批量禁用均可选“立即禁用”或“定时禁用”。立即禁用写入服务器当前时间，定时禁用从明天起选取日期，以浏览器当地零点换算为时间戳，并显示所用时区。两种操作均写入 `disable_at`，实际停用由外部任务执行。
+- 状态列显示计划禁用时间，行菜单可取消计划。账户重新启用、提升角色或删除时清除计划，普通资料编辑保留计划。
+- 设置与取消计划均需绑定目标用户及操作的一次性验证，定时操作还绑定所选时间。服务端在事务内复核管理员与目标账户权限，拒绝已到期的定时时间，并为成功操作写入审计记录。
 - 用户删除经确认及绑定目标的 `admin.user.delete` 身份验证后提交，成功刷新列表；超级管理员账户删除入口禁用。
 - 批量启用、禁用、删除和改分组逐用户调用现有接口；敏感操作使用绑定目标及动作的一次性凭证，取消验证即停止后续项。
 - 跳过当前用户、同级／更高权限、已删除或已为目标状态的账号；改分组先读最新详情，保留其他资料。处理期间防重复提交，结束汇总成功、失败、跳过和未处理项，保留失败及未处理勾选。
@@ -42,5 +45,9 @@
 - `web/src/features/users/lib/user-form.ts` 合并两组校验规则、默认值与提交参数。`user-account-form.ts` 保留基础账户转换，`user-form-extensions.ts` 处理成本中心、可见部门、角色和对外运营属性的回填与提交，兼容旧单销售数据。
 - `web/src/hooks/use-table-url-state.ts` — 支持通过 `pageSizeStorageKey: false` 关闭每页数量的本地存储读写。
 - `web/src/features/users/hooks/use-bulk-user-actions.ts`、`web/src/features/users/components/users-delete-dialog.tsx` — 批量与删除。
+- `controller/user.go`、`model/user_disable_schedule.go`、`model/user.go` — 返回计划时间、设置与清除计划、处理账户状态及角色变化。
+- `service/security_verification.go`、`web/src/features/auth/secure-verification/types.ts` — 绑定验证动作、目标及定时时间。
+- `web/src/features/users/components/` 下的 `data-table-row-actions.tsx`、`data-table-bulk-actions.tsx` 与 `user-disable-timing.tsx` 共用时间选择流程，`web/src/components/date-picker.tsx` 提供日期选择，`shared-user-columns.tsx` 展示计划时间。
+- `web/src/features/users/api.ts`、`web/src/features/users/types.ts`、`web/src/features/users/lib/user-actions.ts` — 传递禁用操作与计划时间并提示结果。`web/src/i18n/static-keys.ts` 与 `web/src/i18n/locales/` 下七种语言文件覆盖操作、校验和结果文案。
 - `web/src/components/text-tooltip.tsx`、`web/src/components/description-tooltip.tsx`、`web/src/hooks/use-overflow.ts` — 提示及共享溢出观察。
 - `web/src/components/data-table/core/column-header.tsx`、`web/src/components/data-table/core/column-filter-header.tsx` — 多排序字段与列头筛选。

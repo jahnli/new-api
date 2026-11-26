@@ -50,7 +50,7 @@ const (
 
 // adminUserManageActions are the ManageUser actions that change a user's
 // status or role. Quota adjustments are not gated and deletion has its own scope.
-var adminUserManageActions = []string{"disable", "enable", "promote", "demote"}
+var adminUserManageActions = []string{"disable", "enable", "promote", "demote", "schedule_disable", "cancel_disable"}
 
 var (
 	ErrVerificationFailed         = errors.New("Verification failed. Please try again.")
@@ -87,8 +87,9 @@ type AdminUserContext struct {
 }
 
 type AdminUserManageContext struct {
-	UserID int    `json:"user_id"`
-	Action string `json:"action"`
+	DisableAt int64  `json:"disable_at,omitempty"`
+	UserID    int    `json:"user_id"`
+	Action    string `json:"action"`
 }
 
 // AdminUserBindingContext names exactly one binding: a built-in binding type
@@ -206,7 +207,14 @@ func BindVerificationOperation(operation VerificationOperation) (VerificationBin
 		normalized = context
 	case VerificationScopeAdminUserManage:
 		var context AdminUserManageContext
-		if len(fields) != 2 || common.Unmarshal(operation.Context, &context) != nil || context.UserID <= 0 || !slices.Contains(adminUserManageActions, context.Action) {
+		if common.Unmarshal(operation.Context, &context) != nil || context.UserID <= 0 || !slices.Contains(adminUserManageActions, context.Action) {
+			return VerificationBinding{}, ErrVerificationContextInvalid
+		}
+		if context.Action == "schedule_disable" {
+			if len(fields) != 3 || context.DisableAt <= 0 {
+				return VerificationBinding{}, ErrVerificationContextInvalid
+			}
+		} else if len(fields) != 2 || context.DisableAt != 0 {
 			return VerificationBinding{}, ErrVerificationContextInvalid
 		}
 		normalized = context

@@ -583,6 +583,7 @@ func sortUserWithSubQuota(items []userWithSubQuota, sortBy string, sortOrder str
 }
 
 type userWithSubQuota struct {
+	DisableAt *int64 `json:"disable_at,omitempty"`
 	*model.User
 	HasActiveSubscription         bool    `json:"has_active_subscription"`
 	SubQuotaUsed                  int64   `json:"sub_quota_used"`
@@ -648,7 +649,7 @@ func attachSubscriptionQuota(users []*model.User) []userWithSubQuota {
 		if operation_setting.ExternalModeEnabled {
 			stripExternalModeFields(u)
 		}
-		item := userWithSubQuota{User: u}
+		item := userWithSubQuota{User: u, DisableAt: u.DisableAt}
 		stat, hasStat := userStats[u.Id]
 		if s, ok := subMap[u.Id]; ok {
 			item.HasActiveSubscription = true
@@ -1504,10 +1505,11 @@ func updateAdminPermissionsForUserInTx(c *gin.Context, tx *gorm.DB, userID int, 
 }
 
 type ManageRequest struct {
-	Id     int    `json:"id"`
-	Action string `json:"action"`
-	Value  int    `json:"value"`
-	Mode   string `json:"mode"`
+	DisableAt int64  `json:"disable_at,omitempty"`
+	Id        int    `json:"id"`
+	Action    string `json:"action"`
+	Value     int    `json:"value"`
+	Mode      string `json:"mode"`
 }
 
 // ManageUser Only admin user can do this
@@ -1523,12 +1525,16 @@ func ManageUser(c *gin.Context) {
 		manageUserQuota(c, req)
 		return
 	}
-	user := model.User{
-		Id: req.Id,
+	if req.Id <= 0 {
+		common.ApiErrorT(c, "Invalid parameters")
+		return
 	}
-	// Fill attributes
-	model.DB.Unscoped().Where(&user).First(&user)
-	if user.Id == 0 {
+	var user model.User
+	if err := model.DB.Unscoped().First(&user, req.Id).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			common.ApiError(c, err)
+			return
+		}
 		common.ApiErrorT(c, "User does not exist")
 		return
 	}
@@ -1538,12 +1544,27 @@ func ManageUser(c *gin.Context) {
 		return
 	}
 	switch req.Action {
-	case "disable":
-		user.Status = common.UserStatusDisabled
+	case "disable", "schedule_disable", "cancel_disable":
 		if user.Role == common.RoleRootUser {
 			common.ApiErrorT(c, "Cannot disable super administrator user")
 			return
 		}
+		authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserManage, service.AdminUserManageContext{UserID: user.Id, Action: req.Action, DisableAt: req.DisableAt})
+		if authorization == nil {
+			return
+		}
+		scheduled, err := model.SetUserDisableTime(req.Id, c.GetInt("id"), req.Action, req.DisableAt)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		params := map[string]any{"action": req.Action, "id": user.Id, "username": user.Username, "verification_method": authorization.Method}
+		if scheduled != nil {
+			params["disable_at"] = *scheduled
+		}
+		recordManageAuditFor(c, user.Id, "user.manage", params)
+		common.ApiSuccess(c, model.User{Role: user.Role, Status: user.Status})
+		return
 	case "enable":
 		user.Status = common.UserStatusEnabled
 	case "delete":
@@ -1602,10 +1623,11 @@ func ManageUser(c *gin.Context) {
 		return
 	}
 
-	authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserManage, service.AdminUserManageContext{UserID: user.Id, Action: req.Action})
+	authorization := requireAdminUserProof(c, service.VerificationScopeAdminUserManage, service.AdminUserManageContext{UserID: user.Id, Action: req.Action, DisableAt: req.DisableAt})
 	if authorization == nil {
 		return
 	}
+
 	if req.Action == "demote" {
 		if err := model.DB.Transaction(func(tx *gorm.DB) error {
 			if err := user.UpdateWithTx(tx, false); err != nil {

@@ -26,6 +26,7 @@ import {
   type BulkUserOperation,
 } from '../hooks/use-bulk-user-actions'
 import type { User } from '../types'
+import { UserDisableTiming } from './user-disable-timing'
 import { useUsers } from './users-provider'
 
 interface DataTableBulkActionsProps {
@@ -158,11 +159,14 @@ export function DataTableBulkActions(props: DataTableBulkActionsProps) {
         }
         confirmText={mutation.isPending ? t('Processing...') : t('Confirm')}
         destructive={
-          operation?.action === 'delete' || operation?.action === 'disable'
+          operation?.action === 'delete' ||
+          (operation?.action === 'disable' && operation.disableAt === undefined)
         }
         isLoading={mutation.isPending}
         disabled={
           !operation?.users.length ||
+          (operation.disableAt !== undefined &&
+            operation.disableAt <= Date.now() / 1000) ||
           (operation.action === 'group' &&
             (groupsQuery.isError || !groups.includes(operation.group)))
         }
@@ -171,6 +175,12 @@ export function DataTableBulkActions(props: DataTableBulkActionsProps) {
           mutation.execute(operation, () => setOperation(null))
         }}
       >
+        {operation?.action === 'disable' && !mutation.isPending && (
+          <UserDisableTiming
+            value={operation.disableAt}
+            onChange={(disableAt) => setOperation({ ...operation, disableAt })}
+          />
+        )}
         {operation?.action === 'group' && (
           <div className='space-y-2'>
             <Label htmlFor='bulk-user-group'>{t('Group')}</Label>

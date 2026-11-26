@@ -147,6 +147,7 @@ type User struct {
 	SalesUsers           []SalesUser                `json:"sales_users,omitempty" gorm:"-:all"`
 	OverviewDeptIDs      []string                   `json:"overview_dept_ids" gorm:"type:text;serializer:json;column:overview_dept_ids;default:'[]'"`
 	Status               int                        `json:"status" gorm:"type:int;default:1"`
+	DisableAt            *int64                     `json:"-" gorm:"type:bigint;index"`
 	Email                string                     `json:"email" gorm:"index" validate:"max=50"`
 	OidcId               string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
 	WeChatId             string                     `json:"wechat_id" gorm:"column:wechat_id;index"`
@@ -1000,7 +1001,12 @@ func (user *User) UpdateWithTx(tx *gorm.DB, updatePassword bool) error {
 			return err
 		}
 	}
-	if err = tx.Model(&current).Omit("quota", "used_quota", "request_count", "auth_version", "access_token", "subscription_premium_percent", "sales_user_id", "sales_user_ids").Updates(newUser).Error; err != nil {
+	if newUser.Role > current.Role || (current.Status != common.UserStatusEnabled && newUser.Status == common.UserStatusEnabled) {
+		if err := tx.Model(&current).UpdateColumn("disable_at", nil).Error; err != nil {
+			return err
+		}
+	}
+	if err = tx.Model(&current).Omit("disable_at", "quota", "used_quota", "request_count", "auth_version", "access_token", "subscription_premium_percent", "sales_user_id", "sales_user_ids").Updates(newUser).Error; err != nil {
 		return err
 	}
 	return tx.First(user, user.Id).Error
@@ -1070,6 +1076,11 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 	authChanged := (updatePassword && current.Password != newUser.Password) ||
 		groupChanged ||
 		current.Role != newUser.Role
+
+	// A promotion invalidates a disable plan authorized against the previous role.
+	if newUser.Role > current.Role {
+		updates["disable_at"] = nil
+	}
 	if authChanged {
 		newUser.AuthVersion, err = IncrementUserAuthVersionWithTx(tx, user.Id)
 		if err != nil {
@@ -1164,6 +1175,9 @@ func (user *User) delete(identity *AuthSessionIdentity) (int64, error) {
 		}
 		revokedAccessTokens, err = DeleteUserAccessTokensWithTx(tx, user.Id)
 		if err != nil {
+			return err
+		}
+		if err := tx.Model(user).UpdateColumn("disable_at", nil).Error; err != nil {
 			return err
 		}
 		return tx.Delete(user).Error

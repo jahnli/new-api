@@ -15,6 +15,7 @@ import {
 
 import { deleteUser, getUser, manageUser, updateUser } from '../api'
 import { useUsers } from '../components/users-provider'
+import { MANAGE_ACTION_TITLES } from '../lib/user-actions'
 import type { User } from '../types'
 
 export type BulkUserAction = 'enable' | 'disable' | 'delete' | 'group'
@@ -23,6 +24,7 @@ export interface BulkUserOperation {
   action: BulkUserAction
   users: User[]
   skipped: number
+  disableAt?: number
   group: string
 }
 
@@ -79,8 +81,13 @@ export function useBulkUserActions(table: Table<User>) {
               }
             } else {
               // Proofs are bound to one user/action and must never be reused.
+              const action =
+                operation.action === 'disable' &&
+                operation.disableAt !== undefined
+                  ? 'schedule_disable'
+                  : operation.action
               const proof = await requestVerification(
-                operation.action === 'delete'
+                action === 'delete'
                   ? {
                       scope: 'admin.user.delete',
                       context: { user_id: user.id },
@@ -92,11 +99,12 @@ export function useBulkUserActions(table: Table<User>) {
                     }
                   : {
                       scope: 'admin.user.manage',
-                      context: { user_id: user.id, action: operation.action },
-                      title:
-                        operation.action === 'enable'
-                          ? t('Verify to enable user')
-                          : t('Verify to disable user'),
+                      context: {
+                        user_id: user.id,
+                        action,
+                        disable_at: operation.disableAt,
+                      },
+                      title: t(MANAGE_ACTION_TITLES[action]),
                       description: t(
                         'Confirm your identity before changing the account {{username}}.',
                         { username: user.username }
@@ -105,12 +113,13 @@ export function useBulkUserActions(table: Table<User>) {
               )
               if (!proof || !mounted.current) break
               requireServerSuccess(
-                operation.action === 'delete'
+                action === 'delete'
                   ? await deleteUser(user.id, proof.proof_token)
                   : await manageUser(
                       user.id,
-                      operation.action,
-                      proof.proof_token
+                      action,
+                      proof.proof_token,
+                      operation.disableAt
                     )
               )
               succeeded.push(user.id)

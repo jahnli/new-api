@@ -8,6 +8,7 @@ import {
   ArrowDown,
   KeyRound,
   ShieldAlert,
+  UserRound,
   Link2,
   CreditCard,
   BarChart3,
@@ -32,6 +33,7 @@ import {
 import type { AdminUserManageAction } from '@/features/auth/secure-verification'
 import { UserStatsDialog } from '@/features/data-overview/components/user-stats-dialog'
 import { UserSubscriptionsDialog } from '@/features/subscriptions/components/dialogs/user-subscriptions-dialog'
+import dayjs from '@/lib/dayjs'
 import { handleServerError } from '@/lib/handle-server-error'
 import { AuthOperationError } from '@/lib/secure-verification'
 
@@ -42,17 +44,11 @@ import {
   ERROR_MESSAGES,
   isUserDeleted,
 } from '../constants'
-import { getUserActionMessage } from '../lib'
+import { getUserActionMessage, MANAGE_ACTION_TITLES } from '../lib/user-actions'
 import type { User } from '../types'
 import { UserBindingDialog } from './dialogs/user-binding-dialog'
+import { UserDisableTiming } from './user-disable-timing'
 import { useUsers } from './users-provider'
-
-const MANAGE_ACTION_TITLES: Record<AdminUserManageAction, string> = {
-  disable: 'Verify to disable user',
-  enable: 'Verify to enable user',
-  promote: 'Verify to promote user',
-  demote: 'Verify to demote user',
-}
 
 interface DataTableRowActionsProps {
   row: Row<User>
@@ -74,16 +70,22 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
   const [statsDialogOpen, setStatsDialogOpen] = useState(false)
 
+  const [disableOpen, setDisableOpen] = useState(false)
+  const [disableAt, setDisableAt] = useState<number>()
+
   const handleEdit = () => {
     setCurrentRow(user)
     setOpen('update')
   }
 
-  const handleManage = async (action: AdminUserManageAction) => {
+  const handleManage = async (
+    action: AdminUserManageAction,
+    timestamp?: number
+  ) => {
     try {
       const proof = await requestVerification({
         scope: 'admin.user.manage',
-        context: { user_id: user.id, action },
+        context: { user_id: user.id, action, disable_at: timestamp },
         title: t(MANAGE_ACTION_TITLES[action]),
         description: t(
           'Confirm your identity before changing the account {{username}}.',
@@ -91,7 +93,12 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         ),
       })
       if (!proof) return
-      const result = await manageUser(user.id, action, proof.proof_token)
+      const result = await manageUser(
+        user.id,
+        action,
+        proof.proof_token,
+        timestamp
+      )
       if (result.success) {
         toast.success(t(getUserActionMessage(action)))
         triggerRefresh()
@@ -219,7 +226,14 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem
-            onClick={() => handleManage('disable')}
+            onClick={() => {
+              setDisableAt(
+                user.disable_at
+                  ? dayjs.unix(user.disable_at).startOf('day').unix()
+                  : undefined
+              )
+              setDisableOpen(true)
+            }}
             disabled={isRoot}
           >
             {t('Disable')}
@@ -229,6 +243,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
+        {!!user.disable_at && !isDisabled && !isRoot && (
+          <DropdownMenuItem onClick={() => handleManage('cancel_disable')}>
+            {t('Cancel scheduled disable')}
+          </DropdownMenuItem>
+        )}
         {isAdmin && !isRoot && (
           <DropdownMenuItem onClick={() => handleManage('demote')}>
             {t('Demote')}
@@ -315,6 +334,34 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         </DropdownMenuItem>
       </DataTableRowActionMenu>
 
+      {disableOpen && (
+        <ConfirmDialog
+          open
+          onOpenChange={setDisableOpen}
+          title={t('Disable')}
+          desc={
+            <span className='inline-flex max-w-full items-center gap-1.5'>
+              <UserRound aria-hidden='true' className='size-3.5 shrink-0' />
+              <bdi className='break-all'>{user.username}</bdi>
+            </span>
+          }
+          className='data-[size=default]:sm:max-w-md'
+          disabled={disableAt !== undefined && disableAt <= Date.now() / 1000}
+          confirmText={
+            disableAt === undefined ? t('Disable now') : t('Schedule disable')
+          }
+          destructive={disableAt === undefined}
+          handleConfirm={() => {
+            setDisableOpen(false)
+            void handleManage(
+              disableAt === undefined ? 'disable' : 'schedule_disable',
+              disableAt
+            )
+          }}
+        >
+          <UserDisableTiming value={disableAt} onChange={setDisableAt} />
+        </ConfirmDialog>
+      )}
       <ConfirmDialog
         open={resetPasskeyOpen && !verificationActive}
         onOpenChange={setResetPasskeyOpen}

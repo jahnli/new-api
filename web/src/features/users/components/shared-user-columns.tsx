@@ -49,6 +49,7 @@ import { useExternalMode } from '@/hooks/use-external-mode'
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatQuota } from '@/lib/format'
 import { ROLE, getRoleLabelKey } from '@/lib/roles'
+import { formatDate } from '@/lib/time'
 import { calculateUnitPricePer100MTokens } from '@/lib/unit-price'
 import { cn } from '@/lib/utils'
 
@@ -538,6 +539,11 @@ function userStatusColumn<T extends UserColumnRow>(
               variant={statusConfig.variant}
               copyable={false}
             />
+            {!!user.disable_at && !deleted && (
+              <div className='text-muted-foreground text-xs'>
+                {t('Scheduled disable')} · {formatDate(user.disable_at)}
+              </div>
+            )}
           </TooltipTrigger>
           <TooltipContent>
             <p className='text-xs'>

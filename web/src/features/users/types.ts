@@ -62,6 +62,7 @@ export const userSchema = z.object({
   request_count: z.number(),
   group: z.string(),
   status: userStatusSchema,
+  disable_at: z.number().optional(),
   role: userRoleSchema,
   customer_type: userCustomerTypeSchema.optional(),
   settlement_mode: userSettlementModeSchema.optional(),
@@ -186,6 +187,8 @@ export type ManageUserAction =
   | 'demote'
   | 'enable'
   | 'disable'
+  | 'schedule_disable'
+  | 'cancel_disable'
   | 'add_quota'
 
 export type QuotaAdjustMode = 'add' | 'subtract' | 'override'
@@ -222,6 +225,7 @@ export interface UserColumnRow {
   request_count: number
   group: string
   status: number
+  disable_at?: number
   role: number
   customer_type?: UserCustomerType
   settlement_mode?: UserSettlementMode

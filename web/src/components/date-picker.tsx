@@ -28,6 +28,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import dayjs from '@/lib/dayjs'
+import { cn } from '@/lib/utils'
 
 const calendarLocales = {
   en: enUS,
@@ -40,15 +41,23 @@ const calendarLocales = {
 } as const
 
 type DatePickerProps = {
+  id?: string
+  className?: string
   selected: Date | undefined
   onSelect: (date: Date | undefined) => void
   placeholder?: string
+  minDate?: Date
+  maxDate?: Date
 }
 
 export function DatePicker({
+  id,
+  className,
   selected,
   onSelect,
   placeholder,
+  minDate = new Date(1900, 0, 1),
+  maxDate = new Date(),
 }: DatePickerProps) {
   const { t, i18n } = useTranslation()
   const placeholderText = placeholder ?? t('Pick a date')
@@ -59,9 +68,13 @@ export function DatePicker({
       <PopoverTrigger
         render={
           <Button
+            id={id}
             variant='outline'
             data-empty={!selected}
-            className='data-[empty=true]:text-muted-foreground w-[240px] justify-start text-start font-normal'
+            className={cn(
+              'data-[empty=true]:text-muted-foreground w-[240px] justify-start text-start font-normal',
+              className
+            )}
           />
         }
       >
@@ -79,9 +92,10 @@ export function DatePicker({
           selected={selected}
           onSelect={onSelect}
           locale={calendarLocale}
-          disabled={(date: Date) =>
-            date > new Date() || date < new Date('1900-01-01')
-          }
+          defaultMonth={selected}
+          startMonth={minDate}
+          endMonth={maxDate}
+          disabled={(date) => date < minDate || date > maxDate}
         />
       </PopoverContent>
     </Popover>
