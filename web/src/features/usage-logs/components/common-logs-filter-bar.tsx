@@ -42,6 +42,7 @@ import type { CommonLogFilters } from '../types'
 import { CommonLogsExportButton } from './common-logs-export-button'
 import { CommonLogsStats } from './common-logs-stats'
 import { CompactDateTimeRangePicker } from './compact-date-time-range-picker'
+import { LogKeyNameFilter } from './log-key-name-filter'
 import {
   LogsFilterField,
   LogsFilterInput,
@@ -104,6 +105,9 @@ function buildSearchSourceKey(values: {
   channel?: unknown
   model?: unknown
   group?: unknown
+  keyName?: unknown
+  keyUsername?: unknown
+  keyOwnerId?: unknown
   username?: unknown
   requestId?: unknown
   upstreamRequestId?: unknown
@@ -117,6 +121,9 @@ function buildSearchSourceKey(values: {
     values.model,
     values.group,
     values.username,
+    values.keyName,
+    values.keyOwnerId,
+    values.keyUsername,
     values.requestId,
     values.upstreamRequestId,
     values.userCategory,
@@ -223,6 +230,9 @@ export function CommonLogsFilterBar<TData>(
     const sourceValues = {
       startTime: searchParams.startTime,
       endTime: searchParams.endTime,
+      keyName: searchParams.keyName,
+      keyOwnerId: searchParams.keyOwnerId,
+      keyUsername: searchParams.keyUsername,
       channel: searchParams.channel,
       model: searchParams.model,
       group: searchParams.group,
@@ -237,6 +247,9 @@ export function CommonLogsFilterBar<TData>(
         ? new Date(searchParams.startTime)
         : start,
       endTime: searchParams.endTime ? new Date(searchParams.endTime) : end,
+      keyName: searchParams.keyName,
+      keyOwnerId: searchParams.keyOwnerId,
+      keyUsername: searchParams.keyUsername,
       channel: searchParams.channel || undefined,
       model: searchParams.model || undefined,
       group: searchParams.group || undefined,
@@ -257,6 +270,9 @@ export function CommonLogsFilterBar<TData>(
     searchParams.model,
     searchParams.group,
     searchParams.username,
+    searchParams.keyName,
+    searchParams.keyOwnerId,
+    searchParams.keyUsername,
     searchParams.userCategory,
     searchParams.requestId,
     searchParams.upstreamRequestId,
@@ -422,14 +438,48 @@ export function CommonLogsFilterBar<TData>(
   const handleViewScopeChange = useCallback(
     (scope: string) => {
       if (scope === 'all' || scope === 'self') {
+        if (
+          scope !== viewScope &&
+          (filters.keyName || searchState.filters.keyName)
+        ) {
+          const next = {
+            ...filters,
+            keyName: undefined,
+            keyOwnerId: undefined,
+            keyUsername: undefined,
+          }
+          setDraft({ ...activeDraft, filters: next })
+          if (searchState.filters.keyName) {
+            navigate({
+              to: '/usage-logs/$section',
+              params: { section: 'common' },
+              search: {
+                ...searchParams,
+                keyName: undefined,
+                keyOwnerId: undefined,
+                keyUsername: undefined,
+                commonPage: undefined,
+              },
+            })
+          }
+        }
         setViewScope(scope)
       }
     },
-    [setViewScope]
+    [
+      setViewScope,
+      viewScope,
+      filters,
+      searchState,
+      activeDraft,
+      navigate,
+      searchParams,
+    ]
   )
 
   const hasExpandedFilters =
     !!filters.group ||
+    !!filters.keyName ||
     (isSuperAdmin && !!filters.userCategory) ||
     !!filters.requestId ||
     !!filters.upstreamRequestId
@@ -444,6 +494,7 @@ export function CommonLogsFilterBar<TData>(
 
   const expandedFilterCount = [
     filters.group,
+    filters.keyName,
     isSuperAdmin ? filters.userCategory : undefined,
     filters.requestId,
     filters.upstreamRequestId,
@@ -629,6 +680,27 @@ export function CommonLogsFilterBar<TData>(
       />
     </LogsFilterField>
   ) : null
+  const keyNameFilter = (
+    <LogsFilterField>
+      <LogKeyNameFilter
+        key={viewScope}
+        personalPicker={!canManageScope}
+        isAdmin={isAdmin}
+        visible={sensitiveVisible}
+        value={filters}
+        onChange={(choice, apply) => {
+          const next = {
+            ...filters,
+            keyName: choice.keyName,
+            keyOwnerId: choice.keyOwnerId,
+            keyUsername: choice.keyUsername,
+          }
+          setDraft({ ...activeDraft, filters: next })
+          if (apply) handleApply(next)
+        }}
+      />
+    </LogsFilterField>
+  )
   const usernameFilter = isAdmin ? (
     <LogsFilterField>
       <LogsFilterInput
@@ -669,6 +741,7 @@ export function CommonLogsFilterBar<TData>(
   const advancedFilters = (
     <>
       {groupFilter}
+      {keyNameFilter}
       <LogsFilterField>
         <LogsFilterInput
           placeholder={t('Upstream Request ID')}
@@ -715,6 +788,7 @@ export function CommonLogsFilterBar<TData>(
         </>
       }
       advancedFilters={advancedFilters}
+      advancedFiltersClassName='lg:grid-flow-col lg:auto-cols-fr lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]'
       defaultAdvancedOpen={false}
       mobilePinnedFilters={dateRangeFilter}
       mobileFilters={

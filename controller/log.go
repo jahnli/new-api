@@ -30,12 +30,35 @@ func limitLogTimeRange(startTimestamp int64, endTimestamp int64) (int64, error) 
 	return startTimestamp, nil
 }
 
+func GetLogKeySuggestions(c *gin.Context) { sendLogKeySuggestions(c, 0) }
+func GetSelfLogKeySuggestions(c *gin.Context) {
+	id := c.GetInt("id")
+	if id <= 0 {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	sendLogKeySuggestions(c, id)
+}
+func sendLogKeySuggestions(c *gin.Context, userID int) {
+	items, err := model.GetLogKeySuggestions(c.Request.Context(), userID, c.Query("keyword"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, items)
+}
+
 func GetAllLogs(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	logType, _ := strconv.Atoi(c.Query("type"))
 	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
 	username := c.Query("username")
+	var keyFilter model.KeyNameFilter
+	if err := c.ShouldBindQuery(&keyFilter); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	tokenName := c.Query("token_name")
 	modelName := c.Query("model_name")
 	channel := c.Query("channel")
@@ -43,7 +66,16 @@ func GetAllLogs(c *gin.Context) {
 	requestId := c.Query("request_id")
 	upstreamRequestId := c.Query("upstream_request_id")
 	userCategory := c.Query("user_category")
-	logs, total, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId, upstreamRequestId, userCategory)
+	var userIDs []int
+	if c.Query("self_only") == "true" {
+		id := c.GetInt("id")
+		if id <= 0 {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		userIDs = []int{id}
+	}
+	logs, total, err := model.GetLogsWithUserIDs(userIDs, logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId, upstreamRequestId, userCategory, keyFilter)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -65,13 +97,18 @@ func GetUserLogs(c *gin.Context) {
 	logType, _ := strconv.Atoi(c.Query("type"))
 	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	var keyFilter model.KeyNameFilter
+	if err := c.ShouldBindQuery(&keyFilter); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	tokenName := c.Query("token_name")
 	modelName := c.Query("model_name")
 	group := c.Query("group")
 	requestId := c.Query("request_id")
 	upstreamRequestId := c.Query("upstream_request_id")
 	userCategory := c.Query("user_category")
-	logs, total, err := model.GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), group, requestId, upstreamRequestId, userCategory)
+	logs, total, err := model.GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), group, requestId, upstreamRequestId, userCategory, keyFilter)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -117,6 +154,11 @@ func GetLogsStat(c *gin.Context) {
 	logType, _ := strconv.Atoi(c.Query("type"))
 	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	var keyFilter model.KeyNameFilter
+	if err := c.ShouldBindQuery(&keyFilter); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	tokenName := c.Query("token_name")
 	username := c.Query("username")
 	modelName := c.Query("model_name")
@@ -124,6 +166,7 @@ func GetLogsStat(c *gin.Context) {
 	group := c.Query("group")
 	userCategory := c.Query("user_category")
 	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, model.LogStatsOptions{
+		KeyNameFilter:  keyFilter,
 		Context:        c.Request.Context(),
 		TokenBreakdown: c.Query("token_breakdown") == "true",
 	})
@@ -152,12 +195,18 @@ func GetLogsSelfStat(c *gin.Context) {
 			return
 		}
 	}
+	var keyFilter model.KeyNameFilter
+	if err := c.ShouldBindQuery(&keyFilter); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	tokenName := c.Query("token_name")
 	modelName := c.Query("model_name")
 	channel := c.Query("channel")
 	group := c.Query("group")
 	userCategory := c.Query("user_category")
 	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, model.LogStatsOptions{
+		KeyNameFilter:  keyFilter,
 		Context:        c.Request.Context(),
 		UserID:         c.GetInt("id"),
 		TokenBreakdown: c.Query("token_breakdown") == "true",

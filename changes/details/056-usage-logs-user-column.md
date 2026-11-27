@@ -1,6 +1,6 @@
 # 使用日志、请求内容与审计
 
-**日期**: 2026-11-19
+**日期**: 2026-11-27
 
 ## 日志查询与身份
 
@@ -14,7 +14,9 @@
 
 ## Token 汇总与导出
 
-- Token 汇总、明细和综合单价仅超级管理员日志视图展示；汇总从主库 `quota_data` 按筛选条件读取四类 Token，与主统计一次返回，不另发悬停明细请求。RPM/TPM、金额与百分比复用语言相关格式化。
+- 普通日志支持按请求发生时记录的 API 密钥名称筛选。输入关键词可忽略大小写匹配部分名称，即使密钥后来改名或删除，仍可按旧名查询。选中候选项后按所属用户 ID 和完整名称匹配，同一用户的同名密钥合并展示。筛选条件保存在 URL 中，列表、统计与 XLSX 导出共用。
+- 个人范围默认列出本人最近使用的最多 10 个密钥名称。管理员在「全部」范围输入关键词后可按用户名区分候选，搜索最多返回 20 项。「仅自己」按当前登录用户 ID 限定日志，保留管理员可见的明细。
+- Token 汇总、明细和综合单价仅超级管理员日志视图展示。按密钥名称筛选时，统计和导出均根据匹配的消费日志还原输入、输出、缓存读取和缓存写入。其他查询沿用主库 `quota_data` 汇总。四类 Token 与主统计一次返回，RPM/TPM、金额与百分比复用语言相关格式化。
 - 汇总缓存命中率为缓存读取 ÷（非缓存输入 + 缓存读取 + 缓存写入），无输入显示占位符，保留一位小数。单条明细按 usage_semantic 区分 OpenAI 输入已含缓存与 Anthropic 输入不含缓存，旧日志回退 claude 标记；包含各时长写入缓存，输出不参与分母，无输入或数量不一致显示 `-`，保留两位小数。
 - 单条 Token 点击打开分类，移出数值和浮层后延迟关闭；总量、输入/输出、缓存明细复用共享组件。
 - 仅超级管理员可从全部或个人范围导出 XLSX，使用界面当前筛选草稿，无需先查询；个人接口仍强制当前用户。支持取消、单用户去重、全局并发限制和十分钟超时，单次流式读取后落临时文件，明细与汇总同源并受 Excel 行数上限保护。
@@ -51,6 +53,9 @@
 
 ## 主要入口
 
+- `model/log_key_filter.go` 生成候选并按历史名称匹配日志。`router/api-router.go`、`middleware/access_token_routes.go` 和 `controller/log.go` 分别接入全部与个人范围的候选查询。
+- `web/src/features/usage-logs/components/log-key-name-filter.tsx` 与 `web/src/components/ui/combobox-input.tsx` 支持候选选择和自由输入。`web/src/routes/_authenticated/usage-logs/$section.tsx` 校验可恢复的密钥名称、所属用户 ID 与用户名。
+- `web/src/features/usage-logs/` 下的 `api.ts`、`types.ts`、`lib/filter.ts` 与 `lib/utils.ts` 传递候选与查询参数，`components/common-logs-stats.tsx` 和 `components/usage-logs-table.tsx` 应用当前筛选及查看范围。七种界面语言均提供「API 密钥名称」标签。
 - `model/log.go`、`model/log_token_stats.go`、`controller/log.go`：日志及汇总；`model/log_export.go`、`controller/log_export.go`、`service/log_export.go`：导出。
 - `model/request_message.go`、`controller/request_message.go`、`service/request_message.go`：留存、批量读取与通知。
 - `relay/responses_websocket.go`：在首次请求和连接复用路径中采集请求内容，每次请求在准备计费前调用留存服务。

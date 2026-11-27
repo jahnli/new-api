@@ -36,7 +36,8 @@ export type ComboboxInputOption = {
 interface ComboboxInputProps {
   options: readonly ComboboxInputOption[]
   value?: string
-  onValueChange: (value: string) => void
+  onValueChange: (value: string, reason: 'input' | 'select' | 'custom') => void
+  onSearchQueryChange?: (query: string | null) => void
   placeholder?: string
   emptyText?: string
   className?: string
@@ -59,6 +60,7 @@ export function ComboboxInput({
   options,
   value = '',
   onValueChange,
+  onSearchQueryChange,
   placeholder = 'Select or type...',
   emptyText = 'No option found.',
   className,
@@ -101,6 +103,12 @@ export function ComboboxInput({
     [options, value]
   )
   const displayValue = open ? searchValue : (selectedOption?.label ?? value)
+
+  const typedQuery = searchChanged ? searchValue : ''
+  const query = open ? typedQuery : null
+  React.useEffect(() => {
+    onSearchQueryChange?.(query)
+  }, [onSearchQueryChange, query])
 
   const filteredOptions = React.useMemo(() => {
     if (!searchChanged || !searchValue.trim()) return options
@@ -167,8 +175,11 @@ export function ComboboxInput({
     }
   }, [open])
 
-  const handleSelect = (selectedValue: string) => {
-    onValueChange(selectedValue)
+  const handleSelect = (
+    selectedValue: string,
+    reason: 'select' | 'custom' = 'select'
+  ) => {
+    onValueChange(selectedValue, reason)
     setOpen(false)
     setSearchValue('')
     inputRef.current?.focus()
@@ -204,7 +215,7 @@ export function ComboboxInput({
           handleSelect(filteredOptions[highlightedIndex].value)
         } else if (allowCustomValue && searchValue.trim()) {
           e.preventDefault()
-          handleSelect(searchValue.trim())
+          handleSelect(searchValue.trim(), 'custom')
         } else {
           if (!onKeyDown) e.preventDefault()
           // No highlighted option, just close the dropdown and keep current value
@@ -231,7 +242,8 @@ export function ComboboxInput({
   const showDropdown =
     open &&
     !disabled &&
-    (filteredOptions.length > 0 ||
+    (!!onSearchQueryChange ||
+      filteredOptions.length > 0 ||
       (showCustomValueHint && allowCustomValue && searchValue.trim()))
 
   return (
@@ -264,7 +276,7 @@ export function ComboboxInput({
           setSearchValue(nextValue)
           setSearchChanged(true)
           if (allowCustomValue) {
-            onValueChange(nextValue)
+            onValueChange(nextValue, 'input')
           }
           if (!open) setOpen(true)
         }}
@@ -289,6 +301,11 @@ export function ComboboxInput({
           setSearchValue('')
         }}
         onKeyDown={(event) => {
+          if (
+            event.nativeEvent.isComposing ||
+            event.nativeEvent.keyCode === 229
+          )
+            return
           handleKeyDown(event)
           if (!event.defaultPrevented) onKeyDown?.(event)
         }}

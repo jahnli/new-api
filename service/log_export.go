@@ -111,40 +111,11 @@ func WriteLogExport(ctx context.Context, output io.Writer, filter model.LogExpor
 		if count >= maxLogExportRows {
 			return errors.New("导出超过 Excel 单表行数限制，请缩小筛选范围")
 		}
-		var other struct {
-			CacheTokens          int64  `json:"cache_tokens"`
-			CacheWriteTokens     int64  `json:"cache_write_tokens"`
-			CacheCreationTokens  int64  `json:"cache_creation_tokens"`
-			CacheCreation5m      int64  `json:"cache_creation_tokens_5m"`
-			CacheCreation1h      int64  `json:"cache_creation_tokens_1h"`
-			BillingSource        string `json:"billing_source"`
-			SubscriptionConsumed *int64 `json:"subscription_consumed"`
-			UsageSemantic        string `json:"usage_semantic"`
-			Claude               bool   `json:"claude"`
+		usage, err := log.RecordedUsage()
+		if err != nil {
+			return fmt.Errorf("日志附加字段无效，导出已停止: %w", err)
 		}
-		if log.Other != "" {
-			if err := common.UnmarshalJsonStr(log.Other, &other); err != nil {
-				return fmt.Errorf("日志附加字段无效，导出已停止: %w", err)
-			}
-		}
-		cacheRead := max(other.CacheTokens, 0)
-		cache5m := max(other.CacheCreation5m, 0)
-		cache1h := max(other.CacheCreation1h, 0)
-		if cache5m > math.MaxInt64-cache1h {
-			return errors.New("缓存写入 Token 超出有效范围，导出已停止")
-		}
-		cacheWrite := max(other.CacheWriteTokens, other.CacheCreationTokens, cache5m+cache1h)
-		inputTokens := max(log.PromptTokens, 0)
-		semantic := strings.ToLower(strings.TrimSpace(other.UsageSemantic))
-		anthropic := semantic == "anthropic" || (semantic == "" && other.Claude && (cache5m > 0 || cache1h > 0))
-		if !anthropic {
-			// Subtract separately to avoid overflowing when cache totals exceed input.
-			inputTokens = max(max(inputTokens-cacheRead, 0)-cacheWrite, 0)
-		}
-		quota := log.Quota
-		if other.BillingSource == "subscription" && other.SubscriptionConsumed != nil {
-			quota = *other.SubscriptionConsumed
-		}
+		quota := usage.Quota
 		totalQuota = totalQuota.Add(decimal.NewFromInt(quota))
 		fee := decimal.NewFromInt(quota).Mul(rateDecimal).DivRound(unitDecimal, 8)
 		feeValue := fee.InexactFloat64()
@@ -166,8 +137,8 @@ func WriteLogExport(ctx context.Context, output io.Writer, filter model.LogExpor
 		count++
 		return encoder.Encode([]any{
 			time.Unix(log.CreatedAt, 0).In(location).Format("2006-01-02 15:04:05"),
-			typeName, log.ModelName, cost, inputTokens, max(log.CompletionTokens, 0),
-			cacheRead, cacheWrite, cache1h,
+			typeName, log.ModelName, cost, usage.Input, usage.Output,
+			usage.CacheRead, usage.CacheWrite, usage.CacheWrite1h,
 		})
 	})
 	if err != nil || count == 0 {
@@ -375,7 +346,7 @@ func logExportScopeDescription(filter model.LogExportFilter, location *time.Loca
 	}
 	for _, item := range []struct{ label, value string }{
 		{"用户", filter.Username}, {"角色", filter.UserCategory}, {"分组", filter.Group},
-		{"令牌", filter.TokenName}, {"请求 ID", filter.RequestID}, {"上游请求 ID", filter.UpstreamRequestID},
+		{"密钥名称包含", filter.KeyKeyword}, {"密钥名称", filter.KeyName}, {"令牌", filter.TokenName}, {"请求 ID", filter.RequestID}, {"上游请求 ID", filter.UpstreamRequestID},
 	} {
 		if item.value == "" {
 			continue

@@ -186,6 +186,15 @@ export function buildApiParams(config: {
     ...buildTimeRangeParams(searchParams, false),
   }
 
+  if (typeof searchParams.keyName === 'string' && searchParams.keyName) {
+    if (typeof searchParams.keyOwnerId === 'number') {
+      params.key_name = searchParams.keyName
+      params.key_owner_id = searchParams.keyOwnerId
+    } else {
+      params.key_keyword = searchParams.keyName
+    }
+  }
+
   // Override with column filters if present
   if (columnFilters.length > 0) {
     columnFilters.forEach(({ id, value }) => {
@@ -228,7 +237,6 @@ export async function fetchLogsByCategory(
     logCategory,
     isAdmin,
     canManageScope,
-    selfUsername,
     page,
     pageSize,
     searchParams,
@@ -241,14 +249,11 @@ export async function fetchLogsByCategory(
       pageSize,
       searchParams,
       columnFilters,
-      isAdmin: canManageScope,
+      isAdmin,
     })
 
-    // If admin viewing their own logs (self view), use admin endpoint with username filter
-    if (canManageScope && !isAdmin && selfUsername) {
-      params.username = selfUsername
-      return await getAllLogs(params)
-    }
+    // Preserve admin log details while scoping “Only Mine” by authenticated user ID.
+    if (canManageScope && !isAdmin) params.self_only = true
 
     return canManageScope ? await getAllLogs(params) : await getUserLogs(params)
   }

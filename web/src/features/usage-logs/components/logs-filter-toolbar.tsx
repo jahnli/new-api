@@ -28,6 +28,7 @@ interface LogsFilterToolbarProps<TData> {
   primaryFiltersClassName?: string
   primaryAction?: ReactNode
   advancedFilters?: ReactNode
+  advancedFiltersClassName?: string
   defaultAdvancedOpen?: boolean
   compactMobile?: boolean
   mobilePinnedFilters?: ReactNode
@@ -249,7 +250,12 @@ export function LogsFilterToolbar<TData>(props: LogsFilterToolbarProps<TData>) {
       </div>
 
       {advancedOpen && props.advancedFilters && (
-        <div className='mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]'>
+        <div
+          className={cn(
+            'mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]',
+            props.advancedFiltersClassName
+          )}
+        >
           {props.advancedFilters}
         </div>
       )}

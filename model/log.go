@@ -684,8 +684,8 @@ func RecordTaskBillingLog(params RecordTaskBillingLogParams) {
 	}
 }
 
-func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel string, group string, requestId string, upstreamRequestId string, userCategory string) (logs []*Log, total int64, err error) {
-	return getLogsWithUserIDs(nil, logType, startTimestamp, endTimestamp, modelName, username, tokenName, startIdx, num, channel, group, requestId, upstreamRequestId, userCategory)
+func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel string, group string, requestId string, upstreamRequestId string, userCategory string, keyFilters ...KeyNameFilter) (logs []*Log, total int64, err error) {
+	return GetLogsWithUserIDs(nil, logType, startTimestamp, endTimestamp, modelName, username, tokenName, startIdx, num, channel, group, requestId, upstreamRequestId, userCategory, keyFilters...)
 }
 
 func GetLogsByUserIds(userIDs []int, logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
@@ -696,7 +696,7 @@ func GetLogsByUserIds(userIDs []int, logType int, startTimestamp int64, endTimes
 	if channel != 0 {
 		channelValue = strconv.Itoa(channel)
 	}
-	return getLogsWithUserIDs(userIDs, logType, startTimestamp, endTimestamp, modelName, username, tokenName, startIdx, num, channelValue, group, requestId, upstreamRequestId, "")
+	return GetLogsWithUserIDs(userIDs, logType, startTimestamp, endTimestamp, modelName, username, tokenName, startIdx, num, channelValue, group, requestId, upstreamRequestId, "")
 }
 
 type logUserInfo struct {
@@ -746,7 +746,7 @@ func fillLogUserInfo(logs []*Log) error {
 	return nil
 }
 
-func getLogsWithUserIDs(userIDs []int, logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel string, group string, requestId string, upstreamRequestId string, userCategory string) (logs []*Log, total int64, err error) {
+func GetLogsWithUserIDs(userIDs []int, logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel string, group string, requestId string, upstreamRequestId string, userCategory string, keyFilters ...KeyNameFilter) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
 		tx = LOG_DB
@@ -765,6 +765,11 @@ func getLogsWithUserIDs(userIDs []int, logType int, startTimestamp int64, endTim
 	}
 	if tx, err = applyLogUserKeywordFilter(tx, username, "logs.username"); err != nil {
 		return nil, 0, err
+	}
+	for _, filter := range keyFilters {
+		if tx, err = filter.apply(tx); err != nil {
+			return nil, 0, err
+		}
 	}
 	if tokenName != "" {
 		tx = tx.Where("logs.token_name = ?", tokenName)
@@ -852,7 +857,7 @@ func getLogsWithUserIDs(userIDs []int, logType int, startTimestamp int64, endTim
 
 const logSearchCountLimit = 10000
 
-func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int, group string, requestId string, upstreamRequestId string, userCategory string) (logs []*Log, total int64, err error) {
+func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int, group string, requestId string, upstreamRequestId string, userCategory string, keyFilters ...KeyNameFilter) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
 		tx = LOG_DB.Where("logs.user_id = ?", userId)
@@ -865,6 +870,11 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 	}
 	if tx, err = applyLogUserCategoryFilter(tx, userCategory); err != nil {
 		return nil, 0, err
+	}
+	for _, filter := range keyFilters {
+		if tx, err = filter.apply(tx); err != nil {
+			return nil, 0, err
+		}
 	}
 	if tokenName != "" {
 		tx = tx.Where("logs.token_name = ?", tokenName)
@@ -919,6 +929,7 @@ type Stat struct {
 }
 
 type LogStatsOptions struct {
+	KeyNameFilter
 	Context        context.Context
 	TokenBreakdown bool
 	UserID         int
@@ -928,14 +939,19 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	ctx := context.Background()
 	tokenBreakdown := false
 	userID := 0
+	var keyFilter KeyNameFilter
 	if len(options) > 0 {
 		if options[0].Context != nil {
 			ctx = options[0].Context
 		}
 		tokenBreakdown = options[0].TokenBreakdown
 		userID = options[0].UserID
+		keyFilter = options[0].KeyNameFilter
 	}
 	tx := LOG_DB.WithContext(ctx).Table("logs")
+	if tx, err = keyFilter.apply(tx); err != nil {
+		return stat, err
+	}
 
 	if userID > 0 {
 		tx = tx.Where("logs.user_id = ?", userID)
@@ -972,7 +988,14 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 		tx = tx.Where("created_at <= ?", endTimestamp)
 	}
 
-	if err := tx.Select("COALESCE(sum(quota), 0) quota").Scan(&stat).Error; err != nil {
+	namedKeys := keyFilter.KeyName != "" || strings.TrimSpace(keyFilter.KeyKeyword) != ""
+	if namedKeys {
+		// Hourly quota_data has no historical key names. Stream only matching usage rows.
+		stat, err = sumNamedLogUsage(tx, tokenBreakdown)
+	} else {
+		err = tx.Select("COALESCE(sum(quota), 0) quota").Scan(&stat).Error
+	}
+	if err != nil {
 		common.SysError(common.LogText("failed to query log stat: %s", err.Error()))
 		return stat, common.NewMessage("Failed to query statistics")
 	}
@@ -986,8 +1009,9 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	}
 	stat.Rpm = rateStat.Rpm
 	stat.Tpm = rateStat.Tpm
-	// Cache token totals ride along in the same quota_data aggregate: the console
-	// derives the cache hit rate from them without a second statistics request.
+	if namedKeys {
+		return stat, nil
+	}
 	tokens, err := sumLogQuotaData(ctx, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group, userCategory, userID, tokenBreakdown)
 	if err != nil {
 		return stat, errors.New("查询统计数据失败")

@@ -49,7 +49,13 @@ export interface CommonFilters {
 /**
  * Common logs specific filters
  */
-export interface CommonLogFilters extends CommonFilters {
+export interface LogKeyChoice {
+  keyName?: string
+  keyOwnerId?: number
+  keyUsername?: string
+}
+
+export interface CommonLogFilters extends CommonFilters, LogKeyChoice {
   model?: string
   group?: string
   username?: string
@@ -541,11 +547,15 @@ export interface TaskArtifactsResponse {
 // ============================================================================
 
 export interface GetLogsParams {
+  self_only?: boolean
   p?: number
   page_size?: number
   type?: number
   username?: string
   token_name?: string
+  key_keyword?: string
+  key_name?: string
+  key_owner_id?: number
   model_name?: string
   start_timestamp?: number
   end_timestamp?: number
@@ -572,6 +582,9 @@ export interface GetLogStatsParams {
   type?: number
   username?: string
   token_name?: string
+  key_keyword?: string
+  key_name?: string
+  key_owner_id?: number
   model_name?: string
   start_timestamp?: number
   end_timestamp?: number

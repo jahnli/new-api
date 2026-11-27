@@ -55,6 +55,8 @@ export function CommonLogsStats() {
       startTime: search.startTime,
       endTime: search.endTime,
       model: search.model,
+      keyName: search.keyName,
+      keyOwnerId: search.keyOwnerId,
       group: search.group,
       username: search.username,
       channel: search.channel,

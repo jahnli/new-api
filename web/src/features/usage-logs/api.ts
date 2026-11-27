@@ -85,6 +85,22 @@ async function fetchLogStats<T>(
 // Common Log APIs
 // ============================================================================
 
+export async function getLogKeySuggestions(
+  isAdmin: boolean,
+  keyword: string,
+  signal: AbortSignal
+) {
+  const res = await api.get<{
+    success: boolean
+    data?: { name: string; user_id: number; username?: string }[]
+  }>(`${buildApiPath('/api/log', isAdmin)}/key-names`, {
+    params: { keyword },
+    signal,
+    disableDuplicate: true,
+  })
+  return requireServerSuccess(res.data).data ?? []
+}
+
 export const getAllLogs = (params: GetLogsParams = {}) =>
   fetchLogs('/api/log', params, true)
 

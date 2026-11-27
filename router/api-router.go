@@ -417,6 +417,8 @@ func SetApiRouter(router *gin.Engine) {
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		logRoute.GET("/export", middleware.DisableCache(), middleware.RootAuth(), controller.ExportLogs)
 		logRoute.GET("/self/export", middleware.DisableCache(), middleware.RootAuth(), controller.ExportSelfLogs)
+		logRoute.GET("/key-names", middleware.AdminAuth(), middleware.SearchRateLimit(), controller.GetLogKeySuggestions)
+		logRoute.GET("/self/key-names", middleware.UserAuth(), middleware.SearchRateLimit(), controller.GetSelfLogKeySuggestions)
 		logRoute.GET("/stat", middleware.AdminAuth(), controller.GetLogsStat)
 		logRoute.GET("/self/stat", middleware.UserAuth(), controller.GetLogsSelfStat)
 		logRoute.GET("/channel_affinity_usage_cache", middleware.AdminAuth(), controller.GetChannelAffinityUsageCacheStats)

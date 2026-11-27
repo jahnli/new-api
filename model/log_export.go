@@ -9,6 +9,7 @@ import (
 // LogExportFilter shares the list endpoint's filter semantics. UserID is set
 // exclusively by the controller for self exports, never bound from a request.
 type LogExportFilter struct {
+	KeyNameFilter
 	UserID            int    `form:"-"`
 	Type              int    `form:"type" binding:"min=0,max=7"`
 	StartTimestamp    int64  `form:"start_timestamp" binding:"min=0"`
@@ -53,6 +54,9 @@ func VisitLogExportRows(ctx context.Context, filter LogExportFilter, visit func(
 		tx = tx.Where("logs.created_at <= ?", filter.EndTimestamp)
 	}
 	var err error
+	if tx, err = filter.KeyNameFilter.apply(tx); err != nil {
+		return err
+	}
 	if tx, err = applyExplicitLogTextFilter(tx, "logs.model_name", filter.ModelName); err != nil {
 		return err
 	}

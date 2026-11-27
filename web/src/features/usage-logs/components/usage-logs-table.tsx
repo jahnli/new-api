@@ -102,7 +102,6 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
     viewAccess,
   } = useLogsViewScope()
   const currentUserRole = useAuthStore((state) => state.auth.user?.role)
-  const currentUsername = useAuthStore((state) => state.auth.user?.username)
   const canViewRequestContent =
     !demoMode && (currentUserRole ?? 0) >= ROLE.SUPER_ADMIN
   const canViewChannelColumn = (currentUserRole ?? 0) >= ROLE.SUPER_ADMIN
@@ -169,7 +168,6 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
         logCategory,
         isAdmin,
         canManageScope,
-        selfUsername: currentUsername,
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
         searchParams,

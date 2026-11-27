@@ -34,6 +34,9 @@ export function buildSearchParams(
         ...baseParams,
         ...(commonFilters.model && { model: commonFilters.model }),
         ...(commonFilters.group && { group: commonFilters.group }),
+        keyName: commonFilters.keyName,
+        keyOwnerId: commonFilters.keyOwnerId,
+        keyUsername: commonFilters.keyUsername,
         ...(commonFilters.username && { username: commonFilters.username }),
         ...(commonFilters.userCategory && {
           userCategory: commonFilters.userCategory,
