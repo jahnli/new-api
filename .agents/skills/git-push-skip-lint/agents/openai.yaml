@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitLab 提交信息回退"
+  short_description: "仅对明确的 GitLab 提交信息拒绝保持原目标重试一次并核验结果"
+  default_prompt: "使用 $git-push-skip-lint 分析本次 GitLab 推送错误，仅在满足提交信息回退条件时重试一次。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "精简本地定制日志"
+  short_description: "核实并精简当前项目二开记录，合并重复说明并保留仍有效的业务约束"
+  default_prompt: "使用 $changelog-compact 精简当前项目的本地定制清单，保留有依据的有效行为与兼容要求。"

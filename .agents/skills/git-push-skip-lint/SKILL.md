@@ -1,102 +1,30 @@
 ---
 name: git-push-skip-lint
-description: >-
-  当执行 git push 到 GitLab 因提交信息不规范、commit message lint、commitlint、push rule、server-side hook
-  等提交信息校验失败时使用。先正常推送；仅在明确属于提交信息校验失败时，保持同一 remote 和 refspec 添加 `-o skip-lint` 重试。
+description: 已获授权的 GitLab 普通推送明确因提交信息格式或 commitlint 被拒绝时，保持原 remote、源和目标 refspec，添加
+  skip-lint 选项重试一次；不处理其他 hook、权限或分支失败。
 ---
 
-# Git Push Skip Lint Fallback
+# GitLab 提交信息拒绝回退
 
-用于处理 GitLab 推送时因为提交信息不规范或远端 lint/push rule 拒绝导致的失败。
+本技能不固定项目、remote 名称、服务器地址或分支。创建、检查或修改本技能不执行 push。
 
-## 适用场景
+## 适用条件
 
-已获推送授权、普通推送失败，且实际目标是 GitLab、错误明确说明提交信息格式或 commitlint 校验失败时使用，例如：
+必须同时满足：已获目标推送授权，实际目标确认为 GitLab，普通推送已失败，完整输出明确说明提交信息格式或 commitlint 拒绝，例如 `invalid commit message`、`message does not follow`、`body-max-line-length`。
 
-- `commit message`、`commit-msg`、`commitlint`
-- `message does not follow`、`invalid commit message`
-- `body-max-line-length` 等提交信息规则失败
+只有 `push rule`、`pre-receive hook declined`、`lint failed` 或一般 rejected 不足以触发回退。权限、认证、网络、保护分支要求 PR、non-fast-forward、测试、构建或安全扫描失败不适用。
 
-只有 `push rule`、`pre-receive hook declined` 或一般 `lint failed` 字样不足以触发重试，必须结合完整输出确认属于提交信息校验。
+## 执行
 
-## 不适用场景
+1. 读取原命令及完整脱敏输出，核对实际目标 URL 和项目授权。复用已有普通失败，不为满足步骤再次普通推送。
+2. 保持失败命令的实际 remote/URL、源提交或分支、目标分支及 refspec，仅添加 `-o skip-lint` 重试一次。不根据 tracking ref 猜 remote，不把示例名当成固定值。
 
-不要因为以下错误使用 `-o skip-lint`：
-
-- 远端有新提交导致 `fetch first`、`non-fast-forward`、`rejected`、`behind`
-- 权限、认证、网络、远端不存在、分支保护要求 PR
-- 测试失败、构建失败、安全扫描失败
-- 用户没有要求推送，或当前操作不是 git push
-
-这些情况应按正常 Git 流程处理，不要跳过校验。
-
-## GitLab lint 远端
-
-重试必须使用失败命令的实际 remote、分支和 refspec，不能根据 tracking ref 名称猜测 remote。本项目 GitLab remote 名为 `gitlab`，不是 `origin`；`refs/remotes/origin/*` 只是共享的本地 tracking 命名空间。
-
-例如普通命令为 `git push gitlab v1:refs/heads/v1`，重试为：
-
-```bash
-git push -o skip-lint gitlab v1:refs/heads/v1
-```
-
-对应 GitLab 地址：
-
-```ini
-[remote "gitlab"]
-	url = https://gitlab.semi-tech.com/eed/ai-gateway
-	fetch = +refs/heads/*:refs/remotes/origin/*
-```
-
-## 工作流程
-
-1. 先执行普通推送命令，保持用户指定的 branch 和 refspec 不变。
-
-   示例：
-
-   ```bash
-   git push gitlab dev2:refs/heads/dev2
+   ```text
+   普通：git push <原remote> <原source>:refs/heads/<原target>
+   重试：git push -o skip-lint <原remote> <原source>:refs/heads/<原target>
    ```
 
-2. 如果普通推送成功，返回调用流程，继续核验该远端并完成其余已选远端的推送。
+3. hook 不支持 push option 或重试仍失败则停止并报告；不 force、不 amend、不改配置、不改写历史、不改投其他目标。
+4. 成功后查询实际 push 目标的分支 tip，与原定提交核对；独立 push URL 不能误用 fetch URL。返回调用流程，继续核验与处理其余已选目标，不能缩减原多远端范围。
 
-3. 如果普通推送失败，读取完整错误输出，判断是否明确是提交信息不规范或 lint/push rule 拒绝。
-
-4. 只有在确认是提交信息校验失败时，保持同一 remote、branch/refspec，并加上 `-o skip-lint` 重试一次。
-
-   示例：
-
-   ```bash
-   git push gitlab dev2:refs/heads/dev2 -o skip-lint
-   ```
-
-   或等价写法：
-
-   ```bash
-   git push -o skip-lint gitlab dev2:refs/heads/dev2
-   ```
-
-5. 如果 `-o skip-lint` 仍失败，停止并把错误原因告知用户，不要继续尝试 force push 或修改 Git 配置。
-6. 重试成功后返回调用流程，继续核验该远端并完成其余已选远端的推送；本技能不能将推送范围缩减为一个远端。
-
-## 安全规则
-
-- 不要自动使用 `--force`、`--force-with-lease`。
-- 不要修改 git config。
-- 不要改写提交历史、不要 amend、不要 rebase，除非用户明确要求。
-- `-o skip-lint` 只用于远端 hook 支持 push option 的场景。
-- 如果错误是远端落后或冲突，必须先 fetch/merge/rebase 并让用户确认策略，不要用 `skip-lint` 掩盖。
-
-## 输出格式
-
-成功时简洁说明：
-
-- 普通推送是否失败
-- 是否已用 `-o skip-lint` 重试
-- 最终推送到哪个 remote/branch
-
-失败时说明：
-
-- 普通推送失败原因
-- 是否符合 `skip-lint` 条件
-- 如果重试也失败，给出远端返回的关键错误
+报告普通失败原因、是否满足回退条件、是否重试、实际 remote/分支及最终结果。缺原命令或明确拒绝证据时说明缺项，不猜测执行。

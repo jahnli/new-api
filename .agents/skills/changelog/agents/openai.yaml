@@ -1,0 +1,4 @@
+interface:
+  display_name: "维护变更日志"
+  short_description: "按当前项目日志类型维护真实变化，合并本地定制记录并保留关键约束"
+  default_prompt: "使用 $changelog 按当前项目约定维护本次改动的变更日志。"

@@ -1,7 +1,6 @@
 interface:
-  display_name: "Git 提交"
-  short_description: "按约定式规范提交，本项目同步推送 GitHub 与 GitLab 并核验结果"
-  default_prompt: "使用 $git-commit-push 提交当前改动；本项目默认将同一提交推送到 github 和 gitlab 的目标分支，排除 upstream，分别核验远端结果，并按规则处理 GitLab 提交信息校验失败。"
-
+  display_name: "Git 提交与推送"
+  short_description: "按当前仓库配置创建英文约定式提交，并完成已授权的逐远端推送核验"
+  default_prompt: "使用 $git-commit-push 按当前项目配置提交本次改动，并完成已授权的推送与核验。"
 policy:
   allow_implicit_invocation: true

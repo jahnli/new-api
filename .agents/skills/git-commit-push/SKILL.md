@@ -1,60 +1,35 @@
 ---
 name: git-commit-push
-description: >-
-  使用英文约定式提交信息提交并推送单个或多个 Git 仓库的改动，并处理 GitLab
-  提交信息校验失败。本项目默认一次提交后同步推送 GitHub 与 GitLab，不负责自动改写历史。
+description: 为单个或多个 Git 仓库创建英文约定式提交，并按用户授权及当前项目配置推送、逐远端核验。目标从各仓库实际配置取得，可处理明确的 GitLab
+  提交信息拒绝。
 ---
 
-# Git 提交
+# Git 提交与推送
 
-用于用户要求“提交”“创建 commit”或“提交并推送”时。除非用户明确说“仅本地提交”或“不要推送”，否则“提交”默认包含创建 commit 和推送。提交标题遵循[约定式提交
-(Conventional Commits)](https://www.conventionalcommits.org/zh-hans/v1.0.0/)：
+创建、检查或修改本技能不提交或推送。读取各目标仓库适用 AGENTS.md 及[项目配置](../../skill-project.md)的 `git`，已有授权无需重复询问。
 
-```text
-<type>[optional scope][!]: <description>
-```
+## 授权与目标
 
-常用 `type` 包括 `feat`、`fix`、`refactor`、`perf`、`docs`、`test`、`build`、`ci`、`chore` 和 `revert`。标题使用祈使语气、首字母小写、不以句号结尾；破坏性变更在类型后加 `!`，并在正文或页脚写明 `BREAKING CHANGE:`。
+- “仅本地提交”“不要推送”或限定远端优先遵循。明确要求提交并推送时执行相应阶段；仅说“提交”时，只有项目 `git.push_after_commit` 或现有会话约定为真才含推送，否则只本地提交。
+- 各仓库分别解析目标：用户指定优先，其次项目 `git.push_targets`，最后才采用当前分支明确配置的 push remote/refspec。多个 remote 不代表全部推送；目标缺失或映射多义时完成本地准备并说明缺项，不猜 origin 或沿用其他项目地址。
+- 配置了目标集合就保留完整集合，不因分支只跟踪一个而漏掉其余。预期 URL 须与 `git remote get-url --push --all <remote>` 核对，包括额外 push URL；不匹配或多出未授权目标时停止推送，不自动改配置或跳过。
+- 排除 `read_only_remotes` 和只读上游。分支跟踪 upstream 不构成推送许可，不能遍历所有 remote 或根据 tracking ref 猜目标。用户明确授权其他目标时才按其要求处理。
+- 固定源提交和目标分支，查询实际远端 tip 并检查快进关系；共享 tracking namespace 不能证明多个远端已同步。目标分支由用户或项目约定决定，否则用实际当前分支；detached HEAD、wildcard、mirror 或多义映射需先明确。
 
-提交信息必须使用英文，包括标题描述、正文和页脚说明；用户用中文提出需求时，也必须将改动概括为英文。例如：
+## 准备与提交
 
-```text
-feat(dashboard): add frequently used models to overview
-```
+1. 确认各目标仓库根目录，检查状态、未暂存和暂存 diff、任务范围与部分暂存。只暂存本次明确路径或片段，不用 `git add -A` 混入无关内容。
+2. 已有无关暂存时，不取消用户暂存，也不直接整库 commit 混入；能安全隔离则只提交任务范围，否则给出具体待决项。无任务差异不造空提交。
+3. 默认每仓库为本次逻辑变化创建一次提交；多仓库分别提交，用户要求分拆时遵循。多远端接收同一次提交，推送期间不另外造提交。
+4. 用英文 Conventional Commit：`<type>[optional scope][!]: <description>`，标题祈使、小写开头、不加句号；正文与页脚也用英文。破坏性变化标 `!` 并解释 `BREAKING CHANGE:`。按项目要求附 sign-off，使用现有 Git 身份，不改配置。
+5. 完成当前项目适用检查，不套用其他项目测试、不跳过当前门槛。失败如实报告，不用 `--no-verify` 掩盖；不自动 amend、rebase 或改写历史。
 
-## 提交前
+## 推送与核验
 
-1. 确认当前仓库根目录，并检查所有相关仓库的 `git status`、未暂存差异和已暂存差异。
-2. 识别本次任务涉及的仓库。单个仓库只创建一个提交；配置了多个仓库时，每个有本次改动的仓库分别创建一个提交，不能把多个仓库的改动合并成一个提交。
-3. 只暂存本次任务产生的文件。保留用户已有的无关改动，不使用 `git add -A` 覆盖式暂存，除非已确认工作区全部改动都属于本次任务。
-4. 根据实际改动选择最具体的 `type` 和可选 `scope`，检查提交标题是否符合 Conventional Commits，并确认标题、正文和页脚说明均为英文。
+- 已获授权时，对全部选定目标使用显式 remote/refspec 普通推送，如 `git push <remote> <source>:refs/heads/<branch>`。示意值须替换，按实际 shell 安全传参。
+- 不自动 force、force-with-lease、改配置或回滚远端。non-fast-forward 按已有授权策略处理，没有策略则保留本地提交并说明，不借提交任务擅自改写历史。
+- 每个目标推送后，用 `git ls-remote --heads <remote> refs/heads/<branch>` 核实 tip 等于固定提交；remote 配有独立 push URL 时查询实际 push 目标，不能误查 fetch 地址。含认证信息的 URL 须脱敏。
+- 普通失败保留脱敏关键输出。只有实际 GitLab 目标明确拒绝提交信息时才读取同仓库 `git-push-skip-lint`；技能缺失时也只能在满足相同条件后保持原 remote/refspec 添加 `-o skip-lint` 重试一次，其他错误不适用。
+- 无法恢复则停止后续推送，报告成功、失败、未执行目标，不回滚已成功目标。回退成功后继续剩余目标。所有目标实际 tip 一致才算同步完成，Everything up-to-date 也须核验。
 
-## 推送目标
-
-一个本地仓库只创建一次提交，多个 remote 接收同一个提交。本项目默认推送到以下两个远端，不能因为分支只跟踪其中一个就省略另一个：
-
-| remote | 地址 | 默认目标分支 |
-| --- | --- | --- |
-| `github` | `https://github.com/jahnli/new-api` | 用户指定分支，否则当前分支 |
-| `gitlab` | `https://gitlab.semi-tech.com/eed/ai-gateway` | 与 GitHub 相同 |
-
-- 用户明确要求仅本地提交、仅推某个远端或指定其他目标时，以用户要求为准。
-- `upstream`（`QuantumNous/new-api`）仅用于拉取上游更新，不属于默认推送目标；不能遍历所有 remote 推送，也不能向它重试推送。
-- 提交前检查实际 remote URL 和目标分支。默认目标缺失或 URL 与上表不符时，先查明配置，不能静默跳过或替换远端。
-- 当前 `github` 与 `gitlab` 的 fetch refspec 共用 `refs/remotes/origin/*`；`origin/v1` 不能证明两个远端都已同步。分别用 `git ls-remote --heads github <目标分支>` 和 `git ls-remote --heads gitlab <目标分支>` 核对实际 tip。
-- 对其他本地仓库，按用户指定目标或该仓库约定推送；没有多远端约定时使用当前分支配置的上游，不套用本项目的远端地址。
-
-## 提交与核验
-
-- 每个目标仓库依次执行 `git add <明确文件>` 和 `git commit -m "..."`，记录提交哈希，再将同一提交依次推送到所有选定远端。只有用户明确要求仅本地提交时才跳过推送。
-- 本项目用户要求“提交到 v1”时，默认依次执行 `git push github v1:refs/heads/v1` 和 `git push gitlab v1:refs/heads/v1`；其他分支替换为实际目标分支。推送前确认所有目标远端都允许快进，推送期间不另外创建提交。
-- 不要自动使用 `--amend`、`--no-verify`、`--force`、`rebase` 或修改 Git 配置。
-- 提交完成后，逐个仓库检查 `git status --short` 和 `git log -1 --oneline`，报告提交哈希、仓库路径和提交标题。
-- 每个远端推送后查询其实际目标 tip，与记录的提交哈希比较。所有选定远端一致才算完成；“Everything up-to-date”也须核对实际 tip。
-- 逐个报告 remote、分支和结果。普通推送失败时保留完整错误输出，按下文处理 GitLab 提交信息校验失败；无法恢复时停止后续推送，明确已成功、失败和未执行的目标。保留本地提交供续接，不回滚已成功远端，也不能将部分同步报告为完成。
-
-## GitLab 提交信息校验失败
-
-普通推送明确因 GitLab 提交信息格式或 commitlint 校验失败时，读取并使用 `git-push-skip-lint` skill 的流程。先执行普通推送；确认属于该类失败后，保持失败命令的 remote、分支和 refspec，添加 `-o skip-lint` 重试。本项目通常为 `git push -o skip-lint gitlab v1:refs/heads/v1`，不得改用不存在的 `origin` 或切换到其他远端。
-
-不要因权限、认证、网络、分支落后、non-fast-forward、冲突、测试失败或安全扫描失败使用 `-o skip-lint`。重试仍失败时停止，不要强推、改写历史或继续修改提交。
+最后逐仓库查 `git status --short`、`git log -1 --oneline`，报告路径、哈希、英文标题与各远端/分支结果；区分只完成本地提交与完成全部推送。

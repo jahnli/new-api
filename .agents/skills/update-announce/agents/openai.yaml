@@ -1,0 +1,6 @@
+interface:
+  display_name: "功能更新公告"
+  short_description: "按当前项目名称和实际 Git 差异生成可复制的中文 Markdown 更新公告"
+  default_prompt: "使用 $update-announce 整理当前项目最近一个日历月的已提交功能变化，输出可复制的 Markdown 公告。"
+policy:
+  allow_implicit_invocation: false
