@@ -251,6 +251,7 @@ export function RequestNoticeButton(props: RequestNoticeButtonProps) {
                       placeholder={t('Select a target model series')}
                       searchPlaceholder={t('Search vendors')}
                       emptyText={t('No vendors found')}
+                      popupClassName='[&_[data-slot=combobox-list]]:max-h-[min(24rem,calc(var(--available-height)-0.5rem))]'
                       disabled={
                         notifyMutation.isPending || !vendorsQuery.isSuccess
                       }

@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
@@ -872,11 +873,21 @@ func GetUserModels(c *gin.Context) {
 			groupsToQuery = []string{group}
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    service.GetGroupsEnabledModels(groupsToQuery),
-	})
+	models := service.GetGroupsEnabledModels(groupsToQuery)
+	response := gin.H{"success": true, "message": "", "data": models}
+	if c.Query("playground") == "true" {
+		generation := jsplugin.DefaultRegistry.Generation()
+		if routes := generation.SystemOneRoutes(); len(routes) > 0 {
+			var supported []string
+			for _, name := range models {
+				if len(model.SystemOneModelRoutes(generation, routes, name)) > 0 {
+					supported = append(supported, name)
+				}
+			}
+			response["systemone_models"] = supported
+		}
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 func UpdateUser(c *gin.Context) {

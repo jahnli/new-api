@@ -68,6 +68,22 @@ func ResolveTaskPluginModel(g *jsplugin.RoutingGeneration, name string, models [
 	return target.Alias, target.Declared, true
 }
 
+// SystemOneModelRoutes matches the same declared models and channel aliases
+// when advertising the playground form and when submitting its request.
+func SystemOneModelRoutes(g *jsplugin.RoutingGeneration, routes []jsplugin.RouteBinding, name string) []jsplugin.RouteBinding {
+	var matches []jsplugin.RouteBinding
+	for _, binding := range routes {
+		models := binding.Route.Models
+		if len(models) == 0 {
+			models = binding.Plugin.Meta.Models
+		}
+		if _, _, ok := ResolveTaskPluginModel(g, name, models); ok {
+			matches = append(matches, binding)
+		}
+	}
+	return matches
+}
+
 func loadFreshTaskAliasView(g *jsplugin.RoutingGeneration) *taskAliasView {
 	view := taskAliasViewPtr.Load()
 	if taskAliasViewFresh(view, g.Number) {

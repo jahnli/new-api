@@ -301,6 +301,7 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 
 	// router/relay-router.go
 	"POST /pg/chat/completions": accessTokenSessionRule,
+	"POST /pg/systemone":        accessTokenSessionRule,
 
 	// Local dashboard extensions retain their role, department and ownership
 	// checks; token scopes are an additional restriction, never a replacement.

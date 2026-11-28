@@ -65,6 +65,7 @@ type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   defaultCollapsed?: boolean
   enableCollapse?: boolean
   filename?: string
+  fillHeight?: boolean
   language: BundledLanguage | string
   maxExpandedLines?: number
   /** @deprecated use collapsedLines for collapsed preview height. */
@@ -109,6 +110,7 @@ type CodeBlockFrameProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   bodyOverlay?: ReactNode
   children: ReactNode
   endActions?: ReactNode
+  fillHeight?: boolean
   showToolbar?: boolean
   title?: ReactNode
 }
@@ -428,6 +430,7 @@ export const CodeBlockFrame = ({
   children,
   className,
   endActions,
+  fillHeight = false,
   showToolbar = false,
   title,
   ...props
@@ -435,6 +438,7 @@ export const CodeBlockFrame = ({
   <div
     className={cn(
       'group/code-block bg-muted/20 text-foreground my-3 w-full max-w-full overflow-hidden rounded-lg border shadow-xs',
+      fillHeight && 'flex h-full min-h-0 flex-col',
       className
     )}
     {...props}
@@ -451,10 +455,11 @@ export const CodeBlockFrame = ({
         )}
       </div>
     )}
-    <div className='relative min-w-0'>
+    <div className={cn('relative min-w-0', fillHeight && 'min-h-0 flex-1')}>
       <div
         className={cn(
           'code-block-scroll max-w-full overflow-auto transition-[max-height] duration-200 ease-out',
+          fillHeight && 'absolute inset-0 overscroll-contain',
           bodyClassName
         )}
         style={{ maxHeight: bodyMaxHeight }}
@@ -472,6 +477,7 @@ export const CodeBlock = ({
   defaultCollapsed,
   enableCollapse = true,
   filename,
+  fillHeight = false,
   language,
   maxExpandedLines,
   maxCollapsedLines,
@@ -513,6 +519,7 @@ export const CodeBlock = ({
   return (
     <CodeBlockContext.Provider value={{ code, language: displayLanguage }}>
       <CodeBlockFrame
+        fillHeight={fillHeight}
         bodyClassName='p-0'
         bodyMaxHeight={bodyMaxHeight}
         bodyOverlay={

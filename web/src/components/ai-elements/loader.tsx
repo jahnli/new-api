@@ -104,16 +104,36 @@ const LoaderIcon = ({ size = 16 }: LoaderIconProps) => {
 
 export type LoaderProps = HTMLAttributes<HTMLDivElement> & {
   size?: number
+  variant?: 'spin' | 'dots'
 }
 
-export const Loader = ({ className, size = 16, ...props }: LoaderProps) => (
+export const Loader = ({
+  className,
+  size = 16,
+  variant = 'spin',
+  ...props
+}: LoaderProps) => (
   <div
     className={cn(
-      'inline-flex animate-spin items-center justify-center',
+      'inline-flex items-center justify-center',
+      variant === 'spin' && 'animate-spin',
+      variant === 'dots' && 'gap-1.5',
       className
     )}
     {...props}
   >
-    <LoaderIcon size={size} />
+    {variant === 'dots' ? (
+      <span
+        className='flex items-center justify-center gap-[15%]'
+        style={{ width: size, height: size }}
+        aria-hidden='true'
+      >
+        <span className='size-[20%] shrink-0 rounded-full bg-current motion-safe:animate-bounce motion-safe:[animation-duration:1.2s]' />
+        <span className='size-[20%] shrink-0 rounded-full bg-current motion-safe:animate-bounce motion-safe:[animation-delay:150ms] motion-safe:[animation-duration:1.2s]' />
+        <span className='size-[20%] shrink-0 rounded-full bg-current motion-safe:animate-bounce motion-safe:[animation-delay:300ms] motion-safe:[animation-duration:1.2s]' />
+      </span>
+    ) : (
+      <LoaderIcon size={size} />
+    )}
   </div>
 )

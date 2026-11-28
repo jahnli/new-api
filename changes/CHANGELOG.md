@@ -50,7 +50,7 @@
 | 053 | 2026-10-15 | 新增或未定价模型默认开启补全及缓存读取价格，表达式草稿包含零值缓存读取，已有配置保留。 | `web/src/features/system-settings/models/model-pricing-core.ts`、`web/src/features/system-settings/models/model-pricing-sheet.tsx` |
 | 054 | 2026-07-01 | 模型广场及定价编辑器默认每页 100 条。 | `web/src/features/pricing/constants.ts`、`web/src/features/system-settings/models/model-ratio-visual-editor.tsx` |
 | 055 | 2026-10-19 | 分组供应商倍率按统一优先级计费，定价响应加密；超级管理员维护有序推荐，广场按可见范围展示并自动横滑。 | [详情](details/055-pricing-square.md) |
-| 056 | 2026-11-27 | 使用日志支持多条件筛选、Token 语义统计和超级管理员导出。按 API 密钥名称筛选时，列表、统计与导出共用条件，可输入关键词或选定用户的同名密钥。桌面筛选栏顶部提供管理员「全部 / 仅自己」切换。列表显示 HTTP 或 WS 标记，日志详情与请求内容运行信息以独立「请求协议」行展示。HTTP 与 Responses WebSocket 请求按开关留存内容，整合分类通知、异常时段及 SMTP 审计，通知弹框采用紧凑的响应式预览布局。 | [详情](details/056-usage-logs-user-column.md) |
+| 056 | 2026-11-28 | 使用日志支持多条件筛选、Token 语义统计和超级管理员导出。按 API 密钥名称筛选时，列表、统计与导出共用条件，可输入关键词或选定用户的同名密钥。桌面筛选栏顶部提供管理员「全部 / 仅自己」切换。列表显示 HTTP 或 WS 标记，日志详情与请求内容运行信息以独立「请求协议」行展示。HTTP 与 Responses WebSocket 请求按开关留存内容，整合分类通知、异常时段及 SMTP 审计，通知弹框采用紧凑的响应式预览布局，目标模型系列下拉列表按可用空间增高。 | [详情](details/056-usage-logs-user-column.md) |
 | 057 | 2026-10-06 | 看板与 Flow 共用日期/粒度筛选，默认当天；管理员用户消耗分析及四类 Token 聚合统一。 | [详情](details/057-dashboard-filters.md) |
 | 058 | 2026-11-15 | 在线生图按型号配置生成/参考图编辑，支持流式与适用 GIF/SVG；并发单图、即时结果、排队保存，审计与历史共用开关。 | [详情](details/058-online-image-generation.md) |
 | 059 | 2026-07-04 | 排行榜 Token 数字仅超级管理员可见，热门模型悬浮列表显示连续排名。 | [详情](details/059-rankings-token-visibility.md) |
@@ -75,3 +75,4 @@
 | 081 | 2026-09-22 | 移除上游签到界面、接口、随机奖励和配置，停止迁移签到表，保留旧表。 | [详情](details/081-remove-checkin.md) |
 | 082 | 2026-10-28 | 精简渠道内置模型：多渠道清空，OpenAI/Claude/Codex/DeepSeek 保留当前少量项；清空 AWS ID 映射及模型跨区域支持表。 | [详情](details/082-channel-model-lists.md) |
 | 083 | 2026-11-06 | 报价同步支持 --group，默认 Basic；忽略大小写、去除首尾空白，拒绝空值或非唯一匹配。 | `scripts/sync_price_sheet.py` |
+| 084 | 2026-11-28 | 游乐场按插件声明的 SystemOne 协议识别 Jev、Laya 等决策模型及其渠道别名，提供是非、单选、评分表单与 JSON 模式；结果和原始响应分栏、框内滚动，输入与模型选择保留底部，普通聊天与决策逻辑独立。 | [详情](details/084-playground-decision-models.md) |

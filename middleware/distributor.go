@@ -568,7 +568,7 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 		}
 		c.Set("relay_mode", relayMode)
 	}
-	if strings.HasPrefix(c.Request.URL.Path, "/pg/") {
+	if strings.HasPrefix(c.Request.URL.Path, "/pg/") && c.GetString("resolved_task_model") == "" {
 		// playground requests (chat completions / image generations / image edits)
 		req, err := getModelFromRequest(c)
 		if err != nil {

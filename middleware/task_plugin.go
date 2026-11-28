@@ -1796,6 +1796,36 @@ func logTaskPluginChannelDecision(c *gin.Context, channel *model.Channel, modelN
 	)
 }
 
+func PreparePlaygroundSystemOne(c *gin.Context) {
+	if c.GetBool("use_access_token") {
+		abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgRelayAccessTokenUnsupported))
+		return
+	}
+	userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+	group := c.DefaultQuery("group", userGroup)
+	if group != userGroup && !service.GroupInUserUsableGroups(userGroup, group) {
+		abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
+		return
+	}
+	generation := pluginruntime.DefaultRegistry.Generation()
+	request, err := getModelFromRequest(c)
+	if err != nil {
+		abortWithOpenAiMessage(c, invalidRequestStatus(err), i18n.T(c, i18n.MsgDistributorInvalidRequest, map[string]any{"Error": err.Error()}))
+		return
+	}
+	routes := model.SystemOneModelRoutes(generation, generation.SystemOneRoutes(), request.Model)
+	if len(routes) == 0 {
+		abortWithWebMessage(c, http.StatusBadRequest, "", common.NewMessage("Model not found"))
+		return
+	}
+	c.Set(pluginruntime.ContextKeyPinnedRoute, pluginruntime.PinnedRoute{
+		Generation: generation, Plugin: routes[0].Plugin, Route: routes[0].Route, Candidates: routes,
+	})
+	common.SetContextKey(c, constant.ContextKeyUsingGroup, group)
+	_ = SetupContextForToken(c, &model.Token{UserId: c.GetInt("id"), Name: "playground-" + group, Group: group})
+	c.Next()
+}
+
 func PrepareTaskPluginSubmit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pluginKey := strings.TrimSpace(c.Param("key"))

@@ -123,6 +123,7 @@ export interface ParameterEnabled {
 
 // Model and group options
 export interface ModelOption {
+  systemOne?: boolean
   label: string
   value: string
 }

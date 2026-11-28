@@ -28,7 +28,7 @@ export async function sendChatCompletion(
  */
 export async function getUserModels(group: string): Promise<ModelOption[]> {
   const res = await api.get(API_ENDPOINTS.USER_MODELS, {
-    params: { group },
+    params: { group, playground: true },
   })
   const { data } = res
   requireServerSuccess(data)
@@ -37,7 +37,9 @@ export async function getUserModels(group: string): Promise<ModelOption[]> {
     return []
   }
 
+  const systemOneModels = new Set<string>(data.systemone_models ?? [])
   return data.data.map((model: string) => ({
+    systemOne: systemOneModels.has(model),
     label: model,
     value: model,
   }))

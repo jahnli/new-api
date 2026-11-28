@@ -197,6 +197,22 @@ func (g *RoutingGeneration) LookupDeclaredRoute(method, path string) (RouteBindi
 	return bindings[0], true
 }
 
+// SystemOneRoutes returns the plugin-scoped bindings for the decision protocol.
+// Each public route also has a scoped binding, including plugins that only
+// declare the scoped path. Use these so each decoder appears just once.
+func (g *RoutingGeneration) SystemOneRoutes() []RouteBinding {
+	if g == nil {
+		return nil
+	}
+	var bindings []RouteBinding
+	for _, binding := range g.routes {
+		if binding.Route.Method == http.MethodPost && binding.Route.Type == RouteTypeSubmit && binding.Route.Path == "/"+binding.Plugin.Meta.Key+"/v1/systemone" {
+			bindings = append(bindings, binding)
+		}
+	}
+	return bindings
+}
+
 // LookupDeclaredRoutes returns every binding of a path shape, in ascending
 // key order.
 func (g *RoutingGeneration) LookupDeclaredRoutes(method, path string) []RouteBinding {

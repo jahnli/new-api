@@ -20,6 +20,7 @@ type PlaygroundInputControlsProps = {
   onModelChange: (value: string) => void
   onStop?: () => void
   text: string
+  submitLabel?: string
   tools: ReactNode
 }
 
@@ -35,6 +36,7 @@ export function PlaygroundInputControls({
   onModelChange,
   onStop,
   text,
+  submitLabel,
   tools,
 }: PlaygroundInputControlsProps) {
   const { t } = useTranslation()
@@ -80,8 +82,8 @@ export function PlaygroundInputControls({
         variant='default'
       >
         <SendIcon size={16} />
-        <span className='hidden sm:inline'>{t('Send')}</span>
-        <span className='sr-only sm:hidden'>{t('Send')}</span>
+        <span className='hidden sm:inline'>{submitLabel ?? t('Send')}</span>
+        <span className='sr-only sm:hidden'>{submitLabel ?? t('Send')}</span>
       </PromptInputButton>
     )
 
