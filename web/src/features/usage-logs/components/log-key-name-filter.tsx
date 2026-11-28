@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { TextTooltip } from '@/components/text-tooltip'
 import {
   Combobox,
   ComboboxContent,
@@ -14,6 +15,7 @@ import { ComboboxInput as ChannelComboboxInput } from '@/components/ui/combobox-
 import { useDebounce } from '@/hooks/use-debounce'
 import { useDemoMode } from '@/hooks/use-demo-mode'
 import { getDemoModeUsername } from '@/lib/demo-mode'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { getLogKeySuggestions } from '../api'
@@ -87,11 +89,15 @@ export function LogKeyNameFilter({
     keyName: item.name,
     keyOwnerId: item.user_id,
     keyUsername: item.username && getDemoModeUsername(item.username, demoMode),
+    keyDisplayName:
+      item.display_name && getDemoModeUsername(item.display_name, demoMode),
   }))
-  const label = (item: LogKeyChoice) =>
-    isAdmin && item.keyUsername
-      ? `${item.keyName} · ${getDemoModeUsername(item.keyUsername, demoMode)}`
+  const label = (item: LogKeyChoice) => {
+    const ownerName = item.keyDisplayName || item.keyUsername
+    return isAdmin && ownerName
+      ? `${item.keyName} · ${getDemoModeUsername(ownerName, demoMode)}`
       : (item.keyName ?? '')
+  }
   let hint = ''
   if (!enabled || query.isLoading) hint = t('Loading...')
   else if (query.isError) hint = t('Failed to load')
@@ -155,20 +161,46 @@ export function LogKeyNameFilter({
       {canSuggest && (
         <ComboboxContent anchor={anchor}>
           <ComboboxList>
-            {(item: LogKeyChoice) => (
-              <ComboboxItem
-                key={JSON.stringify([item.keyOwnerId, item.keyName])}
-                value={item}
-              >
-                <span
-                  className={
-                    visible ? undefined : '[-webkit-text-security:disc]'
-                  }
+            {(item: LogKeyChoice) => {
+              const ownerName = isAdmin
+                ? getDemoModeUsername(
+                    item.keyDisplayName || item.keyUsername || '',
+                    demoMode
+                  )
+                : ''
+              return (
+                <ComboboxItem
+                  key={JSON.stringify([item.keyOwnerId, item.keyName])}
+                  value={item}
                 >
-                  {label(item)}
-                </span>
-              </ComboboxItem>
-            )}
+                  <span
+                    className={cn(
+                      'flex w-full min-w-0 items-center justify-between gap-4',
+                      !visible && '[-webkit-text-security:disc]'
+                    )}
+                  >
+                    <TextTooltip
+                      content={visible ? item.keyName : undefined}
+                      onlyWhenOverflow
+                    >
+                      <span className='min-w-0 flex-1 truncate'>
+                        {item.keyName}
+                      </span>
+                    </TextTooltip>
+                    {ownerName && (
+                      <TextTooltip
+                        content={visible ? ownerName : undefined}
+                        onlyWhenOverflow
+                      >
+                        <span className='text-muted-foreground max-w-1/2 min-w-0 truncate text-right'>
+                          {ownerName}
+                        </span>
+                      </TextTooltip>
+                    )}
+                  </span>
+                </ComboboxItem>
+              )
+            }}
           </ComboboxList>
           {hint && (
             <div

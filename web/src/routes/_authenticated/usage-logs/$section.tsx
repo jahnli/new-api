@@ -34,6 +34,7 @@ const usageLogsSearchSchema = z.object({
   keyName: z.string().optional().catch(undefined),
   keyOwnerId: z.number().int().positive().optional().catch(undefined),
   keyUsername: z.string().optional().catch(undefined),
+  keyDisplayName: z.string().optional().catch(undefined),
   userCategory: z.string().optional().catch(''),
   requestId: z.string().optional().catch(''),
   upstreamRequestId: z.string().optional().catch(''),

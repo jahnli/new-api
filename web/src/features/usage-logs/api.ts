@@ -92,7 +92,12 @@ export async function getLogKeySuggestions(
 ) {
   const res = await api.get<{
     success: boolean
-    data?: { name: string; user_id: number; username?: string }[]
+    data?: {
+      name: string
+      user_id: number
+      username?: string
+      display_name?: string
+    }[]
   }>(`${buildApiPath('/api/log', isAdmin)}/key-names`, {
     params: { keyword },
     signal,

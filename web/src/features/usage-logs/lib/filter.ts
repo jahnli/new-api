@@ -37,6 +37,7 @@ export function buildSearchParams(
         keyName: commonFilters.keyName,
         keyOwnerId: commonFilters.keyOwnerId,
         keyUsername: commonFilters.keyUsername,
+        keyDisplayName: commonFilters.keyDisplayName,
         ...(commonFilters.username && { username: commonFilters.username }),
         ...(commonFilters.userCategory && {
           userCategory: commonFilters.userCategory,

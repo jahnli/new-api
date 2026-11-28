@@ -38,9 +38,10 @@ func (f KeyNameFilter) apply(tx *gorm.DB) (*gorm.DB, error) {
 }
 
 type LogKeySuggestion struct {
-	Name     string `json:"name"`
-	UserID   int    `json:"user_id"`
-	Username string `json:"username,omitempty"`
+	Name        string `json:"name"`
+	UserID      int    `json:"user_id"`
+	Username    string `json:"username,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
 }
 
 func GetLogKeySuggestions(ctx context.Context, userID int, keyword string) ([]LogKeySuggestion, error) {
@@ -68,7 +69,7 @@ func GetLogKeySuggestions(ctx context.Context, userID int, keyword string) ([]Lo
 		tx = tx.Group("BINARY tokens.name")
 	}
 	if userID == 0 {
-		tx = tx.Joins("JOIN users ON users.id = tokens.user_id").Select("tokens.name, tokens.user_id, users.username").Group("users.username")
+		tx = tx.Joins("JOIN users ON users.id = tokens.user_id").Select("tokens.name, tokens.user_id, users.username, users.display_name").Group("users.username, users.display_name")
 	}
 	err := tx.Order("MAX(tokens.accessed_time) DESC, tokens.user_id, tokens.name").Limit(limit).Scan(&items).Error
 	return items, err

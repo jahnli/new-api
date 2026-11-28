@@ -107,6 +107,7 @@ function buildSearchSourceKey(values: {
   group?: unknown
   keyName?: unknown
   keyUsername?: unknown
+  keyDisplayName?: unknown
   keyOwnerId?: unknown
   username?: unknown
   requestId?: unknown
@@ -124,6 +125,7 @@ function buildSearchSourceKey(values: {
     values.keyName,
     values.keyOwnerId,
     values.keyUsername,
+    values.keyDisplayName,
     values.requestId,
     values.upstreamRequestId,
     values.userCategory,
@@ -233,6 +235,7 @@ export function CommonLogsFilterBar<TData>(
       keyName: searchParams.keyName,
       keyOwnerId: searchParams.keyOwnerId,
       keyUsername: searchParams.keyUsername,
+      keyDisplayName: searchParams.keyDisplayName,
       channel: searchParams.channel,
       model: searchParams.model,
       group: searchParams.group,
@@ -250,6 +253,7 @@ export function CommonLogsFilterBar<TData>(
       keyName: searchParams.keyName,
       keyOwnerId: searchParams.keyOwnerId,
       keyUsername: searchParams.keyUsername,
+      keyDisplayName: searchParams.keyDisplayName,
       channel: searchParams.channel || undefined,
       model: searchParams.model || undefined,
       group: searchParams.group || undefined,
@@ -273,6 +277,7 @@ export function CommonLogsFilterBar<TData>(
     searchParams.keyName,
     searchParams.keyOwnerId,
     searchParams.keyUsername,
+    searchParams.keyDisplayName,
     searchParams.userCategory,
     searchParams.requestId,
     searchParams.upstreamRequestId,
@@ -447,6 +452,7 @@ export function CommonLogsFilterBar<TData>(
             keyName: undefined,
             keyOwnerId: undefined,
             keyUsername: undefined,
+            keyDisplayName: undefined,
           }
           setDraft({ ...activeDraft, filters: next })
           if (searchState.filters.keyName) {
@@ -458,6 +464,7 @@ export function CommonLogsFilterBar<TData>(
                 keyName: undefined,
                 keyOwnerId: undefined,
                 keyUsername: undefined,
+                keyDisplayName: undefined,
                 commonPage: undefined,
               },
             })
@@ -694,6 +701,7 @@ export function CommonLogsFilterBar<TData>(
             keyName: choice.keyName,
             keyOwnerId: choice.keyOwnerId,
             keyUsername: choice.keyUsername,
+            keyDisplayName: choice.keyDisplayName,
           }
           setDraft({ ...activeDraft, filters: next })
           if (apply) handleApply(next)

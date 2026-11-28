@@ -53,6 +53,7 @@ export interface LogKeyChoice {
   keyName?: string
   keyOwnerId?: number
   keyUsername?: string
+  keyDisplayName?: string
 }
 
 export interface CommonLogFilters extends CommonFilters, LogKeyChoice {
