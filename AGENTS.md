@@ -181,6 +181,11 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - **数字格式化与 Intl 语言参数（强制）：** 普通数字和紧凑数字展示复用 `@/lib/format`，金额使用 `@/lib/currency`，保留各格式化器的精度与单位语义。`zhCN` / `zhTW` 等界面语言代码不是有效的 Intl locale；传入 `Intl.*`、`toLocaleString` / `toLocaleDateString` / `toLocaleTimeString` 或语言相关格式化函数前，必须使用 `@/i18n/languages` 的 `toIntlLocale` 转换。不得重复定义语言映射或通过别名传递原始代码。具体 lint 要求遵循 `web/AGENTS.md`。
 - 详细前端约定（TypeScript、组件结构、样式、可访问性与构建检查）以 `web/AGENTS.md` 为准。
 
+### Issue
+
+- 当前 Git 用户是仓库历史核心开发者之一时，Issue 使用自然、简短的正文，跳过 Agent 模板。
+- 其他情况下，创建 GitHub Issue 前必须完成 `.agents/github/CHECKS.md` 的适用性、事实与重复项检查；不满足时说明原因且不创建。通过后使用 `.agents/github/ISSUE.md` 作为完整正文，不使用 GitHub Issue 表单。
+
 ### 拉取请求
 
 - 创建拉取请求前，先比较当前 Git 用户（`git config user.name` / `git config user.email`）与仓库历史核心开发者（例如 `git log` 中反复出现的主要作者）；不得修改 Git 配置。
