@@ -89,8 +89,8 @@ func SetApiRouter(router *gin.Engine) {
 			imageStudioRoute.DELETE("/generations", controller.ClearImageStudioGenerations)
 		}
 		apiRouter.GET("/verification", middleware.EmailVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendEmailVerification)
-		apiRouter.GET("/reset_password", middleware.CriticalRateLimit(), middleware.TurnstileCheck(), controller.SendPasswordResetEmail)
-		apiRouter.POST("/user/reset", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.ResetPassword)
+		apiRouter.GET("/reset_password", middleware.CriticalRateLimit(), middleware.DisableCache(), middleware.TurnstileCheck(), controller.SendPasswordResetEmail)
+		apiRouter.POST("/user/reset", middleware.CriticalRateLimit(), middleware.DisableCache(), anonymousRequestBodyLimit, controller.ResetPassword)
 		// OAuth routes - specific routes must come before :provider wildcard
 		apiRouter.POST("/oauth/oidc/backchannel-logout", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.OIDCBackchannelLogout)
 		apiRouter.POST("/oauth/oidc/silent", middleware.BrowserOriginGuard(), middleware.CriticalRateLimit(), middleware.DisableCache(), anonymousRequestBodyLimit, controller.CompleteSilentOIDCLogin)
@@ -521,6 +521,7 @@ func SetApiRouter(router *gin.Engine) {
 			modelsRoute.POST("/sync_upstream", controller.SyncUpstreamModels)
 			modelsRoute.POST("/delete", controller.BatchDeleteModelMeta)
 			modelsRoute.GET("/missing", controller.GetMissingModels)
+			modelsRoute.GET("/square_usage", controller.GetModelSquareUsage)
 			modelsRoute.GET("/", controller.GetAllModelsMeta)
 			modelsRoute.GET("/search", controller.SearchModelsMeta)
 			modelsRoute.GET("/:id", controller.GetModelMeta)

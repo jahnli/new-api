@@ -1794,6 +1794,7 @@ func TestServeTaskPluginImageProtocolSubmissionErrorUsesOpenAIEnvelope(t *testin
 // cancel that call or refund a durable result: the task row, its settlement
 // and its consume log stay, and nothing is written to the closed connection.
 func TestServeTaskPluginImageProtocolDisconnectDuringSubmissionKeepsDurableSettlement(t *testing.T) {
+	image := "data:image/png;base64," + strings.Repeat("QUFB", (1<<18)+1)
 	events := make([]string, 0, 3)
 	database := setupTaskSubmissionDatabase(t, true, &events)
 	previousLogConsumeEnabled := common.LogConsumeEnabled
@@ -1833,8 +1834,8 @@ func TestServeTaskPluginImageProtocolDisconnectDuringSubmissionKeepsDurableSettl
 				UpstreamTaskID: "task_image_disconnect",
 				Platform:       constant.TaskPlatform(pinned.Plugin.Meta.Key),
 				Quota:          7,
-				TaskData:       []byte(`{"images":["https://cdn.example/1.png"]}`),
-				Immediate:      &relaycommon.TaskInfo{Status: model.TaskStatusSuccess, Progress: "100%"},
+				TaskData:       []byte(`{"images":["` + image + `"]}`),
+				Immediate:      &relaycommon.TaskInfo{Status: model.TaskStatusSuccess, Progress: "100%", Url: image},
 			}, nil
 		})
 	}
@@ -1863,6 +1864,8 @@ func TestServeTaskPluginImageProtocolDisconnectDuringSubmissionKeepsDurableSettl
 	assert.Equal(t, model.TaskStatus(model.TaskStatusSuccess), persisted.Status)
 	assert.Equal(t, 7, persisted.Quota)
 	assert.True(t, persisted.PrivateData.ResultDiscarded, "the inline image result is not retained after the barrier")
+	assert.Empty(t, persisted.Data)
+	assert.Empty(t, persisted.PrivateData.ResultURL)
 	assert.Zero(t, polls, "an immediate result is never polled")
 	assert.False(t, c.Writer.Written())
 	assert.Empty(t, recorder.Body.String())

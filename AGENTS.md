@@ -8,7 +8,7 @@ DO NOT send optional commentary
 
 ## 技术栈
 
-- **后端**: Go 1.26（根模块与 `tokenkit/`）、Go 1.25.1（`relaykit/`）（以各模块 `go.mod` 为准）、Gin Web 框架、GORM v2 ORM
+- **后端**: Go 1.26（根模块与 `tokenkit/`）、Go 1.25.1（`relaykit/` 与 `pluginkit/`）（以各模块 `go.mod` 为准）、Gin Web 框架、GORM v2 ORM
 - **前端**: React 19、TypeScript、Rsbuild 2、TanStack Router/Query/Table、Zustand、Base UI、Tailwind CSS 4
 - **数据库**: 主库 SQLite、MySQL、PostgreSQL（三者必须同时支持）；独立配置的日志库还支持 ClickHouse
 - **缓存**: Redis (go-redis) + 内存缓存
@@ -43,7 +43,8 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - Go 网关在 `router/`、`middleware/`、`controller/`、`service/`、`model/`、`relay/` 中承担管理 API、上游中继、计费与后台任务。
 - `relaykit/` 是独立的 Go 模块，只承载协议 DTO 与协议转换；传输、认证、数据库访问与计费逻辑保留在宿主模块中。
 - `tokenkit/` 是独立的 Go 模块，负责文本与图片的 Token 计数与估算；请求解析、文件加载与计费逻辑保留在宿主模块中。
-- JavaScript 任务插件位于 `plugins/tasks/`，经 `pkg/jsplugin/` 执行，并与宿主任务轮询与结算集成。
+- `pluginkit/` 是独立的 Go 模块，承载插件 API v1 契约、文档、工具及 moejs 执行层；`pkg/jsplugin/` 保留注册表、路由和 CLI，并通过类型别名兼容现有接口。
+- JavaScript 任务插件位于 `plugins/tasks/`，经 `pluginkit/` 和 `pkg/jsplugin/` 执行，并与宿主任务轮询与结算集成。
 - `web/` 是 React 前端（详见 `web/AGENTS.md`）；`electron/` 是桌面壳。
 
 ## 国际化 (i18n)
@@ -101,10 +102,10 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 - 只有在确认当前 JSON 编码器输出不变的前提下，才移除非指针结构体字段上无效的 `omitempty` 标签。不得在样式清理中改变字段类型或省略行为；可选的中继标量字段仍须遵守下文的指针规则。
 - 完成上述改动后，对修改过的 Go 文件执行 `gofmt` 并移除未使用的 import。
 
-**RelayKit / tokenkit 模块独立性：** `relaykit/` 与 `tokenkit/` Go 模块必须始终能够独立构建。
+**RelayKit / tokenkit / pluginkit 模块独立性：** `relaykit/`、`tokenkit/` 与 `pluginkit/` Go 模块必须始终能够独立构建。
 
-- `relaykit/` 与 `tokenkit/` 下的代码不得导入或依赖根 `new-api` 模块中的包，也不得依赖仅存在于根模块的配置、生成文件或 workspace 连接；`tokenkit/` 还不得依赖 `relaykit/`。
-- 任何影响 `relaykit/`、`tokenkit/` 或其公共 API 的变更，都必须在该模块内执行 `GOWORK=off go build ./...` 验证；仅根模块构建成功并不足够。
+- `relaykit/`、`tokenkit/` 与 `pluginkit/` 下的代码不得导入或依赖根 `new-api` 模块中的包，也不得依赖仅存在于根模块的配置、生成文件或 workspace 连接；`tokenkit/` 还不得依赖 `relaykit/`；`pluginkit/` 可以依赖 `relaykit/`，宿主配置通过 `pluginkit.Configure` 注入。
+- 任何影响 `relaykit/`、`tokenkit/`、`pluginkit/` 或其公共 API 的变更，都必须在该模块内执行 `GOWORK=off go build ./...` 验证；仅根模块构建成功并不足够。
 
 **JSON 包：** 所有 JSON 序列化/反序列化操作必须使用 `common/json.go` 中的封装函数：
 
@@ -116,7 +117,7 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 
 禁止在业务代码中直接导入或调用 `encoding/json`。`json.RawMessage`、`json.Number` 等 `encoding/json` 中的类型定义仍可作为类型引用，但实际的序列化/反序列化调用必须通过 `common.*` 进行。
 
-在 `relaykit/` 内，请使用 `relaykit/relayconvert/kitutil/json.go` 提供的 `kitutil.*`，绝不使用宿主模块的 `common`；直接调用编码器只允许出现在 codec 实现内部。
+在 `relaykit/` 内，请使用 `relaykit/relayconvert/kitutil/json.go` 提供的 `kitutil.*`，绝不使用宿主模块的 `common`；在 `pluginkit/` 内使用 `pluginkit/json.go` 的封装函数。直接调用编码器只允许出现在 codec 实现内部。
 
 **数据库兼容性：** 所有数据库代码必须同时兼容 SQLite、MySQL >= 5.7.8 和 PostgreSQL >= 9.6。
 
@@ -145,7 +146,7 @@ web/           — 前端（React 19、Rsbuild、Base UI、Tailwind）
 
 **JavaScript 任务插件（强制）：**
 
-- 在实现、修改或审查 JavaScript 任务插件或其宿主 API/运行时之前，必须先阅读 [Task Plugin API v1](docs/plugin-api/v1.md)，包括其中的描述撰写与翻译约定。变更插件契约时，还要同步检查 `docs/plugin-api/v1.schema.json` 与 `docs/plugin-api/v1.d.ts` 保持一致。
+- 在实现、修改或审查 JavaScript 任务插件或其宿主 API/运行时之前，必须先阅读 [Task Plugin API v1](pluginkit/v1.md)，包括其中的描述撰写与翻译约定。变更插件契约时，还要同步检查 `pluginkit/v1.schema.json` 与 `pluginkit/v1.d.ts` 保持一致。
 - `usageSchema` 与 `usageProfiles[].schema` 中的数值计费字段，其 `description` 必须写明**计费对象 + 单价**，因为它会作为 UI 上价格输入项的标签。例如 `image_count` 使用 `Image generation unit price` / `图片生成单价`，而不是 `Generated image count` / `生成图片张数`；`seconds` 使用 `Video generation unit price` / `视频生成单价`。字段值仍是使用量，不是价格。
 - 单位写入 `unit`。协议限制、用量来源、默认值、估算与结算细节放在代码注释或技术文档中。描述必须简短、各语言间等价、不含具体价格数字、结尾不带标点。动作、布尔与其他枚举条件的措辞遵循 API 文档的单独规则。
 - 完成插件工作前显式复核元数据措辞。上述属于撰写要求：编译通过、schema 校验通过或测试通过都不能证明描述符合要求。
